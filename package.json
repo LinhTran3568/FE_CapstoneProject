@@ -1,0 +1,33 @@
+{
+  "name": "ticketshield-ai-monorepo",
+  "private": true,
+  "version": "1.0.0",
+  "description": "TicketShield AI - AI-Based Bot Detection & Verified Peer-to-Peer Resale Platform for Event Tickets in Vietnam",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "start": "npm run dev --workspace=apps/mobile",
+    "dev": "npm run dev --workspace=apps/web",
+    "dev:web": "npm run dev --workspace=apps/web",
+    "dev:mobile": "npm run dev --workspace=apps/mobile",
+    "build:web": "npm run build --workspace=apps/web",
+    "build:mobile": "npm run build --workspace=apps/mobile",
+    "typecheck": "npm run typecheck --workspace=apps/web && npm run typecheck --workspace=apps/mobile",
+    "lint": "npm run lint --workspace=apps/web && npm run lint --workspace=apps/mobile",
+    "test": "npm run test --workspace=apps/web"
+  },
+  "keywords": [
+    "ticketshield",
+    "bot-detection",
+    "ticket-resale",
+    "vietnam",
+    "escrow",
+    "react",
+    "react-native",
+    "monorepo"
+  ],
+  "author": "TicketShield AI Team",
+  "license": "MIT"
+}
