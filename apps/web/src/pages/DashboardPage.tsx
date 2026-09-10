@@ -1,69 +1,33 @@
 import React from 'react';
 import { useAuthStore } from '../stores/authStore';
-import { useMyTickets } from '../hooks/useTickets';
-import { DigitalTicketCard } from '../components/ticket/DigitalTicketCard';
-import { Link } from 'react-router-dom';
-import { ShieldCheck, Ticket, Store, Lock, History, AlertTriangle } from 'lucide-react';
-import { Button } from '../components/ui/Button';
+import { LayoutDashboard, User as UserIcon } from 'lucide-react';
+import { Card } from '../components/ui/Card';
 
 export const DashboardPage: React.FC = () => {
   const { user } = useAuthStore();
-  const { data: tickets, isLoading } = useMyTickets();
 
   return (
     <div className="space-y-8 py-6">
-      {/* Profile Header */}
-      <div className="bg-navy-850 p-6 rounded-3xl border border-navy-750 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <div className="flex items-center gap-4">
-          <img
-            src={user?.avatarUrl}
-            alt={user?.fullName}
-            className="w-16 h-16 rounded-2xl object-cover border-2 border-cyan-400/50 shadow-glow-cyan"
-          />
-          <div>
-            <div className="flex items-center gap-2">
-              <h1 className="text-xl font-bold text-white">{user?.fullName}</h1>
-              <span className="bg-cyan-500/10 text-cyan-400 border border-cyan-500/30 text-xs font-semibold px-2.5 py-0.5 rounded-full">
-                {user?.role}
-              </span>
-            </div>
-            <p className="text-xs text-slate-400 mt-0.5">{user?.email} • {user?.phoneNumber}</p>
-          </div>
+      {/* Profile Header Skeleton */}
+      <div className="bg-navy-850 p-6 rounded-3xl border border-navy-750 flex items-center gap-4">
+        <div className="w-12 h-12 rounded-2xl bg-cyan-500/20 text-cyan-400 flex items-center justify-center font-bold text-lg">
+          <UserIcon className="w-6 h-6" />
         </div>
-
-        <div className="flex gap-3">
-          <Link to="/tickets/verify">
-            <Button size="sm" variant="outline" className="flex items-center gap-1.5">
-              <ShieldCheck className="w-4 h-4" /> Xác Thực Vé Bán
-            </Button>
-          </Link>
-          <Link to="/marketplace">
-            <Button size="sm" className="flex items-center gap-1.5 font-bold">
-              <Store className="w-4 h-4" /> Mua Vé Verified
-            </Button>
-          </Link>
+        <div>
+          <h1 className="text-xl font-bold text-white">{user?.fullName || 'Người dùng'}</h1>
+          <p className="text-xs text-slate-400 mt-0.5">{user?.email || 'email@example.com'}</p>
         </div>
       </div>
 
-      {/* Tickets List */}
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <h2 className="text-lg font-bold text-white flex items-center gap-2">
-            <Ticket className="w-5 h-5 text-cyan-400" /> Vé Của Tôi Trong Ví (Digital Tickets)
-          </h2>
-          <span className="text-xs text-slate-400">Tự động làm mới mã QR Check-in động</span>
-        </div>
-
-        {isLoading ? (
-          <div className="h-64 bg-navy-800 rounded-2xl animate-pulse" />
-        ) : (
-          <div className="space-y-6">
-            {tickets?.map((t) => (
-              <DigitalTicketCard key={t.id} ticket={t} />
-            ))}
-          </div>
-        )}
-      </div>
+      {/* Dashboard Main Content Area */}
+      <Card hoverGlow className="p-8 text-center space-y-3">
+        <LayoutDashboard className="w-10 h-10 text-cyan-400 mx-auto" />
+        <h2 className="text-lg font-bold text-white">Khung Dashboard Người Dùng</h2>
+        <p className="text-xs text-slate-400 max-w-md mx-auto leading-relaxed">
+          Khu vực này dành cho nội dung quản lý cá nhân, tích hợp dữ liệu từ Backend API khi sẵn sàng.
+        </p>
+      </Card>
     </div>
   );
 };
+

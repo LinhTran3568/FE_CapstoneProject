@@ -2,7 +2,6 @@ import React from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { loginSchema, LoginFormData } from '@ticketshield/validation';
-import { authApi } from '@ticketshield/api-client';
 import { useAuthStore } from '../stores/authStore';
 import { useUIStore } from '../stores/uiStore';
 import { useNavigate, Link } from 'react-router-dom';
@@ -21,15 +20,14 @@ export const LoginPage: React.FC = () => {
   } = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
-      email: 'nguyen.van.a@gmail.com',
-      password: 'password123',
+      email: '',
+      password: '',
     },
   });
 
   const onSubmit = async (data: LoginFormData) => {
     try {
-      const res = await authApi.login(data);
-      login(res.user, res.token);
+      // API call placeholder
       showToast('Đăng nhập thành công!', 'success');
       navigate('/dashboard');
     } catch (err: any) {
@@ -44,8 +42,8 @@ export const LoginPage: React.FC = () => {
           <div className="w-12 h-12 rounded-2xl bg-cyan-500/20 text-cyan-400 mx-auto flex items-center justify-center">
             <ShieldCheck className="w-7 h-7" />
           </div>
-          <h1 className="text-2xl font-bold text-white">Đăng Nhập TicketShield</h1>
-          <p className="text-xs text-slate-400">Truy cập tài khoản được bảo vệ bởi xác thực sinh trắc học & AI</p>
+          <h1 className="text-2xl font-bold text-white">Đăng Nhập</h1>
+          <p className="text-xs text-slate-400">Nhập thông tin tài khoản của bạn để tiếp tục</p>
         </div>
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
@@ -55,6 +53,7 @@ export const LoginPage: React.FC = () => {
               <Mail className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
               <input
                 type="email"
+                placeholder="name@example.com"
                 {...register('email')}
                 className="w-full bg-navy-900 border border-navy-700 rounded-xl pl-9 pr-4 py-2.5 text-sm text-white focus:outline-none focus:border-cyan-500"
               />
@@ -68,6 +67,7 @@ export const LoginPage: React.FC = () => {
               <Lock className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
               <input
                 type="password"
+                placeholder="••••••••"
                 {...register('password')}
                 className="w-full bg-navy-900 border border-navy-700 rounded-xl pl-9 pr-4 py-2.5 text-sm text-white focus:outline-none focus:border-cyan-500"
               />
@@ -76,7 +76,7 @@ export const LoginPage: React.FC = () => {
           </div>
 
           <Button type="submit" isLoading={isSubmitting} size="lg" className="w-full font-bold shadow-glow-cyan">
-            Đăng Nhập Ngay
+            Đăng Nhập
           </Button>
         </form>
 
@@ -90,3 +90,4 @@ export const LoginPage: React.FC = () => {
     </div>
   );
 };
+

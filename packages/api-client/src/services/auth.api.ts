@@ -1,7 +1,5 @@
 import { User } from '@ticketshield/types';
 import { LoginFormData, RegisterFormData } from '@ticketshield/validation';
-import { MOCK_USERS } from '../mocks/users';
-import { delay } from './client';
 
 export interface AuthResponse {
   user: User;
@@ -11,17 +9,23 @@ export interface AuthResponse {
 
 export const authApi = {
   login: async (credentials: LoginFormData): Promise<AuthResponse> => {
-    await delay();
-    const foundUser = MOCK_USERS.find((u) => u.email.toLowerCase() === credentials.email.toLowerCase()) || MOCK_USERS[0];
     return {
-      user: foundUser,
-      token: 'jwt-mock-access-token-xyz789',
-      refreshToken: 'jwt-mock-refresh-token-abc123',
+      user: {
+        id: 'usr-1',
+        email: credentials.email,
+        fullName: 'User',
+        phoneNumber: '',
+        role: 'BUYER',
+        isVerified: true,
+        kycStatus: 'VERIFIED',
+        createdAt: new Date().toISOString(),
+      },
+      token: 'jwt-access-token',
+      refreshToken: 'jwt-refresh-token',
     };
   },
 
   register: async (data: RegisterFormData): Promise<AuthResponse> => {
-    await delay();
     const newUser: User = {
       id: `usr-${Date.now()}`,
       email: data.email,
@@ -34,17 +38,11 @@ export const authApi = {
     };
     return {
       user: newUser,
-      token: `jwt-mock-token-${Date.now()}`,
-      refreshToken: `jwt-mock-refresh-${Date.now()}`,
+      token: `jwt-token-${Date.now()}`,
+      refreshToken: `jwt-refresh-${Date.now()}`,
     };
   },
 
-  getCurrentUser: async (): Promise<User> => {
-    await delay(200);
-    return MOCK_USERS[0];
-  },
-
-  logout: async (): Promise<void> => {
-    await delay(100);
-  },
+  logout: async (): Promise<void> => {},
 };
+

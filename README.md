@@ -1,26 +1,26 @@
-# TicketShield AI - Frontend Codebase Foundation
+# Capstone FE - Frontend Monorepo Framework
 
-> **AI-Based Bot Detection & Verified Peer-to-Peer Resale Platform for Event Ticket Payments in Vietnam**
+> **Clean Production-Ready Monorepo Architecture for Capstone Project**
 
 ---
 
 ## 🛡️ Overview
 
-TicketShield AI is a modern monorepo frontend codebase engineered for high-demand ticket sales, verified P2P resale marketplaces, bot detection risk assessment, escrow payment protection, venue check-in verification, and admin monitoring.
+This repository provides a clean, modular Front-End framework setup using a modern monorepo architecture. All excess mock databases and bloated pages have been removed to ensure a clean codebase ready for custom feature development and backend API integration.
 
 ---
 
 ## 🏗️ Monorepo Architecture
 
 ```
-ticketshield-ai/
+FE_CapstoneProject/
 ├── apps/
-│   ├── web/         # React 18 + Vite + Tailwind CSS + Recharts Web App
-│   └── mobile/      # React Native + Expo + Expo Router Mobile App
+│   ├── web/         # React 18 + Vite + Tailwind CSS Web App Framework
+│   └── mobile/      # React Native + Expo + Expo Router Mobile App Framework
 ├── packages/
-│   ├── types/       # Shared TypeScript domain models & discriminated unions
+│   ├── types/       # Shared TypeScript domain models & interfaces
 │   ├── validation/  # Zod validation schemas for forms
-│   └── api-client/  # Mock API layer & Spring Boot REST API client abstraction
+│   └── api-client/  # Clean REST API client abstraction layer
 └── docs/            # Architecture & API documentation
 ```
 
@@ -44,28 +44,18 @@ npm run typecheck
 
 ---
 
-## 🔑 Core Features & Navigation
+## 🔑 Application Routes & Layout Structure
 
-### Web Application Routes
-- **Public**: `/`, `/events`, `/events/:eventId`, `/marketplace`, `/marketplace/:listingId`, `/login`, `/register`, `/forgot-password`
-- **Buyer**: `/dashboard`, `/my-tickets`, `/orders`, `/orders/:orderId`, `/wallet`, `/notifications`, `/profile`
-- **Reseller**: `/seller`, `/seller/listings`, `/seller/listings/new`, `/seller/listings/:listingId`, `/seller/sales`, `/seller/earnings`
-- **Verification**: `/tickets/verify`, `/tickets/verify/result`
-- **Checkout**: `/checkout/:listingId`, `/checkout/:listingId/payment`, `/checkout/:listingId/security-check`, `/checkout/:listingId/success`
-- **Dispute**: `/disputes`, `/disputes/:disputeId`
-- **Admin**: `/admin`, `/admin/bot-detection`, `/admin/resale-monitoring`, `/admin/listings`, `/admin/users`, `/admin/disputes`, `/admin/transactions`, `/admin/audit-logs`
-- **Organizer**: `/organizer`, `/organizer/events`, `/organizer/tickets`, `/organizer/transfers`, `/organizer/api`
+### Web Application Routes (`apps/web`)
+- `/` -> `HomePage` (Clean FE Framework Landing Shell)
+- `/login` -> `LoginPage` (Clean Authentication Form)
+- `/register` -> `RegisterPage` (Clean Registration Form)
+- `/dashboard` -> `DashboardPage` (Protected User Dashboard Framework)
 
-### Mobile Application Tabs
-- **Home**: Upcoming events, security trust banner, quick action tiles.
-- **Marketplace**: Verified resale listing search with VND prices.
-- **My Tickets**: Mobile QR digital ticket viewer with TicketShield verification badge.
-- **Orders**: Purchase history and escrow status tracking.
-- **Profile**: Account management and security settings.
+### Mobile Application Tabs (`apps/mobile`)
+- `(tabs)/index` -> Home Mobile Screen Placeholder
+- `(tabs)/marketplace` -> Marketplace Screen Placeholder
+- `(tabs)/tickets` -> Tickets Screen Placeholder
+- `(tabs)/orders` -> Orders Screen Placeholder
+- `(tabs)/profile` -> Profile Screen Placeholder
 
----
-
-## 🔒 Security & Bot Detection Flow
-- Session behavioral monitoring: Request velocity, mouse/touch entropy, device fingerprint hash.
-- Bot decision state engine: `ALLOWED` (low risk), `THROTTLED` (security challenge required), `BLOCKED` (high risk bot automated traffic).
-- Escrow protection holding payment until successful event entry confirmation.

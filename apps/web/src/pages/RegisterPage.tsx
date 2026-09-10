@@ -2,11 +2,10 @@ import React from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { registerSchema, RegisterFormData } from '@ticketshield/validation';
-import { authApi } from '@ticketshield/api-client';
 import { useAuthStore } from '../stores/authStore';
 import { useUIStore } from '../stores/uiStore';
 import { useNavigate, Link } from 'react-router-dom';
-import { ShieldCheck, User, Mail, Lock, Phone } from 'lucide-react';
+import { ShieldCheck } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 
 export const RegisterPage: React.FC = () => {
@@ -21,20 +20,19 @@ export const RegisterPage: React.FC = () => {
   } = useForm<RegisterFormData>({
     resolver: zodResolver(registerSchema),
     defaultValues: {
-      fullName: 'Trần Minh Anh',
-      email: 'minhanh.tran@gmail.com',
-      phoneNumber: '0909888777',
-      password: 'Password123!',
-      confirmPassword: 'Password123!',
+      fullName: '',
+      email: '',
+      phoneNumber: '',
+      password: '',
+      confirmPassword: '',
       role: 'BUYER',
-      acceptTerms: true,
+      acceptTerms: false,
     },
   });
 
   const onSubmit = async (data: RegisterFormData) => {
     try {
-      const res = await authApi.register(data);
-      login(res.user, res.token);
+      // API call placeholder
       showToast('Đăng ký tài khoản thành công!', 'success');
       navigate('/dashboard');
     } catch (err: any) {
@@ -49,8 +47,8 @@ export const RegisterPage: React.FC = () => {
           <div className="w-12 h-12 rounded-2xl bg-cyan-500/20 text-cyan-400 mx-auto flex items-center justify-center">
             <ShieldCheck className="w-7 h-7" />
           </div>
-          <h1 className="text-2xl font-bold text-white">Đăng Ký TicketShield</h1>
-          <p className="text-xs text-slate-400">Tạo tài khoản giao dịch vé chính chủ xác thực AI</p>
+          <h1 className="text-2xl font-bold text-white">Đăng Ký Tài Khoản</h1>
+          <p className="text-xs text-slate-400">Điền thông tin để tạo tài khoản mới</p>
         </div>
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
@@ -58,6 +56,7 @@ export const RegisterPage: React.FC = () => {
             <label className="block text-xs font-semibold text-slate-300 mb-1">Họ và Tên</label>
             <input
               type="text"
+              placeholder="Nguyễn Văn A"
               {...register('fullName')}
               className="w-full bg-navy-900 border border-navy-700 rounded-xl px-4 py-2 text-sm text-white focus:outline-none focus:border-cyan-500"
             />
@@ -68,6 +67,7 @@ export const RegisterPage: React.FC = () => {
             <label className="block text-xs font-semibold text-slate-300 mb-1">Email</label>
             <input
               type="email"
+              placeholder="name@example.com"
               {...register('email')}
               className="w-full bg-navy-900 border border-navy-700 rounded-xl px-4 py-2 text-sm text-white focus:outline-none focus:border-cyan-500"
             />
@@ -75,9 +75,10 @@ export const RegisterPage: React.FC = () => {
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-slate-300 mb-1">Số Điện Thoại (VN)</label>
+            <label className="block text-xs font-semibold text-slate-300 mb-1">Số Điện Thoại</label>
             <input
               type="text"
+              placeholder="0901234567"
               {...register('phoneNumber')}
               className="w-full bg-navy-900 border border-navy-700 rounded-xl px-4 py-2 text-sm text-white focus:outline-none focus:border-cyan-500"
             />
@@ -88,6 +89,7 @@ export const RegisterPage: React.FC = () => {
             <label className="block text-xs font-semibold text-slate-300 mb-1">Mật khẩu</label>
             <input
               type="password"
+              placeholder="••••••••"
               {...register('password')}
               className="w-full bg-navy-900 border border-navy-700 rounded-xl px-4 py-2 text-sm text-white focus:outline-none focus:border-cyan-500"
             />
@@ -98,27 +100,16 @@ export const RegisterPage: React.FC = () => {
             <label className="block text-xs font-semibold text-slate-300 mb-1">Xác nhận mật khẩu</label>
             <input
               type="password"
+              placeholder="••••••••"
               {...register('confirmPassword')}
               className="w-full bg-navy-900 border border-navy-700 rounded-xl px-4 py-2 text-sm text-white focus:outline-none focus:border-cyan-500"
             />
             {errors.confirmPassword && <p className="text-xs text-red-400 mt-1">{errors.confirmPassword.message}</p>}
           </div>
 
-          <div>
-            <label className="block text-xs font-semibold text-slate-300 mb-1">Vai trò sử dụng chính</label>
-            <select
-              {...register('role')}
-              className="w-full bg-navy-900 border border-navy-700 rounded-xl px-4 py-2 text-sm text-white focus:outline-none focus:border-cyan-500"
-            >
-              <option value="BUYER">Người Mua Vé (Ticket Buyer)</option>
-              <option value="RESELLER">Người Bán / Sang Nhượng Vé (Reseller)</option>
-              <option value="ORGANIZER">Ban Tổ Chức Sự Kiện (Organizer)</option>
-            </select>
-          </div>
-
           <label className="flex items-center gap-2 text-xs text-slate-300 cursor-pointer pt-2">
             <input type="checkbox" {...register('acceptTerms')} className="rounded border-navy-700 text-cyan-500" />
-            <span>Tôi đồng ý với điều khoản sử dụng & bảo vệ Escrow TicketShield</span>
+            <span>Tôi đồng ý với các điều khoản dịch vụ</span>
           </label>
           {errors.acceptTerms && <p className="text-xs text-red-400">{errors.acceptTerms.message}</p>}
 
@@ -137,3 +128,4 @@ export const RegisterPage: React.FC = () => {
     </div>
   );
 };
+
