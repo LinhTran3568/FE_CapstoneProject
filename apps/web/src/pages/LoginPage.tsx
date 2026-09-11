@@ -55,39 +55,71 @@ export const LoginPage: React.FC = () => {
   };
 
   return (
-    <div className="w-full min-h-screen grid grid-cols-1 lg:grid-cols-12 bg-[#05070A] text-[#F5F5F2] font-sans">
+    <div className="w-full min-h-screen grid grid-cols-1 lg:grid-cols-12 bg-[#05070A] text-[#F5F5F2] font-sans overflow-hidden">
+      {/* Inline Keyframes */}
+      <style>{`
+        @keyframes festivalPulse {
+          0% { transform: scale(1.03) translate(0px, 0px); filter: brightness(0.75) contrast(1.25); }
+          25% { transform: scale(1.1) translate(-18px, -12px); filter: brightness(0.95) contrast(1.4); }
+          50% { transform: scale(1.16) translate(12px, -20px); filter: brightness(0.85) contrast(1.3); }
+          75% { transform: scale(1.08) translate(-10px, 10px); filter: brightness(1.0) contrast(1.45); }
+          100% { transform: scale(1.03) translate(0px, 0px); filter: brightness(0.75) contrast(1.25); }
+        }
+        @keyframes laserSweep {
+          0% { transform: rotate(-35deg) translateY(-25%) scale(0.9); opacity: 0.2; }
+          50% { transform: rotate(25deg) translateY(15%) scale(1.25); opacity: 0.65; }
+          100% { transform: rotate(-35deg) translateY(-25%) scale(0.9); opacity: 0.2; }
+        }
+        @keyframes energeticGlow {
+          0%, 100% { opacity: 0.25; transform: scale(0.95); }
+          50% { opacity: 0.65; transform: scale(1.3); }
+        }
+        .animate-festival-pulse {
+          animation: festivalPulse 7s ease-in-out infinite alternate;
+        }
+        .animate-laser-sweep {
+          animation: laserSweep 5s ease-in-out infinite alternate;
+        }
+        .animate-energetic-glow {
+          animation: energeticGlow 3.5s ease-in-out infinite;
+        }
+      `}</style>
+
       {/* Left Column: Dramatic Concert Photo & Brand Showcase (7 cols) */}
       <div className="hidden lg:flex lg:col-span-7 relative overflow-hidden flex-col justify-between p-12 bg-[#05070A]">
-        {/* Full-screen Background Concert Image */}
-        <div className="absolute inset-0 z-0">
+        {/* Full-screen Background Concert Image with Fast Festival Motion */}
+        <div className="absolute inset-0 z-0 overflow-hidden">
           <img
             src="/images/landing/hero-concert.jpg"
             alt="Live Concert Atmosphere"
-            className="w-full h-full object-cover filter brightness-[0.6] contrast-125 scale-105"
+            className="w-full h-full object-cover animate-festival-pulse transform-gpu origin-center"
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-[#05070A] via-[#05070A]/50 to-transparent" />
+          {/* Sweeping Laser Light Beams */}
+          <div className="absolute -top-1/2 -left-1/2 w-[200%] h-[200%] bg-gradient-to-r from-transparent via-[#FF5A36]/40 to-transparent blur-2xl animate-laser-sweep pointer-events-none" />
+          <div className="absolute -bottom-1/2 -right-1/2 w-[200%] h-[200%] bg-gradient-to-l from-transparent via-cyan-400/35 to-transparent blur-2xl animate-laser-sweep pointer-events-none" style={{ animationDelay: '2.5s' }} />
+
+          <div className="absolute inset-0 bg-gradient-to-t from-[#05070A] via-[#05070A]/40 to-transparent" />
           <div className="absolute inset-0 bg-gradient-to-r from-transparent via-transparent to-[#05070A]" />
+          <div className="absolute top-1/3 left-1/4 w-96 h-96 bg-[#FF5A36]/35 rounded-full blur-[100px] animate-energetic-glow" />
+          <div className="absolute bottom-1/4 right-10 w-80 h-80 bg-cyan-500/30 rounded-full blur-[90px] animate-energetic-glow" style={{ animationDelay: '1.8s' }} />
         </div>
 
         {/* Top Brand Logo & Back to Home */}
         <div className="relative z-10 flex items-center justify-between">
-          <Link to="/">
+          <Link to="/" className="hover:scale-105 transition-transform duration-200">
             <TicketShieldLogo size="lg" />
           </Link>
           <Link
             to="/"
-            className="inline-flex items-center gap-2 text-xs font-semibold tracking-widest text-[#A3A8B3] hover:text-[#F5F5F2] uppercase font-display transition-colors"
+            className="inline-flex items-center gap-2 text-xs font-semibold tracking-widest text-[#A3A8B3] hover:text-[#F5F5F2] uppercase font-display transition-colors group"
           >
-            <ArrowLeft className="w-4 h-4" />
+            <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform duration-200" />
             <span>Back to Website</span>
           </Link>
         </div>
 
         {/* Center Graphic Editorial Hero Text */}
         <div className="relative z-10 space-y-6 max-w-xl my-auto">
-          <span className="px-3.5 py-1 bg-[#FF5A36]/20 border border-[#FF5A36]/40 text-[#FF5A36] text-xs font-bold uppercase tracking-widest rounded-full font-display inline-block">
-            Verified Pass Platform
-          </span>
           <h1 className="font-display text-5xl xl:text-6xl font-extrabold uppercase leading-[0.95] tracking-tight">
             The Moment <br />
             <span className="text-[#FF5A36]">Starts Here.</span>
@@ -105,7 +137,7 @@ export const LoginPage: React.FC = () => {
       </div>
 
       {/* Right Column: Sleek Dark Form (5 cols) */}
-      <div className="lg:col-span-5 flex flex-col justify-between p-8 sm:p-12 md:p-16 bg-[#0A0D12] relative border-l border-white/10">
+      <div className="lg:col-span-5 flex flex-col justify-between p-8 sm:p-12 md:p-16 bg-[#0A0D12]/95 backdrop-blur-xl relative border-l border-white/10">
         {/* Mobile Header Link */}
         <div className="lg:hidden flex items-center justify-between mb-8">
           <Link to="/" className="flex items-center gap-2.5">
@@ -134,13 +166,13 @@ export const LoginPage: React.FC = () => {
               <label className="block text-xs font-semibold uppercase tracking-wider text-[#A3A8B3] mb-2 font-display">
                 Email Address
               </label>
-              <div className="relative">
-                <Mail className="w-4 h-4 text-[#A3A8B3] absolute left-3.5 top-3.5" />
+              <div className="relative group">
+                <Mail className="w-4 h-4 text-[#A3A8B3] group-focus-within:text-[#FF5A36] absolute left-3.5 top-3.5 transition-colors duration-200" />
                 <input
                   type="email"
                   placeholder="name@example.com"
                   {...register('email')}
-                  className="w-full bg-[#05070A] border border-white/15 rounded-xl pl-10 pr-4 py-3 text-sm text-[#F5F5F2] placeholder-[#A3A8B3]/50 focus:outline-none focus:border-[#FF5A36] transition-colors"
+                  className="w-full bg-[#05070A] border border-white/15 rounded-xl pl-10 pr-4 py-3 text-sm text-[#F5F5F2] placeholder-[#A3A8B3]/50 focus:outline-none focus:border-[#FF5A36] focus:ring-2 focus:ring-[#FF5A36]/30 transition-all duration-200"
                 />
               </div>
               {errors.email && <p className="text-xs text-red-400 mt-1">{errors.email.message}</p>}
@@ -153,18 +185,18 @@ export const LoginPage: React.FC = () => {
                 </label>
                 <Link
                   to="/forgot-password"
-                  className="text-xs text-[#FF5A36] hover:underline font-medium font-display"
+                  className="text-xs text-[#FF5A36] hover:underline font-medium font-display transition-colors"
                 >
                   Forgot password?
                 </Link>
               </div>
-              <div className="relative">
-                <Lock className="w-4 h-4 text-[#A3A8B3] absolute left-3.5 top-3.5" />
+              <div className="relative group">
+                <Lock className="w-4 h-4 text-[#A3A8B3] group-focus-within:text-[#FF5A36] absolute left-3.5 top-3.5 transition-colors duration-200" />
                 <input
                   type="password"
                   placeholder="••••••••"
                   {...register('password')}
-                  className="w-full bg-[#05070A] border border-white/15 rounded-xl pl-10 pr-4 py-3 text-sm text-[#F5F5F2] placeholder-[#A3A8B3]/50 focus:outline-none focus:border-[#FF5A36] transition-colors"
+                  className="w-full bg-[#05070A] border border-white/15 rounded-xl pl-10 pr-4 py-3 text-sm text-[#F5F5F2] placeholder-[#A3A8B3]/50 focus:outline-none focus:border-[#FF5A36] focus:ring-2 focus:ring-[#FF5A36]/30 transition-all duration-200"
                 />
               </div>
               {errors.password && (
@@ -176,7 +208,7 @@ export const LoginPage: React.FC = () => {
               type="submit"
               isLoading={isSubmitting}
               size="lg"
-              className="w-full font-display font-bold uppercase tracking-widest bg-[#FF5A36] hover:bg-[#FF7252] text-white py-3.5 rounded-xl shadow-lg shadow-[#FF5A36]/25 transition-all"
+              className="w-full font-display font-bold uppercase tracking-widest bg-[#FF5A36] hover:bg-[#FF7252] text-white py-3.5 rounded-xl shadow-lg shadow-[#FF5A36]/25 hover:shadow-xl hover:shadow-[#FF5A36]/45 hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200"
             >
               Sign In
             </Button>
@@ -197,7 +229,7 @@ export const LoginPage: React.FC = () => {
             variant="secondary"
             isLoading={isGoogleLoading}
             onClick={handleGoogleLogin}
-            className="w-full bg-[#05070A] border border-white/15 hover:border-white/30 text-[#F5F5F2] py-3 rounded-xl flex items-center justify-center gap-2 font-display text-xs font-semibold uppercase tracking-wider transition-all"
+            className="w-full bg-[#05070A] border border-white/15 hover:border-white/30 text-[#F5F5F2] py-3 rounded-xl flex items-center justify-center gap-2 font-display text-xs font-semibold uppercase tracking-wider hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200"
           >
             <Globe className="w-4 h-4 text-[#FF5A36]" />
             <span>Continue with Google</span>

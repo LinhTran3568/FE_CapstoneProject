@@ -154,16 +154,16 @@ export const SellTicketPage: React.FC = () => {
           animation: popIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
         }
         .animate-kenburns-slow {
-          animation: kenburnsSlow 22s ease-in-out infinite alternate;
+          animation: kenburnsSlow 8s ease-in-out infinite alternate;
         }
         .animate-stage-spotlight {
-          animation: stageSpotlight 14s ease-in-out infinite alternate;
+          animation: stageSpotlight 5s ease-in-out infinite alternate;
         }
         .animate-particle-1 {
-          animation: particleFloat1 8s ease-in-out infinite;
+          animation: particleFloat1 4s ease-in-out infinite;
         }
         .animate-particle-2 {
-          animation: particleFloat2 11s ease-in-out infinite;
+          animation: particleFloat2 5s ease-in-out infinite;
         }
       `}</style>
 
