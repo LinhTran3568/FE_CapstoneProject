@@ -1,6 +1,7 @@
 import React, { useEffect, Component, ErrorInfo, ReactNode } from 'react';
 import { BrowserRouter, useLocation } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { CheckCircle2, AlertCircle, AlertTriangle, Info, X } from 'lucide-react';
 import { Navbar } from './components/layout/Navbar';
 import { Footer } from './components/layout/Footer';
 import { AppRoutes } from './routes/AppRoutes';
@@ -64,22 +65,35 @@ const ToastContainer: React.FC = () => {
   if (toasts.length === 0) return null;
 
   return (
-    <div className="fixed bottom-5 right-5 z-50 space-y-2 max-w-sm">
+    <div className="fixed top-24 right-6 z-[100] w-full max-w-sm space-y-3 pointer-events-none">
       {toasts.map((toast) => (
         <div
           key={toast.id}
-          onClick={() => removeToast(toast.id)}
-          className={`p-4 rounded-2xl border text-xs font-semibold shadow-2xl flex items-center justify-between cursor-pointer animate-fadeIn font-display ${
+          className={`pointer-events-auto px-5 py-4 rounded-2xl border backdrop-blur-xl text-sm font-semibold shadow-2xl flex items-center justify-between gap-3 font-display transition-all duration-300 animate-in slide-in-from-right-8 fade-in ${
             toast.type === 'success'
-              ? 'bg-emerald-950 border-emerald-500/50 text-emerald-400'
+              ? 'bg-emerald-950/95 border-emerald-500/60 text-emerald-200 shadow-emerald-500/25'
               : toast.type === 'error'
-              ? 'bg-red-950 border-red-500/50 text-red-400'
+              ? 'bg-rose-950/95 border-rose-500/60 text-rose-200 shadow-rose-500/25'
               : toast.type === 'warning'
-              ? 'bg-amber-950 border-amber-500/50 text-amber-400'
-              : 'bg-[#0A0D12] border-white/20 text-[#F5F5F2]'
+              ? 'bg-amber-950/95 border-amber-500/60 text-amber-200 shadow-amber-500/25'
+              : 'bg-[#0A0D12]/95 border-[#FF5A36]/60 text-[#F5F5F2] shadow-[#FF5A36]/25'
           }`}
         >
-          <span>{toast.message}</span>
+          <div className="flex items-center gap-3 min-w-0 flex-1">
+            {toast.type === 'success' && <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />}
+            {toast.type === 'error' && <AlertCircle className="w-5 h-5 text-rose-400 shrink-0" />}
+            {toast.type === 'warning' && <AlertTriangle className="w-5 h-5 text-amber-400 shrink-0" />}
+            {(!toast.type || toast.type === 'info') && <Info className="w-5 h-5 text-[#FF5A36] shrink-0" />}
+            <span className="text-xs sm:text-sm font-semibold tracking-wide text-white leading-snug">{toast.message}</span>
+          </div>
+
+          <button
+            onClick={() => removeToast(toast.id)}
+            className="p-1.5 rounded-lg hover:bg-white/10 text-white/60 hover:text-white transition-colors shrink-0"
+            title="Dismiss"
+          >
+            <X className="w-4 h-4" />
+          </button>
         </div>
       ))}
     </div>
@@ -93,6 +107,11 @@ const AppContent: React.FC = () => {
   useEffect(() => {
     checkAuth();
   }, [checkAuth]);
+
+  // Auto scroll to top on page change
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, [location.pathname]);
 
   // Auth pages handle their own full-bleed layout (no header/footer overlap)
   const isAuthPage = ['/login', '/register', '/forgot-password', '/reset-password'].includes(
