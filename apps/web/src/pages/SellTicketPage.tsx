@@ -75,10 +75,12 @@ export const SellTicketPage: React.FC = () => {
       setCurrentStep(2);
     } catch (err: any) {
       const msg = err?.message || '';
-      if (msg.includes('TICKET_NOT_ELIGIBLE') || msg.includes('TICKET_NOT_AVAILABLE')) {
-        showToast('Mã vé này hiện đang kẹt trạng thái Khóa (Locked) từ phiên đăng bán trước. Bạn hãy thử mã vé ATSH-GA-999 hoặc chờ vài giây để hệ thống giải phóng khóa!', 'warning');
+      if (msg.includes('TICKET_NOT_ELIGIBLE') || msg.includes('TICKET_NOT_AVAILABLE') || msg.includes('LOCKED')) {
+        showToast('Mã vé này hiện đang trong phiên giao dịch khác hoặc chưa sẵn sàng để bán.', 'warning');
+      } else if (msg.includes('TICKET_NOT_FOUND')) {
+        showToast('Không tìm thấy thông tin vé với mã đã nhập. Vui lòng kiểm tra lại mã vé!', 'error');
       } else {
-        showToast(msg || 'Không thể tra cứu mã vé này. Vui lòng thử lại!', 'error');
+        showToast('Không thể xác thực mã vé vào lúc này.', 'error');
       }
     } finally {
       setIsRequestingOtp(false);
@@ -96,7 +98,7 @@ export const SellTicketPage: React.FC = () => {
       await resaleApi.resendVerificationOtp(verificationId);
       showToast('Đã gửi lại mã OTP thành công!', 'success');
     } catch (err: any) {
-      showToast(err.message || 'Lỗi khi yêu cầu gửi lại OTP.', 'error');
+      showToast('Không thể gửi lại mã OTP. Vui lòng thử lại sau ít phút!', 'error');
     } finally {
       setIsResendingOtp(false);
     }
@@ -127,7 +129,7 @@ export const SellTicketPage: React.FC = () => {
       showToast('Xác thực OTP & Khóa vé gốc thành công!', 'success');
       setCurrentStep(3);
     } catch (err: any) {
-      showToast(err.message || 'Mã OTP không chính xác hoặc phiên đã hết hạn!', 'error');
+      showToast('Mã xác thực OTP không chính xác hoặc phiên đã hết hạn. Vui lòng thử lại!', 'error');
     } finally {
       setIsVerifyingOtp(false);
     }
@@ -169,11 +171,11 @@ export const SellTicketPage: React.FC = () => {
     } catch (err: any) {
       const msg = err?.message || '';
       if (msg.includes('TICKET_ALREADY_LISTED')) {
-        showToast('Mã vé này đã được đăng bán trên hệ thống trước đó! Vui lòng vào trang "MY LISTINGS" để kiểm tra hoặc hủy tin cũ.', 'warning');
+        showToast('Mã vé này đã được đăng bán trên hệ thống trước đó! Vui lòng vào mục "MY LISTINGS" để kiểm tra.', 'warning');
       } else if (msg.includes('PRICE_EXCEEDS_CEILING')) {
         showToast(`Giá bán lại không được vượt quá giá gốc (${faceValue.toLocaleString('vi-VN')} VNĐ)!`, 'warning');
       } else {
-        showToast(msg || 'Không thể tạo niêm yết vé. Vui lòng thử lại!', 'error');
+        showToast('Không thể tạo niêm yết vé vào lúc này. Vui lòng thử lại sau!', 'error');
       }
     } finally {
       setIsPublishing(false);

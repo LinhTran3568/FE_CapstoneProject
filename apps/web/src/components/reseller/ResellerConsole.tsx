@@ -91,7 +91,7 @@ export const ResellerConsole: React.FC = () => {
                 {activeListingsCount} <span className="text-xs font-normal text-[#A3A8B3]">suất vé</span>
               </span>
               <span className="text-xs text-emerald-400 font-mono flex items-center gap-0.5">
-                <TrendingUp className="w-3 h-3" /> Đã kết nối API
+                <TrendingUp className="w-3 h-3" /> Tự động đồng bộ
               </span>
             </div>
             <div className="w-full bg-white/5 h-1.5 rounded-full overflow-hidden">
