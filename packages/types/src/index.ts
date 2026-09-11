@@ -24,14 +24,27 @@ export type TicketStatus =
   | 'TRANSFERRED'
   | 'PENDING_VERIFICATION';
 
+/**
+ * Resale listing lifecycle.
+ * Mirrors the backend enum `TicketShield.Domain.Enums.ListingStatus`,
+ * which the API serializes by name (e.g. "Verified").
+ * - Verified    → listed and open for buyers
+ * - Transacting → a buyer has paid into escrow
+ * - Sold        → ownership transferred, escrow released
+ * - Cancelled   → seller cancelled, original ticket unlocked at the organizer
+ */
 export type ListingStatus =
-  | 'PENDING'
-  | 'VERIFIED'
-  | 'ACTIVE'
-  | 'SOLD'
-  | 'FLAGGED'
-  | 'SUSPENDED'
-  | 'EXPIRED';
+  | 'Draft'
+  | 'Verified'
+  | 'Transacting'
+  | 'Sold'
+  | 'Cancelled';
+
+/** Mirrors the backend enum `TicketShield.Domain.Enums.VerificationStatus`. */
+export type VerificationStatus =
+  | 'PendingOtp'
+  | 'Verified'
+  | 'Rejected';
 
 export type EscrowStatus =
   | 'PENDING'
@@ -140,6 +153,44 @@ export interface TicketListing {
   verificationBadgeUrl?: string;
   createdAt: string;
   escrowProtection: boolean;
+}
+
+/**
+ * One row of the seller's own listings.
+ * GET /api/v1/resale-listings/my-listings → backend `SellerListingDto`.
+ */
+export interface SellerListingDto {
+  listingId: string;
+  eventId: string;
+  eventName: string;
+  eventVenue: string;
+  /** ISO 8601 date-time with offset */
+  eventStartAt: string;
+  tierId: string;
+  tierName: string;
+  originalTicketCode: string;
+  /** VND */
+  originalPrice: number;
+  /** VND, never above originalPrice (price ceiling rule) */
+  resalePrice: number;
+  discountAmount: number;
+  discountPercentage: number;
+  isPrivate: boolean;
+  /** Secret share token; only present when isPrivate is true */
+  privateAccessToken: string | null;
+  /** Backend-generated link (production domain); the web app builds its own link from the token */
+  shareUrl: string | null;
+  verificationStatus: VerificationStatus;
+  listingStatus: ListingStatus;
+  createdAt: string;
+}
+
+/** POST /api/v1/resale-listings/{id}/cancel → backend `CancelResaleListingResponse`. */
+export interface CancelResaleListingResponse {
+  listingId: string;
+  originalTicketCode: string;
+  listingStatus: ListingStatus;
+  cancelledAt: string;
 }
 
 export interface Order {
