@@ -38,7 +38,9 @@ export default {
         },
       },
       fontFamily: {
-        sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
+        sans: ['Plus Jakarta Sans', 'Inter', 'system-ui', '-apple-system', 'sans-serif'],
+        display: ['Space Grotesk', 'sans-serif'],
+        mono: ['JetBrains Mono', 'Space Mono', 'monospace'],
       },
       boxShadow: {
         'glow-cyan': '0 0 25px -5px rgba(6, 182, 212, 0.3)',

@@ -1,0 +1,352 @@
+/* ===== MiniSeries Customer — Sci-Fi / Cyberpunk Space Theme ===== */
+
+.cosmic-customer-page {
+    background-color: #030712;
+    background-image:
+        radial-gradient(ellipse 120% 80% at 50% -20%, rgba(99, 102, 241, 0.18) 0%, transparent 55%),
+        radial-gradient(ellipse 80% 50% at 100% 50%, rgba(124, 58, 237, 0.12) 0%, transparent 50%),
+        radial-gradient(ellipse 60% 40% at 0% 80%, rgba(6, 182, 212, 0.08) 0%, transparent 45%),
+        linear-gradient(180deg, #030712 0%, #0b0f19 45%, #020617 100%);
+    position: relative;
+    min-height: 100vh;
+}
+
+.cosmic-customer-page::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+    background-image:
+        radial-gradient(1px 1px at 20px 30px, rgba(255,255,255,0.35), transparent),
+        radial-gradient(1px 1px at 80px 120px, rgba(255,255,255,0.25), transparent),
+        radial-gradient(1.5px 1.5px at 160px 60px, rgba(167,139,250,0.4), transparent),
+        radial-gradient(1px 1px at 320px 40px, rgba(56,189,248,0.35), transparent);
+    background-size: 450px 220px;
+    opacity: 0.65;
+    animation: cosmicStarDrift 120s linear infinite;
+}
+
+.cosmic-customer-page::after {
+    content: "";
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+    background-image:
+        linear-gradient(rgba(99, 102, 241, 0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(99, 102, 241, 0.03) 1px, transparent 1px);
+    background-size: 48px 48px;
+    mask-image: radial-gradient(ellipse 80% 70% at 50% 50%, black 20%, transparent 100%);
+}
+
+@keyframes cosmicStarDrift {
+    from { transform: translateY(0); }
+    to { transform: translateY(-220px); }
+}
+
+.cosmic-customer-page main,
+.cosmic-customer-page nav,
+.cosmic-customer-page .container,
+.cosmic-customer-page .pricing-shell {
+    position: relative;
+    z-index: 1;
+}
+
+/* Nebula blobs enhancement */
+.cosmic-customer-page .background-blobs {
+    background:
+        radial-gradient(circle at 15% 25%, rgba(99, 102, 241, 0.22) 0%, transparent 42%),
+        radial-gradient(circle at 85% 75%, rgba(236, 72, 153, 0.16) 0%, transparent 40%),
+        radial-gradient(circle at 50% 90%, rgba(6, 182, 212, 0.1) 0%, transparent 35%);
+}
+
+/* Glassmorphic cards — phi thuyền */
+.cosmic-customer-page .glass,
+.cosmic-customer-page .card.cyber-glass,
+.cosmic-customer-page .input-container.glass {
+    background: rgba(255, 255, 255, 0.03) !important;
+    backdrop-filter: blur(16px);
+    border: 1px solid rgba(124, 58, 237, 0.22) !important;
+    box-shadow: 0 0 15px rgba(99, 102, 241, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+    position: relative;
+    overflow: hidden;
+}
+
+.cosmic-customer-page .glass::before,
+.cosmic-customer-page .card.cyber-glass::before {
+    content: "";
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(6, 182, 212, 0.55), rgba(124, 58, 237, 0.55), transparent);
+    pointer-events: none;
+}
+
+/* Plasma action buttons */
+.cosmic-customer-page .btn-primary,
+.cosmic-customer-page .cyber-btn-plasma,
+.cosmic-customer-page #generateBtn,
+.cosmic-customer-page #btnSubmitFeedback,
+.cosmic-customer-page #btnSendSupport {
+    background: linear-gradient(135deg, #06b6d4 0%, #7c3aed 50%, #ec4899 100%) !important;
+    border: 1px solid rgba(6, 182, 212, 0.45) !important;
+    box-shadow: 0 0 14px rgba(6, 182, 212, 0.25), 0 0 24px rgba(124, 58, 237, 0.18) !important;
+    transition: transform 0.22s ease, box-shadow 0.28s ease, filter 0.2s ease !important;
+}
+
+.cosmic-customer-page .btn-primary:hover,
+.cosmic-customer-page .cyber-btn-plasma:hover,
+.cosmic-customer-page #generateBtn:hover,
+.cosmic-customer-page #btnSubmitFeedback:hover,
+.cosmic-customer-page #btnSendSupport:hover {
+    transform: translateY(-2px) scale(1.03);
+    filter: brightness(1.08);
+    box-shadow: 0 0 22px rgba(6, 182, 212, 0.45), 0 0 36px rgba(124, 58, 237, 0.35) !important;
+}
+
+/* User profile dropdown — neon frame */
+.cosmic-customer-page .cyber-profile-dropdown,
+.cosmic-customer-page #profile-dropdown {
+    background: rgba(15, 23, 42, 0.88) !important;
+    backdrop-filter: blur(18px);
+    border: 1px solid rgba(124, 58, 237, 0.45) !important;
+    box-shadow: 0 0 24px rgba(99, 102, 241, 0.2), 0 20px 40px rgba(0, 0, 0, 0.5) !important;
+}
+
+.cosmic-customer-page #profile-dropdown > div:nth-child(2) {
+    border: 1px solid rgba(6, 182, 212, 0.25) !important;
+    box-shadow: inset 0 0 12px rgba(99, 102, 241, 0.08);
+}
+
+.cosmic-customer-page #dropdown-tier {
+    color: #fde047 !important;
+    text-shadow: 0 0 10px rgba(251, 191, 36, 0.85), 0 0 20px rgba(245, 158, 11, 0.45) !important;
+    letter-spacing: 0.06em;
+}
+
+.cosmic-customer-page #dropdown-tokens {
+    color: #e879f9 !important;
+    text-shadow: 0 0 12px rgba(192, 132, 252, 0.9), 0 0 22px rgba(168, 85, 247, 0.5) !important;
+}
+
+/* Feedback modal glass */
+.cosmic-customer-page .cyber-feedback-panel,
+.cosmic-customer-page #feedback-panel {
+    background: rgba(15, 23, 42, 0.92) !important;
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(124, 58, 237, 0.35) !important;
+    box-shadow: 0 0 30px rgba(99, 102, 241, 0.15), 0 25px 50px rgba(0, 0, 0, 0.6) !important;
+}
+
+.cosmic-customer-page #feedback-overlay {
+    backdrop-filter: blur(4px);
+}
+
+/* Nav bar — base z-index (hologram details below in HOLOGRAM HEADBAR) */
+.cosmic-customer-page nav {
+    position: relative;
+    z-index: 50;
+}
+
+/* Hero glow */
+.cosmic-customer-page .hero h1 {
+    text-shadow: 0 0 30px rgba(99, 102, 241, 0.25);
+}
+
+/* Pricing cards */
+.cosmic-customer-page .pricing-container .card {
+    background: rgba(255, 255, 255, 0.03) !important;
+    backdrop-filter: blur(16px);
+    border: 1px solid rgba(124, 58, 237, 0.2) !important;
+    box-shadow: 0 0 15px rgba(99, 102, 241, 0.08);
+}
+
+.cosmic-customer-page .pricing-container .card.popular {
+    border-color: rgba(168, 85, 247, 0.55) !important;
+    box-shadow: 0 0 28px rgba(168, 85, 247, 0.25), 0 10px 25px rgba(0, 0, 0, 0.3) !important;
+}
+
+.cosmic-customer-page .btn-buy.btn-premium {
+    background: linear-gradient(135deg, #06b6d4, #7c3aed) !important;
+    border: 1px solid rgba(6, 182, 212, 0.4);
+    box-shadow: 0 0 12px rgba(124, 58, 237, 0.25);
+    color: #fff !important;
+}
+
+.cosmic-customer-page .btn-buy.btn-premium:hover {
+    box-shadow: 0 0 22px rgba(6, 182, 212, 0.4), 0 0 32px rgba(124, 58, 237, 0.35);
+    transform: translateY(-2px);
+}
+
+/* Tu-van textarea focus */
+.cosmic-customer-page textarea:focus {
+    border-color: rgba(124, 58, 237, 0.6) !important;
+    box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.2), 0 0 16px rgba(6, 182, 212, 0.15) !important;
+}
+
+/* ===== Pricing back button — Neon Tech Outline ===== */
+.cyber-back-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 18px;
+    margin-bottom: 24px;
+    font-size: 14px;
+    font-weight: 600;
+    color: #a5f3fc;
+    text-decoration: none;
+    border-radius: 12px;
+    border: 1px solid rgba(6, 182, 212, 0.45);
+    background: transparent;
+    box-shadow: 0 0 10px rgba(6, 182, 212, 0.12);
+    transition: transform 0.25s ease, box-shadow 0.3s ease, background 0.35s ease, color 0.25s ease, border-color 0.25s ease;
+    position: relative;
+    overflow: hidden;
+    cursor: pointer;
+}
+
+.cyber-back-btn .cyber-back-arrow {
+    display: inline-block;
+    transition: transform 0.25s ease;
+    font-size: 16px;
+}
+
+.cyber-back-btn:hover {
+    transform: translateX(-4px);
+    color: #ffffff;
+    border-color: rgba(124, 58, 237, 0.6);
+    background: linear-gradient(135deg, rgba(6, 182, 212, 0.25), rgba(124, 58, 237, 0.35));
+    box-shadow: 0 0 20px rgba(6, 182, 212, 0.35), 0 0 32px rgba(124, 58, 237, 0.25);
+}
+
+.cyber-back-btn:hover .cyber-back-arrow {
+    transform: translateX(-3px);
+}
+
+.cosmic-customer-page #user-header-zone > div {
+    border-color: rgba(124, 58, 237, 0.4) !important;
+    box-shadow: 0 0 14px rgba(99, 102, 241, 0.18);
+    background: rgba(15, 23, 42, 0.85) !important;
+}
+
+.cosmic-customer-page #user-header-zone > div span:first-of-type {
+    color: #e879f9 !important;
+    text-shadow: 0 0 10px rgba(192, 132, 252, 0.85), 0 0 18px rgba(168, 85, 247, 0.45);
+}
+
+.cosmic-customer-page #btnOpenFeedback.cyber-feedback-btn:hover {
+    border-color: transparent !important;
+}
+
+.pricing-top-bar {
+    width: 100%;
+    max-width: 1200px;
+    display: flex;
+    justify-content: flex-start;
+    align-items: center;
+    position: relative;
+    z-index: 2;
+}
+
+/* ===== HOLOGRAM HEADBAR ===== */
+.cosmic-customer-page .cyber-nav-glass {
+    backdrop-filter: blur(12px) !important;
+    background: rgba(15, 23, 42, 0.65) !important;
+    border-bottom: 1px solid rgba(124, 58, 237, 0.3) !important;
+    box-shadow:
+        0 8px 32px rgba(6, 182, 212, 0.08),
+        0 12px 40px rgba(124, 58, 237, 0.12),
+        0 4px 16px rgba(0, 0, 0, 0.35) !important;
+}
+
+.cosmic-customer-page .cyber-logo-glow {
+    text-shadow: 0 0 14px rgba(168, 85, 247, 0.55), 0 0 28px rgba(99, 102, 241, 0.25);
+}
+
+/* Nav links — silver to cyan neon */
+.cosmic-customer-page .cyber-nav-link {
+    color: #f8fafc !important;
+    position: relative;
+    text-decoration: none !important;
+    transition: color 0.28s ease, text-shadow 0.28s ease;
+    padding-bottom: 2px;
+}
+
+.cosmic-customer-page .cyber-nav-link::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    bottom: -3px;
+    width: 100%;
+    height: 2px;
+    background: linear-gradient(90deg, #06b6d4, #7c3aed);
+    box-shadow: 0 0 8px rgba(6, 182, 212, 0.8);
+    border-radius: 9999px;
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform 0.32s ease;
+}
+
+.cosmic-customer-page .cyber-nav-link:hover {
+    color: #67e8f9 !important;
+    text-shadow: 0 0 8px #06b6d4;
+}
+
+.cosmic-customer-page .cyber-nav-link:hover::after {
+    transform: scaleX(1);
+}
+
+/* Feedback button — energy wrap */
+.cosmic-customer-page .cyber-feedback-btn {
+    position: relative;
+    color: #f8fafc !important;
+    background:
+        linear-gradient(rgba(15, 23, 42, 0.88), rgba(15, 23, 42, 0.88)) padding-box,
+        linear-gradient(135deg, #06b6d4, #7c3aed, #ec4899) border-box !important;
+    border: 2px solid transparent !important;
+    box-shadow: 0 0 10px rgba(124, 58, 237, 0.5), inset 0 0 10px rgba(124, 58, 237, 0.08) !important;
+    transition: transform 0.22s ease, box-shadow 0.3s ease, filter 0.22s ease !important;
+}
+
+.cosmic-customer-page .cyber-feedback-btn:hover {
+    transform: scale(1.05);
+    filter: brightness(1.12);
+    box-shadow:
+        0 0 18px rgba(6, 182, 212, 0.55),
+        0 0 28px rgba(124, 58, 237, 0.45),
+        0 0 40px rgba(236, 72, 153, 0.25) !important;
+}
+
+/* ===== CHECKOUT PAGE — cosmic shell ===== */
+.cosmic-customer-page.cyber-checkout-page {
+    align-items: center;
+    min-height: 100vh;
+    padding-top: 48px;
+    padding-bottom: 48px;
+}
+
+.cosmic-customer-page.cyber-checkout-page .cyber-payment-box {
+    position: relative;
+    z-index: 2;
+}
+
+.cosmic-customer-page.cyber-checkout-page .cyber-payment-box::before {
+    content: "";
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(6, 182, 212, 0.6), rgba(124, 58, 237, 0.6), transparent);
+    pointer-events: none;
+}
+
+.cosmic-customer-page.cyber-checkout-page #confirm-panel {
+    backdrop-filter: blur(14px);
+    border: 1px solid rgba(124, 58, 237, 0.45) !important;
+    box-shadow: 0 0 30px rgba(124, 58, 237, 0.2);
+}
+
+.cosmic-customer-page.cyber-checkout-page #btn-confirm-start {
+    background: linear-gradient(135deg, #06b6d4, #7c3aed) !important;
+    box-shadow: 0 0 14px rgba(124, 58, 237, 0.35);
+}

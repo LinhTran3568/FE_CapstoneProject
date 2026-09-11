@@ -46,9 +46,9 @@ export const App: React.FC = () => {
   return (
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
-        <div className="min-h-screen flex flex-col bg-navy-900 text-slate-100 selection:bg-cyan-500 selection:text-white">
+        <div className="min-h-screen flex flex-col w-full bg-[#060b18] text-slate-100 selection:bg-orange-500 selection:text-white">
           <Navbar />
-          <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8">
+          <main className="flex-1 w-full pt-16">
             <AppRoutes />
           </main>
           <Footer />

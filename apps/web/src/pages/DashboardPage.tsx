@@ -7,7 +7,7 @@ export const DashboardPage: React.FC = () => {
   const { user } = useAuthStore();
 
   return (
-    <div className="space-y-8 py-6">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8 py-6">
       {/* Profile Header Skeleton */}
       <div className="bg-navy-850 p-6 rounded-3xl border border-navy-750 flex items-center gap-4">
         <div className="w-12 h-12 rounded-2xl bg-cyan-500/20 text-cyan-400 flex items-center justify-center font-bold text-lg">

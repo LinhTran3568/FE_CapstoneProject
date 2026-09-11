@@ -11,12 +11,12 @@ export const Footer: React.FC = () => {
               <ShieldCheck className="w-4 h-4 stroke-[2.5]" />
             </div>
             <span className="text-base font-bold text-white tracking-tight">
-              Capstone<span className="text-cyan-400">.FE</span>
+              TicketShield<span className="text-cyan-400">.FE</span>
             </span>
           </div>
 
           <div className="text-xs text-slate-400 text-center sm:text-right">
-            © {new Date().getFullYear()} Capstone Project. Front-End Framework.
+            &copy; {new Date().getFullYear()} TicketShield. Front-End Framework.
           </div>
         </div>
       </div>
@@ -24,3 +24,4 @@ export const Footer: React.FC = () => {
   );
 };
 
+export default Footer;
