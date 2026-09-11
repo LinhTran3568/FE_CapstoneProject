@@ -1,0 +1,88 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
+  <defs>
+    <!-- Translucent Glowing Orange Ticket Gradient -->
+    <linearGradient id="ticketGlow" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FF6B4A" />
+      <stop offset="50%" stop-color="#FF5A36" />
+      <stop offset="100%" stop-color="#E03E15" />
+    </linearGradient>
+
+    <!-- Inner Glass Highlight -->
+    <linearGradient id="glassHighlight" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.45" />
+      <stop offset="100%" stop-color="#FFFFFF" stop-opacity="0" />
+    </linearGradient>
+
+    <!-- Shield Metallic Gradient -->
+    <linearGradient id="shieldMetal" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FFFFFF" />
+      <stop offset="100%" stop-color="#F1F5F9" />
+    </linearGradient>
+
+    <!-- Ticket Drop Shadow / Outer Glow -->
+    <filter id="ticketGlowShadow" x="-30%" y="-30%" width="160%" height="160%">
+      <feDropShadow dx="0" dy="12" stdDeviation="16" flood-color="#FF5A36" flood-opacity="0.6" />
+    </filter>
+  </defs>
+
+  <!-- Standalone Tilted 3D Ticket Pass (NO Outer Black Square Container) -->
+  <g transform="rotate(-8 256 256)" filter="url(#ticketGlowShadow)">
+    
+    <!-- Ticket Body Path with Cutout Notch on Right Edge -->
+    <path d="M 64 160 
+             A 24 24 0 0 1 88 136 
+             L 424 136 
+             A 24 24 0 0 1 448 160 
+             L 448 212 
+             A 36 36 0 0 0 448 284 
+             L 448 352 
+             A 24 24 0 0 1 424 376 
+             L 88 376 
+             A 24 24 0 0 1 64 352 
+             Z" 
+          fill="url(#ticketGlow)" 
+          stroke="#FFA58C" 
+          stroke-width="3" />
+
+    <!-- Glass Top Highlight Overlay -->
+    <path d="M 64 160 
+             A 24 24 0 0 1 88 136 
+             L 424 136 
+             A 24 24 0 0 1 448 160 
+             L 448 230 
+             L 64 230 
+             Z" 
+          fill="url(#glassHighlight)" />
+
+    <!-- Dashed Tear Line Across Stub -->
+    <line x1="336" y1="148" x2="336" y2="364" stroke="#000000" stroke-width="6" stroke-dasharray="10,10" opacity="0.35" />
+    <line x1="336" y1="148" x2="336" y2="364" stroke="#FFFFFF" stroke-width="5" stroke-dasharray="10,10" opacity="0.5" />
+
+    <!-- Metallic Shield Emblem (Left Side) -->
+    <g transform="translate(112, 176)">
+      <!-- Shield Body -->
+      <path d="M 56 0 
+               C 12 0, 0 16, 0 16 
+               V 72 
+               C 0 120, 44 148, 56 152 
+               C 68 148, 112 120, 112 72 
+               V 16 
+               C 112 16, 100 0, 56 0 Z" 
+            fill="url(#shieldMetal)" 
+            filter="drop-shadow(0px 8px 14px rgba(0,0,0,0.45))" />
+
+      <!-- Orange Checkmark Inside Shield -->
+      <path d="M 32 72 L 48 88 L 80 52" 
+            fill="none" 
+            stroke="#FF5A36" 
+            stroke-width="14" 
+            stroke-linecap="round" 
+            stroke-linejoin="round" />
+    </g>
+
+    <!-- Sparkle Star Accent (Right Side) -->
+    <g transform="translate(376, 236)">
+      <path d="M 20 0 L 24 14 L 38 18 L 24 22 L 20 36 L 16 22 L 2 18 L 16 14 Z" fill="#FFFFFF" filter="drop-shadow(0px 0px 8px #FFFFFF)" />
+    </g>
+  </g>
+</svg>

@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../stores/authStore';
 import { useUIStore } from '../../stores/uiStore';
 import { User as UserIcon, LogOut, LayoutDashboard } from 'lucide-react';
+import { TicketShieldLogo } from '../ui/TicketShieldLogo';
 
 export const Navbar: React.FC = () => {
   const { user, logout } = useAuthStore();
@@ -59,16 +60,9 @@ export const Navbar: React.FC = () => {
       }`}
     >
       <div className="max-w-7xl mx-auto px-6 md:px-12 flex items-center justify-between">
-        {/* Brand Logo - Click scrolls to top */}
-        <a
-          href="/"
-          onClick={handleBrandClick}
-          className="flex items-center gap-2.5 group cursor-pointer"
-        >
-          <div className="w-3.5 h-3.5 rounded-full bg-[#FF5A36] group-hover:scale-125 transition-transform duration-300 shadow-[0_0_10px_#FF5A36]" />
-          <span className="font-display text-xl font-bold tracking-tight text-[#F5F5F2]">
-            TicketShield
-          </span>
+        {/* Brand Logo with Custom Shield Icon */}
+        <a href="/" onClick={handleBrandClick}>
+          <TicketShieldLogo size="md" />
         </a>
 
         {/* Desktop Nav Links (Complete Section Navigation) */}

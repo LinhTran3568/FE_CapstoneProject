@@ -8,6 +8,7 @@ import { useUIStore } from '../stores/uiStore';
 import { useNavigate, Link } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 import { Button } from '../components/ui/Button';
+import { TicketShieldLogo } from '../components/ui/TicketShieldLogo';
 
 export const RegisterPage: React.FC = () => {
   const { login } = useAuthStore();
@@ -59,11 +60,8 @@ export const RegisterPage: React.FC = () => {
 
         {/* Top Brand Logo */}
         <div className="relative z-10 flex items-center justify-between">
-          <Link to="/" className="flex items-center gap-3 group">
-            <div className="w-3.5 h-3.5 rounded-full bg-[#FF5A36] shadow-[0_0_10px_#FF5A36]" />
-            <span className="font-display font-bold text-2xl tracking-tight text-[#F5F5F2]">
-              TicketShield
-            </span>
+          <Link to="/">
+            <TicketShieldLogo size="lg" />
           </Link>
           <Link
             to="/"
