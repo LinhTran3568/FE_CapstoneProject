@@ -100,23 +100,63 @@ export const SellTicketPage: React.FC = () => {
 
   return (
     <div className="relative min-h-screen bg-[#05070A] text-[#F5F5F2] pt-28 pb-20 px-4 sm:px-6 md:px-12 font-sans antialiased selection:bg-[#FF5A36] selection:text-white overflow-hidden">
-      {/* Full-Screen Concert Background Image with High Contrast & Ambient Glows */}
+      {/* Inline Animation Styles */}
+      <style>{`
+        @keyframes fadeInUp {
+          from {
+            opacity: 0;
+            transform: translateY(18px) scale(0.99);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+          }
+        }
+        @keyframes subtleGlow {
+          0%, 100% { opacity: 0.15; transform: scale(1); }
+          50% { opacity: 0.28; transform: scale(1.06); }
+        }
+        @keyframes popIn {
+          0% { opacity: 0; transform: scale(0.6); }
+          70% { transform: scale(1.08); }
+          100% { opacity: 1; transform: scale(1); }
+        }
+        .animate-fade-in-up {
+          animation: fadeInUp 0.45s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+        .animate-subtle-glow {
+          animation: subtleGlow 7s ease-in-out infinite;
+        }
+        .animate-pop-in {
+          animation: popIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+      `}</style>
+
+      {/* Full-Screen Concert Background Image with Subtle Ambient Micro-Animations */}
       <div className="fixed inset-0 z-0 pointer-events-none">
         <img
           src="/images/landing/hero-concert.jpg"
           alt="Concert Atmosphere"
-          className="w-full h-full object-cover opacity-65 filter brightness-110 contrast-125 scale-105"
+          className="w-full h-full object-cover opacity-65 filter brightness-110 contrast-125 scale-105 transition-transform duration-1000"
         />
         <div className="absolute inset-0 bg-gradient-to-b from-[#05070A]/70 via-[#05070A]/50 to-[#05070A]/85" />
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-[#FF5A36]/30 via-transparent to-transparent" />
-        <div className="absolute top-1/4 left-10 w-96 h-96 bg-[#FF5A36]/20 rounded-full blur-[100px]" />
-        <div className="absolute bottom-10 right-10 w-96 h-96 bg-cyan-500/20 rounded-full blur-[100px]" />
+        <div className="absolute top-1/4 left-10 w-96 h-96 bg-[#FF5A36]/20 rounded-full blur-[100px] animate-subtle-glow" />
+        <div className="absolute bottom-10 right-10 w-96 h-96 bg-cyan-500/20 rounded-full blur-[100px] animate-subtle-glow" style={{ animationDelay: '3.5s' }} />
       </div>
 
       <div className="relative z-10 max-w-4xl mx-auto space-y-8">
 
-        {/* Step Progress Bar (6 Steps Header) */}
+        {/* Step Progress Bar Header with Animated Continuous Indicator */}
         <div className="space-y-4">
+          {/* Top Progress Line */}
+          <div className="max-w-2xl mx-auto h-1.5 bg-white/10 rounded-full overflow-hidden p-0.5">
+            <div
+              className="h-full bg-gradient-to-r from-[#FF5A36] to-emerald-400 rounded-full transition-all duration-500 ease-out shadow-sm shadow-[#FF5A36]/50"
+              style={{ width: `${(currentStep / 6) * 100}%` }}
+            />
+          </div>
+
           <div className="flex items-center justify-center gap-2 sm:gap-4 max-w-2xl mx-auto px-4">
             {[1, 2, 3, 4, 5, 6].map((stepNum) => {
               const isCompleted = stepNum < currentStep;
@@ -127,20 +167,22 @@ export const SellTicketPage: React.FC = () => {
                     onClick={() => {
                       if (stepNum < currentStep) setCurrentStep(stepNum);
                     }}
-                    className={`w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center font-bold text-xs sm:text-sm font-display transition-all ${isCompleted
-                        ? 'bg-emerald-500 text-black shadow-lg shadow-emerald-500/30 cursor-pointer'
+                    className={`w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center font-bold text-xs sm:text-sm font-display transition-all duration-300 active:scale-95 ${
+                      isCompleted
+                        ? 'bg-emerald-500 text-black shadow-lg shadow-emerald-500/30 cursor-pointer hover:scale-110'
                         : isCurrent
-                          ? 'bg-[#FF5A36] text-white shadow-lg shadow-[#FF5A36]/40 scale-110 border-2 border-white/20'
-                          : 'bg-[#0A0D12] text-[#A3A8B3] border border-white/10'
-                      }`}
+                          ? 'bg-[#FF5A36] text-white shadow-xl shadow-[#FF5A36]/50 scale-110 border-2 border-white/30 ring-4 ring-[#FF5A36]/20'
+                          : 'bg-[#0A0D12] text-[#A3A8B3] border border-white/10 hover:border-white/30'
+                    }`}
                   >
                     {isCompleted ? <Check className="w-4 h-4 text-black stroke-[3]" /> : stepNum}
                   </button>
 
                   {stepNum < 6 && (
                     <div
-                      className={`flex-1 h-[2px] rounded-full transition-all ${stepNum < currentStep ? 'bg-emerald-500' : 'bg-white/10'
-                        }`}
+                      className={`flex-1 h-[2px] rounded-full transition-all duration-500 ${
+                        stepNum < currentStep ? 'bg-emerald-500 shadow-sm shadow-emerald-500/50' : 'bg-white/10'
+                      }`}
                     />
                   )}
                 </React.Fragment>
@@ -153,16 +195,16 @@ export const SellTicketPage: React.FC = () => {
             {currentStep > 1 && currentStep < 6 ? (
               <button
                 onClick={() => setCurrentStep((prev) => prev - 1)}
-                className="flex items-center gap-1.5 hover:text-white transition-colors"
+                className="flex items-center gap-1.5 hover:text-white transition-colors group"
               >
-                <ArrowLeft className="w-3.5 h-3.5" />
+                <ArrowLeft className="w-3.5 h-3.5 group-hover:-translate-x-1 transition-transform duration-200" />
                 <span>Back</span>
               </button>
             ) : (
               <div />
             )}
 
-            <span className="font-bold uppercase text-[#FF5A36] tracking-wider">
+            <span className="font-bold uppercase text-[#FF5A36] tracking-wider transition-all duration-300">
               {currentStep === 1 && 'STEP 1 / 6: ENTER TICKET CODE'}
               {currentStep === 2 && 'STEP 2 / 6: OTP VERIFICATION'}
               {currentStep === 3 && 'STEP 3 / 6: TICKET DETAILS'}
@@ -175,7 +217,7 @@ export const SellTicketPage: React.FC = () => {
 
         {/* STEP 1: NHẬP MÃ VÉ */}
         {currentStep === 1 && (
-          <div className="max-w-xl mx-auto space-y-8 text-center pt-4">
+          <div key={1} className="animate-fade-in-up max-w-xl mx-auto space-y-8 text-center pt-4">
             <div className="space-y-3">
               <h1 className="text-3xl sm:text-4xl font-extrabold font-display text-white tracking-tight">
                 Enter Your Ticket Identifier
@@ -185,7 +227,7 @@ export const SellTicketPage: React.FC = () => {
               </p>
             </div>
 
-            <form onSubmit={handleNextStep1} className="space-y-6 text-left bg-[#0A0D12] border border-white/10 p-6 sm:p-8 rounded-3xl shadow-2xl">
+            <form onSubmit={handleNextStep1} className="space-y-6 text-left bg-[#0A0D12]/90 backdrop-blur-md border border-white/10 p-6 sm:p-8 rounded-3xl shadow-2xl hover:border-white/20 transition-all duration-300">
               <div>
                 <div className="flex items-center justify-between mb-2">
                   <label className="text-xs font-semibold uppercase tracking-wider text-[#A3A8B3] font-display">
@@ -193,14 +235,14 @@ export const SellTicketPage: React.FC = () => {
                   </label>
                   <span className="text-[10px] text-[#A3A8B3] font-mono">Auto uppercase</span>
                 </div>
-                <div className="relative">
-                  <Ticket className="w-5 h-5 text-[#FF5A36] absolute left-4 top-3.5" />
+                <div className="relative group">
+                  <Ticket className="w-5 h-5 text-[#FF5A36] absolute left-4 top-3.5 group-focus-within:scale-110 group-focus-within:text-[#FF7252] transition-all duration-200" />
                   <input
                     type="text"
                     value={ticketCode}
                     onChange={(e) => setTicketCode(e.target.value.toUpperCase())}
                     placeholder="EXAMPLE: TBX-90412-VN8"
-                    className="w-full bg-[#05070A] border border-white/15 rounded-xl pl-12 pr-4 py-3.5 text-base font-mono tracking-wider text-white placeholder-[#A3A8B3]/40 focus:outline-none focus:border-[#FF5A36]"
+                    className="w-full bg-[#05070A] border border-white/15 rounded-xl pl-12 pr-4 py-3.5 text-base font-mono tracking-wider text-white placeholder-[#A3A8B3]/40 focus:outline-none focus:border-[#FF5A36] focus:ring-2 focus:ring-[#FF5A36]/30 transition-all duration-200"
                     required
                   />
                 </div>
@@ -208,7 +250,7 @@ export const SellTicketPage: React.FC = () => {
 
               <button
                 type="submit"
-                className="w-full py-4 bg-[#FF5A36] hover:bg-[#FF7252] text-white font-bold font-display uppercase tracking-widest text-xs rounded-xl shadow-lg shadow-[#FF5A36]/30 transition-all"
+                className="w-full py-4 bg-[#FF5A36] hover:bg-[#FF7252] text-white font-bold font-display uppercase tracking-widest text-xs rounded-xl shadow-lg shadow-[#FF5A36]/30 hover:shadow-xl hover:shadow-[#FF5A36]/50 hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200"
               >
                 Continue
               </button>
@@ -218,8 +260,8 @@ export const SellTicketPage: React.FC = () => {
 
         {/* STEP 2: XÁC THỰC OTP SỐ ĐIỆN THOẠI */}
         {currentStep === 2 && (
-          <div className="max-w-xl mx-auto space-y-6 pt-4">
-            <div className="bg-[#0A0D12] border border-white/10 p-6 sm:p-8 rounded-3xl space-y-6 shadow-2xl">
+          <div key={2} className="animate-fade-in-up max-w-xl mx-auto space-y-6 pt-4">
+            <div className="bg-[#0A0D12]/90 backdrop-blur-md border border-white/10 p-6 sm:p-8 rounded-3xl space-y-6 shadow-2xl hover:border-white/20 transition-all duration-300">
 
               <div className="space-y-2">
                 <h2 className="text-2xl sm:text-3xl font-extrabold font-display text-white">
@@ -235,7 +277,7 @@ export const SellTicketPage: React.FC = () => {
                   <label className="block text-xs font-semibold uppercase tracking-wider text-[#A3A8B3] mb-2 font-display">
                     Registered Phone Number
                   </label>
-                  <div className="flex items-center bg-[#05070A] border border-white/15 rounded-xl px-4 py-3 text-sm">
+                  <div className="flex items-center bg-[#05070A] border border-white/15 rounded-xl px-4 py-3 text-sm focus-within:border-[#FF5A36] focus-within:ring-2 focus-within:ring-[#FF5A36]/30 transition-all duration-200">
                     <span className="text-[#A3A8B3] font-mono mr-3 pr-3 border-r border-white/10">VN +84</span>
                     <input
                       type="text"
@@ -243,7 +285,7 @@ export const SellTicketPage: React.FC = () => {
                       onChange={(e) => setPhone(e.target.value)}
                       className="bg-transparent text-white font-mono w-full focus:outline-none"
                     />
-                    <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 ml-2" />
+                    <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 ml-2 animate-pulse" />
                   </div>
                 </div>
 
@@ -252,7 +294,7 @@ export const SellTicketPage: React.FC = () => {
                     <label className="text-xs font-semibold uppercase tracking-wider text-[#A3A8B3] font-display">
                       OTP Verification Code (6 digits)
                     </label>
-                    <span className="text-xs text-[#FF5A36] cursor-pointer hover:underline font-mono">
+                    <span className="text-xs text-[#FF5A36] cursor-pointer hover:underline hover:brightness-125 transition-all font-mono">
                       Resend Code (45s)
                     </span>
                   </div>
@@ -266,7 +308,7 @@ export const SellTicketPage: React.FC = () => {
                         maxLength={1}
                         value={digit}
                         onChange={(e) => handleOtpChange(idx, e.target.value)}
-                        className="w-full h-12 bg-[#05070A] border border-white/15 rounded-xl text-center font-mono font-bold text-lg text-white focus:outline-none focus:border-[#FF5A36]"
+                        className="w-full h-12 bg-[#05070A] border border-white/15 rounded-xl text-center font-mono font-bold text-lg text-white focus:outline-none focus:border-[#FF5A36] focus:ring-2 focus:ring-[#FF5A36]/30 focus:scale-105 transition-all duration-200"
                       />
                     ))}
                   </div>
@@ -278,12 +320,12 @@ export const SellTicketPage: React.FC = () => {
                 <button
                   type="submit"
                   disabled={isVerifyingOtp}
-                  className="w-full py-4 bg-[#FF5A36] hover:bg-[#FF7252] text-white font-bold font-display uppercase tracking-widest text-xs rounded-xl shadow-lg shadow-[#FF5A36]/30 transition-all flex items-center justify-center gap-2"
+                  className="w-full py-4 bg-[#FF5A36] hover:bg-[#FF7252] text-white font-bold font-display uppercase tracking-widest text-xs rounded-xl shadow-lg shadow-[#FF5A36]/30 hover:shadow-xl hover:shadow-[#FF5A36]/50 hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200 flex items-center justify-center gap-2"
                 >
                   {isVerifyingOtp ? 'Verifying OTP...' : 'Confirm OTP →'}
                 </button>
 
-                <div className="p-3 bg-white/5 border border-white/10 rounded-xl text-[11px] text-[#A3A8B3] flex items-center gap-2">
+                <div className="p-3 bg-white/5 border border-white/10 rounded-xl text-[11px] text-[#A3A8B3] flex items-center gap-2 hover:border-emerald-500/30 transition-all duration-300">
                   <Lock className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
                   <span>2-Factor Authentication against fraud & unauthorized transfer</span>
                 </div>
@@ -295,7 +337,7 @@ export const SellTicketPage: React.FC = () => {
 
         {/* STEP 3: THÔNG TIN VÉ ĐÃ XÁC THỰC */}
         {currentStep === 3 && (
-          <div className="max-w-2xl mx-auto space-y-6 pt-2">
+          <div key={3} className="animate-fade-in-up max-w-2xl mx-auto space-y-6 pt-2">
             <div className="text-center space-y-2">
               <h2 className="text-3xl font-extrabold font-display text-white">
                 Your Ticket is Ready for Listing
@@ -305,18 +347,18 @@ export const SellTicketPage: React.FC = () => {
               </p>
             </div>
 
-            {/* Ticket Card Preview */}
-            <div className="bg-[#0A0D12] border border-[#FF5A36]/30 rounded-3xl overflow-hidden shadow-2xl relative">
+            {/* Ticket Card Preview with Group Hover Effects */}
+            <div className="group bg-[#0A0D12]/90 backdrop-blur-md border border-[#FF5A36]/30 hover:border-[#FF5A36]/60 rounded-3xl overflow-hidden shadow-2xl transition-all duration-300 hover:shadow-[#FF5A36]/10 relative">
               {/* Event Image Banner */}
               <div className="relative h-44 overflow-hidden">
                 <img
                   src="/images/landing/featured-1.jpg"
                   alt="BLACKPINK Concert"
-                  className="w-full h-full object-cover"
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-out"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-[#0A0D12] via-[#0A0D12]/40 to-transparent" />
                 <div className="absolute top-4 left-4 flex items-center gap-2">
-                  <span className="px-2.5 py-1 bg-black/80 backdrop-blur-md text-[10px] font-extrabold text-amber-400 rounded-full font-mono">
+                  <span className="px-2.5 py-1 bg-black/80 backdrop-blur-md text-[10px] font-extrabold text-amber-400 rounded-full font-mono shadow-md">
                     ★ INTERNATIONAL CONCERT
                   </span>
                 </div>
@@ -326,13 +368,13 @@ export const SellTicketPage: React.FC = () => {
               <div className="p-6 space-y-5">
                 <div>
                   <span className="text-[11px] text-[#FF5A36] font-mono font-bold uppercase tracking-wider">OFFICIAL DIGITAL TICKET PASS</span>
-                  <h3 className="text-2xl font-extrabold font-display text-white">
+                  <h3 className="text-2xl font-extrabold font-display text-white group-hover:text-[#FF7252] transition-colors duration-200">
                     BLACKPINK [BORN PINK] World Tour Finale
                   </h3>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
-                  <div className="p-3.5 bg-[#05070A] border border-white/10 rounded-2xl space-y-1">
+                  <div className="p-3.5 bg-[#05070A] border border-white/10 rounded-2xl space-y-1 hover:border-white/20 transition-all duration-200">
                     <div className="flex items-center gap-1.5 text-[#A3A8B3]">
                       <Calendar className="w-3.5 h-3.5 text-[#FF5A36]" />
                       <span>Event Time</span>
@@ -341,7 +383,7 @@ export const SellTicketPage: React.FC = () => {
                     <p className="text-[10px] text-[#A3A8B3]">Doors open at 17:00</p>
                   </div>
 
-                  <div className="p-3.5 bg-[#05070A] border border-white/10 rounded-2xl space-y-1">
+                  <div className="p-3.5 bg-[#05070A] border border-white/10 rounded-2xl space-y-1 hover:border-white/20 transition-all duration-200">
                     <div className="flex items-center gap-1.5 text-[#A3A8B3]">
                       <MapPin className="w-3.5 h-3.5 text-cyan-400" />
                       <span>Venue Location</span>
@@ -352,14 +394,14 @@ export const SellTicketPage: React.FC = () => {
                 </div>
 
                 {/* Seat Position Box */}
-                <div className="p-4 bg-[#05070A] border border-white/10 rounded-2xl flex items-center justify-between">
+                <div className="p-4 bg-[#05070A] border border-white/10 rounded-2xl flex items-center justify-between hover:border-[#FF5A36]/40 transition-colors duration-300">
                   <div className="space-y-0.5">
                     <span className="text-[10px] text-[#A3A8B3] font-mono">Verified Seat Location</span>
                     <p className="text-base font-bold text-white font-display">
                       <span className="text-[#FF5A36]">VIP Zone A</span> · <span className="text-amber-400 font-bold">Row C</span> · Seat 24
                     </p>
                   </div>
-                  <span className="px-3 py-1 bg-white/10 rounded-lg text-[10px] font-mono text-white">
+                  <span className="px-3 py-1 bg-white/10 rounded-lg text-[10px] font-mono text-white group-hover:bg-[#FF5A36]/20 transition-all duration-300">
                     ENTRANCE GATE: Gate A1
                   </span>
                 </div>
@@ -389,8 +431,8 @@ export const SellTicketPage: React.FC = () => {
                 </div>
 
                 {/* Barcode Mock */}
-                <div className="p-4 bg-[#05070A] border border-white/10 rounded-2xl text-center space-y-2">
-                  <div className="h-10 w-64 mx-auto bg-white/10 rounded flex items-center justify-center font-mono text-xs tracking-widest text-slate-400">
+                <div className="p-4 bg-[#05070A] border border-white/10 rounded-2xl text-center space-y-2 group-hover:border-white/20 transition-all duration-300">
+                  <div className="h-10 w-64 mx-auto bg-white/10 rounded flex items-center justify-center font-mono text-xs tracking-widest text-slate-400 group-hover:text-white transition-colors duration-300">
                     |||||| | |||| ||| ||||||| ||| ||
                   </div>
                   <p className="text-[10px] font-mono text-[#A3A8B3]">TK-8502-BP-2025-VN</p>
@@ -401,7 +443,7 @@ export const SellTicketPage: React.FC = () => {
 
             <button
               onClick={() => setCurrentStep(4)}
-              className="w-full py-4 bg-[#FF5A36] hover:bg-[#FF7252] text-white font-bold font-display uppercase tracking-widest text-xs rounded-xl shadow-lg shadow-[#FF5A36]/30 transition-all flex items-center justify-center gap-2"
+              className="w-full py-4 bg-[#FF5A36] hover:bg-[#FF7252] text-white font-bold font-display uppercase tracking-widest text-xs rounded-xl shadow-lg shadow-[#FF5A36]/30 hover:shadow-xl hover:shadow-[#FF5A36]/50 hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200 flex items-center justify-center gap-2"
             >
               <span>Continue: Set Resale Price →</span>
             </button>
@@ -410,7 +452,7 @@ export const SellTicketPage: React.FC = () => {
 
         {/* STEP 4: ĐẶT GIÁ BÁN LẠI */}
         {currentStep === 4 && (
-          <div className="max-w-xl mx-auto space-y-6 pt-2">
+          <div key={4} className="animate-fade-in-up max-w-xl mx-auto space-y-6 pt-2">
             <div className="space-y-2 text-center">
               <h2 className="text-3xl font-extrabold font-display text-white">
                 Set Resale Listing Price
@@ -421,7 +463,7 @@ export const SellTicketPage: React.FC = () => {
             </div>
 
             {/* Ticket Mini Summary */}
-            <div className="p-4 bg-[#0A0D12] border border-white/10 rounded-2xl flex items-center gap-4 text-xs">
+            <div className="p-4 bg-[#0A0D12]/90 backdrop-blur-md border border-white/10 rounded-2xl flex items-center gap-4 text-xs hover:border-white/20 transition-all duration-300">
               <img
                 src="/images/landing/featured-1.jpg"
                 alt="Ticket Thumb"
@@ -438,13 +480,13 @@ export const SellTicketPage: React.FC = () => {
             </div>
 
             {/* Price Selector Main Box */}
-            <div className="bg-[#0A0D12] border border-white/10 p-6 sm:p-8 rounded-3xl space-y-6 shadow-2xl text-center">
+            <div className="bg-[#0A0D12]/90 backdrop-blur-md border border-white/10 p-6 sm:p-8 rounded-3xl space-y-6 shadow-2xl text-center hover:border-white/20 transition-all duration-300">
               <span className="text-xs text-[#A3A8B3] uppercase tracking-wider font-display font-semibold">
                 PROPOSED RESALE PRICE
               </span>
 
-              <div className="text-4xl sm:text-5xl font-extrabold font-display text-white tracking-tight flex items-center justify-center gap-2">
-                <span>{resalePrice.toLocaleString('en-US')}</span>
+              <div className="text-4xl sm:text-5xl font-extrabold font-display text-white tracking-tight flex items-center justify-center gap-2 transition-all duration-300">
+                <span className="transition-all duration-300">{resalePrice.toLocaleString('en-US')}</span>
                 <span className="text-base font-normal text-[#FF5A36]">VND</span>
               </div>
 
@@ -454,40 +496,44 @@ export const SellTicketPage: React.FC = () => {
                 <div className="grid grid-cols-4 gap-2 text-xs font-mono">
                   <button
                     onClick={() => handleApplyDiscount(5)}
-                    className={`py-2.5 rounded-xl border transition-all ${resalePrice === Math.round(faceValue * 0.95)
-                        ? 'bg-[#FF5A36]/20 border-[#FF5A36] text-[#FF5A36] font-bold'
-                        : 'bg-[#05070A] border-white/10 text-[#A3A8B3] hover:text-white'
-                      }`}
+                    className={`py-2.5 rounded-xl border transition-all duration-200 hover:scale-105 active:scale-95 ${
+                      resalePrice === Math.round(faceValue * 0.95)
+                        ? 'bg-[#FF5A36]/20 border-[#FF5A36] text-[#FF5A36] font-bold shadow-lg shadow-[#FF5A36]/20'
+                        : 'bg-[#05070A] border-white/10 text-[#A3A8B3] hover:text-white hover:border-white/30'
+                    }`}
                   >
                     -5%
                   </button>
 
                   <button
                     onClick={() => handleApplyDiscount(10)}
-                    className={`py-2.5 rounded-xl border transition-all ${resalePrice === Math.round(faceValue * 0.9)
-                        ? 'bg-[#FF5A36]/20 border-[#FF5A36] text-[#FF5A36] font-bold'
-                        : 'bg-[#05070A] border-white/10 text-[#A3A8B3] hover:text-white'
-                      }`}
+                    className={`py-2.5 rounded-xl border transition-all duration-200 hover:scale-105 active:scale-95 ${
+                      resalePrice === Math.round(faceValue * 0.9)
+                        ? 'bg-[#FF5A36]/20 border-[#FF5A36] text-[#FF5A36] font-bold shadow-lg shadow-[#FF5A36]/20'
+                        : 'bg-[#05070A] border-white/10 text-[#A3A8B3] hover:text-white hover:border-white/30'
+                    }`}
                   >
                     -10%
                   </button>
 
                   <button
                     onClick={() => handleApplyDiscount(15)}
-                    className={`py-2.5 rounded-xl border transition-all ${resalePrice === Math.round(faceValue * 0.85)
-                        ? 'bg-[#FF5A36]/20 border-[#FF5A36] text-[#FF5A36] font-bold'
-                        : 'bg-[#05070A] border-white/10 text-[#A3A8B3] hover:text-white'
-                      }`}
+                    className={`py-2.5 rounded-xl border transition-all duration-200 hover:scale-105 active:scale-95 ${
+                      resalePrice === Math.round(faceValue * 0.85)
+                        ? 'bg-[#FF5A36]/20 border-[#FF5A36] text-[#FF5A36] font-bold shadow-lg shadow-[#FF5A36]/20'
+                        : 'bg-[#05070A] border-white/10 text-[#A3A8B3] hover:text-white hover:border-white/30'
+                    }`}
                   >
                     -15%
                   </button>
 
                   <button
                     onClick={() => handleApplyDiscount(0)}
-                    className={`py-2.5 rounded-xl border transition-all ${resalePrice === faceValue
-                        ? 'bg-[#FF5A36]/20 border-[#FF5A36] text-[#FF5A36] font-bold'
-                        : 'bg-[#05070A] border-white/10 text-[#A3A8B3] hover:text-white'
-                      }`}
+                    className={`py-2.5 rounded-xl border transition-all duration-200 hover:scale-105 active:scale-95 ${
+                      resalePrice === faceValue
+                        ? 'bg-[#FF5A36]/20 border-[#FF5A36] text-[#FF5A36] font-bold shadow-lg shadow-[#FF5A36]/20'
+                        : 'bg-[#05070A] border-white/10 text-[#A3A8B3] hover:text-white hover:border-white/30'
+                    }`}
                   >
                     Face Value
                   </button>
@@ -495,9 +541,9 @@ export const SellTicketPage: React.FC = () => {
               </div>
 
               {/* Net Payout Box */}
-              <div className="p-4 bg-[#05070A] border border-white/10 rounded-2xl flex items-center justify-between text-xs">
+              <div className="p-4 bg-[#05070A] border border-white/10 rounded-2xl flex items-center justify-between text-xs hover:border-emerald-500/30 transition-all duration-300">
                 <span className="text-[#A3A8B3]">Your Net Payout:</span>
-                <span className="text-xl font-bold font-display text-emerald-400">
+                <span className="text-xl font-bold font-display text-emerald-400 transition-all duration-300">
                   {resalePrice.toLocaleString('en-US')} VND
                 </span>
               </div>
@@ -507,7 +553,7 @@ export const SellTicketPage: React.FC = () => {
 
               <button
                 onClick={() => setCurrentStep(5)}
-                className="w-full py-4 bg-[#FF5A36] hover:bg-[#FF7252] text-white font-bold font-display uppercase tracking-widest text-xs rounded-xl shadow-lg shadow-[#FF5A36]/30 transition-all flex items-center justify-center gap-2"
+                className="w-full py-4 bg-[#FF5A36] hover:bg-[#FF7252] text-white font-bold font-display uppercase tracking-widest text-xs rounded-xl shadow-lg shadow-[#FF5A36]/30 hover:shadow-xl hover:shadow-[#FF5A36]/50 hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200 flex items-center justify-center gap-2"
               >
                 <span>Continue: Review Listing →</span>
               </button>
@@ -521,7 +567,7 @@ export const SellTicketPage: React.FC = () => {
 
         {/* STEP 5: XÁC NHẬN NIÊM YẾT */}
         {currentStep === 5 && (
-          <div className="max-w-xl mx-auto space-y-6 pt-2">
+          <div key={5} className="animate-fade-in-up max-w-xl mx-auto space-y-6 pt-2">
             <div className="space-y-2 text-center">
               <h2 className="text-3xl font-extrabold font-display text-white">
                 Confirm Ticket Listing
@@ -532,13 +578,13 @@ export const SellTicketPage: React.FC = () => {
             </div>
 
             {/* Final Preview Card */}
-            <div className="bg-[#0A0D12] border border-white/10 rounded-3xl overflow-hidden shadow-2xl space-y-6 p-6 sm:p-8">
+            <div className="bg-[#0A0D12]/90 backdrop-blur-md border border-white/10 rounded-3xl overflow-hidden shadow-2xl space-y-6 p-6 sm:p-8 hover:border-white/20 transition-all duration-300">
 
-              <div className="relative h-44 rounded-2xl overflow-hidden">
+              <div className="relative h-44 rounded-2xl overflow-hidden group">
                 <img
                   src="/images/landing/featured-1.jpg"
                   alt="Concert"
-                  className="w-full h-full object-cover"
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-out"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-[#0A0D12] via-transparent to-transparent" />
                 <span className="absolute top-3 left-3 px-2.5 py-1 bg-black/70 backdrop-blur-md text-[10px] font-bold text-amber-400 rounded-full font-mono">
@@ -554,7 +600,7 @@ export const SellTicketPage: React.FC = () => {
                 </p>
               </div>
 
-              <div className="grid grid-cols-2 gap-4 p-4 bg-[#05070A] border border-white/10 rounded-2xl text-xs">
+              <div className="grid grid-cols-2 gap-4 p-4 bg-[#05070A] border border-white/10 rounded-2xl text-xs hover:border-white/20 transition-all duration-200">
                 <div>
                   <span className="text-[10px] text-[#A3A8B3]">SEAT POSITION</span>
                   <p className="font-bold text-white font-display text-sm">VIP Zone A • Seat 24</p>
@@ -565,25 +611,25 @@ export const SellTicketPage: React.FC = () => {
                 </div>
               </div>
 
-              <div className="p-4 bg-emerald-500/10 border border-emerald-500/30 rounded-2xl flex items-center justify-between text-xs">
+              <div className="p-4 bg-emerald-500/10 border border-emerald-500/30 rounded-2xl flex items-center justify-between text-xs hover:border-emerald-500/50 transition-all duration-300">
                 <span className="text-emerald-400 font-semibold">Net payout after sale:</span>
                 <span className="text-xl font-bold font-display text-emerald-400">{resalePrice.toLocaleString('en-US')} VND</span>
               </div>
 
-              <label className="flex items-center gap-3 text-xs text-[#F5F5F2] cursor-pointer pt-2">
+              <label className="flex items-center gap-3 text-xs text-[#F5F5F2] cursor-pointer pt-2 group">
                 <input
                   type="checkbox"
                   checked={agreedTerms}
                   onChange={(e) => setAgreedTerms(e.target.checked)}
-                  className="rounded border-white/20 bg-[#05070A] text-[#FF5A36] focus:ring-0 w-4 h-4"
+                  className="rounded border-white/20 bg-[#05070A] text-[#FF5A36] focus:ring-0 w-4 h-4 transition-transform duration-200 group-hover:scale-110"
                 />
-                <span>I confirm I am the original ticket owner and agree to list this pass</span>
+                <span className="group-hover:text-white transition-colors duration-200">I confirm I am the original ticket owner and agree to list this pass</span>
               </label>
 
               <button
                 onClick={handlePublishListing}
                 disabled={isPublishing}
-                className="w-full py-4 bg-[#FF5A36] hover:bg-[#FF7252] text-white font-bold font-display uppercase tracking-widest text-xs rounded-xl shadow-lg shadow-[#FF5A36]/30 transition-all flex items-center justify-center gap-2"
+                className="w-full py-4 bg-[#FF5A36] hover:bg-[#FF7252] text-white font-bold font-display uppercase tracking-widest text-xs rounded-xl shadow-lg shadow-[#FF5A36]/30 hover:shadow-xl hover:shadow-[#FF5A36]/50 hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200 flex items-center justify-center gap-2"
               >
                 {isPublishing ? 'Publishing Listing...' : 'Publish Listing Now →'}
               </button>
@@ -591,7 +637,7 @@ export const SellTicketPage: React.FC = () => {
               <div className="text-center">
                 <button
                   onClick={() => setCurrentStep(4)}
-                  className="text-xs text-[#A3A8B3] hover:text-white underline font-mono"
+                  className="text-xs text-[#A3A8B3] hover:text-white underline font-mono transition-colors duration-200"
                 >
                   Edit Price
                 </button>
@@ -603,8 +649,8 @@ export const SellTicketPage: React.FC = () => {
 
         {/* STEP 6: HOÀN TẤT NIÊM YẾT */}
         {currentStep === 6 && (
-          <div className="max-w-xl mx-auto text-center space-y-6 pt-8">
-            <div className="w-20 h-20 bg-emerald-500/20 border-2 border-emerald-500 text-emerald-400 rounded-full flex items-center justify-center mx-auto shadow-2xl shadow-emerald-500/30 animate-bounce">
+          <div key={6} className="animate-fade-in-up max-w-xl mx-auto text-center space-y-6 pt-8">
+            <div className="w-20 h-20 bg-emerald-500/20 border-2 border-emerald-500 text-emerald-400 rounded-full flex items-center justify-center mx-auto shadow-2xl shadow-emerald-500/40 animate-pop-in">
               <CheckCircle2 className="w-10 h-10" />
             </div>
 
@@ -617,7 +663,7 @@ export const SellTicketPage: React.FC = () => {
               </p>
             </div>
 
-            <div className="p-6 bg-[#0A0D12] border border-white/10 rounded-3xl space-y-3 text-left max-w-md mx-auto text-xs">
+            <div className="p-6 bg-[#0A0D12]/90 backdrop-blur-md border border-white/10 rounded-3xl space-y-3 text-left max-w-md mx-auto text-xs hover:border-emerald-500/30 transition-all duration-300">
               <div className="flex items-center justify-between">
                 <span className="text-[#A3A8B3]">Status:</span>
                 <span className="text-emerald-400 font-bold font-mono">PUBLICLY LISTED</span>
@@ -635,14 +681,14 @@ export const SellTicketPage: React.FC = () => {
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4">
               <button
                 onClick={() => navigate('/my-listings')}
-                className="w-full sm:w-auto px-8 py-3.5 bg-[#FF5A36] text-white font-bold font-display uppercase tracking-widest text-xs rounded-xl shadow-lg shadow-[#FF5A36]/30"
+                className="w-full sm:w-auto px-8 py-3.5 bg-[#FF5A36] hover:bg-[#FF7252] text-white font-bold font-display uppercase tracking-widest text-xs rounded-xl shadow-lg shadow-[#FF5A36]/30 hover:shadow-xl hover:shadow-[#FF5A36]/50 hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200"
               >
                 Manage My Listings
               </button>
 
               <button
                 onClick={() => navigate('/marketplace')}
-                className="w-full sm:w-auto px-8 py-3.5 bg-white/5 border border-white/10 text-white font-bold font-display uppercase tracking-widest text-xs rounded-xl hover:bg-white/10"
+                className="w-full sm:w-auto px-8 py-3.5 bg-white/5 border border-white/10 text-white font-bold font-display uppercase tracking-widest text-xs rounded-xl hover:bg-white/10 hover:border-white/20 transition-all duration-200"
               >
                 View On Marketplace
               </button>
