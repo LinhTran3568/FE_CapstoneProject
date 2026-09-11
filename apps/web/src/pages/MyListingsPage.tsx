@@ -1,20 +1,108 @@
-import React, { useState } from 'react';
-import { Ticket, ShieldCheck, PlusCircle, CheckCircle2, TrendingUp, Wallet, Edit3, Trash2 } from 'lucide-react';
+import React, { useCallback, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
+import {
+  AlertTriangle,
+  CalendarDays,
+  Check,
+  Copy,
+  Lock,
+  MapPin,
+  PlusCircle,
+  RefreshCw,
+  Ticket,
+  Undo2,
+} from 'lucide-react';
+import type { ListingStatus, SellerListingDto } from '@ticketshield/types';
 import { useUIStore } from '../stores/uiStore';
+import { useCancelListing, useMyListings } from '../hooks/useMyListings';
+import { ConfirmModal } from '../components/ui/ConfirmModal';
+import {
+  LISTING_STATUS_META,
+  ListingStatusBadge,
+  VerificationBadge,
+  VisibilityBadge,
+} from '../components/listings/ListingBadges';
+import { formatEventDateTime, formatVND } from '../utils/formatters';
+import { buildPrivateShareLink, copyToClipboard } from '../utils/shareLink';
+
+type StatusFilter = 'all' | ListingStatus;
+
+/** Filter tiles shown above the list. Draft listings are only counted under "All". */
+const FILTERS: StatusFilter[] = ['all', 'Verified', 'Transacting', 'Sold', 'Cancelled'];
+
+const TOAST_CANCEL_SUCCESS = 'Listing cancelled and the original ticket has been unlocked.';
+const TOAST_CANCEL_ERROR = "Couldn't reach the organizer to unlock the ticket. Please try again later.";
+
+/** Only listings nobody has bought yet can be cancelled (backend rule). */
+const canCancel = (listing: SellerListingDto) => listing.listingStatus === 'Verified';
+
+/** Private links are worth sharing only while the listing is still live. */
+const canCopyLink = (listing: SellerListingDto) =>
+  listing.isPrivate &&
+  !!listing.privateAccessToken &&
+  (listing.listingStatus === 'Verified' || listing.listingStatus === 'Transacting');
 
 export const MyListingsPage: React.FC = () => {
   const { showToast } = useUIStore();
+  const { data: listings = [], isPending, isError, error, refetch, isFetching } = useMyListings();
+  const cancelMutation = useCancelListing();
 
-  const [listings, setListings] = useState([
-    { id: '1', title: 'Anh Trai Vượt Ngàn Chông Gai Concert 2026', zone: 'VIP Khái Hưng - Row 03', price: '1.800.000 VND', status: 'ACTIVE', views: 142 },
-    { id: '2', title: 'Coldplay Music of the Spheres Tour', zone: 'Cat 1 Standing', price: '3.200.000 VND', status: 'ACTIVE', views: 289 },
-    { id: '3', title: 'Lễ Hội Âm Nhạc Monsoon 2026', zone: 'Early Bird Pass', price: '950.000 VND', status: 'SOLD', views: 98 },
-  ]);
+  const [filter, setFilter] = useState<StatusFilter>('all');
+  const [listingToCancel, setListingToCancel] = useState<SellerListingDto | null>(null);
+  const [copiedListingId, setCopiedListingId] = useState<string | null>(null);
 
-  const handleRemove = (id: string, title: string) => {
-    setListings((prev) => prev.filter((item) => item.id !== id));
-    showToast(`Removed listing "${title}"`, 'info');
+  const counts = useMemo(() => {
+    const result: Record<StatusFilter, number> = {
+      all: listings.length,
+      Draft: 0,
+      Verified: 0,
+      Transacting: 0,
+      Sold: 0,
+      Cancelled: 0,
+    };
+    listings.forEach((listing) => {
+      result[listing.listingStatus] += 1;
+    });
+    return result;
+  }, [listings]);
+
+  const visibleListings = useMemo(
+    () => (filter === 'all' ? listings : listings.filter((l) => l.listingStatus === filter)),
+    [filter, listings]
+  );
+
+  const handleCopyLink = async (listing: SellerListingDto) => {
+    if (!listing.privateAccessToken) return;
+    try {
+      await copyToClipboard(buildPrivateShareLink(listing.privateAccessToken));
+      setCopiedListingId(listing.listingId);
+      showToast('Private link copied. Share it only with your buyer.', 'success');
+      window.setTimeout(() => setCopiedListingId(null), 2000);
+    } catch {
+      showToast("Couldn't copy the link. Please try again.", 'error');
+    }
+  };
+
+  // `reset` is stable across renders, so the modal's Esc listener is not re-attached on every render.
+  const resetCancelMutation = cancelMutation.reset;
+  const closeCancelModal = useCallback(() => {
+    setListingToCancel(null);
+    resetCancelMutation();
+  }, [resetCancelMutation]);
+
+  const handleConfirmCancel = () => {
+    if (!listingToCancel) return;
+    cancelMutation.mutate(listingToCancel.listingId, {
+      onSuccess: () => {
+        showToast(TOAST_CANCEL_SUCCESS, 'success');
+        setListingToCancel(null);
+      },
+      onError: (err) => {
+        // Keep the modal open: the listing is unchanged and the seller can retry.
+        console.error('Cancel listing failed:', err);
+        showToast(TOAST_CANCEL_ERROR, 'error');
+      },
+    });
   };
 
   return (
@@ -23,7 +111,7 @@ export const MyListingsPage: React.FC = () => {
       <div className="fixed inset-0 z-0 pointer-events-none">
         <img
           src="/images/landing/featured-2.jpg"
-          alt="Concert Background"
+          alt=""
           className="w-full h-full object-cover opacity-25 filter brightness-75 contrast-125 scale-105"
         />
         <div className="absolute inset-0 bg-gradient-to-b from-[#05070A]/90 via-[#05070A]/85 to-[#05070A]" />
@@ -31,65 +119,257 @@ export const MyListingsPage: React.FC = () => {
       </div>
 
       <div className="relative z-10 max-w-6xl mx-auto space-y-8">
-        
         {/* Header */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
           <div className="space-y-2">
+            <span className="text-xs text-[#FF5A36] font-bold font-display uppercase tracking-widest">
+              Seller Console
+            </span>
             <h1 className="text-4xl font-extrabold font-display text-white uppercase tracking-tight">
               My Resale Listings
             </h1>
-            <p className="text-sm text-[#A3A8B3]">Manage all active ticket listings published under your seller account.</p>
+            <p className="text-sm text-[#A3A8B3] max-w-2xl">
+              Track every ticket you have listed, share private links with your buyer and cancel
+              listings that have not been bought yet.
+            </p>
           </div>
           <Link
             to="/sell-ticket"
-            className="px-6 py-3 bg-[#FF5A36] hover:bg-[#FF7252] text-white font-bold font-display text-xs uppercase tracking-wider rounded-xl shadow-lg shadow-[#FF5A36]/30 flex items-center justify-center gap-2"
+            className="px-6 py-3 bg-[#FF5A36] hover:bg-[#FF7252] text-white font-bold font-display text-xs uppercase tracking-wider rounded-xl shadow-lg shadow-[#FF5A36]/30 flex items-center justify-center gap-2 shrink-0"
           >
             <PlusCircle className="w-4 h-4" />
-            <span>+ Sell New Ticket</span>
+            <span>Sell New Ticket</span>
           </Link>
         </div>
 
-        {/* Listings List */}
-        <div className="bg-[#0A0D12] border border-white/10 rounded-3xl p-6 md:p-8 space-y-4 shadow-xl">
-          {listings.map((item) => (
-            <div key={item.id} className="p-5 bg-[#05070A] border border-white/10 rounded-2xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4 hover:border-[#FF5A36]/40 transition-colors">
-              <div className="flex items-center gap-4">
-                <div className="p-3.5 rounded-2xl bg-[#FF5A36]/10 text-[#FF5A36]">
-                  <Ticket className="w-6 h-6" />
-                </div>
-                <div>
-                  <h4 className="font-bold text-white text-base">{item.title}</h4>
-                  <p className="text-xs text-[#A3A8B3] font-mono">{item.zone} • {item.views} views</p>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-6 w-full md:w-auto justify-between md:justify-end">
-                <div className="text-left md:text-right">
-                  <p className="font-bold text-white text-base font-display">{item.price}</p>
-                  <span className={`text-[10px] font-bold font-mono px-2.5 py-0.5 rounded-full ${
-                    item.status === 'ACTIVE' ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-white/10 text-[#A3A8B3]'
-                  }`}>
-                    {item.status}
-                  </span>
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => handleRemove(item.id, item.title)}
-                    className="p-2 bg-white/5 border border-white/10 hover:border-red-500/40 text-[#A3A8B3] hover:text-red-400 rounded-xl transition-all"
-                    title="Delete Listing"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                </div>
-              </div>
-            </div>
-          ))}
+        {/* Summary tiles — also act as the status filter */}
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-3" role="group" aria-label="Filter listings by status">
+          {FILTERS.map((key) => {
+            const isActive = filter === key;
+            const label = key === 'all' ? 'All Listings' : LISTING_STATUS_META[key].label;
+            return (
+              <button
+                key={key}
+                type="button"
+                onClick={() => setFilter(key)}
+                aria-pressed={isActive}
+                className={`text-left bg-[#0A0D12] border p-4 rounded-2xl space-y-1 transition-colors ${
+                  isActive
+                    ? 'border-[#FF5A36]/70 shadow-lg shadow-[#FF5A36]/10'
+                    : 'border-white/10 hover:border-[#FF5A36]/40'
+                }`}
+              >
+                <span
+                  className={`block text-[11px] font-display uppercase tracking-wider ${
+                    isActive ? 'text-[#FF5A36]' : 'text-[#A3A8B3]'
+                  }`}
+                >
+                  {label}
+                </span>
+                <span className="block text-2xl font-bold font-display text-white tabular-nums">
+                  {isPending ? '–' : counts[key]}
+                </span>
+              </button>
+            );
+          })}
         </div>
 
+        {/* Listings */}
+        <div className="bg-[#0A0D12] border border-white/10 rounded-3xl p-6 md:p-8 space-y-4 shadow-xl">
+          {isPending && <ListingSkeleton />}
+
+          {isError && (
+            <div className="py-10 flex flex-col items-center text-center gap-3">
+              <div className="p-3.5 rounded-2xl bg-rose-500/10 text-rose-400">
+                <AlertTriangle className="w-6 h-6" />
+              </div>
+              <h4 className="font-bold text-white text-base">Couldn't load your listings</h4>
+              <p className="text-xs text-[#A3A8B3] max-w-md">
+                {error instanceof Error ? error.message : 'Please check your connection and try again.'}
+              </p>
+              <button
+                type="button"
+                onClick={() => refetch()}
+                disabled={isFetching}
+                className="mt-2 px-5 py-2.5 bg-white/5 border border-white/10 hover:bg-white/10 text-white font-bold font-display text-xs uppercase tracking-wider rounded-xl flex items-center gap-2 disabled:opacity-60"
+              >
+                <RefreshCw className={`w-4 h-4 ${isFetching ? 'animate-spin' : ''}`} />
+                Try Again
+              </button>
+            </div>
+          )}
+
+          {!isPending && !isError && visibleListings.length === 0 && (
+            <div className="py-10 flex flex-col items-center text-center gap-3">
+              <div className="p-3.5 rounded-2xl bg-[#FF5A36]/10 text-[#FF5A36]">
+                <Ticket className="w-6 h-6" />
+              </div>
+              <h4 className="font-bold text-white text-base">
+                {listings.length === 0 ? "You haven't listed any tickets yet" : 'No listings in this category'}
+              </h4>
+              <p className="text-xs text-[#A3A8B3] max-w-md">
+                {listings.length === 0
+                  ? 'Verify a ticket you own and publish it to start selling safely through escrow.'
+                  : 'Pick another status above to see the rest of your listings.'}
+              </p>
+            </div>
+          )}
+
+          {!isPending &&
+            !isError &&
+            visibleListings.map((listing) => (
+              <div
+                key={listing.listingId}
+                className={`p-5 bg-[#05070A] border border-white/10 rounded-2xl flex flex-col lg:flex-row items-start lg:items-center justify-between gap-5 hover:border-[#FF5A36]/40 transition-colors ${
+                  listing.listingStatus === 'Cancelled' ? 'opacity-70' : ''
+                }`}
+              >
+                {/* Event & ticket info */}
+                <div className="flex items-start gap-4 min-w-0">
+                  <div className="p-3.5 rounded-2xl bg-[#FF5A36]/10 text-[#FF5A36] shrink-0">
+                    <Ticket className="w-6 h-6" />
+                  </div>
+                  <div className="min-w-0 space-y-2">
+                    <div>
+                      <h4 className="font-bold text-white text-base">{listing.eventName}</h4>
+                      <p className="text-xs text-[#A3A8B3] font-mono flex flex-wrap items-center gap-x-3 gap-y-1 mt-1">
+                        <span>{listing.tierName}</span>
+                        <span className="flex items-center gap-1">
+                          <CalendarDays className="w-3 h-3" />
+                          {formatEventDateTime(listing.eventStartAt)}
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <MapPin className="w-3 h-3" />
+                          {listing.eventVenue}
+                        </span>
+                      </p>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <ListingStatusBadge status={listing.listingStatus} />
+                      <VisibilityBadge isPrivate={listing.isPrivate} />
+                      <VerificationBadge status={listing.verificationStatus} />
+                      <span className="text-[10px] text-[#A3A8B3] font-mono ml-1">
+                        Code {listing.originalTicketCode}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Price & actions */}
+                <div className="flex items-center gap-6 w-full lg:w-auto justify-between lg:justify-end">
+                  <div className="text-left lg:text-right">
+                    <p className="font-bold text-white text-base font-display tabular-nums">
+                      {formatVND(listing.resalePrice)}
+                    </p>
+                    <p className="text-[11px] text-[#A3A8B3] font-mono tabular-nums">
+                      Face value {formatVND(listing.originalPrice)}
+                      {listing.discountPercentage > 0 && (
+                        <span className="text-emerald-400 ml-1.5">-{listing.discountPercentage}%</span>
+                      )}
+                    </p>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    {canCopyLink(listing) && (
+                      <button
+                        type="button"
+                        onClick={() => handleCopyLink(listing)}
+                        className="px-3 py-2 bg-white/5 border border-white/10 hover:border-[#FF5A36]/50 text-white rounded-xl transition-all flex items-center gap-1.5 text-xs font-bold font-display uppercase tracking-wider"
+                        title="Copy the private link for your buyer"
+                      >
+                        {copiedListingId === listing.listingId ? (
+                          <Check className="w-4 h-4 text-emerald-400" />
+                        ) : (
+                          <Copy className="w-4 h-4 text-[#FF5A36]" />
+                        )}
+                        <span>{copiedListingId === listing.listingId ? 'Copied' : 'Copy Link'}</span>
+                      </button>
+                    )}
+                    {canCancel(listing) && (
+                      <button
+                        type="button"
+                        onClick={() => setListingToCancel(listing)}
+                        className="px-3 py-2 bg-white/5 border border-white/10 hover:border-rose-500/50 text-[#A3A8B3] hover:text-rose-400 rounded-xl transition-all flex items-center gap-1.5 text-xs font-bold font-display uppercase tracking-wider"
+                        title="Cancel this listing and unlock the original ticket"
+                      >
+                        <Undo2 className="w-4 h-4" />
+                        <span>Cancel</span>
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ))}
+        </div>
       </div>
+
+      {/* Cancel confirmation (SCRUM-30) */}
+      <ConfirmModal
+        open={listingToCancel !== null}
+        eyebrow="Seller Action"
+        title="Cancel this listing?"
+        description="The listing is removed from sale and the original ticket is unlocked with the organizer, so you can use it or list it again."
+        confirmLabel={cancelMutation.isError ? 'Try Again' : 'Cancel Listing'}
+        cancelLabel="Keep Listing"
+        loadingLabel="Unlocking ticket..."
+        tone="danger"
+        isLoading={cancelMutation.isPending}
+        onConfirm={handleConfirmCancel}
+        onClose={closeCancelModal}
+      >
+        {listingToCancel && (
+          <div className="space-y-3">
+            <div className="p-4 bg-[#05070A] border border-white/10 rounded-2xl space-y-1">
+              <p className="font-bold text-white text-sm">{listingToCancel.eventName}</p>
+              <p className="text-xs text-[#A3A8B3] font-mono">
+                {listingToCancel.tierName} • Code {listingToCancel.originalTicketCode}
+              </p>
+              <p className="text-sm font-bold font-display text-white tabular-nums">
+                {formatVND(listingToCancel.resalePrice)}
+              </p>
+            </div>
+            {listingToCancel.isPrivate && (
+              <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded-xl text-amber-300 text-[11px] leading-relaxed flex gap-2">
+                <Lock className="w-4 h-4 shrink-0 mt-0.5" />
+                <span>
+                  Anyone who opens your private link will see this listing as cancelled and won't be
+                  able to buy it.
+                </span>
+              </div>
+            )}
+            {cancelMutation.isError && (
+              <div className="p-3 bg-rose-500/10 border border-rose-500/30 rounded-xl text-rose-300 text-[11px] leading-relaxed flex gap-2">
+                <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
+                <span>
+                  The organizer could not unlock this ticket, so nothing was cancelled. Your listing
+                  is still on sale.
+                </span>
+              </div>
+            )}
+          </div>
+        )}
+      </ConfirmModal>
     </div>
   );
 };
+
+/** Placeholder rows while listings load. */
+const ListingSkeleton: React.FC = () => (
+  <div className="space-y-4" aria-busy="true" aria-label="Loading listings">
+    {[0, 1, 2].map((row) => (
+      <div
+        key={row}
+        className="p-5 bg-[#05070A] border border-white/10 rounded-2xl flex items-center gap-4 animate-pulse"
+      >
+        <div className="w-12 h-12 rounded-2xl bg-white/5" />
+        <div className="flex-1 space-y-2">
+          <div className="h-4 w-1/2 rounded bg-white/10" />
+          <div className="h-3 w-1/3 rounded bg-white/5" />
+        </div>
+        <div className="h-5 w-24 rounded bg-white/10" />
+      </div>
+    ))}
+  </div>
+);
 
 export default MyListingsPage;
