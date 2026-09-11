@@ -9,7 +9,7 @@
   ],
   "scripts": {
     "start": "npm run dev --workspace=apps/mobile",
-    "dev": "npm run dev --workspace=apps/web",
+    "dev": "doppler run -- npm run dev --workspace=apps/web",
     "dev:web": "npm run dev --workspace=apps/web",
     "dev:mobile": "npm run dev --workspace=apps/mobile",
     "build:web": "npm run build --workspace=apps/web",
