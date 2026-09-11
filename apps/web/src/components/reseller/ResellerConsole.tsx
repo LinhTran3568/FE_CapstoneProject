@@ -60,9 +60,6 @@ export const ResellerConsole: React.FC = () => {
                 <Sparkles className="w-3.5 h-3.5" />
                 Reseller Portal Active
               </span>
-              <span className="text-xs text-emerald-400 bg-emerald-500/10 border border-emerald-500/30 px-2.5 py-0.5 rounded-full flex items-center gap-1 font-mono">
-                <CheckCircle2 className="w-3 h-3" /> KYC Level 2 Verified
-              </span>
             </div>
             <h2 className="text-2xl md:text-3xl font-extrabold font-display text-white tracking-tight">
               Xin chào Reseller, <span className="text-[#FF5A36]">{user?.fullName || 'Đối Tác'}</span>!

@@ -41,9 +41,7 @@ export const MyTicketsPage: React.FC = () => {
           ].map((ticket, idx) => (
             <div key={idx} className="bg-[#0A0D12] border border-white/10 rounded-3xl p-6 space-y-6 relative overflow-hidden shadow-2xl">
               <div className="flex items-center justify-between border-b border-white/10 pb-4">
-                <span className="px-3 py-1 bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 text-[10px] font-bold font-mono rounded-full flex items-center gap-1">
-                  <ShieldCheck className="w-3.5 h-3.5" /> VERIFIED PASS
-                </span>
+                <span className="text-xs font-mono text-[#FF5A36] font-bold">DIGITAL PASS</span>
                 <span className="text-xs font-mono text-[#A3A8B3]">{ticket.code}</span>
               </div>
 

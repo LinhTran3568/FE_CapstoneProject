@@ -149,9 +149,6 @@ export const MarketplacePage: React.FC = () => {
                   <span className="px-2.5 py-1 bg-black/70 backdrop-blur-md border border-white/10 text-[10px] font-bold font-mono text-white rounded-full uppercase">
                     {listing.category}
                   </span>
-                  <span className="px-2.5 py-1 bg-emerald-500/20 backdrop-blur-md border border-emerald-500/40 text-[10px] font-bold text-emerald-400 rounded-full flex items-center gap-1">
-                    <ShieldCheck className="w-3 h-3" /> VERIFIED PASS
-                  </span>
                 </div>
               </div>
 
