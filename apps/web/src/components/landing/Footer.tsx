@@ -9,7 +9,7 @@ export const Footer: React.FC = () => {
           {/* Brand Col */}
           <div className="md:col-span-5 space-y-4">
             <Link to="/" className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded-full bg-[#FF5A36] shadow-[0_0_10px_#FF5A36]" />
+              <div className="w-3 h-3 rounded-full bg-[#FF5A36]" />
               <span className="font-display text-2xl font-bold text-[#F5F5F2]">
                 TicketShield
               </span>
