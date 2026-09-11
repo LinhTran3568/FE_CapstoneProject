@@ -2,19 +2,19 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useUIStore } from '../stores/uiStore';
 import { useAuthStore } from '../stores/authStore';
-import { 
-  ShieldCheck, 
-  CheckCircle2, 
-  ArrowLeft, 
-  ArrowRight, 
-  Sparkles, 
-  Lock, 
-  Calendar, 
-  MapPin, 
-  Ticket, 
-  QrCode, 
-  Edit3, 
-  Check, 
+import {
+  ShieldCheck,
+  CheckCircle2,
+  ArrowLeft,
+  ArrowRight,
+  Sparkles,
+  Lock,
+  Calendar,
+  MapPin,
+  Ticket,
+  QrCode,
+  Edit3,
+  Check,
   Info,
   AlertCircle
 } from 'lucide-react';
@@ -114,7 +114,7 @@ export const SellTicketPage: React.FC = () => {
       </div>
 
       <div className="relative z-10 max-w-4xl mx-auto space-y-8">
-        
+
         {/* Step Progress Bar (6 Steps Header) */}
         <div className="space-y-4">
           <div className="flex items-center justify-center gap-2 sm:gap-4 max-w-2xl mx-auto px-4">
@@ -127,22 +127,20 @@ export const SellTicketPage: React.FC = () => {
                     onClick={() => {
                       if (stepNum < currentStep) setCurrentStep(stepNum);
                     }}
-                    className={`w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center font-bold text-xs sm:text-sm font-display transition-all ${
-                      isCompleted
+                    className={`w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center font-bold text-xs sm:text-sm font-display transition-all ${isCompleted
                         ? 'bg-emerald-500 text-black shadow-lg shadow-emerald-500/30 cursor-pointer'
                         : isCurrent
-                        ? 'bg-[#FF5A36] text-white shadow-lg shadow-[#FF5A36]/40 scale-110 border-2 border-white/20'
-                        : 'bg-[#0A0D12] text-[#A3A8B3] border border-white/10'
-                    }`}
+                          ? 'bg-[#FF5A36] text-white shadow-lg shadow-[#FF5A36]/40 scale-110 border-2 border-white/20'
+                          : 'bg-[#0A0D12] text-[#A3A8B3] border border-white/10'
+                      }`}
                   >
                     {isCompleted ? <Check className="w-4 h-4 text-black stroke-[3]" /> : stepNum}
                   </button>
 
                   {stepNum < 6 && (
                     <div
-                      className={`flex-1 h-[2px] rounded-full transition-all ${
-                        stepNum < currentStep ? 'bg-emerald-500' : 'bg-white/10'
-                      }`}
+                      className={`flex-1 h-[2px] rounded-full transition-all ${stepNum < currentStep ? 'bg-emerald-500' : 'bg-white/10'
+                        }`}
                     />
                   )}
                 </React.Fragment>
@@ -456,44 +454,40 @@ export const SellTicketPage: React.FC = () => {
                 <div className="grid grid-cols-4 gap-2 text-xs font-mono">
                   <button
                     onClick={() => handleApplyDiscount(5)}
-                    className={`py-2.5 rounded-xl border transition-all ${
-                      resalePrice === Math.round(faceValue * 0.95)
+                    className={`py-2.5 rounded-xl border transition-all ${resalePrice === Math.round(faceValue * 0.95)
                         ? 'bg-[#FF5A36]/20 border-[#FF5A36] text-[#FF5A36] font-bold'
                         : 'bg-[#05070A] border-white/10 text-[#A3A8B3] hover:text-white'
-                    }`}
+                      }`}
                   >
                     -5%
                   </button>
 
                   <button
                     onClick={() => handleApplyDiscount(10)}
-                    className={`py-2.5 rounded-xl border transition-all ${
-                      resalePrice === Math.round(faceValue * 0.9)
+                    className={`py-2.5 rounded-xl border transition-all ${resalePrice === Math.round(faceValue * 0.9)
                         ? 'bg-[#FF5A36]/20 border-[#FF5A36] text-[#FF5A36] font-bold'
                         : 'bg-[#05070A] border-white/10 text-[#A3A8B3] hover:text-white'
-                    }`}
+                      }`}
                   >
                     -10%
                   </button>
 
                   <button
                     onClick={() => handleApplyDiscount(15)}
-                    className={`py-2.5 rounded-xl border transition-all ${
-                      resalePrice === Math.round(faceValue * 0.85)
+                    className={`py-2.5 rounded-xl border transition-all ${resalePrice === Math.round(faceValue * 0.85)
                         ? 'bg-[#FF5A36]/20 border-[#FF5A36] text-[#FF5A36] font-bold'
                         : 'bg-[#05070A] border-white/10 text-[#A3A8B3] hover:text-white'
-                    }`}
+                      }`}
                   >
                     -15%
                   </button>
 
                   <button
                     onClick={() => handleApplyDiscount(0)}
-                    className={`py-2.5 rounded-xl border transition-all ${
-                      resalePrice === faceValue
+                    className={`py-2.5 rounded-xl border transition-all ${resalePrice === faceValue
                         ? 'bg-[#FF5A36]/20 border-[#FF5A36] text-[#FF5A36] font-bold'
                         : 'bg-[#05070A] border-white/10 text-[#A3A8B3] hover:text-white'
-                    }`}
+                      }`}
                   >
                     Face Value
                   </button>
@@ -539,7 +533,7 @@ export const SellTicketPage: React.FC = () => {
 
             {/* Final Preview Card */}
             <div className="bg-[#0A0D12] border border-white/10 rounded-3xl overflow-hidden shadow-2xl space-y-6 p-6 sm:p-8">
-              
+
               <div className="relative h-44 rounded-2xl overflow-hidden">
                 <img
                   src="/images/landing/featured-1.jpg"

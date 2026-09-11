@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { TicketShieldLogo } from '../ui/TicketShieldLogo';
-import { ShieldCheck, Mail, Globe, ArrowUpRight } from 'lucide-react';
+import { ArrowUpRight } from 'lucide-react';
 
 export const Footer: React.FC = () => {
   return (
@@ -17,10 +17,6 @@ export const Footer: React.FC = () => {
             <p className="text-sm text-[#D0D4DC] max-w-sm leading-relaxed">
               Discover experiences worth remembering. Vietnam's 100% verified live event ticket platform with escrow fraud protection.
             </p>
-            <div className="flex items-center gap-2 text-xs font-mono text-emerald-400 bg-emerald-500/10 border border-emerald-500/30 px-3 py-1.5 rounded-full w-fit">
-              <ShieldCheck className="w-4 h-4 text-emerald-400" />
-              <span>100% Escrow Protection Guaranteed</span>
-            </div>
           </div>
 
           {/* Links Col 1 */}
