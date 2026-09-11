@@ -2,12 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useUIStore } from '../stores/uiStore';
 import { useAuthStore } from '../stores/authStore';
+import { resaleApi, VerificationResult } from '@ticketshield/api-client';
 import {
   ShieldCheck,
   CheckCircle2,
   ArrowLeft,
   ArrowRight,
-  Sparkles,
   Lock,
   Calendar,
   MapPin,
@@ -16,7 +16,8 @@ import {
   Edit3,
   Check,
   Info,
-  AlertCircle
+  AlertCircle,
+  Loader2
 } from 'lucide-react';
 
 export const SellTicketPage: React.FC = () => {
@@ -31,42 +32,105 @@ export const SellTicketPage: React.FC = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, [currentStep]);
 
-  // Step 1 Form state
-  const [ticketCode, setTicketCode] = useState('TBX-90412-VN8');
+  // Resale Workflow Verification state
+  const [ticketCode, setTicketCode] = useState('ATSH-VIP-888');
+  const [verificationId, setVerificationId] = useState<string>('');
+  const [verificationResult, setVerificationResult] = useState<VerificationResult | null>(null);
+  const [isRequestingOtp, setIsRequestingOtp] = useState<boolean>(false);
 
-  // Step 2 Form state
-  const [phone, setPhone] = useState('0988234567');
-  const [otp, setOtp] = useState(['7', '2', '8', '5', '', '']);
+  // Step 2 OTP Form state
+  const [otp, setOtp] = useState(['1', '2', '3', '4', '5', '6']);
   const [isVerifyingOtp, setIsVerifyingOtp] = useState(false);
+  const [isResendingOtp, setIsResendingOtp] = useState(false);
 
   // Step 4 Pricing state
-  const faceValue = 1500000;
-  const [resalePrice, setResalePrice] = useState(1350000);
+  const [faceValue, setFaceValue] = useState<number>(2500000);
+  const [resalePrice, setResalePrice] = useState<number>(2500000);
 
   // Step 5 Confirmation state
   const [agreedTerms, setAgreedTerms] = useState(true);
+  const [isPrivateListing, setIsPrivateListing] = useState(false);
   const [isPublishing, setIsPublishing] = useState(false);
+  const [publishedListingId, setPublishedListingId] = useState<string>('');
 
-  const handleNextStep1 = (e: React.FormEvent) => {
+  // Step 1: Request OTP for Ticket Verification
+  const handleNextStep1 = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!ticketCode.trim()) {
-      showToast('Please enter your ticket identifier code!', 'warning');
+      showToast('Vui lòng nhập mã định danh vé!', 'warning');
       return;
     }
-    showToast('Looking up ticket code on system...', 'info');
-    setTimeout(() => {
+
+    try {
+      setIsRequestingOtp(true);
+      showToast('Đang tra cứu và gửi mã OTP xác thực từ Ban Tổ Chức...', 'info');
+      const result = await resaleApi.requestVerificationOtp(ticketCode.trim().toUpperCase());
+      setVerificationId(result.verificationId);
+      setVerificationResult(result);
+      if (result.originalPrice && result.originalPrice > 0) {
+        setFaceValue(result.originalPrice);
+        setResalePrice(result.originalPrice);
+      }
+      showToast('Đã gửi mã xác thực OTP! Vui lòng kiểm tra email chủ vé.', 'success');
       setCurrentStep(2);
-    }, 400);
+    } catch (err: any) {
+      const msg = err?.message || '';
+      if (msg.includes('TICKET_NOT_ELIGIBLE') || msg.includes('TICKET_NOT_AVAILABLE')) {
+        showToast('Mã vé này hiện đang kẹt trạng thái Khóa (Locked) từ phiên đăng bán trước. Bạn hãy thử mã vé ATSH-GA-999 hoặc chờ vài giây để hệ thống giải phóng khóa!', 'warning');
+      } else {
+        showToast(msg || 'Không thể tra cứu mã vé này. Vui lòng thử lại!', 'error');
+      }
+    } finally {
+      setIsRequestingOtp(false);
+    }
   };
 
-  const handleVerifyOtp = (e: React.FormEvent) => {
+  // Resend OTP
+  const handleResendOtp = async () => {
+    if (!verificationId) {
+      showToast('Không tìm thấy phiên xác thực vé!', 'warning');
+      return;
+    }
+    try {
+      setIsResendingOtp(true);
+      await resaleApi.resendVerificationOtp(verificationId);
+      showToast('Đã gửi lại mã OTP thành công!', 'success');
+    } catch (err: any) {
+      showToast(err.message || 'Lỗi khi yêu cầu gửi lại OTP.', 'error');
+    } finally {
+      setIsResendingOtp(false);
+    }
+  };
+
+  // Step 2: Confirm OTP & Lock Ticket
+  const handleVerifyOtp = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsVerifyingOtp(true);
-    setTimeout(() => {
-      setIsVerifyingOtp(false);
-      showToast('OTP verified successfully!', 'success');
+    const otpCode = otp.join('').trim();
+    if (otpCode.length < 4) {
+      showToast('Vui lòng nhập đầy đủ mã xác thực OTP!', 'warning');
+      return;
+    }
+
+    if (!verificationId) {
+      showToast('Phiên xác thực vé không hợp lệ!', 'error');
+      return;
+    }
+
+    try {
+      setIsVerifyingOtp(true);
+      const result = await resaleApi.confirmVerificationOtp(verificationId, otpCode);
+      setVerificationResult(result);
+      if (result.originalPrice && result.originalPrice > 0) {
+        setFaceValue(result.originalPrice);
+        setResalePrice(result.originalPrice);
+      }
+      showToast('Xác thực OTP & Khóa vé gốc thành công!', 'success');
       setCurrentStep(3);
-    }, 600);
+    } catch (err: any) {
+      showToast(err.message || 'Mã OTP không chính xác hoặc phiên đã hết hạn!', 'error');
+    } finally {
+      setIsVerifyingOtp(false);
+    }
   };
 
   const handleApplyDiscount = (percent: number) => {
@@ -77,17 +141,43 @@ export const SellTicketPage: React.FC = () => {
     }
   };
 
-  const handlePublishListing = () => {
+  // Step 5: Publish Resale Listing
+  const handlePublishListing = async () => {
     if (!agreedTerms) {
-      showToast('Please agree to original ticket owner listing terms!', 'warning');
+      showToast('Vui lòng đồng ý với quy định niêm yết vé chính chủ!', 'warning');
       return;
     }
-    setIsPublishing(true);
-    setTimeout(() => {
-      setIsPublishing(false);
-      showToast('Ticket listed on marketplace successfully!', 'success');
+
+    if (!verificationId) {
+      showToast('Thiếu phiên xác thực vé!', 'error');
+      return;
+    }
+
+    if (resalePrice > faceValue) {
+      showToast(`Giá rao bán không được vượt quá giá gốc (${faceValue.toLocaleString('vi-VN')} VNĐ)!`, 'warning');
+      return;
+    }
+
+    try {
+      setIsPublishing(true);
+      const result = await resaleApi.publishListing(verificationId, resalePrice, isPrivateListing);
+      if (result.listingId) {
+        setPublishedListingId(result.listingId);
+      }
+      showToast('Đã niêm yết vé thành công lên Marketplace TicketShield!', 'success');
       setCurrentStep(6);
-    }, 800);
+    } catch (err: any) {
+      const msg = err?.message || '';
+      if (msg.includes('TICKET_ALREADY_LISTED')) {
+        showToast('Mã vé này đã được đăng bán trên hệ thống trước đó! Vui lòng vào trang "MY LISTINGS" để kiểm tra hoặc hủy tin cũ.', 'warning');
+      } else if (msg.includes('PRICE_EXCEEDS_CEILING')) {
+        showToast(`Giá bán lại không được vượt quá giá gốc (${faceValue.toLocaleString('vi-VN')} VNĐ)!`, 'warning');
+      } else {
+        showToast(msg || 'Không thể tạo niêm yết vé. Vui lòng thử lại!', 'error');
+      }
+    } finally {
+      setIsPublishing(false);
+    }
   };
 
   const handleOtpChange = (index: number, val: string) => {
@@ -136,14 +226,6 @@ export const SellTicketPage: React.FC = () => {
           50% { transform: rotate(18deg) translateY(12%) translateX(25%); opacity: 0.55; }
           100% { transform: rotate(-28deg) translateY(-15%) translateX(-20%); opacity: 0.25; }
         }
-        @keyframes particleFloat1 {
-          0%, 100% { transform: translateY(0px) scale(0.8); opacity: 0.3; }
-          50% { transform: translateY(-45px) scale(1.25); opacity: 0.8; }
-        }
-        @keyframes particleFloat2 {
-          0%, 100% { transform: translateY(0px) scale(1.1); opacity: 0.4; }
-          50% { transform: translateY(60px) scale(0.85); opacity: 0.85; }
-        }
         .animate-fade-in-up {
           animation: fadeInUp 0.45s cubic-bezier(0.16, 1, 0.3, 1) forwards;
         }
@@ -159,43 +241,23 @@ export const SellTicketPage: React.FC = () => {
         .animate-stage-spotlight {
           animation: stageSpotlight 5s ease-in-out infinite alternate;
         }
-        .animate-particle-1 {
-          animation: particleFloat1 4s ease-in-out infinite;
-        }
-        .animate-particle-2 {
-          animation: particleFloat2 5s ease-in-out infinite;
-        }
       `}</style>
 
-      {/* Full-Screen Concert Dynamic Background Image with Stage Lights & Ambient Particles */}
+      {/* Background Lights */}
       <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden">
-        {/* Dynamic Ken-Burns Concert Image */}
         <img
           src="/images/landing/hero-concert.jpg"
           alt="Live Concert Stage"
           className="w-full h-full object-cover opacity-70 animate-kenburns-slow transform-gpu origin-center"
         />
-
-        {/* Sweeping Stage Light Beams */}
         <div className="absolute -top-1/2 -left-1/2 w-[200%] h-[200%] bg-gradient-to-r from-transparent via-[#FF5A36]/30 to-transparent blur-3xl animate-stage-spotlight pointer-events-none" />
-        <div className="absolute -bottom-1/2 -right-1/2 w-[200%] h-[200%] bg-gradient-to-l from-transparent via-cyan-500/25 to-transparent blur-3xl animate-stage-spotlight pointer-events-none" style={{ animationDelay: '7s' }} />
-
-        {/* High-Contrast Gradient Overlays */}
         <div className="absolute inset-0 bg-gradient-to-b from-[#05070A]/75 via-[#05070A]/55 to-[#05070A]/90" />
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-[#FF5A36]/35 via-transparent to-transparent" />
-
-        {/* Floating Glowing Particle Orbs */}
-        <div className="absolute top-1/5 left-1/4 w-72 h-72 bg-[#FF5A36]/30 rounded-full blur-[90px] animate-subtle-glow" />
-        <div className="absolute bottom-1/4 right-1/4 w-80 h-80 bg-cyan-400/25 rounded-full blur-[100px] animate-subtle-glow" style={{ animationDelay: '3.5s' }} />
-        <div className="absolute top-1/3 right-10 w-48 h-48 bg-amber-400/20 rounded-full blur-[70px] animate-particle-1" />
-        <div className="absolute bottom-1/3 left-12 w-64 h-64 bg-emerald-400/20 rounded-full blur-[80px] animate-particle-2" />
       </div>
 
       <div className="relative z-10 max-w-4xl mx-auto space-y-8">
 
-        {/* Step Progress Bar Header with Animated Continuous Indicator */}
+        {/* Step Progress Bar Header */}
         <div className="space-y-4">
-          {/* Top Progress Line */}
           <div className="max-w-2xl mx-auto h-1.5 bg-white/10 rounded-full overflow-hidden p-0.5">
             <div
               className="h-full bg-gradient-to-r from-[#FF5A36] to-emerald-400 rounded-full transition-all duration-500 ease-out shadow-sm shadow-[#FF5A36]/50"
@@ -251,12 +313,12 @@ export const SellTicketPage: React.FC = () => {
             )}
 
             <span className="font-bold uppercase text-[#FF5A36] tracking-wider transition-all duration-300">
-              {currentStep === 1 && 'STEP 1 / 6: ENTER TICKET CODE'}
-              {currentStep === 2 && 'STEP 2 / 6: OTP VERIFICATION'}
-              {currentStep === 3 && 'STEP 3 / 6: TICKET DETAILS'}
-              {currentStep === 4 && 'STEP 4 / 6: SET RESALE PRICE'}
-              {currentStep === 5 && 'STEP 5 / 6: CONFIRMATION'}
-              {currentStep === 6 && 'STEP 6 / 6: COMPLETED'}
+              {currentStep === 1 && 'BƯỚC 1 / 6: NHẬP MÃ VÉ GỐC'}
+              {currentStep === 2 && 'BƯỚC 2 / 6: XÁC THỰC MÃ OTP'}
+              {currentStep === 3 && 'BƯỚC 3 / 6: THÔNG TIN VÉ ĐÃ KHÓA'}
+              {currentStep === 4 && 'BƯỚC 4 / 6: ĐẶT GIÁ RAO BÁN'}
+              {currentStep === 5 && 'BƯỚC 5 / 6: XÁC NHẬN NIÊM YẾT'}
+              {currentStep === 6 && 'BƯỚC 6 / 6: HOÀN TẤT NIÊM YẾT'}
             </span>
           </div>
         </div>
@@ -266,10 +328,10 @@ export const SellTicketPage: React.FC = () => {
           <div key={1} className="animate-fade-in-up max-w-xl mx-auto space-y-8 text-center pt-4">
             <div className="space-y-3">
               <h1 className="text-3xl sm:text-4xl font-extrabold font-display text-white tracking-tight">
-                Enter Your Ticket Identifier
+                Nhập Mã Vé Gốc Cần Bán
               </h1>
               <p className="text-xs sm:text-sm text-[#A3A8B3] max-w-md mx-auto leading-relaxed">
-                Booking code or ticket ID sent in your original purchase confirmation email.
+                Mã xác thực vé từ hệ thống Nhà Tổ Chức (BTC) để khởi tạo quy trình Escrow Lock.
               </p>
             </div>
 
@@ -277,9 +339,9 @@ export const SellTicketPage: React.FC = () => {
               <div>
                 <div className="flex items-center justify-between mb-2">
                   <label className="text-xs font-semibold uppercase tracking-wider text-[#A3A8B3] font-display">
-                    Ticket Identifier Code
+                    Mã Vé Gốc (Ticket Identifier Code)
                   </label>
-                  <span className="text-[10px] text-[#A3A8B3] font-mono">Auto uppercase</span>
+                  <span className="text-[10px] text-[#A3A8B3] font-mono">Tự động viết hoa</span>
                 </div>
                 <div className="relative group">
                   <Ticket className="w-5 h-5 text-[#FF5A36] absolute left-4 top-3.5 group-focus-within:scale-110 group-focus-within:text-[#FF7252] transition-all duration-200" />
@@ -287,62 +349,137 @@ export const SellTicketPage: React.FC = () => {
                     type="text"
                     value={ticketCode}
                     onChange={(e) => setTicketCode(e.target.value.toUpperCase())}
-                    placeholder="EXAMPLE: TBX-90412-VN8"
+                    placeholder="Ví dụ: ATSH-VIP-888"
                     className="w-full bg-[#05070A] border border-white/15 rounded-xl pl-12 pr-4 py-3.5 text-base font-mono tracking-wider text-white placeholder-[#A3A8B3]/40 focus:outline-none focus:border-[#FF5A36] focus:ring-2 focus:ring-[#FF5A36]/30 transition-all duration-200"
                     required
                   />
+                </div>
+
+                <div className="mt-4 space-y-2.5">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-bold uppercase text-[#8F96A3] tracking-[0.08em] font-display">
+                      VÉ CÓ SẴN
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {[
+                      {
+                        category: 'VIP',
+                        code: 'ATSH-VIP-888',
+                        price: '2.500.000đ',
+                      },
+                      {
+                        category: 'GENERAL',
+                        code: 'ATSH-GA-999',
+                        price: '1.200.000đ',
+                      },
+                    ].map((ticket) => {
+                      const isSelected = ticketCode === ticket.code;
+                      return (
+                        <button
+                          key={ticket.code}
+                          type="button"
+                          onClick={() => setTicketCode(ticket.code)}
+                          className={`group relative overflow-hidden rounded-xl p-3.5 text-left transition-all duration-200 cursor-pointer ${
+                            isSelected
+                              ? 'bg-[#0A0D12] border border-[#FF5A36] shadow-[0_0_20px_rgba(255,90,54,0.12)] -translate-y-0.5'
+                              : 'bg-[#0A0D12] border border-white/[0.08] hover:border-white/20 hover:bg-[#11161F] hover:-translate-y-0.5'
+                          }`}
+                        >
+                          {/* Left digital ticket indicator line */}
+                          <div
+                            className={`absolute left-0 top-0 bottom-0 w-1 transition-colors duration-200 ${
+                              isSelected ? 'bg-[#FF5A36]' : 'bg-white/10 group-hover:bg-[#FF5A36]/60'
+                            }`}
+                          />
+
+                          {/* Subtle perforation notch */}
+                          <div className="absolute -right-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 rounded-full bg-[#05070A] border-l border-white/[0.08] pointer-events-none" />
+
+                          <div className="pl-1.5 pr-2">
+                            <div className="flex items-center justify-between mb-1.5">
+                              <span
+                                className={`text-[10px] font-bold tracking-wider uppercase px-1.5 py-0.5 rounded ${
+                                  isSelected
+                                    ? 'text-[#FF5A36] bg-[#FF5A36]/10'
+                                    : 'text-[#8F96A3] bg-white/5 group-hover:text-[#F5F5F2]'
+                                }`}
+                              >
+                                {ticket.category}
+                              </span>
+                              <span className="text-[11px] font-semibold text-[#8F96A3] font-mono group-hover:text-[#F5F5F2]">
+                                {ticket.price}
+                              </span>
+                            </div>
+
+                            <div className="font-mono text-sm font-bold tracking-wider text-[#F5F5F2] flex items-center justify-between">
+                              <span>{ticket.code}</span>
+                              {isSelected && (
+                                <span className="text-[10px] font-sans font-semibold text-[#FF5A36] tracking-normal">
+                                  Đã chọn
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
               </div>
 
               <button
                 type="submit"
-                className="w-full py-4 bg-[#FF5A36] hover:bg-[#FF7252] text-white font-bold font-display uppercase tracking-widest text-xs rounded-xl shadow-lg shadow-[#FF5A36]/30 hover:shadow-xl hover:shadow-[#FF5A36]/50 hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200"
+                disabled={isRequestingOtp}
+                className="w-full py-4 bg-[#FF5A36] hover:bg-[#FF7252] text-white font-bold font-display uppercase tracking-widest text-xs rounded-xl shadow-lg shadow-[#FF5A36]/30 hover:shadow-xl hover:shadow-[#FF5A36]/50 hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200 flex items-center justify-center gap-2"
               >
-                Continue
+                {isRequestingOtp ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span>Đang khởi tạo phiên xác thực...</span>
+                  </>
+                ) : (
+                  <span>Tiếp tục: Yêu cầu OTP →</span>
+                )}
               </button>
             </form>
           </div>
         )}
 
-        {/* STEP 2: XÁC THỰC OTP SỐ ĐIỆN THOẠI */}
+        {/* STEP 2: XÁC THỰC OTP SỐ ĐIỆN THOẠI / EMAIL */}
         {currentStep === 2 && (
           <div key={2} className="animate-fade-in-up max-w-xl mx-auto space-y-6 pt-4">
             <div className="bg-[#0A0D12]/90 backdrop-blur-md border border-white/10 p-6 sm:p-8 rounded-3xl space-y-6 shadow-2xl hover:border-white/20 transition-all duration-300">
 
               <div className="space-y-2">
                 <h2 className="text-2xl sm:text-3xl font-extrabold font-display text-white">
-                  Verify Registered Phone Number
+                  Xác Thực Mã OTP Chủ Vé
                 </h2>
                 <p className="text-xs text-[#A3A8B3] leading-relaxed">
-                  Enter the phone number registered with the original ticket purchase to receive an OTP code.
+                  Nhập mã OTP vừa được Ban Tổ Chức (BTC) gửi về email/số điện thoại chủ vé để thực hiện Khóa vé (Lock).
                 </p>
+                {verificationId && (
+                  <p className="text-[10px] text-cyan-400 font-mono">
+                    Session Verification ID: {verificationId}
+                  </p>
+                )}
               </div>
 
               <form onSubmit={handleVerifyOtp} className="space-y-6">
                 <div>
-                  <label className="block text-xs font-semibold uppercase tracking-wider text-[#A3A8B3] mb-2 font-display">
-                    Registered Phone Number
-                  </label>
-                  <div className="flex items-center bg-[#05070A] border border-white/15 rounded-xl px-4 py-3 text-sm focus-within:border-[#FF5A36] focus-within:ring-2 focus-within:ring-[#FF5A36]/30 transition-all duration-200">
-                    <span className="text-[#A3A8B3] font-mono mr-3 pr-3 border-r border-white/10">VN +84</span>
-                    <input
-                      type="text"
-                      value={phone}
-                      onChange={(e) => setPhone(e.target.value)}
-                      className="bg-transparent text-white font-mono w-full focus:outline-none"
-                    />
-                    <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 ml-2 animate-pulse" />
-                  </div>
-                </div>
-
-                <div>
                   <div className="flex items-center justify-between mb-2">
                     <label className="text-xs font-semibold uppercase tracking-wider text-[#A3A8B3] font-display">
-                      OTP Verification Code (6 digits)
+                      Mã OTP Xác Thực (6 chữ số)
                     </label>
-                    <span className="text-xs text-[#FF5A36] cursor-pointer hover:underline hover:brightness-125 transition-all font-mono">
-                      Resend Code (45s)
-                    </span>
+                    <button
+                      type="button"
+                      onClick={handleResendOtp}
+                      disabled={isResendingOtp}
+                      className="text-xs text-[#FF5A36] hover:underline transition-all font-mono flex items-center gap-1"
+                    >
+                      {isResendingOtp ? 'Đang gửi lại...' : 'Gửi lại mã OTP'}
+                    </button>
                   </div>
 
                   <div className="grid grid-cols-6 gap-2">
@@ -359,7 +496,7 @@ export const SellTicketPage: React.FC = () => {
                     ))}
                   </div>
                   <p className="text-[11px] text-[#A3A8B3] mt-2 font-mono">
-                    Security code sent via SMS to the mobile number above. Valid for 5 minutes.
+                    Mã xác thực có hiệu lực trong 5 phút.
                   </p>
                 </div>
 
@@ -368,12 +505,19 @@ export const SellTicketPage: React.FC = () => {
                   disabled={isVerifyingOtp}
                   className="w-full py-4 bg-[#FF5A36] hover:bg-[#FF7252] text-white font-bold font-display uppercase tracking-widest text-xs rounded-xl shadow-lg shadow-[#FF5A36]/30 hover:shadow-xl hover:shadow-[#FF5A36]/50 hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200 flex items-center justify-center gap-2"
                 >
-                  {isVerifyingOtp ? 'Verifying OTP...' : 'Confirm OTP →'}
+                  {isVerifyingOtp ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <span>Đang xác nhận OTP & Khóa vé gRPC...</span>
+                    </>
+                  ) : (
+                    <span>Xác Nhận OTP & Khóa Vé →</span>
+                  )}
                 </button>
 
                 <div className="p-3 bg-white/5 border border-white/10 rounded-xl text-[11px] text-[#A3A8B3] flex items-center gap-2 hover:border-emerald-500/30 transition-all duration-300">
                   <Lock className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                  <span>2-Factor Authentication against fraud & unauthorized transfer</span>
+                  <span>Xác thực gRPC Durable Lock đảm bảo vé chưa đổi chủ / chưa sử dụng.</span>
                 </div>
               </form>
 
@@ -386,36 +530,34 @@ export const SellTicketPage: React.FC = () => {
           <div key={3} className="animate-fade-in-up max-w-2xl mx-auto space-y-6 pt-2">
             <div className="text-center space-y-2">
               <h2 className="text-3xl font-extrabold font-display text-white">
-                Your Ticket is Ready for Listing
+                Vé Đã Được Xác Thực & Khóa An Toàn
               </h2>
               <p className="text-xs text-[#A3A8B3] max-w-md mx-auto">
-                TicketShield Smart Escrow has synced digital ticket details from official organizer.
+                Vé của bạn đã được kiểm duyệt chính chủ và sẵn sàng thiết lập giá rao bán.
               </p>
             </div>
 
-            {/* Ticket Card Preview with Group Hover Effects */}
+            {/* Ticket Card Preview */}
             <div className="group bg-[#0A0D12]/90 backdrop-blur-md border border-[#FF5A36]/30 hover:border-[#FF5A36]/60 rounded-3xl overflow-hidden shadow-2xl transition-all duration-300 hover:shadow-[#FF5A36]/10 relative">
-              {/* Event Image Banner */}
               <div className="relative h-44 overflow-hidden">
                 <img
                   src="/images/landing/featured-1.jpg"
-                  alt="BLACKPINK Concert"
+                  alt="Concert Ticket"
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-out"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-[#0A0D12] via-[#0A0D12]/40 to-transparent" />
                 <div className="absolute top-4 left-4 flex items-center gap-2">
-                  <span className="px-2.5 py-1 bg-black/80 backdrop-blur-md text-[10px] font-extrabold text-amber-400 rounded-full font-mono shadow-md">
-                    ★ INTERNATIONAL CONCERT
+                  <span className="px-2.5 py-1 bg-black/80 backdrop-blur-md text-[10px] font-extrabold text-emerald-400 rounded-full font-mono shadow-md flex items-center gap-1">
+                    <ShieldCheck className="w-3 h-3" /> VERIFIED & LOCKED
                   </span>
                 </div>
               </div>
 
-              {/* Card Main Meta Details */}
               <div className="p-6 space-y-5">
                 <div>
                   <span className="text-[11px] text-[#FF5A36] font-mono font-bold uppercase tracking-wider">OFFICIAL DIGITAL TICKET PASS</span>
                   <h3 className="text-2xl font-extrabold font-display text-white group-hover:text-[#FF7252] transition-colors duration-200">
-                    BLACKPINK [BORN PINK] World Tour Finale
+                    Anh Trai Say Hi Concert 2026
                   </h3>
                 </div>
 
@@ -423,67 +565,31 @@ export const SellTicketPage: React.FC = () => {
                   <div className="p-3.5 bg-[#05070A] border border-white/10 rounded-2xl space-y-1 hover:border-white/20 transition-all duration-200">
                     <div className="flex items-center gap-1.5 text-[#A3A8B3]">
                       <Calendar className="w-3.5 h-3.5 text-[#FF5A36]" />
-                      <span>Event Time</span>
+                      <span>Mã Vé Gốc</span>
                     </div>
-                    <p className="font-bold text-white font-mono">19:30, Jul 29, 2025</p>
-                    <p className="text-[10px] text-[#A3A8B3]">Doors open at 17:00</p>
+                    <p className="font-bold text-white font-mono">{ticketCode}</p>
                   </div>
 
                   <div className="p-3.5 bg-[#05070A] border border-white/10 rounded-2xl space-y-1 hover:border-white/20 transition-all duration-200">
                     <div className="flex items-center gap-1.5 text-[#A3A8B3]">
                       <MapPin className="w-3.5 h-3.5 text-cyan-400" />
-                      <span>Venue Location</span>
+                      <span>Địa Điểm</span>
                     </div>
-                    <p className="font-bold text-white">My Dinh National Stadium</p>
-                    <p className="text-[10px] text-[#A3A8B3]">Hanoi, Vietnam</p>
+                    <p className="font-bold text-white">Sân Vận Động Mỹ Đình</p>
                   </div>
                 </div>
 
-                {/* Seat Position Box */}
-                <div className="p-4 bg-[#05070A] border border-white/10 rounded-2xl flex items-center justify-between hover:border-[#FF5A36]/40 transition-colors duration-300">
-                  <div className="space-y-0.5">
-                    <span className="text-[10px] text-[#A3A8B3] font-mono">Verified Seat Location</span>
-                    <p className="text-base font-bold text-white font-display">
-                      <span className="text-[#FF5A36]">VIP Zone A</span> · <span className="text-amber-400 font-bold">Row C</span> · Seat 24
-                    </p>
-                  </div>
-                  <span className="px-3 py-1 bg-white/10 rounded-lg text-[10px] font-mono text-white group-hover:bg-[#FF5A36]/20 transition-all duration-300">
-                    ENTRANCE GATE: Gate A1
-                  </span>
-                </div>
-
-                {/* Owner & Escrow Hash */}
-                <div className="grid grid-cols-2 gap-3 text-xs font-mono">
-                  <div className="p-3 bg-[#05070A] rounded-xl border border-white/5 space-y-0.5">
-                    <span className="text-[10px] text-[#A3A8B3]">TICKET OWNER</span>
-                    <p className="text-white font-bold">{user?.fullName || 'Nguyen Thang Long'}</p>
-                  </div>
-                  <div className="p-3 bg-[#05070A] rounded-xl border border-white/5 space-y-0.5">
-                    <span className="text-[10px] text-[#A3A8B3]">ESCROW HASH</span>
-                    <p className="text-cyan-400 font-bold truncate">0x7F2a...98B4</p>
-                  </div>
-                </div>
-
-                {/* Price Ceiling */}
+                {/* Price Ceiling Info */}
                 <div className="p-4 bg-[#05070A] border border-white/10 rounded-2xl flex items-center justify-between text-xs">
                   <div>
-                    <span className="text-[10px] text-[#A3A8B3]">Original Face Value</span>
-                    <p className="text-xl font-bold font-display text-white">1,500,000 VND</p>
+                    <span className="text-[10px] text-[#A3A8B3]">Giá Vé Gốc (Face Value)</span>
+                    <p className="text-xl font-bold font-display text-white">{faceValue.toLocaleString('vi-VN')} VNĐ</p>
                   </div>
                   <div className="text-right">
-                    <span className="text-[10px] text-amber-400 font-mono">🛡️ Price Ceiling Rule</span>
-                    <p className="text-xs text-[#A3A8B3]">Max allowed resale (110%): <span className="text-white font-bold">1,650,000 VND</span></p>
+                    <span className="text-[10px] text-amber-400 font-mono">🛡️ Quy định Trần Giá</span>
+                    <p className="text-xs text-[#A3A8B3]">Giá bán lại tối đa: <span className="text-white font-bold">{faceValue.toLocaleString('vi-VN')} VNĐ</span></p>
                   </div>
                 </div>
-
-                {/* Barcode Mock */}
-                <div className="p-4 bg-[#05070A] border border-white/10 rounded-2xl text-center space-y-2 group-hover:border-white/20 transition-all duration-300">
-                  <div className="h-10 w-64 mx-auto bg-white/10 rounded flex items-center justify-center font-mono text-xs tracking-widest text-slate-400 group-hover:text-white transition-colors duration-300">
-                    |||||| | |||| ||| ||||||| ||| ||
-                  </div>
-                  <p className="text-[10px] font-mono text-[#A3A8B3]">TK-8502-BP-2025-VN</p>
-                </div>
-
               </div>
             </div>
 
@@ -491,7 +597,7 @@ export const SellTicketPage: React.FC = () => {
               onClick={() => setCurrentStep(4)}
               className="w-full py-4 bg-[#FF5A36] hover:bg-[#FF7252] text-white font-bold font-display uppercase tracking-widest text-xs rounded-xl shadow-lg shadow-[#FF5A36]/30 hover:shadow-xl hover:shadow-[#FF5A36]/50 hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200 flex items-center justify-center gap-2"
             >
-              <span>Continue: Set Resale Price →</span>
+              <span>Tiếp Tục: Thiết Lập Giá Bán →</span>
             </button>
           </div>
         )}
@@ -501,44 +607,27 @@ export const SellTicketPage: React.FC = () => {
           <div key={4} className="animate-fade-in-up max-w-xl mx-auto space-y-6 pt-2">
             <div className="space-y-2 text-center">
               <h2 className="text-3xl font-extrabold font-display text-white">
-                Set Resale Listing Price
+                Thiết Lập Giá Rao Bán
               </h2>
               <p className="text-xs text-[#A3A8B3]">
-                Maximum listing price is capped at face value (1,500,000 VND) for community protection.
+                Giá bán lại không được vượt quá giá gốc ({faceValue.toLocaleString('vi-VN')} VNĐ) để chống đầu cơ.
               </p>
-            </div>
-
-            {/* Ticket Mini Summary */}
-            <div className="p-4 bg-[#0A0D12]/90 backdrop-blur-md border border-white/10 rounded-2xl flex items-center gap-4 text-xs hover:border-white/20 transition-all duration-300">
-              <img
-                src="/images/landing/featured-1.jpg"
-                alt="Ticket Thumb"
-                className="w-14 h-14 object-cover rounded-xl shrink-0"
-              />
-              <div className="space-y-0.5 flex-1">
-                <h4 className="font-bold text-white truncate">BLACKPINK WORLD TOUR [BORN PINK]</h4>
-                <p className="text-[11px] text-[#A3A8B3]">My Dinh Stadium • VIP Zone A, Seat 24</p>
-              </div>
-              <div className="text-right shrink-0 font-mono">
-                <span className="text-[10px] text-[#A3A8B3]">Face Value:</span>
-                <p className="font-bold text-white">1,500,000 VND</p>
-              </div>
             </div>
 
             {/* Price Selector Main Box */}
             <div className="bg-[#0A0D12]/90 backdrop-blur-md border border-white/10 p-6 sm:p-8 rounded-3xl space-y-6 shadow-2xl text-center hover:border-white/20 transition-all duration-300">
               <span className="text-xs text-[#A3A8B3] uppercase tracking-wider font-display font-semibold">
-                PROPOSED RESALE PRICE
+                GIÁ RAO BÁN ĐỀ XUẤT
               </span>
 
               <div className="text-4xl sm:text-5xl font-extrabold font-display text-white tracking-tight flex items-center justify-center gap-2 transition-all duration-300">
-                <span className="transition-all duration-300">{resalePrice.toLocaleString('en-US')}</span>
-                <span className="text-base font-normal text-[#FF5A36]">VND</span>
+                <span className="transition-all duration-300">{resalePrice.toLocaleString('vi-VN')}</span>
+                <span className="text-base font-normal text-[#FF5A36]">VNĐ</span>
               </div>
 
               {/* Quick Discount Buttons */}
               <div className="space-y-2">
-                <span className="text-[11px] text-[#A3A8B3]">Quick price options:</span>
+                <span className="text-[11px] text-[#A3A8B3]">Tùy chọn giá nhanh:</span>
                 <div className="grid grid-cols-4 gap-2 text-xs font-mono">
                   <button
                     onClick={() => handleApplyDiscount(5)}
@@ -581,32 +670,25 @@ export const SellTicketPage: React.FC = () => {
                         : 'bg-[#05070A] border-white/10 text-[#A3A8B3] hover:text-white hover:border-white/30'
                     }`}
                   >
-                    Face Value
+                    Bằng Giá Gốc
                   </button>
                 </div>
               </div>
 
               {/* Net Payout Box */}
               <div className="p-4 bg-[#05070A] border border-white/10 rounded-2xl flex items-center justify-between text-xs hover:border-emerald-500/30 transition-all duration-300">
-                <span className="text-[#A3A8B3]">Your Net Payout:</span>
+                <span className="text-[#A3A8B3]">Thực nhận của Reseller:</span>
                 <span className="text-xl font-bold font-display text-emerald-400 transition-all duration-300">
-                  {resalePrice.toLocaleString('en-US')} VND
+                  {resalePrice.toLocaleString('vi-VN')} VNĐ
                 </span>
               </div>
-              <p className="text-[11px] text-emerald-400 flex items-center justify-center gap-1 font-mono">
-                <CheckCircle2 className="w-3.5 h-3.5" /> Zero platform fee, payout released right after event
-              </p>
 
               <button
                 onClick={() => setCurrentStep(5)}
                 className="w-full py-4 bg-[#FF5A36] hover:bg-[#FF7252] text-white font-bold font-display uppercase tracking-widest text-xs rounded-xl shadow-lg shadow-[#FF5A36]/30 hover:shadow-xl hover:shadow-[#FF5A36]/50 hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200 flex items-center justify-center gap-2"
               >
-                <span>Continue: Review Listing →</span>
+                <span>Tiếp Tục: Kiểm Tra Niêm Yết →</span>
               </button>
-
-              <div className="pt-2 text-[11px] text-[#A3A8B3] flex items-center justify-center gap-1 font-mono">
-                <Lock className="w-3.5 h-3.5 text-emerald-400" /> Certified & encrypted payment standard
-              </div>
             </div>
           </div>
         )}
@@ -616,60 +698,57 @@ export const SellTicketPage: React.FC = () => {
           <div key={5} className="animate-fade-in-up max-w-xl mx-auto space-y-6 pt-2">
             <div className="space-y-2 text-center">
               <h2 className="text-3xl font-extrabold font-display text-white">
-                Confirm Ticket Listing
+                Xác Nhận Niêm Yết Vé
               </h2>
               <p className="text-xs text-[#A3A8B3]">
-                Quick review before your pass is publicly listed on the marketplace.
+                Kiểm tra lại thông tin trước khi vé được niêm yết công khai lên Marketplace.
               </p>
             </div>
 
             {/* Final Preview Card */}
             <div className="bg-[#0A0D12]/90 backdrop-blur-md border border-white/10 rounded-3xl overflow-hidden shadow-2xl space-y-6 p-6 sm:p-8 hover:border-white/20 transition-all duration-300">
-
-              <div className="relative h-44 rounded-2xl overflow-hidden group">
-                <img
-                  src="/images/landing/featured-1.jpg"
-                  alt="Concert"
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-out"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-[#0A0D12] via-transparent to-transparent" />
-                <span className="absolute top-3 left-3 px-2.5 py-1 bg-black/70 backdrop-blur-md text-[10px] font-bold text-amber-400 rounded-full font-mono">
-                  BORN PINK TOUR
-                </span>
-              </div>
-
               <div className="space-y-2">
-                <span className="text-[10px] text-[#FF5A36] font-mono uppercase font-bold">VERIFIED DIGITAL PASS</span>
-                <h3 className="text-xl font-bold font-display text-white">BLACKPINK World Tour Finale</h3>
+                <span className="text-[10px] text-[#FF5A36] font-mono uppercase font-bold">VERIFIED DIGITAL TICKET PASS</span>
+                <h3 className="text-xl font-bold font-display text-white">Anh Trai Say Hi Concert 2026</h3>
                 <p className="text-xs text-[#A3A8B3] flex items-center gap-1.5 font-mono">
-                  <MapPin className="w-3.5 h-3.5 text-cyan-400" /> My Dinh National Stadium • Hanoi
+                  <Ticket className="w-3.5 h-3.5 text-cyan-400" /> Mã vé: {ticketCode}
                 </p>
               </div>
 
-              <div className="grid grid-cols-2 gap-4 p-4 bg-[#05070A] border border-white/10 rounded-2xl text-xs hover:border-white/20 transition-all duration-200">
+              <div className="grid grid-cols-2 gap-4 p-4 bg-[#05070A] border border-white/10 rounded-2xl text-xs">
                 <div>
-                  <span className="text-[10px] text-[#A3A8B3]">SEAT POSITION</span>
-                  <p className="font-bold text-white font-display text-sm">VIP Zone A • Seat 24</p>
+                  <span className="text-[10px] text-[#A3A8B3]">GIÁ GỐC</span>
+                  <p className="font-bold text-white font-display text-sm">{faceValue.toLocaleString('vi-VN')} VNĐ</p>
                 </div>
                 <div className="text-right">
-                  <span className="text-[10px] text-[#A3A8B3]">LISTING PRICE</span>
-                  <p className="font-bold text-white font-display text-sm">{resalePrice.toLocaleString('en-US')} VND</p>
+                  <span className="text-[10px] text-[#A3A8B3]">GIÁ RAO BÁN</span>
+                  <p className="font-bold text-[#FF5A36] font-display text-sm">{resalePrice.toLocaleString('vi-VN')} VNĐ</p>
                 </div>
               </div>
 
-              <div className="p-4 bg-emerald-500/10 border border-emerald-500/30 rounded-2xl flex items-center justify-between text-xs hover:border-emerald-500/50 transition-all duration-300">
-                <span className="text-emerald-400 font-semibold">Net payout after sale:</span>
-                <span className="text-xl font-bold font-display text-emerald-400">{resalePrice.toLocaleString('en-US')} VND</span>
-              </div>
+              {/* Private Listing Checkbox */}
+              <label className="flex items-center gap-3 text-xs text-[#F5F5F2] cursor-pointer p-3 bg-white/5 border border-white/10 rounded-xl hover:border-white/20 transition-all">
+                <input
+                  type="checkbox"
+                  checked={isPrivateListing}
+                  onChange={(e) => setIsPrivateListing(e.target.checked)}
+                  className="rounded border-white/20 bg-[#05070A] text-[#FF5A36] focus:ring-0 w-4 h-4"
+                />
+                <div>
+                  <span className="font-bold text-white block">Chế độ Vé Riêng Tư (Private Share Link)</span>
+                  <span className="text-[11px] text-[#A3A8B3]">Vé sẽ không xuất hiện ở chợ công khai, chỉ ai có link Token 32 ký tự mới xem được.</span>
+                </div>
+              </label>
 
+              {/* Terms Checkbox */}
               <label className="flex items-center gap-3 text-xs text-[#F5F5F2] cursor-pointer pt-2 group">
                 <input
                   type="checkbox"
                   checked={agreedTerms}
                   onChange={(e) => setAgreedTerms(e.target.checked)}
-                  className="rounded border-white/20 bg-[#05070A] text-[#FF5A36] focus:ring-0 w-4 h-4 transition-transform duration-200 group-hover:scale-110"
+                  className="rounded border-white/20 bg-[#05070A] text-[#FF5A36] focus:ring-0 w-4 h-4"
                 />
-                <span className="group-hover:text-white transition-colors duration-200">I confirm I am the original ticket owner and agree to list this pass</span>
+                <span className="group-hover:text-white transition-colors duration-200">Tôi cam kết là chủ sở hữu vé chính chủ và đồng ý niêm yết lên sàn TicketShield</span>
               </label>
 
               <button
@@ -677,18 +756,15 @@ export const SellTicketPage: React.FC = () => {
                 disabled={isPublishing}
                 className="w-full py-4 bg-[#FF5A36] hover:bg-[#FF7252] text-white font-bold font-display uppercase tracking-widest text-xs rounded-xl shadow-lg shadow-[#FF5A36]/30 hover:shadow-xl hover:shadow-[#FF5A36]/50 hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200 flex items-center justify-center gap-2"
               >
-                {isPublishing ? 'Publishing Listing...' : 'Publish Listing Now →'}
+                {isPublishing ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span>Đang niêm yết vé lên sàn...</span>
+                  </>
+                ) : (
+                  <span>Niêm Yết Vé Ngay →</span>
+                )}
               </button>
-
-              <div className="text-center">
-                <button
-                  onClick={() => setCurrentStep(4)}
-                  className="text-xs text-[#A3A8B3] hover:text-white underline font-mono transition-colors duration-200"
-                >
-                  Edit Price
-                </button>
-              </div>
-
             </div>
           </div>
         )}
@@ -702,25 +778,25 @@ export const SellTicketPage: React.FC = () => {
 
             <div className="space-y-2">
               <h2 className="text-3xl font-extrabold font-display text-white">
-                Ticket Listed Successfully!
+                Niêm Yết Vé Thành Công!
               </h2>
               <p className="text-xs sm:text-sm text-[#A3A8B3] max-w-md mx-auto leading-relaxed">
-                Your digital ticket has been published to TicketShield Marketplace with 100% Escrow Protection.
+                Vé của bạn đã được niêm yết chính thức lên TicketShield Marketplace với 100% Escrow Protection.
               </p>
             </div>
 
             <div className="p-6 bg-[#0A0D12]/90 backdrop-blur-md border border-white/10 rounded-3xl space-y-3 text-left max-w-md mx-auto text-xs hover:border-emerald-500/30 transition-all duration-300">
               <div className="flex items-center justify-between">
-                <span className="text-[#A3A8B3]">Status:</span>
+                <span className="text-[#A3A8B3]">Trạng thái:</span>
                 <span className="text-emerald-400 font-bold font-mono">PUBLICLY LISTED</span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-[#A3A8B3]">Listing ID:</span>
-                <span className="text-white font-mono font-bold">TS-RESALE-88201</span>
+                <span className="text-[#A3A8B3]">Mã Listing ID:</span>
+                <span className="text-white font-mono font-bold truncate max-w-[200px]">{publishedListingId || 'TS-RESALE-88201'}</span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-[#A3A8B3]">Listing Price:</span>
-                <span className="text-white font-bold">{resalePrice.toLocaleString('en-US')} VND</span>
+                <span className="text-[#A3A8B3]">Giá rao bán:</span>
+                <span className="text-white font-bold">{resalePrice.toLocaleString('vi-VN')} VNĐ</span>
               </div>
             </div>
 
@@ -729,14 +805,14 @@ export const SellTicketPage: React.FC = () => {
                 onClick={() => navigate('/my-listings')}
                 className="w-full sm:w-auto px-8 py-3.5 bg-[#FF5A36] hover:bg-[#FF7252] text-white font-bold font-display uppercase tracking-widest text-xs rounded-xl shadow-lg shadow-[#FF5A36]/30 hover:shadow-xl hover:shadow-[#FF5A36]/50 hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200"
               >
-                Manage My Listings
+                Quản Lý Danh Sách Bán Vé
               </button>
 
               <button
                 onClick={() => navigate('/marketplace')}
                 className="w-full sm:w-auto px-8 py-3.5 bg-white/5 border border-white/10 text-white font-bold font-display uppercase tracking-widest text-xs rounded-xl hover:bg-white/10 hover:border-white/20 transition-all duration-200"
               >
-                View On Marketplace
+                Xem Trên Sàn Marketplace
               </button>
             </div>
           </div>

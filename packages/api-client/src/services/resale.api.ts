@@ -1,0 +1,137 @@
+import { httpClient } from './client';
+
+export interface VerificationResult {
+  verificationId: string;
+  status: string;
+  operationId?: string;
+  expiresAt?: string;
+  resendAfter?: string;
+  deliveryState?: string;
+  originalPrice?: number;
+  listingId?: string;
+  privateAccessToken?: string;
+}
+
+export interface SellerListingDto {
+  listingId: string;
+  eventId: string;
+  eventName: string;
+  eventVenue: string;
+  eventStartAt: string;
+  tierId: string;
+  tierName: string;
+  originalTicketCode: string;
+  originalPrice: number;
+  resalePrice: number;
+  discountAmount: number;
+  discountPercentage: number;
+  isPrivate: boolean;
+  privateAccessToken?: string;
+  shareUrl?: string;
+  verificationStatus: string;
+  listingStatus: string;
+  createdAt: string;
+}
+
+export interface CancelResaleListingResponse {
+  listingId: string;
+  originalTicketCode: string;
+  listingStatus: string;
+  cancelledAt: string;
+}
+
+const generateIdempotencyKey = (): string => {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID();
+  }
+  return 'idemp-' + Date.now() + '-' + Math.random().toString(36).substring(2, 11);
+};
+
+export const resaleApi = {
+  /**
+   * Khởi tạo phiên xác thực vé chính chủ & yêu cầu Nhà tổ chức gửi OTP qua gRPC
+   */
+  requestVerificationOtp: async (ticketCode: string): Promise<VerificationResult> => {
+    return await httpClient<VerificationResult>('/ticket-verifications', {
+      method: 'POST',
+      headers: {
+        'Idempotency-Key': generateIdempotencyKey(),
+      },
+      body: JSON.stringify({ ticketCode }),
+    });
+  },
+
+  /**
+   * Gửi lại mã OTP xác thực vé
+   */
+  resendVerificationOtp: async (verificationId: string): Promise<VerificationResult> => {
+    return await httpClient<VerificationResult>(`/ticket-verifications/${verificationId}/resend`, {
+      method: 'POST',
+      headers: {
+        'Idempotency-Key': generateIdempotencyKey(),
+      },
+    });
+  },
+
+  /**
+   * Xác nhận mã OTP và thực hiện Khóa vé (Lock) bên Nhà tổ chức
+   */
+  confirmVerificationOtp: async (verificationId: string, otp: string): Promise<VerificationResult> => {
+    return await httpClient<VerificationResult>(`/ticket-verifications/${verificationId}/confirm`, {
+      method: 'POST',
+      headers: {
+        'Idempotency-Key': generateIdempotencyKey(),
+      },
+      body: JSON.stringify({ otp }),
+    });
+  },
+
+  /**
+   * Tra cứu thông tin chi tiết phiên xác thực vé
+   */
+  getVerificationStatus: async (verificationId: string): Promise<VerificationResult> => {
+    return await httpClient<VerificationResult>(`/ticket-verifications/${verificationId}`, {
+      method: 'GET',
+    });
+  },
+
+  /**
+   * Niêm yết vé lên Sàn thị trường bán lại (Marketplace)
+   */
+  publishListing: async (
+    verificationId: string,
+    resalePrice: number,
+    isPrivate: boolean = false
+  ): Promise<VerificationResult> => {
+    return await httpClient<VerificationResult>('/resale-listings/publish', {
+      method: 'POST',
+      headers: {
+        'Idempotency-Key': generateIdempotencyKey(),
+      },
+      body: JSON.stringify({
+        verificationId,
+        resalePrice,
+        isPrivate,
+      }),
+    });
+  },
+
+  /**
+   * Lấy danh sách toàn bộ vé đang đăng rao bán của người bán (Seller)
+   */
+  getMyListings: async (status?: string): Promise<SellerListingDto[]> => {
+    const query = status ? `?status=${encodeURIComponent(status)}` : '';
+    return await httpClient<SellerListingDto[]>(`/resale-listings/my-listings${query}`, {
+      method: 'GET',
+    });
+  },
+
+  /**
+   * Hủy tin đăng bán vé và yêu cầu mở khóa vé (Release Lock)
+   */
+  cancelListing: async (listingId: string): Promise<CancelResaleListingResponse> => {
+    return await httpClient<CancelResaleListingResponse>(`/resale-listings/${listingId}/cancel`, {
+      method: 'POST',
+    });
+  },
+};
