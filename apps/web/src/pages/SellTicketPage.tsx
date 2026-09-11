@@ -94,8 +94,7 @@ export const SellTicketPage: React.FC = () => {
     const isAlreadyListed = existingListings.some(
       (listing) =>
         listing.originalTicketCode === t.code &&
-        listing.listingStatus !== 'Cancelled' &&
-        listing.listingStatus !== 'CANCELLED'
+        String(listing.listingStatus).toLowerCase() !== 'cancelled'
     );
     if (isAlreadyListed) return false;
 
@@ -168,8 +167,7 @@ export const SellTicketPage: React.FC = () => {
     // 1. Kiểm tra nếu vé này đang được đăng bán trên sàn
     const isAlreadyListed = existingListings.some(
       (l) => l.originalTicketCode === normalizedCode &&
-             l.listingStatus !== 'Cancelled' &&
-             l.listingStatus !== 'CANCELLED'
+             String(l.listingStatus).toLowerCase() !== 'cancelled'
     );
     if (isAlreadyListed) {
       showToast('Vé này hiện đang được đăng bán trên hệ thống! Vui lòng vào mục "My Listings" để quản lý.', 'warning');

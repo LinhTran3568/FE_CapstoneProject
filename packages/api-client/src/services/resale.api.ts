@@ -1,4 +1,7 @@
 import { httpClient } from './client';
+import type { SellerListingDto, CancelResaleListingResponse } from '@ticketshield/types';
+
+export type { SellerListingDto, CancelResaleListingResponse };
 
 export interface VerificationResult {
   verificationId: string;
@@ -10,34 +13,6 @@ export interface VerificationResult {
   originalPrice?: number;
   listingId?: string;
   privateAccessToken?: string;
-}
-
-export interface SellerListingDto {
-  listingId: string;
-  eventId: string;
-  eventName: string;
-  eventVenue: string;
-  eventStartAt: string;
-  tierId: string;
-  tierName: string;
-  originalTicketCode: string;
-  originalPrice: number;
-  resalePrice: number;
-  discountAmount: number;
-  discountPercentage: number;
-  isPrivate: boolean;
-  privateAccessToken?: string;
-  shareUrl?: string;
-  verificationStatus: string;
-  listingStatus: string;
-  createdAt: string;
-}
-
-export interface CancelResaleListingResponse {
-  listingId: string;
-  originalTicketCode: string;
-  listingStatus: string;
-  cancelledAt: string;
 }
 
 const generateIdempotencyKey = (): string => {
