@@ -1,0 +1,317 @@
+.flying-badge-container {
+  position: relative;
+  width: 100px;
+  height: 140px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin: 12px;
+}
+
+/* Glassmorphism/Glow effect behind the card */
+.flying-badge-glow {
+  position: absolute;
+  width: 90px;
+  height: 125px;
+  border-radius: 8px;
+  background: rgba(59, 130, 246, 0.3);
+  filter: blur(12px);
+  opacity: 0;
+  transition: opacity 0.4s ease;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.flying-badge-container.unlocked:hover .flying-badge-glow {
+  opacity: 0.8;
+}
+
+/* Floating animation */
+@keyframes floatAnimation {
+  0% {
+    transform: translateY(0) rotate(-1deg);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  }
+  50% {
+    transform: translateY(-8px) rotate(1deg);
+    box-shadow: 0 12px 20px rgba(0, 0, 0, 0.35);
+  }
+  100% {
+    transform: translateY(0) rotate(-1deg);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  }
+}
+
+.flying-badge-sheet {
+  width: 90px;
+  height: 125px;
+  border-radius: 6px;
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  position: relative;
+  transition: all 0.3s ease;
+  user-select: none;
+  cursor: pointer;
+  z-index: 1;
+}
+
+/* Float when unlocked */
+.flying-badge-container.unlocked .flying-badge-sheet {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  animation: floatAnimation 4s ease-in-out infinite;
+}
+
+/* Darker/Greyed-out when locked */
+.flying-badge-container.locked .flying-badge-sheet {
+  background: #1e293b;
+  border: 1px solid #334155;
+  opacity: 0.6;
+}
+
+.flying-badge-container.locked:hover .flying-badge-sheet {
+  opacity: 0.8;
+  transform: translateY(-2px);
+}
+
+/* Lined Red Margin Line on the left */
+.flying-badge-sheet::before {
+  content: '';
+  position: absolute;
+  left: 12px;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+}
+
+.flying-badge-container.unlocked .flying-badge-sheet::before {
+  background: rgba(239, 68, 68, 0.3);
+}
+
+.flying-badge-container.locked .flying-badge-sheet::before {
+  background: rgba(71, 85, 105, 0.5);
+}
+
+/* Common Sheet Content */
+.flying-badge-content {
+  flex: 1;
+  padding-left: 10px;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  font-family: inherit;
+}
+
+.flying-badge-line {
+  display: flex;
+  align-items: center;
+  margin-bottom: 5px;
+}
+
+.flying-badge-checkbox {
+  width: 6px;
+  height: 6px;
+  border: 1px solid #64748b;
+  border-radius: 1px;
+  margin-right: 5px;
+}
+
+.flying-badge-container.unlocked .flying-badge-checkbox {
+  background-color: #10b981;
+  border-color: #10b981;
+}
+
+.flying-badge-doodle-line {
+  height: 2px;
+  background-color: #cbd5e1;
+  border-radius: 1px;
+}
+
+.flying-badge-container.locked .flying-badge-doodle-line {
+  background-color: #475569;
+}
+
+.flying-badge-center-doodle {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 24px;
+}
+
+/* Red Hand-written Grade Badge */
+.flying-badge-grade {
+  position: absolute;
+  right: 2px;
+  top: 12px;
+  border: 1px solid rgba(239, 68, 68, 0.4);
+  border-radius: 12px;
+  padding: 2px 4px;
+  font-weight: 900;
+  font-size: 10px;
+  transform: rotate(15deg);
+}
+
+.flying-badge-container.unlocked .flying-badge-grade {
+  color: #ef4444;
+  border-color: rgba(239, 68, 68, 0.6);
+}
+
+.flying-badge-container.locked .flying-badge-grade {
+  color: #64748b;
+  border-color: #475569;
+}
+
+/* Math Grid background simulation */
+.flying-badge-math-grid {
+  position: absolute;
+  left: 12px;
+  right: 4px;
+  top: 4px;
+  bottom: 4px;
+  opacity: 0.15;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-around;
+  pointer-events: none;
+}
+
+.flying-badge-grid-row {
+  height: 1px;
+  background-color: #64748b;
+  width: 100%;
+}
+
+.flying-badge-formula {
+  font-family: monospace;
+  font-weight: bold;
+  font-size: 10px;
+  margin-top: 8px;
+  z-index: 2;
+}
+
+.flying-badge-formula-sub {
+  font-family: monospace;
+  font-style: italic;
+  font-size: 8px;
+  margin-top: 4px;
+  z-index: 2;
+}
+
+.flying-badge-container.unlocked .flying-badge-formula {
+  color: #3b82f6;
+}
+.flying-badge-container.unlocked .flying-badge-formula-sub {
+  color: #10b981;
+}
+.flying-badge-container.locked .flying-badge-formula,
+.flying-badge-container.locked .flying-badge-formula-sub {
+  color: #64748b;
+}
+
+/* Quiz Option circle style */
+.flying-badge-quiz-line {
+  display: flex;
+  align-items: center;
+  margin-bottom: 4px;
+  font-size: 9px;
+}
+
+.flying-badge-quiz-num {
+  color: #64748b;
+  width: 12px;
+}
+
+.flying-badge-quiz-opt {
+  color: #94a3b8;
+  margin: 0 2px;
+  padding: 0 2px;
+}
+
+.flying-badge-quiz-opt.circled {
+  color: #3b82f6;
+  border: 1px solid #3b82f6;
+  border-radius: 4px;
+}
+
+.flying-badge-checkmark {
+  position: absolute;
+  right: 4px;
+  bottom: 4px;
+  transform: rotate(-10deg);
+  font-size: 20px;
+  font-weight: bold;
+}
+
+/* Footer Section */
+.flying-badge-footer {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  z-index: 2;
+}
+
+.flying-badge-name {
+  font-size: 9px;
+  font-weight: 800;
+  text-align: center;
+  margin-bottom: 4px;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.flying-badge-container.unlocked .flying-badge-name {
+  color: #1e293b;
+}
+
+.flying-badge-container.locked .flying-badge-name {
+  color: #64748b;
+}
+
+/* Progress bar container */
+.flying-badge-progress-bar {
+  width: 100%;
+  height: 4px;
+  background-color: #334155;
+  border-radius: 2px;
+  overflow: hidden;
+  margin-bottom: 2px;
+}
+
+.flying-badge-progress-fill {
+  height: 100%;
+  background-color: #3b82f6;
+  border-radius: 2px;
+}
+
+.flying-badge-progress-text {
+  font-size: 8px;
+  color: #64748b;
+  font-weight: 700;
+}
+
+/* Lock overlays */
+.flying-badge-lock-badge {
+  position: absolute;
+  right: 4px;
+  bottom: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #94a3b8;
+}
+
+.flying-badge-unlocked-badge {
+  position: absolute;
+  right: 4px;
+  bottom: 4px;
+  color: #10b981;
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+}

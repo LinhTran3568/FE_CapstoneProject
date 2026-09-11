@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700;800&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -7,9 +7,19 @@
 @layer base {
   html {
     scroll-behavior: smooth;
+    @apply bg-[#05070A] text-[#F5F5F2] font-sans antialiased;
+    overflow-x: hidden;
+    overflow-y: scroll;
+    width: 100%;
+    margin: 0;
+    padding: 0;
   }
   body {
-    @apply bg-[#05070A] text-[#F5F5F2] font-sans antialiased overflow-x-hidden;
+    @apply bg-[#05070A] text-[#F5F5F2] font-sans antialiased;
+    overflow-x: hidden;
+    width: 100%;
+    margin: 0;
+    padding: 0;
     font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
   }
   * {
@@ -62,3 +72,102 @@ section {
   position: relative;
 }
 
+/* TicketShield Cyberpunk & Sci-Fi Aesthetic Tokens */
+@keyframes float-slow {
+  0%, 100% {
+    transform: translateY(0px) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-12px) rotate(0.8deg);
+  }
+}
+
+@keyframes float-reverse {
+  0%, 100% {
+    transform: translateY(0px) rotate(0deg);
+  }
+  50% {
+    transform: translateY(10px) rotate(-0.8deg);
+  }
+}
+
+@keyframes pulse-glow {
+  0%, 100% {
+    opacity: 0.5;
+    filter: drop-shadow(0 0 15px rgba(6, 182, 212, 0.3));
+  }
+  50% {
+    opacity: 0.9;
+    filter: drop-shadow(0 0 25px rgba(6, 182, 212, 0.7));
+  }
+}
+
+@keyframes scan {
+  0% {
+    top: 0%;
+    opacity: 0;
+  }
+  15% {
+    opacity: 1;
+  }
+  85% {
+    opacity: 1;
+  }
+  100% {
+    top: 100%;
+    opacity: 0;
+  }
+}
+
+.animate-float-slow {
+  animation: float-slow 6s ease-in-out infinite;
+}
+
+.animate-float-reverse {
+  animation: float-reverse 7s ease-in-out infinite;
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 3s ease-in-out infinite;
+}
+
+.animate-scan {
+  animation: scan 2.5s linear infinite;
+}
+
+.glass-card {
+  background: rgba(17, 23, 38, 0.75);
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(38, 51, 77, 0.85);
+}
+
+.glass-card-hover {
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.glass-card-hover:hover {
+  background: rgba(22, 30, 46, 0.85);
+  border-color: rgba(6, 182, 212, 0.5);
+  box-shadow: 0 10px 30px -10px rgba(6, 182, 212, 0.25);
+  transform: translateY(-4px);
+}
+
+.badge-glow-emerald {
+  background: rgba(16, 185, 129, 0.12);
+  border: 1px solid rgba(16, 185, 129, 0.4);
+  color: #34d399;
+  box-shadow: 0 0 15px -3px rgba(16, 185, 129, 0.25);
+}
+
+.badge-glow-cyan {
+  background: rgba(6, 182, 212, 0.12);
+  border: 1px solid rgba(6, 182, 212, 0.4);
+  color: #22d3ee;
+  box-shadow: 0 0 15px -3px rgba(6, 182, 212, 0.25);
+}
+
+.badge-glow-red {
+  background: rgba(239, 68, 68, 0.12);
+  border: 1px solid rgba(239, 68, 68, 0.4);
+  color: #f87171;
+  box-shadow: 0 0 15px -3px rgba(239, 68, 68, 0.25);
+}

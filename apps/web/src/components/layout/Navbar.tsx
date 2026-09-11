@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../stores/authStore';
 import { useUIStore } from '../../stores/uiStore';
-import { User as UserIcon, LogOut, PlusCircle, ShieldCheck, Ticket, Sparkles } from 'lucide-react';
+import { User as UserIcon, LogOut, PlusCircle, ShieldCheck, Ticket, Sparkles, LayoutDashboard } from 'lucide-react';
 import { TicketShieldLogo } from '../ui/TicketShieldLogo';
 
 export const Navbar: React.FC = () => {
@@ -42,14 +42,12 @@ export const Navbar: React.FC = () => {
     navigate('/login');
   };
 
-  // Robust Reseller Role Detection
   const isReseller = 
     user?.role === 'RESELLER' || 
     (user?.role as string) === 'SELLER' || 
     user?.email?.toLowerCase().includes('seller') ||
     user?.fullName?.toLowerCase().includes('seller');
 
-  // Determine Nav Links without "Home" (Brand Logo acts as Home link)
   const getNavLinks = () => {
     if (!user) {
       return [
@@ -76,7 +74,6 @@ export const Navbar: React.FC = () => {
       ];
     }
 
-    // Default BUYER
     return [
       { label: 'Resale Marketplace', href: '/marketplace' },
       { label: 'My Tickets', href: '/my-tickets' },
@@ -95,12 +92,10 @@ export const Navbar: React.FC = () => {
       }`}
     >
       <div className="max-w-7xl mx-auto px-6 md:px-12 flex items-center justify-between gap-6">
-        {/* Brand Logo - Acts as Home button */}
         <a href="/" onClick={handleBrandClick} className="shrink-0">
           <TicketShieldLogo size="md" />
         </a>
 
-        {/* Desktop Nav Links: Single-line horizontal layout (No text wrap) */}
         <nav className="hidden lg:flex items-center space-x-6 text-xs font-semibold uppercase tracking-wider whitespace-nowrap shrink-0">
           {navLinks.map((link) => (
             <Link
@@ -117,11 +112,9 @@ export const Navbar: React.FC = () => {
           ))}
         </nav>
 
-        {/* Right CTA / User Account Controls */}
         <div className="hidden md:flex items-center space-x-3.5 text-xs shrink-0">
           {user ? (
             <div className="flex items-center gap-3">
-              {/* User Profile Card Button - Navigates to /profile */}
               <Link
                 to="/profile"
                 className="flex items-center gap-2.5 px-3.5 py-2 rounded-full bg-[#0A0D12] border border-white/10 hover:border-[#FF5A36]/50 transition-all font-semibold text-[#F5F5F2] group whitespace-nowrap"
@@ -132,7 +125,6 @@ export const Navbar: React.FC = () => {
                 </div>
                 <span className="font-display font-medium max-w-[120px] truncate">{user.fullName || 'Account'}</span>
                 
-                {/* Role Badge */}
                 {isReseller ? (
                   <span className="text-[10px] bg-gradient-to-r from-[#FF5A36] to-amber-500 text-white font-extrabold px-2 py-0.5 rounded-full font-mono uppercase tracking-wider shadow">
                     RESELLER
@@ -148,7 +140,6 @@ export const Navbar: React.FC = () => {
                 )}
               </Link>
 
-              {/* Logout Button */}
               <button
                 onClick={handleLogout}
                 title="Sign Out"
@@ -175,7 +166,6 @@ export const Navbar: React.FC = () => {
           )}
         </div>
 
-        {/* Mobile Hamburger Toggle */}
         <button
           onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
           className="lg:hidden text-[#F5F5F2] p-2 focus:outline-none"
@@ -199,7 +189,6 @@ export const Navbar: React.FC = () => {
         </button>
       </div>
 
-      {/* Mobile Drawer */}
       {mobileMenuOpen && (
         <div className="lg:hidden bg-[#05070A]/95 backdrop-blur-xl border-b border-white/10 px-6 py-6 space-y-4">
           {navLinks.map((link) => (
@@ -257,3 +246,4 @@ export const Navbar: React.FC = () => {
     </header>
   );
 };
+export default Navbar;

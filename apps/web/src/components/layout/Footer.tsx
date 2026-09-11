@@ -5,6 +5,7 @@ import { ArrowUpRight } from 'lucide-react';
 
 export const Footer: React.FC = () => {
   return (
+<<<<<<< HEAD
     <footer className="bg-[#0A0D12]/95 backdrop-blur-2xl border-t border-white/20 text-[#F5F5F2] py-16 md:py-20 relative z-20 shadow-2xl">
       <div className="max-w-7xl mx-auto px-6 md:px-12">
         <div className="grid grid-cols-1 md:grid-cols-12 gap-12 mb-12">
@@ -48,6 +49,7 @@ export const Footer: React.FC = () => {
               </li>
             </ul>
           </div>
+
 
           {/* Links Col 2 */}
           <div className="md:col-span-2 space-y-3">
@@ -110,3 +112,5 @@ export const Footer: React.FC = () => {
     </footer>
   );
 };
+export default Footer;
+

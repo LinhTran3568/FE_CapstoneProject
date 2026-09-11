@@ -1,0 +1,461 @@
+@import url('https://fonts.googleapis.com/css2?family=Caveat:wght@400;700&display=swap');
+
+/* Strip the original card-like wrapper styles */
+.flying-page {
+    background: transparent !important;
+    padding: 0 !important;
+    border: none !important;
+    box-shadow: none !important;
+    z-index: 25 !important;
+    pointer-events: auto;
+}
+
+/* Base styles for all paper page templates */
+.mini-page-lined,
+.mini-page-grid,
+.mini-page-manga,
+.mini-page-script-graded,
+.mini-page-logo-container {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    background: #fbf9f3; /* high-end warm cream paper background */
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    border-radius: 1px; /* realistic sharp paper corners */
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.16); /* soft realistic paper shadow */
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    user-select: none;
+}
+
+/* ---------------------------------
+   Lined Notebook Page
+   --------------------------------- */
+.mini-page-lined {
+    padding: 6px 4px 6px 10px;
+}
+
+/* Red vertical notebook line */
+.mini-margin-red {
+    position: absolute;
+    left: 8px;
+    top: 0;
+    bottom: 0;
+    width: 1px;
+    background: rgba(239, 68, 68, 0.22);
+}
+
+.mini-title-handwritten {
+    font-family: 'Caveat', cursive;
+    font-size: 8px;
+    font-weight: bold;
+    color: #475569;
+    margin-bottom: 2px;
+    text-decoration: underline;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    line-height: 1;
+}
+
+.mini-lined-content {
+    font-family: 'Caveat', cursive;
+    font-size: 6px;
+    color: #334155;
+    line-height: 7px;
+    text-align: left;
+    white-space: normal;
+    word-break: break-word;
+    opacity: 0.95;
+    transform: rotate(-1deg);
+}
+
+/* Notebook lines (stripes) */
+.mini-lined-content-lines {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+    margin-top: 4px;
+    width: 100%;
+}
+
+.mini-notebook-line-checked {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    width: 100%;
+    height: 6px;
+}
+
+.mini-notebook-line {
+    height: 1px;
+    background: rgba(59, 130, 246, 0.16); /* light blue school notebook line */
+    flex: 1;
+}
+
+.mini-notebook-line.short {
+    max-width: 60%;
+}
+
+/* ---------------------------------
+   Gridded Notebook Page (Formulas, Concept Maps, Charts)
+   --------------------------------- */
+.mini-page-grid {
+    padding: 6px 6px;
+    background-color: #faf8f2;
+    background-image: 
+        linear-gradient(to right, rgba(0, 0, 0, 0.03) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(0, 0, 0, 0.03) 1px, transparent 1px);
+    background-size: 5px 5px; /* fine math paper grid */
+}
+
+.mini-formula-title {
+    font-family: 'Caveat', cursive;
+    font-size: 6px;
+    font-weight: 700;
+    color: #475569;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    margin-bottom: 3px;
+    line-height: 1;
+}
+
+.mini-formula-body {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    flex: 1;
+    gap: 1px;
+}
+
+.formula-text {
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 7.5px;
+    font-weight: bold;
+    color: #1e293b;
+    line-height: 1;
+}
+
+.mini-formula-graph {
+    width: 32px;
+    height: 20px;
+    color: #3b82f6; /* blue ink coordinate graph */
+    opacity: 0.8;
+    margin-top: 2px;
+}
+
+.mini-bar-chart {
+    width: 32px;
+    height: 22px;
+    color: #475569;
+    margin-top: 1px;
+}
+
+.mini-pie-chart {
+    width: 22px;
+    height: 22px;
+    color: #475569;
+    margin-top: 1px;
+}
+
+.mini-grid-content {
+    font-family: 'Caveat', cursive;
+    font-size: 6.5px;
+    color: #2e3b4e;
+    line-height: 7.5px;
+    text-align: center;
+    position: relative;
+    flex: 1;
+}
+
+/* ---------------------------------
+   Manga Comic Panel Page
+   --------------------------------- */
+.mini-page-manga {
+    background: #ffffff;
+    padding: 4px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.manga-panel {
+    border: 0.75px solid #0f172a;
+    background: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    overflow: hidden;
+    border-radius: 1px;
+}
+
+.manga-panel.panel-top {
+    height: 34px;
+}
+
+.manga-panel-row {
+    display: flex;
+    gap: 4px;
+    flex: 1;
+    height: 24px;
+}
+
+.manga-panel.panel-left {
+    flex: 1.2;
+    height: 100%;
+}
+
+.manga-panel.panel-right {
+    flex: 0.8;
+    height: 100%;
+    background: repeating-linear-gradient(
+        -45deg,
+        rgba(0, 0, 0, 0.15),
+        rgba(0, 0, 0, 0.15) 1px,
+        transparent 1px,
+        transparent 3px
+    ); /* screentone shading lines */
+}
+
+.speech-bubble {
+    font-family: 'Caveat', cursive;
+    font-size: 5.5px;
+    font-weight: bold;
+    background: #ffffff;
+    border: 0.75px solid #000000;
+    border-radius: 50%;
+    padding: 1px 3px;
+    line-height: 1;
+    transform: rotate(-6deg);
+    box-shadow: 1px 1px 0 rgba(0,0,0,0.1);
+}
+
+/* ---------------------------------
+   Graded Storyboard Draft Page
+   --------------------------------- */
+.mini-page-script-graded {
+    padding: 6px 4px;
+    justify-content: flex-start;
+    font-family: 'Courier New', Courier, monospace;
+}
+
+.mini-script-header {
+    font-size: 5px;
+    color: #64748b;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+    padding-bottom: 2px;
+    margin-bottom: 3px;
+    font-weight: bold;
+    line-height: 1;
+}
+
+.mini-storyboard-box {
+    width: 100%;
+    height: 32px;
+    border: 0.75px solid #64748b;
+    background: #ffffff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 1px;
+    margin: 3px 0;
+    color: #475569;
+}
+
+.doodle-svg-storyboard {
+    width: 32px;
+    height: 16px;
+    opacity: 0.8;
+}
+
+.mini-script-action {
+    font-size: 4.5px;
+    color: #64748b;
+    text-align: center;
+    line-height: 1;
+}
+
+/* ---------------------------------
+   Aesthetic Elements (Doodles, Highlights, Cross-outs)
+   --------------------------------- */
+.mini-highlight {
+    background: rgba(253, 224, 71, 0.42); /* yellow marker highlight */
+    padding: 0 1px;
+    border-radius: 1px;
+}
+
+.mini-crossed {
+    text-decoration: line-through;
+    color: #94a3b8;
+    text-decoration-color: #ef4444; /* red strike-through line */
+}
+
+.mini-arrow {
+    color: #3b82f6; /* blue ink color */
+    font-weight: bold;
+    margin-right: 1px;
+}
+
+.mini-check {
+    font-family: 'Caveat', cursive;
+    font-size: 8px;
+    font-weight: bold;
+    color: #22c55e; /* green checkmark */
+    line-height: 1;
+    transform: rotate(5deg);
+}
+
+.mini-check.red {
+    color: #ef4444; /* red cross mark */
+    font-size: 7px;
+}
+
+/* ---------------------------------
+   Red hand-drawn grade badge
+   --------------------------------- */
+.mini-grade-badge-red {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    width: 15px;
+    height: 15px;
+    border: 1px solid #ef4444; /* red hand-drawn circle border */
+    border-radius: 48% 52% 50% 50% / 51% 49% 52% 48%; /* irregular circle */
+    color: #ef4444; /* bright red ink */
+    font-family: 'Caveat', cursive;
+    font-size: 7px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transform: rotate(-6deg);
+    z-index: 10;
+}
+
+.mini-grade-badge-red.wide {
+    width: 20px;
+    height: 14px;
+    border-radius: 46% 54% 48% 52% / 50% 50% 50% 50%;
+    font-size: 5.5px;
+}
+
+/* ---------------------------------
+   Chemistry Doodle Page
+   --------------------------------- */
+.mini-page-chemistry {
+    padding: 6px;
+    background-color: #faf8f2;
+    position: relative;
+    width: 100%;
+    height: 100%;
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    border-radius: 1px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.16);
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.mini-chem-title {
+    font-family: 'Caveat', cursive;
+    font-size: 6.5px;
+    font-weight: 700;
+    color: #475569;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    margin-bottom: 2px;
+    line-height: 1;
+    text-align: left;
+}
+
+.mini-chem-body {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    flex: 1;
+    color: #475569;
+}
+
+.mini-chem-formula {
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 6.5px;
+    font-weight: bold;
+    color: #0f172a;
+    line-height: 1;
+    margin-bottom: 2px;
+}
+
+.mini-chem-doodle {
+    width: 24px;
+    height: 24px;
+    color: #10b981;
+    opacity: 0.8;
+}
+
+/* ---------------------------------
+   Geography / Astronomy Page
+   --------------------------------- */
+.mini-page-geo {
+    padding: 6px;
+    background-color: #faf8f2;
+    position: relative;
+    width: 100%;
+    height: 100%;
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    border-radius: 1px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.16);
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.mini-geo-title {
+    font-family: 'Caveat', cursive;
+    font-size: 6.5px;
+    font-weight: 700;
+    color: #475569;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    margin-bottom: 2px;
+    line-height: 1;
+    text-align: left;
+}
+
+.mini-geo-body {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    flex: 1;
+    color: #475569;
+}
+
+.mini-geo-doodle {
+    width: 24px;
+    height: 24px;
+    color: #fb923c;
+    opacity: 0.8;
+}
+
+.mini-page-logo-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+    flex: 1;
+}
+
+.mini-page-logo-img {
+    width: 48px;
+    height: 48px;
+    object-fit: contain;
+    opacity: 0.95;
+    filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.15));
+}

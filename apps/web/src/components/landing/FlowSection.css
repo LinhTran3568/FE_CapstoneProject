@@ -1,0 +1,1218 @@
+/* ==========================================================================
+   TICKETSHIELD — BESPOKE FLOW VISUAL ANIMATIONS (STRIPE / LINEAR STYLE)
+   High-craft micro-interactions, rich ambient depth, pure motion design.
+   ========================================================================== */
+
+/* Base Stage Container */
+.flow-stage {
+  position: relative;
+  width: 100%;
+  height: 210px;
+  background: radial-gradient(circle at center, rgba(15, 23, 42, 0.9) 0%, #030712 100%);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Background Cyber Grid & Corner Marks */
+.flow-stage::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: 
+    linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+  background-size: 20px 20px;
+  background-position: center center;
+  pointer-events: none;
+}
+
+.flow-stage::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  box-shadow: inset 0 0 40px rgba(0, 0, 0, 0.8);
+  pointer-events: none;
+}
+
+/* ──────────────────────────────────────────────────────────────────────────
+   BUYER 1: "Khám phá & Khóa chỗ 10 phút"
+   Holographic concert ticket + Clamping Golden Padlock + Countdown Wave
+   ────────────────────────────────────────────────────────────────────────── */
+.b1-container {
+  position: relative;
+  width: 290px;
+  height: 140px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+}
+
+.b1-ticket-card {
+  position: relative;
+  width: 250px;
+  height: 96px;
+  background: linear-gradient(135deg, rgba(30, 41, 59, 0.85) 0%, rgba(15, 23, 42, 0.95) 100%);
+  border: 1px solid rgba(251, 146, 60, 0.4);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6), 0 0 20px rgba(251, 146, 60, 0.15);
+  display: flex;
+  overflow: hidden;
+}
+
+.b1-ticket-card::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: linear-gradient(
+    45deg,
+    transparent 40%,
+    rgba(251, 146, 60, 0.1) 50%,
+    transparent 60%
+  );
+  animation: b1HoloShine 4s infinite linear;
+}
+@keyframes b1HoloShine {
+  0% { transform: translate(-30%, -30%) rotate(0deg); }
+  100% { transform: translate(30%, 30%) rotate(0deg); }
+}
+
+.b1-ticket-left {
+  flex: 1;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  border-right: 1.5px dashed rgba(251, 146, 60, 0.35);
+  position: relative;
+}
+
+.b1-ticket-left::before,
+.b1-ticket-left::after {
+  content: '';
+  position: absolute;
+  right: -7px;
+  width: 12px;
+  height: 12px;
+  background: #030712;
+  border-radius: 50%;
+  z-index: 2;
+}
+.b1-ticket-left::before { top: -7px; }
+.b1-ticket-left::after { bottom: -7px; }
+
+.b1-ticket-right {
+  width: 70px;
+  background: rgba(251, 146, 60, 0.05);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+
+.b1-lock-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: rgba(3, 7, 18, 0.65);
+  backdrop-filter: blur(2px);
+  animation: b1LockOverlay 4.5s infinite cubic-bezier(0.16, 1, 0.3, 1);
+}
+@keyframes b1LockOverlay {
+  0%, 15% { opacity: 0; transform: scale(0.92); }
+  25%, 85% { opacity: 1; transform: scale(1); }
+  95%, 100% { opacity: 0; transform: scale(0.95); }
+}
+
+.b1-padlock-unit {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  animation: b1PadlockClamp 4.5s infinite cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+@keyframes b1PadlockClamp {
+  0%, 18% { transform: translateY(-30px); opacity: 0; }
+  28%, 85% { transform: translateY(0); opacity: 1; }
+  95%, 100% { transform: translateY(-10px); opacity: 0; }
+}
+
+.b1-shackle {
+  width: 24px;
+  height: 16px;
+  border: 4px solid #fb923c;
+  border-bottom: none;
+  border-radius: 12px 12px 0 0;
+  margin-bottom: -3px;
+  animation: b1ShackleSnap 4.5s infinite ease-in-out;
+}
+@keyframes b1ShackleSnap {
+  0%, 25% { transform: translateY(-6px); }
+  30%, 85% { transform: translateY(0); }
+  95%, 100% { transform: translateY(-6px); }
+}
+
+.b1-lock-core {
+  width: 40px;
+  height: 32px;
+  background: linear-gradient(180deg, #fb923c 0%, #ea580c 100%);
+  border-radius: 6px;
+  box-shadow: 0 0 25px rgba(251, 146, 60, 0.8), inset 0 1px 1px rgba(255, 255, 255, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.b1-timer-badge {
+  margin-top: 8px;
+  font-family: monospace;
+  font-size: 10px;
+  color: #fb923c;
+  background: rgba(251, 146, 60, 0.15);
+  border: 1px solid rgba(251, 146, 60, 0.4);
+  padding: 2px 8px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  box-shadow: 0 0 12px rgba(251, 146, 60, 0.3);
+}
+
+.b1-pulse-wave {
+  position: absolute;
+  width: 70px;
+  height: 70px;
+  border: 2px solid rgba(251, 146, 60, 0.8);
+  border-radius: 50%;
+  animation: b1WaveRipple 4.5s infinite ease-out;
+}
+@keyframes b1WaveRipple {
+  0%, 28% { transform: scale(0.2); opacity: 0; }
+  32% { transform: scale(0.6); opacity: 1; }
+  60% { transform: scale(2.2); opacity: 0; }
+  100% { opacity: 0; }
+}
+
+/* ──────────────────────────────────────────────────────────────────────────
+   BUYER 2: "Quét mã & Tiền vào két độc lập"
+   VietQR Terminal + Laser Particle Stream + High-Tech Safe (No Text Status)
+   ────────────────────────────────────────────────────────────────────────── */
+.b2-container {
+  position: relative;
+  width: 320px;
+  height: 140px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  z-index: 10;
+}
+
+.b2-terminal {
+  width: 95px;
+  height: 120px;
+  background: linear-gradient(180deg, #0f172a 0%, #020617 100%);
+  border: 1px solid rgba(56, 189, 248, 0.4);
+  box-shadow: 0 0 20px rgba(56, 189, 248, 0.15);
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  position: relative;
+}
+
+.b2-qr-box {
+  position: relative;
+  width: 60px;
+  height: 60px;
+  background: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border-radius: 2px;
+}
+
+.b2-laser-scan {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: #38bdf8;
+  box-shadow: 0 0 10px #38bdf8, 0 0 4px #fff;
+  animation: b2LaserScan 2s infinite ease-in-out;
+}
+@keyframes b2LaserScan {
+  0%, 100% { top: 0; }
+  50% { top: 58px; }
+}
+
+.b2-stream-track {
+  position: relative;
+  flex: 1;
+  height: 40px;
+  margin: 0 10px;
+  display: flex;
+  align-items: center;
+}
+
+.b2-flow-line {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, rgba(56, 189, 248, 0.2), rgba(251, 146, 60, 0.8));
+}
+
+.b2-gold-particle {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  background: #fb923c;
+  border-radius: 50%;
+  box-shadow: 0 0 10px #fb923c, 0 0 4px #fff;
+  animation: b2ParticleFly 2s infinite linear;
+}
+.b2-gold-particle:nth-child(2) { animation-delay: 0.5s; }
+.b2-gold-particle:nth-child(3) { animation-delay: 1.0s; }
+.b2-gold-particle:nth-child(4) { animation-delay: 1.5s; }
+
+@keyframes b2ParticleFly {
+  0% { left: 0%; opacity: 0; transform: scale(0.6); }
+  20% { opacity: 1; transform: scale(1.2); }
+  80% { opacity: 1; transform: scale(1); }
+  100% { left: 100%; opacity: 0; transform: scale(0.4); }
+}
+
+.b2-vault-safe {
+  width: 105px;
+  height: 120px;
+  background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
+  border: 1.5px solid rgba(251, 146, 60, 0.5);
+  box-shadow: 0 0 25px rgba(251, 146, 60, 0.25), inset 0 0 15px rgba(0, 0, 0, 0.8);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+.b2-vault-dial-outer {
+  width: 52px;
+  height: 52px;
+  border: 3px solid #fb923c;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 0 15px rgba(251, 146, 60, 0.5), inset 0 0 8px rgba(251, 146, 60, 0.3);
+  position: relative;
+  animation: b2VaultDialRotate 6s infinite linear;
+}
+@keyframes b2VaultDialRotate {
+  0% { transform: rotate(0deg); }
+  40% { transform: rotate(180deg); }
+  70% { transform: rotate(120deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.b2-dial-teeth {
+  position: absolute;
+  width: 6px;
+  height: 6px;
+  background: #fb923c;
+  border-radius: 50%;
+}
+.b2-dial-teeth:nth-child(1) { top: -3px; }
+.b2-dial-teeth:nth-child(2) { bottom: -3px; }
+.b2-dial-teeth:nth-child(3) { left: -3px; }
+.b2-dial-teeth:nth-child(4) { right: -3px; }
+
+.b2-vault-led-ring {
+  margin-top: 10px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #34d399;
+  box-shadow: 0 0 12px #34d399, 0 0 4px #fff;
+  animation: b2LedPulse 1.8s infinite ease-in-out;
+}
+@keyframes b2LedPulse {
+  0%, 100% { opacity: 0.5; transform: scale(0.9); }
+  50% { opacity: 1; transform: scale(1.2); }
+}
+
+/* ──────────────────────────────────────────────────────────────────────────
+   BUYER 3: "Sang tên tức thì & Cấp vé mới"
+   3D Revolving Ticket Chamber (Old Revoked -> Official Verified Buyer)
+   ────────────────────────────────────────────────────────────────────────── */
+.b3-stage-wrap {
+  perspective: 800px;
+  width: 270px;
+  height: 130px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+}
+
+.b3-flip-card {
+  position: relative;
+  width: 260px;
+  height: 110px;
+  transform-style: preserve-3d;
+  animation: b3CardTurnaround 5s infinite cubic-bezier(0.4, 0, 0.2, 1);
+}
+@keyframes b3CardTurnaround {
+  0%, 18% { transform: rotateY(0deg); }
+  45%, 75% { transform: rotateY(180deg); }
+  92%, 100% { transform: rotateY(360deg); }
+}
+
+.b3-face-front,
+.b3-face-back {
+  position: absolute;
+  inset: 0;
+  backface-visibility: hidden;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  overflow: hidden;
+}
+
+.b3-face-front {
+  background: linear-gradient(135deg, rgba(30, 20, 20, 0.95), rgba(15, 10, 10, 0.98));
+  border: 1.5px solid rgba(239, 68, 68, 0.5);
+  box-shadow: 0 0 20px rgba(239, 68, 68, 0.2);
+}
+
+.b3-face-back {
+  background: linear-gradient(135deg, rgba(8, 28, 48, 0.95), rgba(3, 12, 24, 0.98));
+  border: 1.5px solid rgba(56, 189, 248, 0.8);
+  box-shadow: 0 0 30px rgba(56, 189, 248, 0.35);
+  transform: rotateY(180deg);
+}
+
+.b3-revoked-stamp {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%) rotate(-12deg);
+  border: 2px solid #ef4444;
+  color: #ef4444;
+  font-family: monospace;
+  font-size: 11px;
+  font-weight: 900;
+  padding: 3px 8px;
+  letter-spacing: 1px;
+  background: rgba(239, 68, 68, 0.15);
+}
+
+.b3-verified-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(56, 189, 248, 0.2);
+  border: 1px solid rgba(56, 189, 248, 0.5);
+  padding: 2px 6px;
+  font-size: 8px;
+  font-family: monospace;
+  color: #38bdf8;
+  font-weight: 700;
+}
+
+/* ──────────────────────────────────────────────────────────────────────────
+   BUYER 4: "Vào cổng an tâm — Bảo vệ 100%"
+   Digital E-Ticket Pass Scanning + Radiant Access Granted Emerald Pulse
+   ────────────────────────────────────────────────────────────────────────── */
+.b4-scan-stage {
+  position: relative;
+  width: 300px;
+  height: 140px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 10px;
+  z-index: 10;
+}
+
+.b4-phone-frame {
+  width: 90px;
+  height: 126px;
+  background: #090e1a;
+  border: 1.5px solid rgba(52, 211, 153, 0.5);
+  border-radius: 12px;
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  box-shadow: 0 0 25px rgba(16, 185, 129, 0.2);
+  animation: b4PhoneFloat 4s infinite ease-in-out;
+}
+@keyframes b4PhoneFloat {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+
+.b4-phone-notch {
+  width: 24px;
+  height: 3px;
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 2px;
+}
+
+.b4-pass-card {
+  width: 100%;
+  height: 94px;
+  background: linear-gradient(180deg, rgba(16, 185, 129, 0.1) 0%, rgba(6, 78, 59, 0.2) 100%);
+  border: 1px solid rgba(52, 211, 153, 0.3);
+  border-radius: 6px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-around;
+  padding: 4px;
+}
+
+.b4-qr-wrap {
+  position: relative;
+  width: 48px;
+  height: 48px;
+  background: #030712;
+  border: 1px solid rgba(52, 211, 153, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.b4-laser-sweep {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: #34d399;
+  box-shadow: 0 0 10px #34d399, 0 0 4px #fff;
+  animation: b4LaserMove 2.4s infinite ease-in-out;
+}
+@keyframes b4LaserMove {
+  0%, 100% { top: 0; }
+  50% { top: 46px; }
+}
+
+.b4-gate-scanner {
+  position: relative;
+  width: 140px;
+  height: 120px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.b4-shield-badge {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(16, 185, 129, 0.25) 0%, rgba(6, 78, 59, 0.7) 100%);
+  border: 2px solid #34d399;
+  box-shadow: 0 0 35px rgba(16, 185, 129, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: b4ShieldBurst 3s infinite ease-in-out;
+  z-index: 5;
+}
+@keyframes b4ShieldBurst {
+  0%, 100% { transform: scale(0.95); box-shadow: 0 0 20px rgba(16, 185, 129, 0.4); }
+  50% { transform: scale(1.1); box-shadow: 0 0 45px rgba(16, 185, 129, 0.9); }
+}
+
+.b4-scanner-ring {
+  position: absolute;
+  width: 110px;
+  height: 110px;
+  border: 1.5px dashed rgba(52, 211, 153, 0.5);
+  border-radius: 50%;
+  animation: b4ScannerRotate 8s infinite linear;
+}
+@keyframes b4ScannerRotate {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* ──────────────────────────────────────────────────────────────────────────
+   SELLER 1: "Xác minh OTP & Niêm phong vé gốc"
+   6 Cybernetic Keypad Slots + Pure Golden Shield Stamp
+   ────────────────────────────────────────────────────────────────────────── */
+.s1-container {
+  position: relative;
+  width: 300px;
+  height: 140px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  z-index: 10;
+}
+
+.s1-otp-grid {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.s1-slot {
+  width: 36px;
+  height: 46px;
+  background: rgba(15, 23, 42, 0.8);
+  border: 1.5px solid rgba(56, 189, 248, 0.25);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: monospace;
+  font-size: 20px;
+  font-weight: 800;
+  color: #38bdf8;
+  position: relative;
+  animation: s1SlotReveal 4s infinite ease-out;
+}
+
+.s1-slot:nth-child(1) { animation-delay: 0.0s; }
+.s1-slot:nth-child(2) { animation-delay: 0.2s; }
+.s1-slot:nth-child(3) { animation-delay: 0.4s; }
+.s1-slot:nth-child(4) { animation-delay: 0.6s; }
+.s1-slot:nth-child(5) { animation-delay: 0.8s; }
+.s1-slot:nth-child(6) { animation-delay: 1.0s; }
+
+@keyframes s1SlotReveal {
+  0%, 15% { border-color: rgba(255, 255, 255, 0.1); color: transparent; box-shadow: none; }
+  35%, 80% { 
+    border-color: #38bdf8; 
+    color: #38bdf8; 
+    box-shadow: 0 0 16px rgba(56, 189, 248, 0.6), inset 0 0 10px rgba(56, 189, 248, 0.2); 
+  }
+  95%, 100% { border-color: rgba(255, 255, 255, 0.1); color: transparent; box-shadow: none; }
+}
+
+.s1-seal-icon {
+  position: relative;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: rgba(251, 146, 60, 0.15);
+  border: 1.5px solid #fb923c;
+  box-shadow: 0 0 20px rgba(251, 146, 60, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: s1SealDrop 4s infinite cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+@keyframes s1SealDrop {
+  0%, 30% { transform: translateY(16px) scale(0.8); opacity: 0; }
+  45%, 80% { transform: translateY(0) scale(1); opacity: 1; }
+  95%, 100% { transform: translateY(8px); opacity: 0; }
+}
+
+.s1-seal-ring {
+  position: absolute;
+  inset: -6px;
+  border: 1px dashed rgba(251, 146, 60, 0.6);
+  border-radius: 50%;
+  animation: s1RingSpin 6s infinite linear;
+}
+@keyframes s1RingSpin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* ──────────────────────────────────────────────────────────────────────────
+   SELLER 2: Holographic Ticket Flying to 2 Distinct Zones (Marketplace vs Private)
+   Exact match to User Reference Hologram Ticket with Notches & Barcode
+   ────────────────────────────────────────────────────────────────────────── */
+.s2-flight-stage {
+  position: relative;
+  width: 320px;
+  height: 155px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 0;
+  z-index: 10;
+}
+
+/* Authentic Holographic Miniature Ticket */
+.s2-holo-ticket {
+  position: absolute;
+  top: 8px;
+  width: 100px;
+  height: 42px;
+  background: linear-gradient(
+    135deg,
+    #c084fc 0%,
+    #38bdf8 30%,
+    #f472b6 60%,
+    #fb923c 85%,
+    #a855f7 100%
+  );
+  border-radius: 4px;
+  display: flex;
+  box-shadow: 0 6px 20px rgba(56, 189, 248, 0.4), 0 0 12px rgba(255, 255, 255, 0.6);
+  z-index: 25;
+  overflow: hidden;
+  animation: s2TicketFlight 5.2s infinite ease-in-out;
+}
+
+.s2-ticket-body {
+  flex: 1;
+  padding: 3px 6px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  background: rgba(255, 255, 255, 0.88);
+  backdrop-filter: blur(2px);
+  position: relative;
+}
+
+.s2-ticket-body::before {
+  content: '';
+  position: absolute;
+  left: -5px;
+  top: calc(50% - 4px);
+  width: 8px;
+  height: 8px;
+  background: #030712;
+  border-radius: 50%;
+  z-index: 2;
+}
+
+.s2-ticket-text {
+  font-family: monospace;
+  font-size: 9px;
+  font-weight: 900;
+  color: #0f172a;
+  letter-spacing: 0.5px;
+  text-align: center;
+  line-height: 1;
+}
+
+.s2-ticket-sub {
+  font-size: 6px;
+  font-family: monospace;
+  color: #475569;
+  text-align: center;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.s2-ticket-stub {
+  width: 26px;
+  background: rgba(255, 255, 255, 0.96);
+  border-left: 1px dashed rgba(0, 0, 0, 0.4);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1.5px;
+  padding: 3px;
+  position: relative;
+}
+
+.s2-ticket-stub::after {
+  content: '';
+  position: absolute;
+  right: -5px;
+  top: calc(50% - 4px);
+  width: 8px;
+  height: 8px;
+  background: #030712;
+  border-radius: 50%;
+}
+
+.s2-barcode-line {
+  width: 100%;
+  height: 1.5px;
+  background: #0f172a;
+}
+.s2-barcode-line:nth-child(even) { height: 1px; }
+
+/* Flight Keyframes: Top -> Left Zone -> Top -> Right Zone -> Loop */
+@keyframes s2TicketFlight {
+  0%, 10% {
+    top: 6px;
+    left: calc(50% - 50px);
+    transform: scale(1) rotate(0deg);
+    opacity: 1;
+  }
+  28%, 45% {
+    top: 96px;
+    left: 16px;
+    transform: scale(0.85) rotate(-6deg);
+    opacity: 1;
+  }
+  50% {
+    top: 96px;
+    left: 16px;
+    transform: scale(0.6) rotate(-6deg);
+    opacity: 0;
+  }
+  55% {
+    top: 6px;
+    left: calc(50% - 50px);
+    transform: scale(0.6) rotate(0deg);
+    opacity: 0;
+  }
+  62%, 68% {
+    top: 6px;
+    left: calc(50% - 50px);
+    transform: scale(1) rotate(0deg);
+    opacity: 1;
+  }
+  82%, 95% {
+    top: 96px;
+    left: calc(100% - 116px);
+    transform: scale(0.85) rotate(6deg);
+    opacity: 1;
+  }
+  100% {
+    top: 96px;
+    left: calc(100% - 116px);
+    transform: scale(0.6) rotate(6deg);
+    opacity: 0;
+  }
+}
+
+/* The Two Distinct Destination Zones Below */
+.s2-zones-container {
+  width: 100%;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  margin-top: auto;
+  padding: 0 4px;
+}
+
+/* Zone 1: Open Crowded Marketplace Dome (Cyan / Multi-user) */
+.s2-zone-market {
+  width: 140px;
+  height: 58px;
+  background: radial-gradient(circle at bottom, rgba(56, 189, 248, 0.2) 0%, rgba(15, 23, 42, 0.9) 100%);
+  border: 1.5px solid rgba(56, 189, 248, 0.5);
+  border-radius: 8px 8px 0 0;
+  box-shadow: 0 0 20px rgba(56, 189, 248, 0.2);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  position: relative;
+  overflow: hidden;
+}
+
+.s2-zone-market::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 2.5px;
+  background: #38bdf8;
+  box-shadow: 0 0 10px #38bdf8;
+}
+
+.s2-market-crowd {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* Zone 2: Private Direct Pedestal (Orange / Single Keyholder) */
+.s2-zone-private {
+  width: 140px;
+  height: 58px;
+  background: radial-gradient(circle at bottom, rgba(251, 146, 60, 0.2) 0%, rgba(15, 23, 42, 0.9) 100%);
+  border: 1.5px solid rgba(251, 146, 60, 0.5);
+  border-radius: 8px 8px 0 0;
+  box-shadow: 0 0 20px rgba(251, 146, 60, 0.2);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  position: relative;
+  overflow: hidden;
+}
+
+.s2-zone-private::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 2.5px;
+  background: #fb923c;
+  box-shadow: 0 0 10px #fb923c;
+}
+
+.s2-private-lock {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* ──────────────────────────────────────────────────────────────────────────
+   SELLER 3: "Sang tên tự động — Node Beam Synchronization"
+   Tether beams moving dynamically with Seller & Buyer into Exchange Core
+   ────────────────────────────────────────────────────────────────────────── */
+.s3-arena {
+  position: relative;
+  width: 300px;
+  height: 140px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  z-index: 10;
+}
+
+.s3-seller-cluster {
+  display: flex;
+  align-items: center;
+  animation: s3SellerClusterMove 4.5s infinite ease-in-out;
+  z-index: 5;
+}
+@keyframes s3SellerClusterMove {
+  0%, 15% { transform: translateX(0); }
+  45%, 75% { transform: translateX(50px); }
+  92%, 100% { transform: translateX(0); }
+}
+
+.s3-buyer-cluster {
+  display: flex;
+  align-items: center;
+  animation: s3BuyerClusterMove 4.5s infinite ease-in-out;
+  z-index: 5;
+}
+@keyframes s3BuyerClusterMove {
+  0%, 15% { transform: translateX(0); }
+  45%, 75% { transform: translateX(-50px); }
+  92%, 100% { transform: translateX(0); }
+}
+
+.s3-agent-node {
+  width: 58px;
+  height: 70px;
+  background: rgba(15, 23, 42, 0.95);
+  border: 1.5px solid rgba(255, 255, 255, 0.15);
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+
+.s3-agent-node.seller {
+  border-color: rgba(251, 146, 60, 0.7);
+  box-shadow: 0 0 15px rgba(251, 146, 60, 0.25);
+}
+.s3-agent-node.buyer {
+  border-color: rgba(56, 189, 248, 0.7);
+  box-shadow: 0 0 15px rgba(56, 189, 248, 0.25);
+}
+
+.s3-tether-beam {
+  height: 3px;
+  width: 35px;
+}
+.s3-tether-beam.seller {
+  background: linear-gradient(90deg, #fb923c, #f97316);
+  box-shadow: 0 0 10px #fb923c;
+}
+.s3-tether-beam.buyer {
+  background: linear-gradient(90deg, #0284c7, #38bdf8);
+  box-shadow: 0 0 10px #38bdf8;
+}
+
+.s3-central-core {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #fb923c 0%, #0284c7 100%);
+  box-shadow: 0 0 30px rgba(56, 189, 248, 0.8), 0 0 15px rgba(251, 146, 60, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: s3CorePulse 4.5s infinite ease-in-out;
+  z-index: 10;
+}
+@keyframes s3CorePulse {
+  0%, 15% { transform: translate(-50%, -50%) scale(0.85); box-shadow: 0 0 10px rgba(56, 189, 248, 0.3); }
+  45%, 75% { transform: translate(-50%, -50%) scale(1.2); box-shadow: 0 0 40px rgba(56, 189, 248, 0.9), 0 0 20px rgba(251, 146, 60, 0.9); }
+  92%, 100% { transform: translate(-50%, -50%) scale(0.85); box-shadow: 0 0 10px rgba(56, 189, 248, 0.3); }
+}
+
+/* ──────────────────────────────────────────────────────────────────────────
+   SELLER 4: "Nhận tiền sau 24h" (24H Chrono Dial → Single Periodic Banknote Flight)
+   A single glowing polymer banknote floats across every 24h cycle
+   ────────────────────────────────────────────────────────────────────────── */
+.s4-chrono-payout-stage {
+  position: relative;
+  width: 320px;
+  height: 145px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 4px;
+  z-index: 10;
+}
+
+/* 24H Orbital Timer Dial */
+.s4-clock-dial {
+  position: relative;
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(16, 185, 129, 0.15) 0%, rgba(2, 44, 34, 0.85) 100%);
+  border: 2px solid rgba(52, 211, 153, 0.6);
+  box-shadow: 0 0 25px rgba(16, 185, 129, 0.3), inset 0 0 15px rgba(0, 0, 0, 0.7);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.s4-clock-ring-outer {
+  position: absolute;
+  inset: -6px;
+  border: 1.5px dashed rgba(52, 211, 153, 0.45);
+  border-radius: 50%;
+  animation: s4ClockRingSpin 5s infinite linear;
+}
+@keyframes s4ClockRingSpin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.s4-clock-hand {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 2.5px;
+  height: 26px;
+  background: linear-gradient(180deg, #34d399, #10b981);
+  box-shadow: 0 0 10px #34d399;
+  transform-origin: 50% 0%;
+  border-radius: 2px;
+  animation: s4ClockHandSweep 5s infinite linear;
+}
+@keyframes s4ClockHandSweep {
+  0% { transform: translate(-50%, 0) rotate(0deg); }
+  100% { transform: translate(-50%, 0) rotate(360deg); }
+}
+
+.s4-clock-center-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: #ffffff;
+  box-shadow: 0 0 10px #fff, 0 0 6px #34d399;
+  z-index: 5;
+}
+
+.s4-clock-24h-badge {
+  position: absolute;
+  bottom: 6px;
+  font-family: monospace;
+  font-size: 8px;
+  font-weight: 800;
+  color: #34d399;
+  letter-spacing: 0.5px;
+}
+
+/* Transfer Beam Channel */
+.s4-transfer-beam {
+  position: relative;
+  width: 100px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+}
+
+.s4-glow-wire {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, rgba(52, 211, 153, 0.3), #34d399);
+  box-shadow: 0 0 10px rgba(52, 211, 153, 0.5);
+}
+
+/* Single Realistic Polymer Banknote (Floating periodically) */
+.s4-floating-banknote {
+  position: absolute;
+  width: 48px;
+  height: 26px;
+  background: linear-gradient(135deg, #059669 0%, #10b981 50%, #34d399 100%);
+  border: 1px solid #6ee7b7;
+  border-radius: 3px;
+  box-shadow: 0 4px 15px rgba(16, 185, 129, 0.6), 0 0 6px rgba(255, 255, 255, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 2px 4px;
+  overflow: hidden;
+  animation: s4BanknoteGlide 5s infinite cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.s4-banknote-foil {
+  width: 4px;
+  height: 100%;
+  background: linear-gradient(180deg, #fef08a 0%, #ca8a04 100%);
+  border-radius: 1px;
+  box-shadow: 0 0 4px #fde047;
+}
+
+.s4-banknote-seal {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.88);
+  border: 1px dashed #065f46;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.s4-banknote-lines {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: 10px;
+}
+.s4-b-line {
+  height: 1.5px;
+  background: rgba(255, 255, 255, 0.6);
+  border-radius: 1px;
+}
+
+/* Banknote Flight Keyframes: Sleeps during 0-40%, floats smoothly 45-75%, absorbs & rests 75-100% */
+@keyframes s4BanknoteGlide {
+  0%, 40% {
+    left: -15px;
+    opacity: 0;
+    transform: scale(0.6) rotate(-15deg);
+  }
+  48% {
+    left: 0px;
+    opacity: 1;
+    transform: scale(1) rotate(-6deg);
+  }
+  68% {
+    left: 55px;
+    opacity: 1;
+    transform: scale(1) rotate(6deg);
+  }
+  75%, 100% {
+    left: 70px;
+    opacity: 0;
+    transform: scale(0.6) rotate(12deg);
+  }
+}
+
+/* Receiver Card Sync Animation */
+.s4-payout-vault {
+  position: relative;
+  width: 105px;
+  height: 115px;
+  background: linear-gradient(135deg, #064e3b 0%, #022c22 100%);
+  border: 1.5px solid #34d399;
+  border-radius: 10px;
+  padding: 8px 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  box-shadow: 0 0 30px rgba(16, 185, 129, 0.4), inset 0 0 15px rgba(0, 0, 0, 0.6);
+  animation: s4VaultSync 5s infinite ease-in-out;
+}
+@keyframes s4VaultSync {
+  0%, 65% { box-shadow: 0 0 20px rgba(16, 185, 129, 0.3); transform: scale(1); }
+  72%, 85% { box-shadow: 0 0 45px rgba(52, 211, 153, 0.9), 0 0 15px #fff; transform: scale(1.05); }
+  95%, 100% { box-shadow: 0 0 20px rgba(16, 185, 129, 0.3); transform: scale(1); }
+}
+
+.s4-vault-top-chip {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.s4-microchip {
+  width: 20px;
+  height: 14px;
+  background: linear-gradient(135deg, #fbbf24 0%, #d97706 100%);
+  border-radius: 2px;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  box-shadow: 0 0 8px rgba(251, 191, 36, 0.5);
+}
+
+.s4-vault-money-emblem {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.s4-vault-check-ring {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(16, 185, 129, 0.3) 0%, rgba(6, 78, 59, 0.8) 100%);
+  border: 1.5px solid #34d399;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 0 18px rgba(16, 185, 129, 0.6);
+}
+
+.s4-plus-money-pill {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  background: rgba(16, 185, 129, 0.25);
+  border: 1px solid rgba(52, 211, 153, 0.6);
+  padding: 1px 6px;
+  border-radius: 10px;
+  box-shadow: 0 0 10px rgba(52, 211, 153, 0.4);
+}
+
+.s4-vault-burst-ring {
+  position: absolute;
+  inset: -6px;
+  border: 2px solid rgba(52, 211, 153, 0.6);
+  border-radius: 14px;
+  animation: s4BurstSync 5s infinite ease-out;
+}
+@keyframes s4BurstSync {
+  0%, 68% { transform: scale(0.95); opacity: 0; }
+  73% { opacity: 1; transform: scale(1.05); }
+  85%, 100% { transform: scale(1.25); opacity: 0; }
+}

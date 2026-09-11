@@ -139,6 +139,7 @@ export const App: React.FC = () => {
         </BrowserRouter>
       </QueryClientProvider>
     </GlobalErrorBoundary>
+
   );
 };
 
