@@ -606,30 +606,30 @@ export const TicketMachineSection: React.FC = () => {
         transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
       >
         <h2 className="tm-title">
-          Sẵn Sàng <span className="tm-title-gradient">Sở Hữu Vé Chính Chủ?</span>
+          Ready to Own <span className="tm-title-gradient">Verified Official Tickets?</span>
         </h2>
 
         <p className="tm-description">
-          Trải nghiệm chuyển nhượng vé số tức thì với cơ chế đổi chủ trực tiếp cùng Ban tổ chức. 
-          Tiền giữ an toàn trong két độc lập, giải ngân sau 24h bảo vệ quyền lợi trọn vẹn.
+          Experience instant digital ticket transfer directly reissued by official organizers. 
+          Funds held safely in an independent escrow vault for total protection.
         </p>
 
         {/* CTA Actions */}
         <div className="tm-cta-stack">
           <Link
-            to="/dashboard"
+            to="/marketplace"
             onClick={handleProtectedNavigation}
             className="tm-btn-primary"
           >
-            <span>Khám Phá Sàn Vé Ngay</span>
+            <span>Explore Resale Marketplace</span>
             <ArrowRight className="w-4 h-4" />
           </Link>
 
           <Link
-            to="/login"
+            to="/sell-ticket"
             className="tm-btn-secondary"
           >
-            <span>Đăng Bán Vé Chính Chủ</span>
+            <span>List Official Ticket</span>
           </Link>
         </div>
       </motion.div>

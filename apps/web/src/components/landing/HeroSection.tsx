@@ -75,7 +75,7 @@ export const HeroSection: React.FC = () => {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.85, delay: 0.15, ease: [0.16, 1, 0.3, 1] }}
         >
-          Sàn giao dịch vé sự kiện thứ cấp — Bảo chứng F0 qua Escrow &amp; trần giá
+          Verified Event Ticket Resale Marketplace — 100% Escrow &amp; Price Ceiling Protected
         </motion.p>
 
         <motion.div
@@ -88,15 +88,16 @@ export const HeroSection: React.FC = () => {
             to="/marketplace"
             className="btn-primary"
           >
-            Khám phá ngay
+            Explore Marketplace
           </Link>
           <Link
             to="/marketplace"
             className="btn-secondary"
           >
-            Xem lịch diễn
+            View Schedule
           </Link>
         </motion.div>
+
       </div>
 
       {/* Floating Posters — Crisp sharp geometry, lower z-indices to never overlap navbar */}

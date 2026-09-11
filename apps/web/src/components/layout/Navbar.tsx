@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../stores/authStore';
 import { useUIStore } from '../../stores/uiStore';
-import { User as UserIcon, LogOut, PlusCircle, ShieldCheck, Ticket, Sparkles, LayoutDashboard } from 'lucide-react';
+import { User as UserIcon, LogOut, Ticket, Sparkles, LayoutDashboard } from 'lucide-react';
 import { TicketShieldLogo } from '../ui/TicketShieldLogo';
 
 export const Navbar: React.FC = () => {
@@ -42,42 +42,84 @@ export const Navbar: React.FC = () => {
     navigate('/login');
   };
 
-  const isReseller = 
-    user?.role === 'RESELLER' || 
-    (user?.role as string) === 'SELLER' || 
+  const isReseller =
+    user?.role === 'RESELLER' ||
+    (user?.role as string) === 'SELLER' ||
     user?.email?.toLowerCase().includes('seller') ||
     user?.fullName?.toLowerCase().includes('seller');
 
+  const scrollToSection = (sectionId: string) => {
+    setMobileMenuOpen(false);
+    if (location.pathname === '/') {
+      if (sectionId === 'hero') {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      } else {
+        const el = document.getElementById(sectionId);
+        if (el) {
+          const headerOffset = 64;
+          const elementRect = el.getBoundingClientRect();
+          const absoluteElementTop = elementRect.top + window.scrollY;
+          const elementHeight = el.offsetHeight;
+          const viewportHeight = window.innerHeight;
+
+          let targetScrollTop = absoluteElementTop - headerOffset - 16;
+          if (sectionId === 'flow') {
+            // Precise offset to center Flow 3D carousel in viewport
+            targetScrollTop = absoluteElementTop - 20;
+          } else if (elementHeight < viewportHeight) {
+            targetScrollTop = Math.min(targetScrollTop, absoluteElementTop - (viewportHeight - elementHeight) / 2);
+          }
+
+          window.scrollTo({
+            top: Math.max(0, targetScrollTop),
+            behavior: 'smooth',
+          });
+        }
+      }
+    } else {
+      navigate('/', { state: { scrollTo: sectionId } });
+    }
+  };
+
   const getNavLinks = () => {
+    // 1. Guest Navigation on Landing Page -> Focus on Landing Section Anchors
     if (!user) {
       return [
-        { label: 'Featured', href: '/#featured' },
+        { label: 'Home', action: () => scrollToSection('hero') },
+        { label: 'How It Works', action: () => scrollToSection('flow') },
+        { label: 'Partners', action: () => scrollToSection('partners') },
+        { label: 'Official Issuer', action: () => scrollToSection('ticket-dispenser') },
         { label: 'Resale Marketplace', href: '/marketplace' },
-        { label: 'Experiences', href: '/#experiences' },
-        { label: 'How It Works', href: '/#process' },
       ];
     }
 
+    // 2. Logged-in Navigation -> Direct App Links
     if (isReseller) {
       return [
+        { label: 'Home', action: isHome ? () => scrollToSection('hero') : undefined, href: isHome ? undefined : '/' },
         { label: 'Resale Marketplace', href: '/marketplace' },
         { label: 'Sell Ticket', href: '/sell-ticket' },
         { label: 'My Listings', href: '/my-listings' },
         { label: 'My Tickets', href: '/my-tickets' },
+        { label: 'How It Works', action: () => scrollToSection('flow') },
       ];
     }
 
     if (user.role === 'ADMIN') {
       return [
+        { label: 'Home', action: isHome ? () => scrollToSection('hero') : undefined, href: isHome ? undefined : '/' },
         { label: 'Resale Marketplace', href: '/marketplace' },
         { label: 'Manage Listings', href: '/my-listings' },
+        { label: 'How It Works', action: () => scrollToSection('flow') },
       ];
     }
 
     return [
+      { label: 'Home', action: isHome ? () => scrollToSection('hero') : undefined, href: isHome ? undefined : '/' },
       { label: 'Resale Marketplace', href: '/marketplace' },
+      { label: 'Sell Ticket', href: '/sell-ticket' },
       { label: 'My Tickets', href: '/my-tickets' },
-      { label: 'How It Works', href: '/#process' },
+      { label: 'How It Works', action: () => scrollToSection('flow') },
     ];
   };
 
@@ -85,11 +127,10 @@ export const Navbar: React.FC = () => {
 
   return (
     <header
-      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${
-        scrolled || !isHome
-          ? 'bg-[#05070A]/95 backdrop-blur-md border-b border-white/10 py-3.5 shadow-2xl'
-          : 'bg-transparent py-5'
-      }`}
+      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${scrolled || !isHome
+        ? 'bg-[#05070A]/95 backdrop-blur-md border-b border-white/10 py-3.5 shadow-2xl'
+        : 'bg-transparent py-5'
+        }`}
     >
       <div className="max-w-7xl mx-auto px-6 md:px-12 flex items-center justify-between gap-6">
         <a href="/" onClick={handleBrandClick} className="shrink-0">
@@ -98,17 +139,27 @@ export const Navbar: React.FC = () => {
 
         <nav className="hidden lg:flex items-center space-x-6 text-xs font-semibold uppercase tracking-wider whitespace-nowrap shrink-0">
           {navLinks.map((link) => (
-            <Link
-              key={link.label}
-              to={link.href}
-              className={`transition-colors duration-200 ${
-                location.pathname === link.href
+            link.href ? (
+              <Link
+                key={link.label}
+                to={link.href}
+                className={`transition-colors duration-200 ${location.pathname === link.href
                   ? 'text-[#FF5A36] font-bold'
                   : 'text-[#A3A8B3] hover:text-[#F5F5F2]'
-              }`}
-            >
-              {link.label}
-            </Link>
+                  }`}
+              >
+                {link.label}
+              </Link>
+            ) : (
+              <button
+                key={link.label}
+                onClick={link.action}
+                type="button"
+                className="text-[#A3A8B3] hover:text-[#FF5A36] transition-colors duration-200 font-semibold uppercase tracking-wider"
+              >
+                {link.label}
+              </button>
+            )
           ))}
         </nav>
 
@@ -124,7 +175,7 @@ export const Navbar: React.FC = () => {
                   {user.fullName ? user.fullName[0].toUpperCase() : <UserIcon className="w-3.5 h-3.5" />}
                 </div>
                 <span className="font-display font-medium max-w-[120px] truncate">{user.fullName || 'Account'}</span>
-                
+
                 {isReseller ? (
                   <span className="text-[10px] bg-gradient-to-r from-[#FF5A36] to-amber-500 text-white font-extrabold px-2 py-0.5 rounded-full font-mono uppercase tracking-wider shadow">
                     RESELLER
@@ -192,14 +243,27 @@ export const Navbar: React.FC = () => {
       {mobileMenuOpen && (
         <div className="lg:hidden bg-[#05070A]/95 backdrop-blur-xl border-b border-white/10 px-6 py-6 space-y-4">
           {navLinks.map((link) => (
-            <Link
-              key={link.label}
-              to={link.href}
-              onClick={() => setMobileMenuOpen(false)}
-              className="block text-[#A3A8B3] hover:text-[#F5F5F2] text-base font-medium"
-            >
-              {link.label}
-            </Link>
+            link.href ? (
+              <Link
+                key={link.label}
+                to={link.href}
+                onClick={() => setMobileMenuOpen(false)}
+                className="block text-[#A3A8B3] hover:text-[#F5F5F2] text-base font-medium"
+              >
+                {link.label}
+              </Link>
+            ) : (
+              <button
+                key={link.label}
+                onClick={() => {
+                  setMobileMenuOpen(false);
+                  link.action?.();
+                }}
+                className="block text-left w-full text-[#A3A8B3] hover:text-[#F5F5F2] text-base font-medium"
+              >
+                {link.label}
+              </button>
+            )
           ))}
           <div className="pt-4 border-t border-white/10 flex flex-col gap-3">
             {user ? (
@@ -246,4 +310,5 @@ export const Navbar: React.FC = () => {
     </header>
   );
 };
+
 export default Navbar;

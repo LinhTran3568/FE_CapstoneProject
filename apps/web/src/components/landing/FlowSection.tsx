@@ -22,6 +22,7 @@ import BoxCarousel, {
   type BoxCarouselRef,
   type CarouselItem,
 } from "@/components/fancy/carousel/box-carousel"
+import PixelateSvgFilter from "@/components/fancy/filter/pixelate-svg-filter"
 import useScreenSize from "@/hooks/use-screen-size"
 import { cn } from "@/lib/utils"
 import "./FlowSection.css"
@@ -42,9 +43,9 @@ const VisualBuyer1: React.FC = () => (
           </div>
           <div>
             <div className="text-[11px] font-sans font-extrabold text-white leading-tight">THE CHILLIES LIVE</div>
-            <div className="text-[8px] font-sans text-orange-300/80">Khu VIP A1 • Ghế 18</div>
+            <div className="text-[8px] font-sans text-orange-300/80">VIP Section A1 • Seat 18</div>
           </div>
-          <div className="text-[8px] font-mono text-white/40">1.200.000 ₫ (Giá gốc)</div>
+          <div className="text-[8px] font-mono text-white/40">1,200,000 ₫ (Face Value)</div>
         </div>
         <div className="b1-ticket-right">
           <QrCode className="w-7 h-7 text-orange-400/80" />
@@ -61,7 +62,7 @@ const VisualBuyer1: React.FC = () => (
           </div>
         </div>
         <div className="b1-timer-badge">
-          GIỮ CHỖ: 10:00
+          RESERVED: 10:00
         </div>
       </div>
     </div>
@@ -78,7 +79,7 @@ const VisualBuyer2: React.FC = () => (
           <div className="b2-laser-scan" />
           <QrCode className="w-9 h-9 text-slate-900" />
         </div>
-        <div className="text-[7px] font-mono text-white/70">1.200.000 ₫</div>
+        <div className="text-[7px] font-mono text-white/70">1,200,000 ₫</div>
       </div>
 
       <div className="b2-stream-track">
@@ -110,30 +111,30 @@ const VisualBuyer3: React.FC = () => (
       <div className="b3-flip-card">
         <div className="b3-face-front">
           <div className="flex items-center justify-between">
-            <span className="text-[8px] font-mono text-red-400 font-bold">VÉ GỐC NGƯỜI BÁN</span>
+            <span className="text-[8px] font-mono text-red-400 font-bold">SELLER ORIGINAL TICKET</span>
             <span className="text-[7px] font-mono text-white/40">#OLD-7712</span>
           </div>
           <div>
-            <div className="text-[10px] font-sans text-white/50">CHỦ CŨ: HOÀNG LONG</div>
-            <div className="text-[8px] font-sans text-white/30">Khu VIP A1 • Ghế 18</div>
+            <div className="text-[10px] font-sans text-white/50">PREVIOUS OWNER: HOANG LONG</div>
+            <div className="text-[8px] font-sans text-white/30">VIP Section A1 • Seat 18</div>
           </div>
-          <div className="b3-revoked-stamp">ĐÃ HỦY VÉ GỐC</div>
+          <div className="b3-revoked-stamp">ORIGINAL REVOKED</div>
         </div>
 
         <div className="b3-face-back">
           <div className="flex items-center justify-between">
             <div className="b3-verified-badge">
-              <Check className="w-2.5 h-2.5" /> BTC CẤP MỚI
+              <Check className="w-2.5 h-2.5" /> ORGANIZER REISSUED
             </div>
             <span className="text-[7px] font-mono text-sky-300">#TS-9931</span>
           </div>
           <div>
-            <div className="text-[11px] font-sans font-extrabold text-white">CHỦ VÉ: BẠN (TRẦN AN)</div>
-            <div className="text-[8px] font-sans text-sky-200/80">Khu VIP A1 • Ghế 18</div>
+            <div className="text-[11px] font-sans font-extrabold text-white">TICKET OWNER: YOU (AN TRAN)</div>
+            <div className="text-[8px] font-sans text-sky-200/80">VIP Section A1 • Seat 18</div>
           </div>
           <div className="flex items-center justify-between text-[7px] font-mono text-white/60">
-            <span>24H KIỂM TRA TRÊN APP</span>
-            <span className="text-sky-400 font-bold">CHÍNH HÃNG 100%</span>
+            <span>24H APP VERIFICATION</span>
+            <span className="text-sky-400 font-bold">100% OFFICIAL</span>
           </div>
         </div>
       </div>
@@ -212,11 +213,11 @@ const VisualSeller2: React.FC = () => (
 
       {/* Two Distinct Destination Zones Below */}
       <div className="s2-zones-container">
-        {/* Zone 1: Sàn công khai / Chợ đông người */}
+        {/* Zone 1: Public Marketplace */}
         <div className="s2-zone-market">
           <div className="s2-market-crowd">
             <Users className="w-4 h-4 text-sky-400" />
-            <span className="text-[7px] font-mono text-sky-300 font-bold">CHỢ CÔNG KHAI</span>
+            <span className="text-[7px] font-mono text-sky-300 font-bold">PUBLIC MARKETPLACE</span>
           </div>
           <div className="flex items-center gap-1">
             <span className="w-1.5 h-1.5 rounded-full bg-sky-400 animate-ping" />
@@ -224,11 +225,11 @@ const VisualSeller2: React.FC = () => (
           </div>
         </div>
 
-        {/* Zone 2: Link riêng tư / 1 Người chỉ định */}
+        {/* Zone 2: Private 1-on-1 Link */}
         <div className="s2-zone-private">
           <div className="s2-private-lock">
             <KeyRound className="w-4 h-4 text-orange-400" />
-            <span className="text-[7px] font-mono text-orange-300 font-bold">LINK RIÊNG 1-1</span>
+            <span className="text-[7px] font-mono text-orange-300 font-bold">PRIVATE 1-ON-1 LINK</span>
           </div>
           <div className="flex items-center gap-1">
             <Lock className="w-2.5 h-2.5 text-orange-400/80" />
@@ -247,7 +248,7 @@ const VisualSeller3: React.FC = () => (
       <div className="s3-seller-cluster">
         <div className="s3-agent-node seller">
           <Store className="w-4 h-4 text-orange-400" />
-          <span className="text-[7px] font-mono text-white/80 font-bold">BẠN</span>
+          <span className="text-[7px] font-mono text-white/80 font-bold">YOU</span>
         </div>
         <div className="s3-tether-beam seller" />
       </div>
@@ -260,7 +261,7 @@ const VisualSeller3: React.FC = () => (
         <div className="s3-tether-beam buyer" />
         <div className="s3-agent-node buyer">
           <UserCheck className="w-4 h-4 text-sky-400" />
-          <span className="text-[7px] font-mono text-white/80 font-bold">NGƯỜI MUA</span>
+          <span className="text-[7px] font-mono text-white/80 font-bold">BUYER</span>
         </div>
       </div>
     </div>
@@ -356,7 +357,7 @@ const FlowCardFace: React.FC<FlowCardFaceProps> = ({
                 : "bg-sky-500/10 text-sky-400 border-sky-500/30"
             )}
           >
-            {role === "buyer" ? "DÀNH CHO NGƯỜI MUA" : "DÀNH CHO NGƯỜI BÁN"}
+            {role === "buyer" ? "FOR BUYERS" : "FOR SELLERS"}
           </span>
           <span className="text-white/40 font-mono text-[11px]">•</span>
           <span className="text-white/60 font-sans text-[11px] font-medium">
@@ -370,7 +371,7 @@ const FlowCardFace: React.FC<FlowCardFaceProps> = ({
             role === "buyer" ? "text-orange-400" : "text-sky-400"
           )}
         >
-          BƯỚC {step} / 04
+          STEP {step} / 04
         </span>
       </div>
 
@@ -395,7 +396,7 @@ const FlowCardFace: React.FC<FlowCardFaceProps> = ({
             role === "buyer" ? "text-orange-400/90" : "text-sky-400/90"
           )}
         >
-          Tiếp theo <ArrowRight className="w-3 h-3" />
+          Next Step <ArrowRight className="w-3 h-3" />
         </span>
       </div>
     </div>
@@ -410,6 +411,7 @@ export const FlowSection: React.FC = () => {
   const [role, setRole] = useState<"buyer" | "seller">("buyer")
   const [isTransforming, setIsTransforming] = useState(false)
   const [activeStep, setActiveStep] = useState(0)
+  const [pixelSize, setPixelSize] = useState(1)
   const screenSize = useScreenSize()
 
   // Sizing with generous breathing room
@@ -428,7 +430,7 @@ export const FlowSection: React.FC = () => {
 
   const { width, height } = getCarouselDimensions()
 
-  // 4 Buyer Steps — Pure end-user language, zero jargon, "giá gốc"
+  // 4 Buyer Steps — Pure end-user language, zero jargon, "face value"
   const buyerItems: CarouselItem[] = useMemo(
     () => [
       {
@@ -438,9 +440,9 @@ export const FlowSection: React.FC = () => {
           <FlowCardFace
             step="01"
             role="buyer"
-            subtitle="Khám phá & Giữ chỗ"
-            title="Duyệt vé, khóa chỗ ngay lập tức"
-            desc="Toàn bộ vé trên sàn đều đã qua kiểm chứng, giá không bao giờ vượt giá gốc. Bấm mua — vé được giữ riêng cho bạn trong 10 phút, không ai giành được."
+            subtitle="Discover & Reserve"
+            title="Browse & Instant Hold"
+            desc="All tickets on the marketplace are verified with zero price gouging above face value. Tap Buy — your ticket is locked exclusively for you for 10 minutes."
             visual={<VisualBuyer1 />}
           />
         ),
@@ -452,9 +454,9 @@ export const FlowSection: React.FC = () => {
           <FlowCardFace
             step="02"
             role="buyer"
-            subtitle="Thanh toán an tâm"
-            title="Quét mã, tiền vào két an toàn"
-            desc='Thanh toán qua VietQR, tiền được giữ trong quỹ trung gian độc lập. Người bán chỉ nhận tiền khi mọi thứ suôn sẻ — không còn chuyện "chuyển khoản xong mất hút".'
+            subtitle="Secure Payment"
+            title="Scan Code & Escrow Vault"
+            desc="Pay seamlessly via VietQR. Funds are securely locked in an independent escrow vault and only released after verified delivery."
             visual={<VisualBuyer2 />}
           />
         ),
@@ -466,9 +468,9 @@ export const FlowSection: React.FC = () => {
           <FlowCardFace
             step="03"
             role="buyer"
-            subtitle="Sang tên chính chủ"
-            title="Sang tên tức thì, có thời gian kiểm tra lại"
-            desc="Hệ thống tự động làm việc với Ban tổ chức: huỷ vé cũ, cấp vé mới đứng tên bạn. Bạn có nguyên 24 giờ để vào app chính chủ kiểm tra lại trước khi ra sự kiện."
+            subtitle="Official Reissuance"
+            title="Instant Reissuance & 24H Verification"
+            desc="The system coordinates directly with the organizer: original ticket revoked, brand-new ticket issued in your name with 24 hours to verify in app."
             visual={<VisualBuyer3 />}
           />
         ),
@@ -480,9 +482,9 @@ export const FlowSection: React.FC = () => {
           <FlowCardFace
             step="04"
             role="buyer"
-            subtitle="Trải nghiệm sự kiện"
-            title="Vào cổng an tâm, được bảo vệ đến phút chót"
-            desc="Quét vé vào cổng như bình thường. Có trục trặc? Gửi ảnh là được hoàn tiền 100%. Không có gì bất thường, tiền tự động chuyển cho người bán sau 24 giờ kể từ lúc sang tên."
+            subtitle="Event Experience"
+            title="Seamless Gate Entry & Complete Protection"
+            desc="Scan at the venue entrance. If any issue arises, photo proof triggers a 100% refund. Otherwise, payout transfers to seller after 24H."
             visual={<VisualBuyer4 />}
           />
         ),
@@ -491,7 +493,7 @@ export const FlowSection: React.FC = () => {
     []
   )
 
-  // 4 Seller Steps — Pure end-user language, zero jargon, "giá gốc"
+  // 4 Seller Steps — Pure end-user language, zero jargon, "face value"
   const sellerItems: CarouselItem[] = useMemo(
     () => [
       {
@@ -501,9 +503,9 @@ export const FlowSection: React.FC = () => {
           <FlowCardFace
             step="01"
             role="seller"
-            subtitle="Xác thực chính chủ"
-            title="Xác minh chủ vé bằng OTP"
-            desc="Nhập mã vé, nhận mã xác thực 6 số gửi thẳng về email chính chủ. Xác thực xong, vé gốc lập tức được niêm phong — không thể mang đi bán chỗ khác hay bị quét trộm."
+            subtitle="Ownership Verification"
+            title="Verify Owner via OTP"
+            desc="Enter ticket code and receive a 6-digit verification code directly at the owner's email. Once verified, original ticket is sealed into escrow."
             visual={<VisualSeller1 />}
           />
         ),
@@ -515,9 +517,9 @@ export const FlowSection: React.FC = () => {
           <FlowCardFace
             step="02"
             role="seller"
-            subtitle="Đăng bán an toàn"
-            title="Tự định giá, tự chọn cách bán"
-            desc="Đặt giá bán không vượt giá gốc, rồi chọn đăng công khai lên sàn hoặc chia sẻ riêng qua link kín chỉ người được mời mới mở được."
+            subtitle="Safe Listing"
+            title="Set Price & Select Listing Method"
+            desc="Set your resale price capped at original face value, then choose public marketplace listing or private 1-on-1 link."
             visual={<VisualSeller2 />}
           />
         ),
@@ -529,9 +531,9 @@ export const FlowSection: React.FC = () => {
           <FlowCardFace
             step="03"
             role="seller"
-            subtitle="Sang tên tự động"
-            title="Khớp người mua, sang tên tự động"
-            desc="Khi có người thanh toán, tiền lập tức được khóa an toàn và vé tự động đổi chủ. Không cần tự tay làm gì thêm, không lo bị bùng cọc."
+            subtitle="Automated Exchange"
+            title="Buyer Matched & Auto Reissued"
+            desc="Upon buyer checkout, buyer funds lock into escrow and ticket ownership transfers automatically without manual intervention."
             visual={<VisualSeller3 />}
           />
         ),
@@ -543,9 +545,9 @@ export const FlowSection: React.FC = () => {
           <FlowCardFace
             step="04"
             role="seller"
-            subtitle="Nhận tiền nhanh chóng"
-            title="Nhận tiền sau 24 giờ kể từ lúc sang tên"
-            desc="Người mua vào app kiểm tra vé mới, 24 giờ sau tiền tự động chuyển về tài khoản ngân hàng của bạn. Nhanh gọn, sòng phẳng, không phải giục."
+            subtitle="Fast Payout"
+            title="Payout Released After 24 Hours"
+            desc="Buyer verifies ticket on official app; 24 hours post-transfer, funds auto-payout straight to your bank account."
             visual={<VisualSeller4 />}
           />
         ),
@@ -556,35 +558,60 @@ export const FlowSection: React.FC = () => {
 
   const currentItems = role === "buyer" ? buyerItems : sellerItems
 
-  // Elegant role change with box spin
+  // Simultaneous role change: 3D box spin & SVG Pixelate blur start together at frame 0
   const handleRoleChange = (newRole: "buyer" | "seller") => {
     if (newRole === role || isTransforming) return
     setIsTransforming(true)
 
+    // 1. Immediately reset step index to 0 (Step 01 / 04)
+    setActiveStep(0)
+
+    // 2. Trigger 3D box rotation to Step 1; swap role content at halfway point (peak blur)
     if (carouselRef.current) {
-      const activeIdx = carouselRef.current.getCurrentItemIndex()
-      if (activeIdx === 0) {
-        carouselRef.current.trigger360Spin(() => {
-          setRole(newRole)
-          setActiveStep(0)
-          setTimeout(() => setIsTransforming(false), 450)
-        })
-      } else {
-        carouselRef.current.rotateToStep1(() => {
-          setRole(newRole)
-          setActiveStep(0)
-          setTimeout(() => setIsTransforming(false), 450)
-        })
-      }
+      carouselRef.current.rotateToStep1(() => {
+        setRole(newRole)
+      })
     } else {
       setRole(newRole)
-      setActiveStep(0)
-      setIsTransforming(false)
     }
+
+    // 3. Simultaneously animate SVG Pixelate blur (0ms -> 440ms)
+    const startTime = performance.now()
+    const duration = 440 // 440ms simultaneous duration
+
+    const animatePixelation = (now: number) => {
+      const elapsed = now - startTime
+      const progress = Math.min(1, elapsed / duration)
+
+      if (progress < 0.4) {
+        // Rapid ramp up to 24px in first 40% of rotation
+        const rampUp = progress / 0.4
+        setPixelSize(1 + rampUp * 23)
+      } else if (progress < 0.65) {
+        // Hold peak pixelation blur during mid-rotation
+        setPixelSize(24)
+      } else {
+        // Smoothly dissipate pixelation back to 1px during landing
+        const rampDown = (progress - 0.65) / 0.35
+        setPixelSize(24 - rampDown * 23)
+      }
+
+      if (progress < 1) {
+        requestAnimationFrame(animatePixelation)
+      } else {
+        setPixelSize(1)
+        setIsTransforming(false)
+      }
+    }
+
+    requestAnimationFrame(animatePixelation)
   }
 
   return (
     <section className="relative py-10 sm:py-16 w-full overflow-hidden" id="flow">
+      {/* SVG Pixelate Filter Definition */}
+      <PixelateSvgFilter id="flow-pixelate-filter" size={pixelSize} crossLayers />
+
       {/* Background ambient lighting */}
       <div className="absolute top-1/2 left-1/4 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[500px] bg-orange-500/5 rounded-full blur-[140px] pointer-events-none" />
       <div className="absolute top-1/3 right-1/4 w-[400px] h-[400px] bg-sky-500/5 rounded-full blur-[120px] pointer-events-none" />
@@ -603,17 +630,17 @@ export const FlowSection: React.FC = () => {
             <div className="inline-flex items-center gap-2 px-3.5 py-1.5 bg-white/5 border border-white/10 rounded-full mb-4">
               <span className="w-2 h-2 bg-orange-400 rounded-full animate-pulse shadow-[0_0_8px_#fb923c]" />
               <span className="font-mono text-xs uppercase tracking-widest text-orange-400 font-semibold">
-                QUY TRÌNH MINH BẠCH &amp; AN TOÀN
+                TRANSPARENT &amp; SECURE WORKFLOW
               </span>
             </div>
 
             {/* Section Headline */}
             <h2 className="text-3xl sm:text-4xl lg:text-5xl font-display font-bold text-white text-left tracking-tight leading-[1.12]">
-              An Tâm Tuyệt Đối Trong <span className="text-transparent bg-clip-text bg-gradient-to-r from-white via-orange-400 to-amber-400">Từng Bước Đi</span>
+              Complete Peace of Mind <span className="text-transparent bg-clip-text bg-gradient-to-r from-white via-orange-400 to-amber-400">Every Step of the Way</span>
             </h2>
 
             <p className="mt-4 text-sm sm:text-base text-slate-300 text-left font-sans leading-relaxed">
-              Trải nghiệm mua và bán vé thứ cấp không rủi ro. Khám phá luồng bảo vệ độc quyền của TicketShield cho từng vai trò.
+              Experience zero-risk secondary ticket resale. Explore TicketShield's exclusive protection workflow for buyers and sellers.
             </p>
 
             {/* Role Toggle Switch */}
@@ -628,7 +655,7 @@ export const FlowSection: React.FC = () => {
               >
                 <span className="relative z-10 flex items-center gap-2">
                   <span className={cn("w-2 h-2 rounded-full", role === "buyer" ? "bg-[#060b18]" : "bg-orange-400")} />
-                  Dành Cho Người Mua
+                  For Buyers
                 </span>
               </button>
 
@@ -649,7 +676,7 @@ export const FlowSection: React.FC = () => {
                       role === "seller" ? "bg-[#060b18]" : "bg-sky-400"
                     )}
                   />
-                  Dành Cho Người Bán
+                  For Sellers
                 </span>
               </button>
             </div>
@@ -663,9 +690,9 @@ export const FlowSection: React.FC = () => {
             viewport={{ once: true, margin: '-60px' }}
             transition={{ duration: 0.85, delay: 0.12, ease: [0.16, 1, 0.3, 1] }}
           >
-            {/* Box Wrapper with generous button offset flanking the 3D box */}
+            {/* Box Wrapper */}
             <div className="relative flex items-center justify-center max-w-full">
-              {/* Left Arrow Button */}
+              {/* Left Arrow Button (Outside blur filter) */}
               <button
                 type="button"
                 onClick={() => carouselRef.current?.prev()}
@@ -675,21 +702,29 @@ export const FlowSection: React.FC = () => {
                     ? "hover:bg-orange-500/20 hover:border-orange-500/60 hover:text-orange-400"
                     : "hover:bg-sky-500/20 hover:border-sky-500/60 hover:text-sky-400"
                 )}
-                aria-label="Bước trước"
+                aria-label="Previous step"
               >
                 <ChevronLeft className="w-5 h-5" />
               </button>
 
-              {/* 3D Box Carousel */}
-              <BoxCarousel
-                ref={carouselRef}
-                items={currentItems}
-                width={width}
-                height={height}
-                onIndexChange={(idx) => setActiveStep(idx)}
-              />
+              {/* 3D Box Carousel (Only this element gets subtle SVG pixelate blur) */}
+              <div
+                className="p-4 -m-4 overflow-visible"
+                style={{
+                  filter: pixelSize > 1.2 ? "url(#flow-pixelate-filter)" : "none",
+                  willChange: "filter",
+                }}
+              >
+                <BoxCarousel
+                  ref={carouselRef}
+                  items={currentItems}
+                  width={width}
+                  height={height}
+                  onIndexChange={(idx) => setActiveStep(idx)}
+                />
+              </div>
 
-              {/* Right Arrow Button */}
+              {/* Right Arrow Button (Outside blur filter) */}
               <button
                 type="button"
                 onClick={() => carouselRef.current?.next()}
@@ -699,7 +734,7 @@ export const FlowSection: React.FC = () => {
                     ? "hover:bg-orange-500/20 hover:border-orange-500/60 hover:text-orange-400"
                     : "hover:bg-sky-500/20 hover:border-sky-500/60 hover:text-sky-400"
                 )}
-                aria-label="Bước kế tiếp"
+                aria-label="Next step"
               >
                 <ChevronRight className="w-5 h-5" />
               </button>

@@ -76,7 +76,7 @@ export const PartnersSection: React.FC = () => {
         transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
       >
         <h2 className="partners-title">
-          Các Bên <span className="partners-title-gradient">Liên Kết &amp; Đồng Hành</span>
+          Official Partners &amp; <span className="partners-title-gradient">Featured Organizers</span>
         </h2>
       </motion.div>
 

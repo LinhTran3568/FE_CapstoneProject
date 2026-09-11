@@ -27,15 +27,12 @@ export default function Home() {
           const absoluteElementTop = elementRect.top + window.scrollY;
           const elementHeight = el.offsetHeight;
           const viewportHeight = window.innerHeight;
-          const availableHeight = viewportHeight - headerOffset;
 
-          let targetScrollTop: number;
-          if (targetId === 'ticket-dispenser') {
-            targetScrollTop = absoluteElementTop - headerOffset - 10;
-          } else if (elementHeight < availableHeight) {
-            targetScrollTop = absoluteElementTop - headerOffset - (availableHeight - elementHeight) / 2;
-          } else {
-            targetScrollTop = absoluteElementTop - headerOffset - 16;
+          let targetScrollTop = absoluteElementTop - headerOffset - 16;
+          if (targetId === 'flow') {
+            targetScrollTop = absoluteElementTop - 40;
+          } else if (elementHeight < viewportHeight) {
+            targetScrollTop = Math.min(targetScrollTop, absoluteElementTop - (viewportHeight - elementHeight) / 2);
           }
 
           window.scrollTo({

@@ -152,13 +152,12 @@ const BoxCarousel = forwardRef<BoxCarouselRef, BoxCarouselProps>(
 
     // Animate rotation to target value
     const rotateTo = useCallback(
-      (targetRot: number, duration = 0.8, onHalfway?: () => void) => {
-        if (isRotating.current) return
+      (targetRot: number, duration = 0.8, onHalfway?: () => void, force = false) => {
+        if (isRotating.current && !force) return
         isRotating.current = true
 
         let halfwayFired = false
         const initialRot = baseRotateY.get()
-        const rotDelta = targetRot - initialRot
 
         // Timer for halfway callback if requested
         let halfwayTimer: NodeJS.Timeout | null = null
@@ -171,6 +170,10 @@ const BoxCarousel = forwardRef<BoxCarouselRef, BoxCarouselProps>(
           }, (duration * 1000) / 2)
         }
 
+        setCurrentRotation(targetRot)
+        const newStep = getStepFromRotation(targetRot)
+        onIndexChange?.(newStep)
+
         animate(baseRotateY, targetRot, {
           duration: prefersReducedMotion ? 0 : duration,
           ease: [0.25, 1, 0.45, 1],
@@ -179,10 +182,7 @@ const BoxCarousel = forwardRef<BoxCarouselRef, BoxCarouselProps>(
             if (onHalfway && !halfwayFired) {
               onHalfway()
             }
-            setCurrentRotation(targetRot)
             isRotating.current = false
-            const newStep = getStepFromRotation(targetRot)
-            onIndexChange?.(newStep)
           },
         })
       },
@@ -199,21 +199,31 @@ const BoxCarousel = forwardRef<BoxCarouselRef, BoxCarouselProps>(
       rotateTo(target, 0.75)
     }, [currentRotation, rotateTo])
 
-    // Rotate back to Face 1 (Step 1)
+    // Rotate back to Face 1 (Step 1) taking substantial multi-face rotation (2 to 4 faces)
     const rotateToStep1 = useCallback(
       (onHalfway?: () => void) => {
-        const currentStep = getStepFromRotation(currentRotation)
+        const currentRot = Math.round(baseRotateY.get() / 90) * 90
+        const currentStep = getStepFromRotation(currentRot)
+
+        let target: number
         if (currentStep === 0) {
-          // Already on face 1 -> Trigger full 360 transformation spin
-          const target = currentRotation - 360
-          rotateTo(target, 0.85, onHalfway)
+          // Step 1 (0deg) -> Full 360 spin (4 faces forward)
+          target = currentRot - 360
+        } else if (currentStep === 1) {
+          // Step 2 (-90deg) -> Spin 270deg (3 faces forward to -360deg)
+          target = Math.floor(currentRot / 360) * 360
+        } else if (currentStep === 2) {
+          // Step 3 (-180deg) -> Spin 180deg (2 faces forward to -360deg)
+          target = Math.floor(currentRot / 360) * 360
         } else {
-          // Snap to the nearest 360-degree multiple (Face 1)
-          const target = Math.round(currentRotation / 360) * 360
-          rotateTo(target, 0.75, onHalfway)
+          // Step 4 (-270deg) -> Rewind 270deg (3 faces backward to 0deg)
+          target = Math.ceil(currentRot / 360) * 360
         }
+
+        isRotating.current = false
+        rotateTo(target, 0.75, onHalfway, true)
       },
-      [currentRotation, getStepFromRotation, rotateTo]
+      [baseRotateY, getStepFromRotation, rotateTo]
     )
 
     // Trigger explicit 360 spin
