@@ -158,16 +158,16 @@ export const Navbar: React.FC = () => {
               </button>
             </div>
           ) : (
-            <div className="flex items-center space-x-5">
+            <div className="flex items-center space-x-3">
               <Link
                 to="/login"
-                className="text-[#A3A8B3] hover:text-[#F5F5F2] font-medium transition-colors duration-200"
+                className="px-6 py-2 rounded-full bg-white hover:bg-[#F5F5F2] text-[#05070A] font-extrabold tracking-wider transition-all duration-200 shadow-xl shadow-white/25 hover:shadow-2xl hover:shadow-white/45 hover:-translate-y-0.5 active:translate-y-0 uppercase font-display"
               >
                 Login
               </Link>
               <Link
                 to="/register"
-                className="px-5 py-2 bg-[#FF5A36] hover:bg-[#FF7252] text-white font-medium rounded-full tracking-wide transition-all duration-200 shadow-lg shadow-[#FF5A36]/20"
+                className="px-6 py-2 bg-[#FF5A36] hover:bg-[#FF7252] text-white font-extrabold rounded-full tracking-wider transition-all duration-200 shadow-xl shadow-[#FF5A36]/30 hover:shadow-2xl hover:shadow-[#FF5A36]/50 hover:-translate-y-0.5 active:translate-y-0 uppercase font-display"
               >
                 Get Started
               </Link>
