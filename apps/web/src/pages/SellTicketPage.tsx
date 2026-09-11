@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useUIStore } from '../stores/uiStore';
 import { useAuthStore } from '../stores/authStore';
@@ -25,6 +25,11 @@ export const SellTicketPage: React.FC = () => {
   const { user } = useAuthStore();
 
   const [currentStep, setCurrentStep] = useState<number>(1);
+
+  // Auto scroll to top when step changes
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, [currentStep]);
 
   // Step 1 Form state
   const [ticketCode, setTicketCode] = useState('TBX-90412-VN8');
@@ -113,13 +118,31 @@ export const SellTicketPage: React.FC = () => {
           }
         }
         @keyframes subtleGlow {
-          0%, 100% { opacity: 0.15; transform: scale(1); }
-          50% { opacity: 0.28; transform: scale(1.06); }
+          0%, 100% { opacity: 0.2; transform: scale(1); }
+          50% { opacity: 0.38; transform: scale(1.12); }
         }
         @keyframes popIn {
           0% { opacity: 0; transform: scale(0.6); }
           70% { transform: scale(1.08); }
           100% { opacity: 1; transform: scale(1); }
+        }
+        @keyframes kenburnsSlow {
+          0% { transform: scale(1.04) translate(0, 0); filter: brightness(1.15) contrast(1.25); }
+          50% { transform: scale(1.14) translate(-12px, -18px); filter: brightness(1.25) contrast(1.35); }
+          100% { transform: scale(1.04) translate(0, 0); filter: brightness(1.15) contrast(1.25); }
+        }
+        @keyframes stageSpotlight {
+          0% { transform: rotate(-28deg) translateY(-15%) translateX(-20%); opacity: 0.25; }
+          50% { transform: rotate(18deg) translateY(12%) translateX(25%); opacity: 0.55; }
+          100% { transform: rotate(-28deg) translateY(-15%) translateX(-20%); opacity: 0.25; }
+        }
+        @keyframes particleFloat1 {
+          0%, 100% { transform: translateY(0px) scale(0.8); opacity: 0.3; }
+          50% { transform: translateY(-45px) scale(1.25); opacity: 0.8; }
+        }
+        @keyframes particleFloat2 {
+          0%, 100% { transform: translateY(0px) scale(1.1); opacity: 0.4; }
+          50% { transform: translateY(60px) scale(0.85); opacity: 0.85; }
         }
         .animate-fade-in-up {
           animation: fadeInUp 0.45s cubic-bezier(0.16, 1, 0.3, 1) forwards;
@@ -130,19 +153,42 @@ export const SellTicketPage: React.FC = () => {
         .animate-pop-in {
           animation: popIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
         }
+        .animate-kenburns-slow {
+          animation: kenburnsSlow 22s ease-in-out infinite alternate;
+        }
+        .animate-stage-spotlight {
+          animation: stageSpotlight 14s ease-in-out infinite alternate;
+        }
+        .animate-particle-1 {
+          animation: particleFloat1 8s ease-in-out infinite;
+        }
+        .animate-particle-2 {
+          animation: particleFloat2 11s ease-in-out infinite;
+        }
       `}</style>
 
-      {/* Full-Screen Concert Background Image with Subtle Ambient Micro-Animations */}
-      <div className="fixed inset-0 z-0 pointer-events-none">
+      {/* Full-Screen Concert Dynamic Background Image with Stage Lights & Ambient Particles */}
+      <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden">
+        {/* Dynamic Ken-Burns Concert Image */}
         <img
           src="/images/landing/hero-concert.jpg"
-          alt="Concert Atmosphere"
-          className="w-full h-full object-cover opacity-65 filter brightness-110 contrast-125 scale-105 transition-transform duration-1000"
+          alt="Live Concert Stage"
+          className="w-full h-full object-cover opacity-70 animate-kenburns-slow transform-gpu origin-center"
         />
-        <div className="absolute inset-0 bg-gradient-to-b from-[#05070A]/70 via-[#05070A]/50 to-[#05070A]/85" />
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-[#FF5A36]/30 via-transparent to-transparent" />
-        <div className="absolute top-1/4 left-10 w-96 h-96 bg-[#FF5A36]/20 rounded-full blur-[100px] animate-subtle-glow" />
-        <div className="absolute bottom-10 right-10 w-96 h-96 bg-cyan-500/20 rounded-full blur-[100px] animate-subtle-glow" style={{ animationDelay: '3.5s' }} />
+
+        {/* Sweeping Stage Light Beams */}
+        <div className="absolute -top-1/2 -left-1/2 w-[200%] h-[200%] bg-gradient-to-r from-transparent via-[#FF5A36]/30 to-transparent blur-3xl animate-stage-spotlight pointer-events-none" />
+        <div className="absolute -bottom-1/2 -right-1/2 w-[200%] h-[200%] bg-gradient-to-l from-transparent via-cyan-500/25 to-transparent blur-3xl animate-stage-spotlight pointer-events-none" style={{ animationDelay: '7s' }} />
+
+        {/* High-Contrast Gradient Overlays */}
+        <div className="absolute inset-0 bg-gradient-to-b from-[#05070A]/75 via-[#05070A]/55 to-[#05070A]/90" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-[#FF5A36]/35 via-transparent to-transparent" />
+
+        {/* Floating Glowing Particle Orbs */}
+        <div className="absolute top-1/5 left-1/4 w-72 h-72 bg-[#FF5A36]/30 rounded-full blur-[90px] animate-subtle-glow" />
+        <div className="absolute bottom-1/4 right-1/4 w-80 h-80 bg-cyan-400/25 rounded-full blur-[100px] animate-subtle-glow" style={{ animationDelay: '3.5s' }} />
+        <div className="absolute top-1/3 right-10 w-48 h-48 bg-amber-400/20 rounded-full blur-[70px] animate-particle-1" />
+        <div className="absolute bottom-1/3 left-12 w-64 h-64 bg-emerald-400/20 rounded-full blur-[80px] animate-particle-2" />
       </div>
 
       <div className="relative z-10 max-w-4xl mx-auto space-y-8">

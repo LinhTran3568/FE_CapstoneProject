@@ -108,6 +108,11 @@ const AppContent: React.FC = () => {
     checkAuth();
   }, [checkAuth]);
 
+  // Auto scroll to top on page change
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, [location.pathname]);
+
   // Auth pages handle their own full-bleed layout (no header/footer overlap)
   const isAuthPage = ['/login', '/register', '/forgot-password', '/reset-password'].includes(
     location.pathname
