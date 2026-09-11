@@ -1,13 +1,22 @@
 import React from 'react';
-import { Link, useLocation } from 'react-router-dom';
-import { ShieldCheck, LayoutDashboard } from 'lucide-react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { ShieldCheck, LayoutDashboard, LogOut, User as UserIcon } from 'lucide-react';
 import { useAuthStore } from '../../stores/authStore';
+import { useUIStore } from '../../stores/uiStore';
 
 export const Navbar: React.FC = () => {
-  const { user } = useAuthStore();
+  const { user, logout } = useAuthStore();
+  const { showToast } = useUIStore();
   const location = useLocation();
+  const navigate = useNavigate();
 
   const isActive = (path: string) => location.pathname === path;
+
+  const handleLogout = () => {
+    logout();
+    showToast('Đã đăng xuất tài khoản', 'info');
+    navigate('/login');
+  };
 
   return (
     <header className="sticky top-0 z-40 bg-navy-900/90 backdrop-blur-md border-b border-navy-750">
@@ -50,15 +59,28 @@ export const Navbar: React.FC = () => {
         {/* User Account Controls */}
         <div className="flex items-center gap-3">
           {user ? (
-            <Link
-              to="/dashboard"
-              className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-navy-800 border border-navy-700 hover:border-cyan-500/50 transition-all text-xs font-semibold text-slate-200"
-            >
-              <div className="w-6 h-6 rounded-full bg-cyan-500/20 text-cyan-400 flex items-center justify-center font-bold">
-                {user.fullName ? user.fullName[0] : 'U'}
-              </div>
-              <span>{user.fullName || 'User'}</span>
-            </Link>
+            <div className="flex items-center gap-2">
+              <Link
+                to="/dashboard"
+                className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-navy-800 border border-navy-700 hover:border-cyan-500/50 transition-all text-xs font-semibold text-slate-200"
+              >
+                <div className="w-6 h-6 rounded-full bg-cyan-500/20 text-cyan-400 flex items-center justify-center font-bold">
+                  {user.fullName ? user.fullName[0].toUpperCase() : <UserIcon className="w-3.5 h-3.5" />}
+                </div>
+                <div className="flex flex-col text-left">
+                  <span className="text-white text-xs font-semibold">{user.fullName || 'User'}</span>
+                  <span className="text-[10px] text-cyan-400 uppercase font-mono">{user.role}</span>
+                </div>
+              </Link>
+
+              <button
+                onClick={handleLogout}
+                title="Đăng xuất"
+                className="p-2 rounded-xl bg-navy-800 border border-navy-700 text-slate-400 hover:text-red-400 hover:border-red-500/50 transition-all"
+              >
+                <LogOut className="w-4 h-4" />
+              </button>
+            </div>
           ) : (
             <div className="flex items-center gap-2">
               <Link
@@ -80,4 +102,3 @@ export const Navbar: React.FC = () => {
     </header>
   );
 };
-

@@ -67,10 +67,23 @@ export const createDisputeSchema = z.object({
 
 export type CreateDisputeFormData = z.infer<typeof createDisputeSchema>;
 
-export const adminReviewListingSchema = z.object({
-  listingId: z.string(),
-  action: z.enum(['APPROVE', 'FLAG', 'SUSPEND']),
-  reason: z.string().min(5, 'Lý do xử lý không được để trống'),
+export const forgotPasswordSchema = z.object({
+  email: z.string().email('Địa chỉ email không hợp lệ'),
 });
 
-export type AdminReviewListingFormData = z.infer<typeof adminReviewListingSchema>;
+export type ForgotPasswordFormData = z.infer<typeof forgotPasswordSchema>;
+
+export const resetPasswordSchema = z
+  .object({
+    email: z.string().email('Địa chỉ email không hợp lệ'),
+    otp: z.string().length(6, 'Mã OTP phải bao gồm chính xác 6 chữ số'),
+    newPassword: z.string().min(8, 'Mật khẩu mới phải có ít nhất 8 ký tự'),
+    confirmPassword: z.string(),
+  })
+  .refine((data) => data.newPassword === data.confirmPassword, {
+    message: 'Mật khẩu xác nhận không khớp',
+    path: ['confirmPassword'],
+  });
+
+export type ResetPasswordFormData = z.infer<typeof resetPasswordSchema>;
+

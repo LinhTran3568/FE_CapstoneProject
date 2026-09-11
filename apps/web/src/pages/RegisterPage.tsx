@@ -2,6 +2,7 @@ import React from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { registerSchema, RegisterFormData } from '@ticketshield/validation';
+import { authApi } from '@ticketshield/api-client';
 import { useAuthStore } from '../stores/authStore';
 import { useUIStore } from '../stores/uiStore';
 import { useNavigate, Link } from 'react-router-dom';
@@ -32,7 +33,8 @@ export const RegisterPage: React.FC = () => {
 
   const onSubmit = async (data: RegisterFormData) => {
     try {
-      // API call placeholder
+      const res = await authApi.register(data);
+      login(res.user, res.token);
       showToast('Đăng ký tài khoản thành công!', 'success');
       navigate('/dashboard');
     } catch (err: any) {
@@ -128,4 +130,3 @@ export const RegisterPage: React.FC = () => {
     </div>
   );
 };
-

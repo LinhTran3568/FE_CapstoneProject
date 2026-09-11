@@ -1,17 +1,19 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { loginSchema, LoginFormData } from '@ticketshield/validation';
+import { authApi } from '@ticketshield/api-client';
 import { useAuthStore } from '../stores/authStore';
 import { useUIStore } from '../stores/uiStore';
 import { useNavigate, Link } from 'react-router-dom';
-import { ShieldCheck, Lock, Mail } from 'lucide-react';
+import { ShieldCheck, Lock, Mail, Globe } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 
 export const LoginPage: React.FC = () => {
   const { login } = useAuthStore();
   const { showToast } = useUIStore();
   const navigate = useNavigate();
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
 
   const {
     register,
@@ -27,11 +29,28 @@ export const LoginPage: React.FC = () => {
 
   const onSubmit = async (data: LoginFormData) => {
     try {
-      // API call placeholder
+      const res = await authApi.login(data);
+      login(res.user, res.token);
       showToast('Đăng nhập thành công!', 'success');
       navigate('/dashboard');
     } catch (err: any) {
       showToast('Đăng nhập thất bại: ' + err.message, 'error');
+    }
+  };
+
+  const handleGoogleLogin = async () => {
+    try {
+      setIsGoogleLoading(true);
+      // Giả lập / nhận Google IdToken từ SDK hoặc input test
+      const dummyGoogleToken = 'google_id_token_demo_' + Date.now();
+      const res = await authApi.googleLogin(dummyGoogleToken);
+      login(res.user, res.token);
+      showToast('Đăng nhập Google thành công!', 'success');
+      navigate('/dashboard');
+    } catch (err: any) {
+      showToast('Đăng nhập Google thất bại: ' + err.message, 'error');
+    } finally {
+      setIsGoogleLoading(false);
     }
   };
 
@@ -62,7 +81,12 @@ export const LoginPage: React.FC = () => {
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-slate-300 mb-1">Mật khẩu</label>
+            <div className="flex items-center justify-between mb-1">
+              <label className="block text-xs font-semibold text-slate-300">Mật khẩu</label>
+              <Link to="/forgot-password" className="text-xs text-cyan-400 hover:underline">
+                Quên mật khẩu?
+              </Link>
+            </div>
             <div className="relative">
               <Lock className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
               <input
@@ -80,6 +104,23 @@ export const LoginPage: React.FC = () => {
           </Button>
         </form>
 
+        <div className="relative flex py-1 items-center">
+          <div className="flex-grow border-t border-navy-700"></div>
+          <span className="flex-shrink mx-4 text-xs text-slate-400 uppercase">Hoặc</span>
+          <div className="flex-grow border-t border-navy-700"></div>
+        </div>
+
+        <Button
+          type="button"
+          variant="secondary"
+          isLoading={isGoogleLoading}
+          onClick={handleGoogleLogin}
+          className="w-full bg-navy-800 border-navy-700 hover:bg-navy-750 text-slate-200 flex items-center justify-center gap-2"
+        >
+          <Globe className="w-4 h-4 text-cyan-400" />
+          <span>Đăng nhập với Google</span>
+        </Button>
+
         <p className="text-center text-xs text-slate-400">
           Chưa có tài khoản?{' '}
           <Link to="/register" className="text-cyan-400 hover:underline font-semibold">
@@ -90,4 +131,3 @@ export const LoginPage: React.FC = () => {
     </div>
   );
 };
-
