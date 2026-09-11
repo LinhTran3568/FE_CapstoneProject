@@ -33,7 +33,7 @@ export const LoginPage: React.FC = () => {
       const res = await authApi.login(data);
       login(res.user, res.token);
       showToast('Login successful! Welcome back.', 'success');
-      navigate('/dashboard');
+      navigate('/');
     } catch (err: any) {
       showToast('Login failed: ' + err.message, 'error');
     }
@@ -46,7 +46,7 @@ export const LoginPage: React.FC = () => {
       const res = await authApi.googleLogin(dummyGoogleToken);
       login(res.user, res.token);
       showToast('Google login successful!', 'success');
-      navigate('/dashboard');
+      navigate('/');
     } catch (err: any) {
       showToast('Google login failed: ' + err.message, 'error');
     } finally {

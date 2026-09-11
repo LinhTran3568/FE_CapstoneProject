@@ -37,7 +37,7 @@ export const RegisterPage: React.FC = () => {
       const res = await authApi.register(data);
       login(res.user, res.token);
       showToast('Account registered successfully!', 'success');
-      navigate('/dashboard');
+      navigate('/');
     } catch (err: any) {
       showToast('Registration failed: ' + err.message, 'error');
     }

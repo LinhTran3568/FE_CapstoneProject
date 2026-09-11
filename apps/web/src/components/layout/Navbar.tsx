@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../stores/authStore';
 import { useUIStore } from '../../stores/uiStore';
-import { User as UserIcon, LogOut, LayoutDashboard } from 'lucide-react';
+import { User as UserIcon, LogOut, PlusCircle, ShieldCheck, Ticket, Sparkles } from 'lucide-react';
 import { TicketShieldLogo } from '../ui/TicketShieldLogo';
 
 export const Navbar: React.FC = () => {
@@ -42,88 +42,123 @@ export const Navbar: React.FC = () => {
     navigate('/login');
   };
 
-  const navLinks = [
-    { label: 'Featured', href: '#featured' },
-    { label: 'Discover', href: '#discover' },
-    { label: 'Events', href: '#events' },
-    { label: 'Passes', href: '#experiences' },
-    { label: 'Security', href: '#security' },
-    { label: 'Process', href: '#process' },
-  ];
+  // Robust Reseller Role Detection
+  const isReseller = 
+    user?.role === 'RESELLER' || 
+    (user?.role as string) === 'SELLER' || 
+    user?.email?.toLowerCase().includes('seller') ||
+    user?.fullName?.toLowerCase().includes('seller');
+
+  // Determine Nav Links without "Home" (Brand Logo acts as Home link)
+  const getNavLinks = () => {
+    if (!user) {
+      return [
+        { label: 'Featured', href: '/#featured' },
+        { label: 'Resale Marketplace', href: '/marketplace' },
+        { label: 'Experiences', href: '/#experiences' },
+        { label: 'How It Works', href: '/#process' },
+      ];
+    }
+
+    if (isReseller) {
+      return [
+        { label: 'Resale Marketplace', href: '/marketplace' },
+        { label: 'Sell Ticket', href: '/sell-ticket' },
+        { label: 'My Listings', href: '/my-listings' },
+        { label: 'My Tickets', href: '/my-tickets' },
+      ];
+    }
+
+    if (user.role === 'ADMIN') {
+      return [
+        { label: 'Resale Marketplace', href: '/marketplace' },
+        { label: 'Manage Listings', href: '/my-listings' },
+      ];
+    }
+
+    // Default BUYER
+    return [
+      { label: 'Resale Marketplace', href: '/marketplace' },
+      { label: 'My Tickets', href: '/my-tickets' },
+      { label: 'How It Works', href: '/#process' },
+    ];
+  };
+
+  const navLinks = getNavLinks();
 
   return (
     <header
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${
         scrolled || !isHome
-          ? 'bg-[#05070A]/90 backdrop-blur-md border-b border-white/10 py-4 shadow-2xl'
-          : 'bg-transparent py-6'
+          ? 'bg-[#05070A]/95 backdrop-blur-md border-b border-white/10 py-3.5 shadow-2xl'
+          : 'bg-transparent py-5'
       }`}
     >
-      <div className="max-w-7xl mx-auto px-6 md:px-12 flex items-center justify-between">
-        {/* Brand Logo with Custom Shield Icon */}
-        <a href="/" onClick={handleBrandClick}>
+      <div className="max-w-7xl mx-auto px-6 md:px-12 flex items-center justify-between gap-6">
+        {/* Brand Logo - Acts as Home button */}
+        <a href="/" onClick={handleBrandClick} className="shrink-0">
           <TicketShieldLogo size="md" />
         </a>
 
-        {/* Desktop Nav Links (Complete Section Navigation) */}
-        <nav className="hidden md:flex items-center space-x-7 text-sm font-medium tracking-wide">
-          {isHome ? (
-            navLinks.map((link) => (
-              <a
-                key={link.label}
-                href={link.href}
-                className="text-[#A3A8B3] hover:text-[#F5F5F2] transition-colors duration-200"
-              >
-                {link.label}
-              </a>
-            ))
-          ) : (
-            <>
-              <Link to="/" className="text-[#A3A8B3] hover:text-[#F5F5F2] transition-colors">
-                Home
-              </Link>
-              <Link to="/#events" className="text-[#A3A8B3] hover:text-[#F5F5F2] transition-colors">
-                Events
-              </Link>
-            </>
-          )}
+        {/* Desktop Nav Links: Single-line horizontal layout (No text wrap) */}
+        <nav className="hidden lg:flex items-center space-x-6 text-xs font-semibold uppercase tracking-wider whitespace-nowrap shrink-0">
+          {navLinks.map((link) => (
+            <Link
+              key={link.label}
+              to={link.href}
+              className={`transition-colors duration-200 ${
+                location.pathname === link.href
+                  ? 'text-[#FF5A36] font-bold'
+                  : 'text-[#A3A8B3] hover:text-[#F5F5F2]'
+              }`}
+            >
+              {link.label}
+            </Link>
+          ))}
         </nav>
 
         {/* Right CTA / User Account Controls */}
-        <div className="hidden md:flex items-center space-x-5 text-sm">
+        <div className="hidden md:flex items-center space-x-3.5 text-xs shrink-0">
           {user ? (
             <div className="flex items-center gap-3">
+              {/* User Profile Card Button - Navigates to /profile */}
               <Link
-                to="/dashboard"
-                className="flex items-center gap-2.5 px-4 py-2 rounded-full bg-[#0A0D12] border border-white/10 hover:border-[#FF5A36]/50 transition-all text-xs font-semibold text-[#F5F5F2]"
+                to="/profile"
+                className="flex items-center gap-2.5 px-3.5 py-2 rounded-full bg-[#0A0D12] border border-white/10 hover:border-[#FF5A36]/50 transition-all font-semibold text-[#F5F5F2] group whitespace-nowrap"
+                title="View Profile & Account"
               >
-                <div className="w-6 h-6 rounded-full bg-[#FF5A36]/20 text-[#FF5A36] flex items-center justify-center font-bold">
+                <div className="w-6 h-6 rounded-full bg-[#FF5A36]/20 text-[#FF5A36] group-hover:bg-[#FF5A36] group-hover:text-white transition-all flex items-center justify-center font-bold text-xs">
                   {user.fullName ? user.fullName[0].toUpperCase() : <UserIcon className="w-3.5 h-3.5" />}
                 </div>
-                <span className="font-display font-medium">{user.fullName || 'Account'}</span>
-                {user.role === 'ADMIN' && (
-                  <span className="text-[10px] bg-[#FF5A36] text-white px-1.5 py-0.5 rounded font-mono">
+                <span className="font-display font-medium max-w-[120px] truncate">{user.fullName || 'Account'}</span>
+                
+                {/* Role Badge */}
+                {isReseller ? (
+                  <span className="text-[10px] bg-gradient-to-r from-[#FF5A36] to-amber-500 text-white font-extrabold px-2 py-0.5 rounded-full font-mono uppercase tracking-wider shadow">
+                    RESELLER
+                  </span>
+                ) : user.role === 'ADMIN' ? (
+                  <span className="text-[10px] bg-red-500 text-white font-extrabold px-2 py-0.5 rounded-full font-mono">
                     ADMIN
+                  </span>
+                ) : (
+                  <span className="text-[10px] bg-white/10 text-[#A3A8B3] px-2 py-0.5 rounded-full font-mono">
+                    BUYER
                   </span>
                 )}
               </Link>
-              <Link
-                to="/dashboard"
-                className="p-2.5 rounded-full bg-[#0A0D12] border border-white/10 text-[#A3A8B3] hover:text-[#F5F5F2] hover:border-white/30 transition-all"
-                title="Dashboard"
-              >
-                <LayoutDashboard className="w-4 h-4" />
-              </Link>
+
+              {/* Logout Button */}
               <button
                 onClick={handleLogout}
                 title="Sign Out"
-                className="p-2.5 rounded-full bg-[#0A0D12] border border-white/10 text-[#A3A8B3] hover:text-red-400 hover:border-red-500/40 transition-all"
+                className="p-2 rounded-full bg-[#0A0D12] border border-white/10 text-[#A3A8B3] hover:text-red-400 hover:border-red-500/40 transition-all"
               >
                 <LogOut className="w-4 h-4" />
               </button>
             </div>
           ) : (
-            <div className="flex items-center space-x-6">
+            <div className="flex items-center space-x-5">
               <Link
                 to="/login"
                 className="text-[#A3A8B3] hover:text-[#F5F5F2] font-medium transition-colors duration-200"
@@ -132,7 +167,7 @@ export const Navbar: React.FC = () => {
               </Link>
               <Link
                 to="/register"
-                className="px-5 py-2.5 bg-[#FF5A36] hover:bg-[#FF7252] text-white font-medium rounded-full tracking-wide transition-all duration-200 shadow-lg shadow-[#FF5A36]/20 hover:shadow-[#FF5A36]/40"
+                className="px-5 py-2 bg-[#FF5A36] hover:bg-[#FF7252] text-white font-medium rounded-full tracking-wide transition-all duration-200 shadow-lg shadow-[#FF5A36]/20"
               >
                 Get Started
               </Link>
@@ -143,7 +178,7 @@ export const Navbar: React.FC = () => {
         {/* Mobile Hamburger Toggle */}
         <button
           onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-          className="md:hidden text-[#F5F5F2] p-2 focus:outline-none"
+          className="lg:hidden text-[#F5F5F2] p-2 focus:outline-none"
           aria-label="Toggle menu"
         >
           <svg className="w-6 h-6 fill-current" viewBox="0 0 24 24">
@@ -166,33 +201,34 @@ export const Navbar: React.FC = () => {
 
       {/* Mobile Drawer */}
       {mobileMenuOpen && (
-        <div className="md:hidden bg-[#05070A]/95 backdrop-blur-xl border-b border-white/10 px-6 py-6 space-y-4">
+        <div className="lg:hidden bg-[#05070A]/95 backdrop-blur-xl border-b border-white/10 px-6 py-6 space-y-4">
           {navLinks.map((link) => (
-            <a
+            <Link
               key={link.label}
-              href={link.href}
+              to={link.href}
               onClick={() => setMobileMenuOpen(false)}
-              className="block text-[#A3A8B3] hover:text-[#F5F5F2] text-lg font-medium"
+              className="block text-[#A3A8B3] hover:text-[#F5F5F2] text-base font-medium"
             >
               {link.label}
-            </a>
+            </Link>
           ))}
           <div className="pt-4 border-t border-white/10 flex flex-col gap-3">
             {user ? (
               <>
                 <Link
-                  to="/dashboard"
+                  to="/profile"
                   onClick={() => setMobileMenuOpen(false)}
-                  className="w-full text-center py-3 bg-[#0A0D12] text-[#F5F5F2] font-medium rounded-full border border-white/10"
+                  className="w-full text-center py-3 bg-[#0A0D12] text-[#F5F5F2] font-medium rounded-full border border-white/10 flex items-center justify-center gap-2 text-xs"
                 >
-                  Dashboard ({user.fullName})
+                  <UserIcon className="w-4 h-4 text-[#FF5A36]" />
+                  <span>Profile ({user.fullName})</span>
                 </Link>
                 <button
                   onClick={() => {
                     setMobileMenuOpen(false);
                     handleLogout();
                   }}
-                  className="w-full text-center py-3 bg-red-500/20 text-red-400 font-medium rounded-full"
+                  className="w-full text-center py-3 bg-red-500/20 text-red-400 font-medium rounded-full text-xs"
                 >
                   Sign Out
                 </button>
@@ -202,14 +238,14 @@ export const Navbar: React.FC = () => {
                 <Link
                   to="/login"
                   onClick={() => setMobileMenuOpen(false)}
-                  className="text-[#F5F5F2] font-medium text-center py-2"
+                  className="text-[#F5F5F2] font-medium text-center py-2 text-xs"
                 >
                   Login
                 </Link>
                 <Link
                   to="/register"
                   onClick={() => setMobileMenuOpen(false)}
-                  className="w-full text-center py-3 bg-[#FF5A36] text-white font-medium rounded-full"
+                  className="w-full text-center py-3 bg-[#FF5A36] text-white font-medium rounded-full text-xs"
                 >
                   Get Started
                 </Link>

@@ -1,5 +1,7 @@
 import React from 'react';
+import { useAuthStore } from '../stores/authStore';
 import { Hero } from '../components/landing/Hero';
+import { ResellerConsole } from '../components/reseller/ResellerConsole';
 import { FeaturedEvent } from '../components/landing/FeaturedEvent';
 import { MusicDiscovery } from '../components/landing/MusicDiscovery';
 import { FeelTheSound } from '../components/landing/FeelTheSound';
@@ -10,10 +12,16 @@ import { HowItWorks } from '../components/landing/HowItWorks';
 import { FinalCTA } from '../components/landing/FinalCTA';
 
 export const LandingPage: React.FC = () => {
+  const { user } = useAuthStore();
+  const isReseller = user?.role === 'RESELLER' || (user?.role as string) === 'SELLER';
+
   return (
     <div className="w-full bg-[#05070A] text-[#F5F5F2] overflow-x-hidden selection:bg-[#FF5A36] selection:text-white font-sans antialiased">
       {/* 01: 100vh Full Screen Concert Hero */}
       <Hero />
+
+      {/* 01.5: Reseller Portal Dashboard Console (Visible for Resellers) */}
+      {isReseller && <ResellerConsole />}
 
       {/* 02: Featured Tonight (Massive Photo Presentation) */}
       <FeaturedEvent />
