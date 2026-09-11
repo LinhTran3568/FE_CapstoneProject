@@ -99,8 +99,21 @@ export const SellTicketPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#05070A] text-[#F5F5F2] pt-28 pb-20 px-4 sm:px-6 md:px-12 font-sans antialiased selection:bg-[#FF5A36] selection:text-white">
-      <div className="max-w-4xl mx-auto space-y-8">
+    <div className="relative min-h-screen bg-[#05070A] text-[#F5F5F2] pt-28 pb-20 px-4 sm:px-6 md:px-12 font-sans antialiased selection:bg-[#FF5A36] selection:text-white overflow-hidden">
+      {/* Full-Screen Concert Background Image with High Contrast & Ambient Glows */}
+      <div className="fixed inset-0 z-0 pointer-events-none">
+        <img
+          src="/images/landing/hero-concert.jpg"
+          alt="Concert Atmosphere"
+          className="w-full h-full object-cover opacity-65 filter brightness-110 contrast-125 scale-105"
+        />
+        <div className="absolute inset-0 bg-gradient-to-b from-[#05070A]/70 via-[#05070A]/50 to-[#05070A]/85" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-[#FF5A36]/30 via-transparent to-transparent" />
+        <div className="absolute top-1/4 left-10 w-96 h-96 bg-[#FF5A36]/20 rounded-full blur-[100px]" />
+        <div className="absolute bottom-10 right-10 w-96 h-96 bg-cyan-500/20 rounded-full blur-[100px]" />
+      </div>
+
+      <div className="relative z-10 max-w-4xl mx-auto space-y-8">
         
         {/* Step Progress Bar (6 Steps Header) */}
         <div className="space-y-4">

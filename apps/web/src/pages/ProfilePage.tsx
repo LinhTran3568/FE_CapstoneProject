@@ -67,8 +67,19 @@ export const ProfilePage: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-[#05070A] text-[#F5F5F2] pt-28 pb-20 px-6 md:px-12 selection:bg-[#FF5A36] selection:text-white font-sans antialiased">
-      <div className="max-w-6xl mx-auto space-y-8">
+    <div className="relative min-h-screen bg-[#05070A] text-[#F5F5F2] pt-28 pb-20 px-6 md:px-12 selection:bg-[#FF5A36] selection:text-white font-sans antialiased overflow-hidden">
+      {/* Background Concert Image */}
+      <div className="fixed inset-0 z-0 pointer-events-none">
+        <img
+          src="/images/landing/hero-concert.jpg"
+          alt="Concert Background"
+          className="w-full h-full object-cover opacity-25 filter brightness-75 contrast-125 scale-105"
+        />
+        <div className="absolute inset-0 bg-gradient-to-b from-[#05070A]/90 via-[#05070A]/85 to-[#05070A]" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-[#FF5A36]/15 via-transparent to-transparent" />
+      </div>
+
+      <div className="relative z-10 max-w-6xl mx-auto space-y-8">
         
         {/* Profile Banner Card */}
         <div className="bg-gradient-to-r from-[#0A0D12] via-[#0F141C] to-[#0A0D12] border border-white/10 p-6 md:p-8 rounded-3xl shadow-2xl relative overflow-hidden flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
