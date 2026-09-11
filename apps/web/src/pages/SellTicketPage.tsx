@@ -39,9 +39,34 @@ export const SellTicketPage: React.FC = () => {
   const [isRequestingOtp, setIsRequestingOtp] = useState<boolean>(false);
 
   // Step 2 OTP Form state
-  const [otp, setOtp] = useState(['1', '2', '3', '4', '5', '6']);
+  const [otp, setOtp] = useState(['', '', '', '', '', '']);
   const [isVerifyingOtp, setIsVerifyingOtp] = useState(false);
   const [isResendingOtp, setIsResendingOtp] = useState(false);
+  const [otpTimeLeft, setOtpTimeLeft] = useState<number>(300);
+
+  // Countdown timer for OTP (5 minutes)
+  useEffect(() => {
+    if (currentStep !== 2) return;
+
+    setOtpTimeLeft(300);
+    const interval = setInterval(() => {
+      setOtpTimeLeft((prev) => {
+        if (prev <= 1) {
+          clearInterval(interval);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [currentStep]);
+
+  const formatOtpTimer = (seconds: number) => {
+    const m = Math.floor(seconds / 60).toString().padStart(2, '0');
+    const s = (seconds % 60).toString().padStart(2, '0');
+    return `${m}:${s}`;
+  };
 
   // Step 4 Pricing state
   const [faceValue, setFaceValue] = useState<number>(2500000);
@@ -96,6 +121,8 @@ export const SellTicketPage: React.FC = () => {
     try {
       setIsResendingOtp(true);
       await resaleApi.resendVerificationOtp(verificationId);
+      setOtpTimeLeft(300);
+      setOtp(['', '', '', '', '', '']);
       showToast('Đã gửi lại mã OTP thành công!', 'success');
     } catch (err: any) {
       showToast('Không thể gửi lại mã OTP. Vui lòng thử lại sau ít phút!', 'error');
@@ -182,17 +209,80 @@ export const SellTicketPage: React.FC = () => {
     }
   };
 
+  const handleClearOtp = () => {
+    setOtp(['', '', '', '', '', '']);
+    document.getElementById('otp-input-0')?.focus();
+  };
+
   const handleOtpChange = (index: number, val: string) => {
-    if (val.length > 1) val = val[0];
+    const cleaned = val.replace(/\D/g, '');
+    if (!cleaned) {
+      const newOtp = [...otp];
+      newOtp[index] = '';
+      setOtp(newOtp);
+      return;
+    }
+
+    if (cleaned.length > 1) {
+      const digits = cleaned.slice(0, 6 - index).split('');
+      const newOtp = [...otp];
+      digits.forEach((d, i) => {
+        if (index + i < 6) newOtp[index + i] = d;
+      });
+      setOtp(newOtp);
+      const nextIdx = Math.min(index + digits.length, 5);
+      document.getElementById(`otp-input-${nextIdx}`)?.focus();
+      return;
+    }
+
     const newOtp = [...otp];
-    newOtp[index] = val;
+    newOtp[index] = cleaned[0];
     setOtp(newOtp);
 
     // Auto-focus next input
-    if (val && index < 5) {
+    if (index < 5) {
       const nextInput = document.getElementById(`otp-input-${index + 1}`);
       nextInput?.focus();
     }
+  };
+
+  const handleOtpKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Backspace') {
+      if (!otp[index] && index > 0) {
+        // If current input is empty, delete previous input and focus it
+        const newOtp = [...otp];
+        newOtp[index - 1] = '';
+        setOtp(newOtp);
+        const prevInput = document.getElementById(`otp-input-${index - 1}`);
+        prevInput?.focus();
+      } else if (otp[index]) {
+        // Clear current input
+        const newOtp = [...otp];
+        newOtp[index] = '';
+        setOtp(newOtp);
+      }
+    } else if (e.key === 'ArrowLeft' && index > 0) {
+      document.getElementById(`otp-input-${index - 1}`)?.focus();
+    } else if (e.key === 'ArrowRight' && index < 5) {
+      document.getElementById(`otp-input-${index + 1}`)?.focus();
+    }
+  };
+
+  const handleOtpPaste = (e: React.ClipboardEvent) => {
+    e.preventDefault();
+    const pastedData = e.clipboardData.getData('text').trim().replace(/\D/g, '');
+    if (!pastedData) return;
+
+    const digits = pastedData.slice(0, 6).split('');
+    const newOtp = ['', '', '', '', '', ''];
+    digits.forEach((digit, idx) => {
+      if (idx < 6) newOtp[idx] = digit;
+    });
+    setOtp(newOtp);
+
+    const focusIdx = Math.min(digits.length, 5);
+    const targetInput = document.getElementById(`otp-input-${focusIdx}`);
+    targetInput?.focus();
   };
 
   return (
@@ -220,8 +310,7 @@ export const SellTicketPage: React.FC = () => {
         }
         @keyframes kenburnsSlow {
           0% { transform: scale(1.04) translate(0, 0); filter: brightness(1.15) contrast(1.25); }
-          50% { transform: scale(1.14) translate(-12px, -18px); filter: brightness(1.25) contrast(1.35); }
-          100% { transform: scale(1.04) translate(0, 0); filter: brightness(1.15) contrast(1.25); }
+          100% { transform: scale(1.1) translate(-1%, -1%); filter: brightness(1.05) contrast(1.3); }
         }
         @keyframes stageSpotlight {
           0% { transform: rotate(-28deg) translateY(-15%) translateX(-20%); opacity: 0.25; }
@@ -229,16 +318,19 @@ export const SellTicketPage: React.FC = () => {
           100% { transform: rotate(-28deg) translateY(-15%) translateX(-20%); opacity: 0.25; }
         }
         .animate-fade-in-up {
-          animation: fadeInUp 0.45s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+          animation: fadeInUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
         }
         .animate-subtle-glow {
           animation: subtleGlow 7s ease-in-out infinite;
         }
         .animate-pop-in {
-          animation: popIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+          animation: popIn 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        }
+        .animate-glow {
+          animation: subtleGlow 4s ease-in-out infinite;
         }
         .animate-kenburns-slow {
-          animation: kenburnsSlow 8s ease-in-out infinite alternate;
+          animation: kenburnsSlow 20s ease-in-out infinite alternate;
         }
         .animate-stage-spotlight {
           animation: stageSpotlight 5s ease-in-out infinite alternate;
@@ -255,6 +347,9 @@ export const SellTicketPage: React.FC = () => {
         <div className="absolute -top-1/2 -left-1/2 w-[200%] h-[200%] bg-gradient-to-r from-transparent via-[#FF5A36]/30 to-transparent blur-3xl animate-stage-spotlight pointer-events-none" />
         <div className="absolute inset-0 bg-gradient-to-b from-[#05070A]/75 via-[#05070A]/55 to-[#05070A]/90" />
       </div>
+
+      <div className="absolute top-1/4 -left-48 w-96 h-96 bg-[#FF5A36]/10 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute bottom-1/4 -right-48 w-96 h-96 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none" />
 
       <div className="relative z-10 max-w-4xl mx-auto space-y-8">
 
@@ -461,11 +556,6 @@ export const SellTicketPage: React.FC = () => {
                 <p className="text-xs text-[#A3A8B3] leading-relaxed">
                   Nhập mã OTP vừa được Ban Tổ Chức (BTC) gửi về email/số điện thoại chủ vé để thực hiện Khóa vé (Lock).
                 </p>
-                {verificationId && (
-                  <p className="text-[10px] text-cyan-400 font-mono">
-                    Session Verification ID: {verificationId}
-                  </p>
-                )}
               </div>
 
               <form onSubmit={handleVerifyOtp} className="space-y-6">
@@ -474,43 +564,64 @@ export const SellTicketPage: React.FC = () => {
                     <label className="text-xs font-semibold uppercase tracking-wider text-[#A3A8B3] font-display">
                       Mã OTP Xác Thực (6 chữ số)
                     </label>
-                    <button
-                      type="button"
-                      onClick={handleResendOtp}
-                      disabled={isResendingOtp}
-                      className="text-xs text-[#FF5A36] hover:underline transition-all font-mono flex items-center gap-1"
-                    >
-                      {isResendingOtp ? 'Đang gửi lại...' : 'Gửi lại mã OTP'}
-                    </button>
+                    <div className="flex items-center gap-3">
+                      {otp.some((d) => d !== '') && (
+                        <button
+                          type="button"
+                          onClick={handleClearOtp}
+                          className="text-xs text-[#A3A8B3] hover:text-white hover:underline transition-colors font-mono"
+                        >
+                          Xóa
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        onClick={handleResendOtp}
+                        disabled={isResendingOtp}
+                        className="text-xs text-[#FF5A36] hover:underline transition-all font-mono flex items-center gap-1"
+                      >
+                        {isResendingOtp ? 'Đang gửi lại...' : 'Gửi lại mã OTP'}
+                      </button>
+                    </div>
                   </div>
 
-                  <div className="grid grid-cols-6 gap-2">
+                  <div className="grid grid-cols-6 gap-2" onPaste={handleOtpPaste}>
                     {otp.map((digit, idx) => (
                       <input
                         key={idx}
                         id={`otp-input-${idx}`}
                         type="text"
+                        inputMode="numeric"
+                        autoComplete="one-time-code"
                         maxLength={1}
                         value={digit}
                         onChange={(e) => handleOtpChange(idx, e.target.value)}
+                        onKeyDown={(e) => handleOtpKeyDown(idx, e)}
+                        onPaste={handleOtpPaste}
                         className="w-full h-12 bg-[#05070A] border border-white/15 rounded-xl text-center font-mono font-bold text-lg text-white focus:outline-none focus:border-[#FF5A36] focus:ring-2 focus:ring-[#FF5A36]/30 focus:scale-105 transition-all duration-200"
                       />
                     ))}
                   </div>
-                  <p className="text-[11px] text-[#A3A8B3] mt-2 font-mono">
-                    Mã xác thực có hiệu lực trong 5 phút.
-                  </p>
+
+                  <div className="flex items-center gap-2 text-xs sm:text-sm font-mono mt-3">
+                    <span className="text-[#A3A8B3]">
+                      Mã xác thực có hiệu lực trong:
+                    </span>
+                    <span className={`text-sm sm:text-base font-bold font-mono tracking-wider ${otpTimeLeft <= 60 ? 'text-rose-400 animate-pulse' : 'text-[#FF5A36]'}`}>
+                      {formatOtpTimer(otpTimeLeft)}
+                    </span>
+                  </div>
                 </div>
 
                 <button
                   type="submit"
-                  disabled={isVerifyingOtp}
-                  className="w-full py-4 bg-[#FF5A36] hover:bg-[#FF7252] text-white font-bold font-display uppercase tracking-widest text-xs rounded-xl shadow-lg shadow-[#FF5A36]/30 hover:shadow-xl hover:shadow-[#FF5A36]/50 hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200 flex items-center justify-center gap-2"
+                  disabled={isVerifyingOtp || otpTimeLeft === 0}
+                  className="w-full py-4 bg-[#FF5A36] hover:bg-[#FF7252] disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold font-display uppercase tracking-widest text-xs rounded-xl shadow-lg shadow-[#FF5A36]/30 hover:shadow-xl hover:shadow-[#FF5A36]/50 hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200 flex items-center justify-center gap-2"
                 >
                   {isVerifyingOtp ? (
                     <>
                       <Loader2 className="w-4 h-4 animate-spin" />
-                      <span>Đang xác nhận OTP & Khóa vé gRPC...</span>
+                      <span>Đang xác nhận OTP & Khóa vé...</span>
                     </>
                   ) : (
                     <span>Xác Nhận OTP & Khóa Vé →</span>
@@ -519,7 +630,7 @@ export const SellTicketPage: React.FC = () => {
 
                 <div className="p-3 bg-white/5 border border-white/10 rounded-xl text-[11px] text-[#A3A8B3] flex items-center gap-2 hover:border-emerald-500/30 transition-all duration-300">
                   <Lock className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                  <span>Xác thực gRPC Durable Lock đảm bảo vé chưa đổi chủ / chưa sử dụng.</span>
+                  <span>Xác thực hệ thống đảm bảo vé chưa đổi chủ / chưa sử dụng.</span>
                 </div>
               </form>
 
