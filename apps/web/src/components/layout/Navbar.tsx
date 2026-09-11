@@ -23,11 +23,32 @@ export const Navbar: React.FC = () => {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
+  const handleBrandClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    if (isHome) {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    } else {
+      navigate('/');
+      setTimeout(() => {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }, 100);
+    }
+  };
+
   const handleLogout = () => {
     logout();
-    showToast('Đã đăng xuất tài khoản', 'info');
+    showToast('Signed out successfully', 'info');
     navigate('/login');
   };
+
+  const navLinks = [
+    { label: 'Featured', href: '#featured' },
+    { label: 'Discover', href: '#discover' },
+    { label: 'Events', href: '#events' },
+    { label: 'Passes', href: '#experiences' },
+    { label: 'Security', href: '#security' },
+    { label: 'Process', href: '#process' },
+  ];
 
   return (
     <header
@@ -38,56 +59,43 @@ export const Navbar: React.FC = () => {
       }`}
     >
       <div className="max-w-7xl mx-auto px-6 md:px-12 flex items-center justify-between">
-        {/* Brand */}
-        <Link to="/" className="flex items-center gap-2.5 group">
-          <div className="w-3 h-3 rounded-full bg-[#FF5A36] group-hover:scale-125 transition-transform duration-300 shadow-[0_0_10px_#FF5A36]" />
+        {/* Brand Logo - Click scrolls to top */}
+        <a
+          href="/"
+          onClick={handleBrandClick}
+          className="flex items-center gap-2.5 group cursor-pointer"
+        >
+          <div className="w-3.5 h-3.5 rounded-full bg-[#FF5A36] group-hover:scale-125 transition-transform duration-300 shadow-[0_0_10px_#FF5A36]" />
           <span className="font-display text-xl font-bold tracking-tight text-[#F5F5F2]">
             TicketShield
           </span>
-        </Link>
+        </a>
 
-        {/* Desktop Nav Links */}
-        <nav className="hidden md:flex items-center space-x-8 text-sm font-medium tracking-wide">
+        {/* Desktop Nav Links (Complete Section Navigation) */}
+        <nav className="hidden md:flex items-center space-x-7 text-sm font-medium tracking-wide">
           {isHome ? (
-            <>
+            navLinks.map((link) => (
               <a
-                href="#discover"
+                key={link.label}
+                href={link.href}
                 className="text-[#A3A8B3] hover:text-[#F5F5F2] transition-colors duration-200"
               >
-                Discover
+                {link.label}
               </a>
-              <a
-                href="#events"
-                className="text-[#A3A8B3] hover:text-[#F5F5F2] transition-colors duration-200"
-              >
-                Events
-              </a>
-              <a
-                href="#experiences"
-                className="text-[#A3A8B3] hover:text-[#F5F5F2] transition-colors duration-200"
-              >
-                Experiences
-              </a>
-              <a
-                href="#security"
-                className="text-[#A3A8B3] hover:text-[#F5F5F2] transition-colors duration-200"
-              >
-                Security
-              </a>
-            </>
+            ))
           ) : (
             <>
               <Link to="/" className="text-[#A3A8B3] hover:text-[#F5F5F2] transition-colors">
-                Trang Chủ
+                Home
               </Link>
               <Link to="/#events" className="text-[#A3A8B3] hover:text-[#F5F5F2] transition-colors">
-                Sự Kiện
+                Events
               </Link>
             </>
           )}
         </nav>
 
-        {/* Right CTA / User Profile */}
+        {/* Right CTA / User Account Controls */}
         <div className="hidden md:flex items-center space-x-5 text-sm">
           {user ? (
             <div className="flex items-center gap-3">
@@ -98,7 +106,7 @@ export const Navbar: React.FC = () => {
                 <div className="w-6 h-6 rounded-full bg-[#FF5A36]/20 text-[#FF5A36] flex items-center justify-center font-bold">
                   {user.fullName ? user.fullName[0].toUpperCase() : <UserIcon className="w-3.5 h-3.5" />}
                 </div>
-                <span className="font-display font-medium">{user.fullName || 'Tài khoản'}</span>
+                <span className="font-display font-medium">{user.fullName || 'Account'}</span>
                 {user.role === 'ADMIN' && (
                   <span className="text-[10px] bg-[#FF5A36] text-white px-1.5 py-0.5 rounded font-mono">
                     ADMIN
@@ -114,7 +122,7 @@ export const Navbar: React.FC = () => {
               </Link>
               <button
                 onClick={handleLogout}
-                title="Đăng xuất"
+                title="Sign Out"
                 className="p-2.5 rounded-full bg-[#0A0D12] border border-white/10 text-[#A3A8B3] hover:text-red-400 hover:border-red-500/40 transition-all"
               >
                 <LogOut className="w-4 h-4" />
@@ -138,7 +146,7 @@ export const Navbar: React.FC = () => {
           )}
         </div>
 
-        {/* Mobile Toggle */}
+        {/* Mobile Hamburger Toggle */}
         <button
           onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
           className="md:hidden text-[#F5F5F2] p-2 focus:outline-none"
@@ -165,34 +173,16 @@ export const Navbar: React.FC = () => {
       {/* Mobile Drawer */}
       {mobileMenuOpen && (
         <div className="md:hidden bg-[#05070A]/95 backdrop-blur-xl border-b border-white/10 px-6 py-6 space-y-4">
-          <a
-            href="#discover"
-            onClick={() => setMobileMenuOpen(false)}
-            className="block text-[#A3A8B3] hover:text-[#F5F5F2] text-lg font-medium"
-          >
-            Discover
-          </a>
-          <a
-            href="#events"
-            onClick={() => setMobileMenuOpen(false)}
-            className="block text-[#A3A8B3] hover:text-[#F5F5F2] text-lg font-medium"
-          >
-            Events
-          </a>
-          <a
-            href="#experiences"
-            onClick={() => setMobileMenuOpen(false)}
-            className="block text-[#A3A8B3] hover:text-[#F5F5F2] text-lg font-medium"
-          >
-            Experiences
-          </a>
-          <a
-            href="#security"
-            onClick={() => setMobileMenuOpen(false)}
-            className="block text-[#A3A8B3] hover:text-[#F5F5F2] text-lg font-medium"
-          >
-            Security
-          </a>
+          {navLinks.map((link) => (
+            <a
+              key={link.label}
+              href={link.href}
+              onClick={() => setMobileMenuOpen(false)}
+              className="block text-[#A3A8B3] hover:text-[#F5F5F2] text-lg font-medium"
+            >
+              {link.label}
+            </a>
+          ))}
           <div className="pt-4 border-t border-white/10 flex flex-col gap-3">
             {user ? (
               <>
@@ -210,7 +200,7 @@ export const Navbar: React.FC = () => {
                   }}
                   className="w-full text-center py-3 bg-red-500/20 text-red-400 font-medium rounded-full"
                 >
-                  Đăng xuất
+                  Sign Out
                 </button>
               </>
             ) : (

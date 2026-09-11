@@ -26,7 +26,7 @@ const steps = [
 
 export const HowItWorks: React.FC = () => {
   return (
-    <section className="relative bg-[#05070A] py-24 md:py-36 border-t border-white/5 overflow-hidden">
+    <section id="process" className="relative bg-[#05070A] py-24 md:py-36 border-t border-white/5 overflow-hidden">
       {/* Background Concert Texture to prevent plain black empty space */}
       <div className="absolute inset-0 z-0">
         <img
