@@ -93,33 +93,27 @@ export const Navbar: React.FC = () => {
       ];
     }
 
-    // 2. Logged-in Navigation -> Direct App Links
+    // 2. Logged-in Navigation -> Direct App Links (Bỏ Home & How It Works sau khi login)
     if (isReseller) {
       return [
-        { label: 'Home', action: isHome ? () => scrollToSection('hero') : undefined, href: isHome ? undefined : '/' },
         { label: 'Resale Marketplace', href: '/marketplace' },
         { label: 'Sell Ticket', href: '/sell-ticket' },
         { label: 'My Listings', href: '/my-listings' },
         { label: 'My Tickets', href: '/my-tickets' },
-        { label: 'How It Works', action: () => scrollToSection('flow') },
       ];
     }
 
     if (user.role === 'ADMIN') {
       return [
-        { label: 'Home', action: isHome ? () => scrollToSection('hero') : undefined, href: isHome ? undefined : '/' },
         { label: 'Resale Marketplace', href: '/marketplace' },
         { label: 'Manage Listings', href: '/my-listings' },
-        { label: 'How It Works', action: () => scrollToSection('flow') },
       ];
     }
 
     return [
-      { label: 'Home', action: isHome ? () => scrollToSection('hero') : undefined, href: isHome ? undefined : '/' },
       { label: 'Resale Marketplace', href: '/marketplace' },
       { label: 'Sell Ticket', href: '/sell-ticket' },
       { label: 'My Tickets', href: '/my-tickets' },
-      { label: 'How It Works', action: () => scrollToSection('flow') },
     ];
   };
 
@@ -127,35 +121,40 @@ export const Navbar: React.FC = () => {
 
   return (
     <header
-      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${scrolled || !isHome
-        ? 'bg-[#05070A]/95 backdrop-blur-md border-b border-white/10 py-3.5 shadow-2xl'
-        : 'bg-transparent py-5'
-        }`}
+      className={`fixed top-0 left-0 right-0 z-50 h-[72px] transition-all duration-300 ${
+        scrolled || !isHome
+          ? 'bg-[#05070A]/95 backdrop-blur-xl border-b border-white/[0.08] shadow-2xl shadow-black/40'
+          : 'bg-[#05070A]/80 backdrop-blur-md border-b border-white/[0.05]'
+      }`}
     >
-      <div className="max-w-7xl mx-auto px-6 md:px-12 flex items-center justify-between gap-6">
-        <a href="/" onClick={handleBrandClick} className="shrink-0">
+      <div className="max-w-7xl mx-auto h-full px-6 md:px-12 flex items-center justify-between gap-6">
+        <a href="/" onClick={handleBrandClick} className="shrink-0 flex items-center">
           <TicketShieldLogo size="md" />
         </a>
 
-        <nav className="hidden lg:flex items-center space-x-6 text-xs font-semibold uppercase tracking-wider whitespace-nowrap shrink-0">
+        <nav className="hidden lg:flex items-center space-x-7 text-xs font-semibold uppercase tracking-wider whitespace-nowrap shrink-0">
           {navLinks.map((link) => (
             link.href ? (
               <Link
                 key={link.label}
                 to={link.href}
-                className={`transition-colors duration-200 ${location.pathname === link.href
-                  ? 'text-[#FF5A36] font-bold'
-                  : 'text-[#A3A8B3] hover:text-[#F5F5F2]'
-                  }`}
+                className={`relative py-1 transition-colors duration-200 ${
+                  location.pathname === link.href
+                    ? 'text-[#FF5A36] font-bold'
+                    : 'text-[#8B929C] hover:text-[#F5F5F5]'
+                }`}
               >
                 {link.label}
+                {location.pathname === link.href && (
+                  <span className="absolute bottom-0 left-0 right-0 h-[2px] bg-[#FF5A36] rounded-full shadow-[0_0_8px_#FF5A36]" />
+                )}
               </Link>
             ) : (
               <button
                 key={link.label}
                 onClick={link.action}
                 type="button"
-                className="text-[#A3A8B3] hover:text-[#FF5A36] transition-colors duration-200 font-semibold uppercase tracking-wider"
+                className="text-[#8B929C] hover:text-[#FF5A36] transition-colors duration-200 font-semibold uppercase tracking-wider cursor-pointer"
               >
                 {link.label}
               </button>
@@ -168,7 +167,7 @@ export const Navbar: React.FC = () => {
             <div className="flex items-center gap-3">
               <Link
                 to="/profile"
-                className="flex items-center gap-2.5 px-3.5 py-2 rounded-full bg-[#0A0D12] border border-white/10 hover:border-[#FF5A36]/50 transition-all font-semibold text-[#F5F5F2] group whitespace-nowrap"
+                className="flex items-center gap-2.5 px-3.5 py-1.5 rounded-full bg-[#0B0E12] border border-white/[0.08] hover:border-[#FF5A36]/50 transition-all font-semibold text-[#F5F5F5] group whitespace-nowrap"
                 title="View Profile & Account"
               >
                 <div className="w-6 h-6 rounded-full bg-[#FF5A36]/20 text-[#FF5A36] group-hover:bg-[#FF5A36] group-hover:text-white transition-all flex items-center justify-center font-bold text-xs">

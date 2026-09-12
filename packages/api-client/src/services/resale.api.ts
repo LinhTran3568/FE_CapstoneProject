@@ -1,4 +1,4 @@
-import { httpClient } from './client';
+import { httpClient, API_CONFIG, TOKEN_STORAGE_KEY } from './client';
 import type { SellerListingDto, CancelResaleListingResponse } from '@ticketshield/types';
 
 export type { SellerListingDto, CancelResaleListingResponse };
@@ -68,6 +68,40 @@ export const resaleApi = {
     return await httpClient<VerificationResult>(`/ticket-verifications/${verificationId}`, {
       method: 'GET',
     });
+  },
+
+  /**
+   * Hủy phiên xác thực vé dở dang và giải phóng khóa vé tại Ban Tổ Chức (Release Lock)
+   */
+  closeVerification: async (verificationId: string): Promise<VerificationResult> => {
+    return await httpClient<VerificationResult>(`/ticket-verifications/${verificationId}/close`, {
+      method: 'POST',
+      headers: {
+        'Idempotency-Key': generateIdempotencyKey(),
+      },
+    });
+  },
+
+  /**
+   * Gửi yêu cầu đóng phiên qua beacon/keepalive khi người dùng đóng tab hoặc thoát trang
+   */
+  closeVerificationBeacon: (verificationId: string): void => {
+    if (typeof window === 'undefined' || !verificationId) return;
+    try {
+      const token = localStorage.getItem(TOKEN_STORAGE_KEY);
+      const url = `${API_CONFIG.baseURL}/ticket-verifications/${verificationId}/close`;
+      fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Idempotency-Key': generateIdempotencyKey(),
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        keepalive: true,
+      }).catch(() => {});
+    } catch (e) {
+      console.warn('Beacon close failed', e);
+    }
   },
 
   /**

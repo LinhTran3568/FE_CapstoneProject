@@ -185,6 +185,31 @@ export interface SellerListingDto {
   createdAt: string;
 }
 
+/**
+ * Public marketplace resale listing.
+ * GET /api/v1/resale-listings → backend `ResaleListingDetailDto`.
+ */
+export interface ResaleListingDetailDto {
+  listingId: string;
+  eventId: string;
+  eventName: string;
+  eventVenue: string;
+  eventStartAt: string;
+  tierId: string;
+  tierName: string;
+  originalPrice: number;
+  resalePrice: number;
+  discountAmount: number;
+  discountPercentage: number;
+  isPrivate: boolean;
+  maskedTicketCode: string;
+  verificationStatus: VerificationStatus;
+  listingStatus: ListingStatus;
+  sellerId: string;
+  sellerFullName: string;
+  createdAt: string;
+}
+
 /** POST /api/v1/resale-listings/{id}/cancel → backend `CancelResaleListingResponse`. */
 export interface CancelResaleListingResponse {
   listingId: string;
