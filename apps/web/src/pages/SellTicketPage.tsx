@@ -705,42 +705,20 @@ export const SellTicketPage: React.FC = () => {
           {/* Sub-header Navigation Row */}
           <div className="flex items-center justify-between text-xs text-[#A3A8B3] font-mono max-w-2xl mx-auto px-2">
             {currentStep > 1 && currentStep < 6 ? (
-              <div className="flex items-center gap-3">
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (currentStep === 2) {
-                      handleAbandonSession();
-                    } else {
-                      setCurrentStep((prev) => prev - 1);
-                    }
-                  }}
-                  className="flex items-center gap-1.5 hover:text-white transition-colors group cursor-pointer"
-                >
-                  <ArrowLeft className="w-3.5 h-3.5 group-hover:-translate-x-1 transition-transform duration-200" />
-                  <span>Quay lại</span>
-                </button>
-                <span className="text-white/20">|</span>
-                <button
-                  type="button"
-                  onClick={handleAbandonSession}
-                  disabled={isCancellingSession}
-                  className="text-rose-400 hover:text-rose-300 hover:underline flex items-center gap-1 transition-colors disabled:opacity-50 cursor-pointer"
-                  title="Hủy phiên và giải phóng vé về trạng thái khả dụng cho chủ sở hữu"
-                >
-                  {isCancellingSession ? (
-                    <>
-                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                      <span>Đang mở khóa vé...</span>
-                    </>
-                  ) : (
-                    <>
-                      <X className="w-3.5 h-3.5" />
-                      <span>Hủy phiên & Mở khóa vé</span>
-                    </>
-                  )}
-                </button>
-              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  if (currentStep === 2) {
+                    handleAbandonSession();
+                  } else {
+                    setCurrentStep((prev) => prev - 1);
+                  }
+                }}
+                className="flex items-center gap-1.5 hover:text-white transition-colors group cursor-pointer"
+              >
+                <ArrowLeft className="w-3.5 h-3.5 group-hover:-translate-x-1 transition-transform duration-200" />
+                <span>Back</span>
+              </button>
             ) : (
               <div />
             )}
@@ -756,24 +734,43 @@ export const SellTicketPage: React.FC = () => {
           </div>
         </div>
 
-        {/* Banner thông báo phục hồi phiên nháp dở dang */}
+        {/* Banner thông báo phục hồi phiên nháp dở dang - Compact & Elegant */}
         {resumeDraftAvailable && currentStep > 1 && currentStep < 6 && (
-          <div className="max-w-2xl mx-auto p-4 bg-cyan-950/40 border border-cyan-500/30 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs text-cyan-200 animate-fade-in-up">
-            <div className="flex items-center gap-2.5">
-              <Info className="w-4 h-4 text-cyan-400 shrink-0" />
-              <div>
-                <span className="font-bold text-white">Đang tiếp tục phiên đăng bán dở dang: </span>
-                <span className="font-mono text-cyan-300 font-semibold">{ticketCode}</span>
-                <span className="text-cyan-200/80"> (Bước {currentStep}/6). Vé đã được lưu nháp tại thiết bị, không cần gửi lại OTP.</span>
+          <div className="max-w-2xl mx-auto px-4 py-2.5 bg-[#0A131F]/90 backdrop-blur-xl border border-cyan-400/40 rounded-xl shadow-[0_0_20px_rgba(6,182,212,0.15)] flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 animate-fade-in-up">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <span className="flex h-2 w-2 relative shrink-0">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75" />
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-cyan-400" />
+              </span>
+              <div className="text-xs text-slate-200 truncate flex flex-wrap items-center gap-1.5">
+                <span className="font-medium text-white">Phiên dở dang:</span>
+                <span className="px-2 py-0.5 bg-cyan-500/20 border border-cyan-400/40 text-cyan-300 font-mono font-bold rounded text-[11px]">
+                  {ticketCode}
+                </span>
+                <span className="text-slate-400 text-[11px] hidden sm:inline">
+                  (Bước {currentStep}/6 · Tự động khôi phục)
+                </span>
               </div>
             </div>
+
             <button
               type="button"
               onClick={handleAbandonSession}
               disabled={isCancellingSession}
-              className="px-3 py-1.5 bg-white/10 hover:bg-rose-500/20 text-rose-300 border border-white/10 hover:border-rose-500/40 rounded-lg font-mono text-[11px] whitespace-nowrap transition-colors cursor-pointer"
+              className="self-end sm:self-auto px-3 py-1.5 bg-rose-500/15 hover:bg-rose-500/30 text-rose-300 hover:text-white border border-rose-500/35 hover:border-rose-400 rounded-lg font-mono text-[11px] font-semibold transition-all duration-150 flex items-center gap-1 cursor-pointer disabled:opacity-50 shrink-0"
+              title="Hủy phiên và mở khóa vé gốc tại Ban Tổ Chức"
             >
-              {isCancellingSession ? 'Đang mở khóa...' : 'Hủy & Mở khóa vé'}
+              {isCancellingSession ? (
+                <>
+                  <Loader2 className="w-3 h-3 animate-spin" />
+                  <span>Đang mở khóa...</span>
+                </>
+              ) : (
+                <>
+                  <X className="w-3 h-3" />
+                  <span>Hủy & Mở khóa vé</span>
+                </>
+              )}
             </button>
           </div>
         )}
@@ -1014,21 +1011,21 @@ export const SellTicketPage: React.FC = () => {
                   <span>Xác thực hệ thống đảm bảo vé chưa đổi chủ / chưa sử dụng.</span>
                 </div>
 
-                <div className="text-center pt-1">
+                <div className="text-center pt-2">
                   <button
                     type="button"
                     onClick={handleAbandonSession}
                     disabled={isCancellingSession}
-                    className="text-xs text-[#8F96A3] hover:text-rose-400 hover:underline transition-colors font-mono disabled:opacity-50 inline-flex items-center gap-1.5 cursor-pointer"
+                    className="px-4 py-2 bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 hover:text-rose-100 border border-rose-500/30 hover:border-rose-400 rounded-xl text-xs font-mono font-semibold transition-all duration-200 disabled:opacity-50 inline-flex items-center gap-2 cursor-pointer shadow-sm hover:scale-[1.02] active:scale-95"
                   >
                     {isCancellingSession ? (
                       <>
-                        <Loader2 className="w-3 h-3 animate-spin" />
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
                         <span>Đang hủy và mở khóa vé tại BTC...</span>
                       </>
                     ) : (
                       <>
-                        <X className="w-3 h-3" />
+                        <X className="w-3.5 h-3.5 stroke-[2.5]" />
                         <span>Hủy bỏ quy trình & Mở khóa vé</span>
                       </>
                     )}
