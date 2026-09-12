@@ -581,14 +581,24 @@ export const SellTicketPage: React.FC = () => {
           70% { transform: scale(1.08); }
           100% { opacity: 1; transform: scale(1); }
         }
-        @keyframes kenburnsSlow {
-          0% { transform: scale(1.04) translate(0, 0); filter: brightness(1.15) contrast(1.25); }
-          100% { transform: scale(1.1) translate(-1%, -1%); filter: brightness(1.05) contrast(1.3); }
+        @keyframes kenburnsGentle {
+          0% {
+            transform: scale(1.03) translate(0, 0);
+          }
+          35% {
+            transform: scale(1.06) translate(1.2%, -0.8%);
+          }
+          70% {
+            transform: scale(1.075) translate(-0.8%, 0.9%);
+          }
+          100% {
+            transform: scale(1.04) translate(0.4%, -0.3%);
+          }
         }
-        @keyframes stageSpotlight {
-          0% { transform: rotate(-28deg) translateY(-15%) translateX(-20%); opacity: 0.25; }
-          50% { transform: rotate(18deg) translateY(12%) translateX(25%); opacity: 0.55; }
-          100% { transform: rotate(-28deg) translateY(-15%) translateX(-20%); opacity: 0.25; }
+        @keyframes stageSpotlightGentle {
+          0% { transform: rotate(-25deg) translateY(-10%) translateX(-15%); opacity: 0.22; }
+          50% { transform: rotate(15deg) translateY(8%) translateX(18%); opacity: 0.45; }
+          100% { transform: rotate(-25deg) translateY(-10%) translateX(-15%); opacity: 0.22; }
         }
         .animate-fade-in-up {
           animation: fadeInUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
@@ -602,11 +612,11 @@ export const SellTicketPage: React.FC = () => {
         .animate-glow {
           animation: subtleGlow 4s ease-in-out infinite;
         }
-        .animate-kenburns-slow {
-          animation: kenburnsSlow 20s ease-in-out infinite alternate;
+        .animate-kenburns-gentle {
+          animation: kenburnsGentle 14s ease-in-out infinite alternate;
         }
         .animate-stage-spotlight {
-          animation: stageSpotlight 5s ease-in-out infinite alternate;
+          animation: stageSpotlightGentle 8s ease-in-out infinite alternate;
         }
         @keyframes scanline {
           0% { top: 0%; opacity: 0; }
@@ -638,7 +648,7 @@ export const SellTicketPage: React.FC = () => {
         <img
           src="/images/landing/hero-concert.jpg"
           alt="Live Concert Stage"
-          className="w-full h-full object-cover opacity-70 animate-kenburns-slow transform-gpu origin-center"
+          className="w-full h-full object-cover opacity-70 animate-kenburns-gentle transform-gpu origin-center"
         />
         <div className="absolute -top-1/2 -left-1/2 w-[200%] h-[200%] bg-gradient-to-r from-transparent via-[#FF5A36]/30 to-transparent blur-3xl animate-stage-spotlight pointer-events-none" />
         <div className="absolute inset-0 bg-gradient-to-b from-[#05070A]/75 via-[#05070A]/55 to-[#05070A]/90" />
