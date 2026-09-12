@@ -26,7 +26,11 @@ export const SellTicketPage: React.FC = () => {
   const { showToast } = useUIStore();
   const { user } = useAuthStore();
 
+  const DRAFT_STORAGE_KEY = 'ticketshield_sell_draft';
+
   const [currentStep, setCurrentStep] = useState<number>(1);
+  const [isCancellingSession, setIsCancellingSession] = useState<boolean>(false);
+  const [resumeDraftAvailable, setResumeDraftAvailable] = useState<boolean>(false);
 
   // Auto scroll to top when step changes
   useEffect(() => {
@@ -38,6 +42,53 @@ export const SellTicketPage: React.FC = () => {
   const [verificationId, setVerificationId] = useState<string>('');
   const [verificationResult, setVerificationResult] = useState<VerificationResult | null>(null);
   const [isRequestingOtp, setIsRequestingOtp] = useState<boolean>(false);
+
+  // Step 4 Pricing state (declared early for draft storage)
+  const [faceValue, setFaceValue] = useState<number>(2500000);
+  const [resalePrice, setResalePrice] = useState<number>(2500000);
+  const [priceInputText, setPriceInputText] = useState<string>('2.500.000');
+
+  // Tự động khôi phục phiên nháp dở dang từ localStorage khi load trang
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(DRAFT_STORAGE_KEY);
+      if (raw) {
+        const d = JSON.parse(raw);
+        if (d.verificationId && d.currentStep > 1 && d.currentStep < 6) {
+          setTicketCode(d.ticketCode || '');
+          setVerificationId(d.verificationId);
+          setVerificationResult(d.verificationResult || null);
+          setFaceValue(d.faceValue || 2500000);
+          setResalePrice(d.resalePrice || 2500000);
+          setPriceInputText(d.priceInputText || (d.resalePrice ? d.resalePrice.toLocaleString('vi-VN') : '2.500.000'));
+          setCurrentStep(d.currentStep);
+          setResumeDraftAvailable(true);
+          showToast(`Đã tự động khôi phục phiên đăng bán dở dang cho vé ${d.ticketCode}`, 'info');
+        }
+      }
+    } catch (e) {
+      console.warn('Could not restore sell draft', e);
+    }
+  }, []);
+
+  // Tự động lưu phiên nháp vào localStorage khi chuyển bước
+  useEffect(() => {
+    if (verificationId && currentStep > 1 && currentStep < 6) {
+      localStorage.setItem(
+        DRAFT_STORAGE_KEY,
+        JSON.stringify({
+          ticketCode,
+          verificationId,
+          verificationResult,
+          currentStep,
+          faceValue,
+          resalePrice,
+          priceInputText: priceInputText || resalePrice.toLocaleString('vi-VN'),
+          savedAt: Date.now(),
+        })
+      );
+    }
+  }, [verificationId, currentStep, ticketCode, faceValue, resalePrice, priceInputText, verificationResult]);
 
   // Danh sách vé gốc của chủ sở hữu từ đối tác BTC
   const userTickets = [
@@ -103,13 +154,45 @@ export const SellTicketPage: React.FC = () => {
   });
 
 
+  const verificationIdRef = useRef(verificationId);
+  const currentStepRef = useRef(currentStep);
+
+  useEffect(() => {
+    verificationIdRef.current = verificationId;
+    currentStepRef.current = currentStep;
+  }, [verificationId, currentStep]);
+
+  // TỰ ĐỘNG GỬI LỆNH gRPC MỞ KHÓA VÉ KHI NGƯỜI DÙNG THOÁT / ĐÓNG TRANG (PAGEHIDE / BEFOREUNLOAD)
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      // Nếu đang trong phiên xác thực dở dang (Bước 2..5) mà thoát, giải phóng vé
+      if (verificationIdRef.current && currentStepRef.current > 1 && currentStepRef.current < 6) {
+        resaleApi.closeVerificationBeacon(verificationIdRef.current);
+      }
+    };
+
+    const handlePageHide = () => {
+      if (verificationIdRef.current && currentStepRef.current > 1 && currentStepRef.current < 6) {
+        resaleApi.closeVerificationBeacon(verificationIdRef.current);
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    window.addEventListener('pagehide', handlePageHide);
+
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      window.removeEventListener('pagehide', handlePageHide);
+    };
+  }, []);
+
   // Step 2 OTP Form state
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
   const [isVerifyingOtp, setIsVerifyingOtp] = useState(false);
   const [isResendingOtp, setIsResendingOtp] = useState(false);
   const [otpTimeLeft, setOtpTimeLeft] = useState<number>(300);
 
-  // Countdown timer for OTP (5 minutes)
+  // Countdown timer for OTP (5 minutes) - TỰ ĐỘNG MỞ KHÓA VÉ KHI HẾT HẠN
   useEffect(() => {
     if (currentStep !== 2) return;
 
@@ -118,6 +201,11 @@ export const SellTicketPage: React.FC = () => {
       setOtpTimeLeft((prev) => {
         if (prev <= 1) {
           clearInterval(interval);
+          if (verificationIdRef.current) {
+            resaleApi.closeVerification(verificationIdRef.current).catch(() => {});
+            showToast('Phiên xác thực đã hết hạn (5 phút). Hệ thống đã tự động gửi lệnh mở khóa vé tại Ban Tổ Chức.', 'warning');
+            resetToStep1();
+          }
           return 0;
         }
         return prev - 1;
@@ -132,11 +220,6 @@ export const SellTicketPage: React.FC = () => {
     const s = (seconds % 60).toString().padStart(2, '0');
     return `${m}:${s}`;
   };
-
-  // Step 4 Pricing state
-  const [faceValue, setFaceValue] = useState<number>(2500000);
-  const [resalePrice, setResalePrice] = useState<number>(2500000);
-  const [priceInputText, setPriceInputText] = useState<string>('2.500.000');
 
   const updatePrice = (val: number) => {
     const clamped = Math.max(0, Math.min(val, faceValue));
@@ -327,6 +410,45 @@ export const SellTicketPage: React.FC = () => {
     }
   };
 
+  // Helper reset form về bước 1 và xóa draft
+  const resetToStep1 = () => {
+    try {
+      localStorage.removeItem(DRAFT_STORAGE_KEY);
+    } catch (e) {
+      console.warn('Could not clear sell draft', e);
+    }
+    setVerificationId('');
+    setVerificationResult(null);
+    setTicketCode('');
+    setOtp(['', '', '', '', '', '']);
+    setCurrentStep(1);
+    setResumeDraftAvailable(false);
+  };
+
+  // HỦY PHIÊN TREO (CLOSE ABANDONED SESSION):
+  // Gửi lệnh gRPC giải phóng khóa vé bên Ban Tổ Chức (ReleaseReason = VerificationAbandoned)
+  // và khôi phục vé về trạng thái VALID cho chủ sở hữu
+  const handleAbandonSession = async () => {
+    if (!verificationId) {
+      resetToStep1();
+      return;
+    }
+    try {
+      setIsCancellingSession(true);
+      showToast('Đang hủy phiên và gửi lệnh mở khóa vé tại Ban Tổ Chức...', 'info');
+      await resaleApi.closeVerification(verificationId);
+      showToast('Đã hủy phiên và mở khóa vé gốc thành công!', 'success');
+      resetToStep1();
+      fetchExistingListings();
+    } catch (err: any) {
+      console.warn('Could not close verification session on backend', err);
+      showToast('Đã hủy phiên làm việc tại thiết bị.', 'warning');
+      resetToStep1();
+    } finally {
+      setIsCancellingSession(false);
+    }
+  };
+
   // Step 5: Publish Resale Listing
   const handlePublishListing = async () => {
     if (!agreedTerms) {
@@ -350,6 +472,12 @@ export const SellTicketPage: React.FC = () => {
       if (result.listingId) {
         setPublishedListingId(result.listingId);
       }
+      try {
+        localStorage.removeItem(DRAFT_STORAGE_KEY);
+      } catch (e) {
+        console.warn('Could not remove draft', e);
+      }
+      setResumeDraftAvailable(false);
       showToast('Đã niêm yết vé thành công lên Marketplace TicketShield!', 'success');
       fetchExistingListings();
       setCurrentStep(6);
@@ -577,13 +705,42 @@ export const SellTicketPage: React.FC = () => {
           {/* Sub-header Navigation Row */}
           <div className="flex items-center justify-between text-xs text-[#A3A8B3] font-mono max-w-2xl mx-auto px-2">
             {currentStep > 1 && currentStep < 6 ? (
-              <button
-                onClick={() => setCurrentStep((prev) => prev - 1)}
-                className="flex items-center gap-1.5 hover:text-white transition-colors group"
-              >
-                <ArrowLeft className="w-3.5 h-3.5 group-hover:-translate-x-1 transition-transform duration-200" />
-                <span>Back</span>
-              </button>
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (currentStep === 2) {
+                      handleAbandonSession();
+                    } else {
+                      setCurrentStep((prev) => prev - 1);
+                    }
+                  }}
+                  className="flex items-center gap-1.5 hover:text-white transition-colors group cursor-pointer"
+                >
+                  <ArrowLeft className="w-3.5 h-3.5 group-hover:-translate-x-1 transition-transform duration-200" />
+                  <span>Quay lại</span>
+                </button>
+                <span className="text-white/20">|</span>
+                <button
+                  type="button"
+                  onClick={handleAbandonSession}
+                  disabled={isCancellingSession}
+                  className="text-rose-400 hover:text-rose-300 hover:underline flex items-center gap-1 transition-colors disabled:opacity-50 cursor-pointer"
+                  title="Hủy phiên và giải phóng vé về trạng thái khả dụng cho chủ sở hữu"
+                >
+                  {isCancellingSession ? (
+                    <>
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      <span>Đang mở khóa vé...</span>
+                    </>
+                  ) : (
+                    <>
+                      <X className="w-3.5 h-3.5" />
+                      <span>Hủy phiên & Mở khóa vé</span>
+                    </>
+                  )}
+                </button>
+              </div>
             ) : (
               <div />
             )}
@@ -598,6 +755,28 @@ export const SellTicketPage: React.FC = () => {
             </span>
           </div>
         </div>
+
+        {/* Banner thông báo phục hồi phiên nháp dở dang */}
+        {resumeDraftAvailable && currentStep > 1 && currentStep < 6 && (
+          <div className="max-w-2xl mx-auto p-4 bg-cyan-950/40 border border-cyan-500/30 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs text-cyan-200 animate-fade-in-up">
+            <div className="flex items-center gap-2.5">
+              <Info className="w-4 h-4 text-cyan-400 shrink-0" />
+              <div>
+                <span className="font-bold text-white">Đang tiếp tục phiên đăng bán dở dang: </span>
+                <span className="font-mono text-cyan-300 font-semibold">{ticketCode}</span>
+                <span className="text-cyan-200/80"> (Bước {currentStep}/6). Vé đã được lưu nháp tại thiết bị, không cần gửi lại OTP.</span>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={handleAbandonSession}
+              disabled={isCancellingSession}
+              className="px-3 py-1.5 bg-white/10 hover:bg-rose-500/20 text-rose-300 border border-white/10 hover:border-rose-500/40 rounded-lg font-mono text-[11px] whitespace-nowrap transition-colors cursor-pointer"
+            >
+              {isCancellingSession ? 'Đang mở khóa...' : 'Hủy & Mở khóa vé'}
+            </button>
+          </div>
+        )}
 
         {/* STEP 1: NHẬP MÃ VÉ */}
         {currentStep === 1 && (
@@ -834,6 +1013,27 @@ export const SellTicketPage: React.FC = () => {
                   <Lock className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
                   <span>Xác thực hệ thống đảm bảo vé chưa đổi chủ / chưa sử dụng.</span>
                 </div>
+
+                <div className="text-center pt-1">
+                  <button
+                    type="button"
+                    onClick={handleAbandonSession}
+                    disabled={isCancellingSession}
+                    className="text-xs text-[#8F96A3] hover:text-rose-400 hover:underline transition-colors font-mono disabled:opacity-50 inline-flex items-center gap-1.5 cursor-pointer"
+                  >
+                    {isCancellingSession ? (
+                      <>
+                        <Loader2 className="w-3 h-3 animate-spin" />
+                        <span>Đang hủy và mở khóa vé tại BTC...</span>
+                      </>
+                    ) : (
+                      <>
+                        <X className="w-3 h-3" />
+                        <span>Hủy bỏ quy trình & Mở khóa vé</span>
+                      </>
+                    )}
+                  </button>
+                </div>
               </form>
 
             </div>
@@ -1002,8 +1202,8 @@ export const SellTicketPage: React.FC = () => {
                         onFocus={(e) => e.target.select()}
                         onBlur={handlePriceInputBlur}
                         className={`w-full bg-[#05070A] border rounded-xl pl-3 pr-14 py-2.5 text-sm font-mono font-bold text-white tracking-wider text-right focus:outline-none transition-all duration-200 ${resalePrice > faceValue
-                            ? 'border-rose-500 focus:ring-2 focus:ring-rose-500/30'
-                            : 'border-white/15 focus:border-[#FF5A36] focus:ring-2 focus:ring-[#FF5A36]/30 group-hover/input:border-white/25'
+                          ? 'border-rose-500 focus:ring-2 focus:ring-rose-500/30'
+                          : 'border-white/15 focus:border-[#FF5A36] focus:ring-2 focus:ring-[#FF5A36]/30 group-hover/input:border-white/25'
                           }`}
                         placeholder="0"
                       />

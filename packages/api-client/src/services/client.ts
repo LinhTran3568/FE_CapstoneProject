@@ -9,14 +9,17 @@ export interface ApiResponse<T> {
 
 const getBaseUrl = (): string => {
   if (typeof window !== 'undefined') {
-    const viteUrl = (import.meta as any)?.env?.VITE_API_BASE_URL;
-    if (viteUrl) return viteUrl;
+    const metaEnv = (import.meta as any)?.env;
+    const envUrl = metaEnv?.VITE_API_BASE_URL || metaEnv?.VITE_API_URL || (window as any)?.__ENV__?.VITE_API_BASE_URL;
+    if (envUrl) return envUrl;
   }
   return 'http://localhost:5000/api/v1';
 };
 
 export const API_CONFIG = {
-  baseURL: getBaseUrl(),
+  get baseURL(): string {
+    return getBaseUrl();
+  },
 };
 
 export const TOKEN_STORAGE_KEY = 'ticketshield_token';
