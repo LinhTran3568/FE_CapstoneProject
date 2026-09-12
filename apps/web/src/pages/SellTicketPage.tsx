@@ -136,6 +136,77 @@ export const SellTicketPage: React.FC = () => {
   // Step 4 Pricing state
   const [faceValue, setFaceValue] = useState<number>(2500000);
   const [resalePrice, setResalePrice] = useState<number>(2500000);
+  const [priceInputText, setPriceInputText] = useState<string>('2.500.000');
+
+  const updatePrice = (val: number) => {
+    const clamped = Math.max(0, Math.min(val, faceValue));
+    setResalePrice(clamped);
+    setPriceInputText(clamped > 0 ? clamped.toLocaleString('vi-VN') : '');
+  };
+
+  const handlePriceInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const input = e.target;
+    const oldVal = input.value;
+    const oldPos = input.selectionStart || 0;
+
+    // Đếm số chữ số nằm trước con trỏ trước khi format
+    const digitsBeforeCursor = oldVal.slice(0, oldPos).replace(/\D/g, '').length;
+
+    const raw = oldVal.replace(/\D/g, '');
+    if (raw === '') {
+      setPriceInputText('');
+      setResalePrice(0);
+      return;
+    }
+
+    // Giới hạn độ dài tránh tràn số
+    if (raw.length > 11) return;
+
+    const parsed = parseInt(raw, 10);
+    if (!isNaN(parsed)) {
+      const formatted = parsed.toLocaleString('vi-VN');
+      setResalePrice(parsed);
+      setPriceInputText(formatted);
+
+      // Khôi phục vị trí con trỏ chính xác theo số lượng chữ số đã gõ
+      requestAnimationFrame(() => {
+        let newPos = 0;
+        let count = 0;
+        for (let i = 0; i < formatted.length; i++) {
+          if (/\d/.test(formatted[i])) {
+            count++;
+          }
+          if (count >= digitsBeforeCursor) {
+            newPos = i + 1;
+            break;
+          }
+        }
+        if (newPos === 0 && formatted.length > 0) newPos = formatted.length;
+        input.setSelectionRange(newPos, newPos);
+      });
+    }
+  };
+
+  const handlePriceInputBlur = () => {
+    if (!priceInputText || resalePrice === 0) {
+      updatePrice(faceValue);
+    } else if (resalePrice > faceValue) {
+      updatePrice(faceValue);
+    }
+  };
+
+  const handleStepPrice = (delta: number) => {
+    const current = resalePrice || 0;
+    updatePrice(current + delta);
+  };
+
+  const handleApplyDiscount = (percent: number) => {
+    if (percent === 0) {
+      updatePrice(faceValue);
+    } else {
+      updatePrice(Math.round(faceValue * (1 - percent / 100)));
+    }
+  };
 
   // Step 5 Confirmation state
   const [agreedTerms, setAgreedTerms] = useState(true);
@@ -155,7 +226,7 @@ export const SellTicketPage: React.FC = () => {
     // 1. Kiểm tra nếu vé này đang được đăng bán trên sàn
     const isAlreadyListed = existingListings.some(
       (l) => l.originalTicketCode === normalizedCode &&
-             String(l.listingStatus).toLowerCase() !== 'cancelled'
+        String(l.listingStatus).toLowerCase() !== 'cancelled'
     );
     if (isAlreadyListed) {
       showToast('Vé này hiện đang được đăng bán trên hệ thống! Vui lòng vào mục "My Listings" để quản lý.', 'warning');
@@ -178,6 +249,7 @@ export const SellTicketPage: React.FC = () => {
       if (result.originalPrice && result.originalPrice > 0) {
         setFaceValue(result.originalPrice);
         setResalePrice(result.originalPrice);
+        setPriceInputText(result.originalPrice.toLocaleString('vi-VN'));
       }
       showToast('Đã gửi mã xác thực OTP! Vui lòng kiểm tra email chủ vé.', 'success');
       setCurrentStep(2);
@@ -235,6 +307,7 @@ export const SellTicketPage: React.FC = () => {
       if (result.originalPrice && result.originalPrice > 0) {
         setFaceValue(result.originalPrice);
         setResalePrice(result.originalPrice);
+        setPriceInputText(result.originalPrice.toLocaleString('vi-VN'));
       }
       showToast('Xác thực OTP & Khóa vé gốc thành công!', 'success');
       setCurrentStep(3);
@@ -251,14 +324,6 @@ export const SellTicketPage: React.FC = () => {
       }
     } finally {
       setIsVerifyingOtp(false);
-    }
-  };
-
-  const handleApplyDiscount = (percent: number) => {
-    if (percent === 0) {
-      setResalePrice(faceValue);
-    } else {
-      setResalePrice(Math.round(faceValue * (1 - percent / 100)));
     }
   };
 
@@ -488,22 +553,20 @@ export const SellTicketPage: React.FC = () => {
                     onClick={() => {
                       if (stepNum < currentStep) setCurrentStep(stepNum);
                     }}
-                    className={`w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center font-bold text-xs sm:text-sm font-display transition-all duration-300 active:scale-95 ${
-                      isCompleted
-                        ? 'bg-emerald-500 text-black shadow-lg shadow-emerald-500/30 cursor-pointer hover:scale-110'
-                        : isCurrent
-                          ? 'bg-[#FF5A36] text-white shadow-xl shadow-[#FF5A36]/50 scale-110 border-2 border-white/30 ring-4 ring-[#FF5A36]/20'
-                          : 'bg-[#0A0D12] text-[#A3A8B3] border border-white/10 hover:border-white/30'
-                    }`}
+                    className={`w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center font-bold text-xs sm:text-sm font-display transition-all duration-300 active:scale-95 ${isCompleted
+                      ? 'bg-emerald-500 text-black shadow-lg shadow-emerald-500/30 cursor-pointer hover:scale-110'
+                      : isCurrent
+                        ? 'bg-[#FF5A36] text-white shadow-xl shadow-[#FF5A36]/50 scale-110 border-2 border-white/30 ring-4 ring-[#FF5A36]/20'
+                        : 'bg-[#0A0D12] text-[#A3A8B3] border border-white/10 hover:border-white/30'
+                      }`}
                   >
                     {isCompleted ? <Check className="w-4 h-4 text-black stroke-[3]" /> : stepNum}
                   </button>
 
                   {stepNum < 6 && (
                     <div
-                      className={`flex-1 h-[2px] rounded-full transition-all duration-500 ${
-                        stepNum < currentStep ? 'bg-emerald-500 shadow-sm shadow-emerald-500/50' : 'bg-white/10'
-                      }`}
+                      className={`flex-1 h-[2px] rounded-full transition-all duration-500 ${stepNum < currentStep ? 'bg-emerald-500 shadow-sm shadow-emerald-500/50' : 'bg-white/10'
+                        }`}
                     />
                   )}
                 </React.Fragment>
@@ -604,17 +667,15 @@ export const SellTicketPage: React.FC = () => {
                             key={ticket.code}
                             type="button"
                             onClick={() => setTicketCode(ticketCode === ticket.code ? '' : ticket.code)}
-                            className={`group relative overflow-hidden rounded-xl p-3.5 text-left transition-all duration-200 cursor-pointer ${
-                              isSelected
-                                ? 'bg-[#0A0D12] border border-[#FF5A36] shadow-[0_0_20px_rgba(255,90,54,0.12)] -translate-y-0.5'
-                                : 'bg-[#0A0D12] border border-white/[0.08] hover:border-white/20 hover:bg-[#11161F] hover:-translate-y-0.5'
-                            }`}
+                            className={`group relative overflow-hidden rounded-xl p-3.5 text-left transition-all duration-200 cursor-pointer ${isSelected
+                              ? 'bg-[#0A0D12] border border-[#FF5A36] shadow-[0_0_20px_rgba(255,90,54,0.12)] -translate-y-0.5'
+                              : 'bg-[#0A0D12] border border-white/[0.08] hover:border-white/20 hover:bg-[#11161F] hover:-translate-y-0.5'
+                              }`}
                           >
                             {/* Left digital ticket indicator line */}
                             <div
-                              className={`absolute left-0 top-0 bottom-0 w-1 transition-colors duration-200 ${
-                                isSelected ? 'bg-[#FF5A36]' : 'bg-white/10 group-hover:bg-[#FF5A36]/60'
-                              }`}
+                              className={`absolute left-0 top-0 bottom-0 w-1 transition-colors duration-200 ${isSelected ? 'bg-[#FF5A36]' : 'bg-white/10 group-hover:bg-[#FF5A36]/60'
+                                }`}
                             />
 
                             {/* Subtle perforation notch */}
@@ -623,11 +684,10 @@ export const SellTicketPage: React.FC = () => {
                             <div className="pl-1.5 pr-2">
                               <div className="flex items-center justify-between mb-1.5">
                                 <span
-                                  className={`text-[10px] font-bold tracking-wider uppercase px-1.5 py-0.5 rounded ${
-                                    isSelected
-                                      ? 'text-[#FF5A36] bg-[#FF5A36]/10'
-                                      : 'text-[#8F96A3] bg-white/5 group-hover:text-[#F5F5F2]'
-                                  }`}
+                                  className={`text-[10px] font-bold tracking-wider uppercase px-1.5 py-0.5 rounded ${isSelected
+                                    ? 'text-[#FF5A36] bg-[#FF5A36]/10'
+                                    : 'text-[#8F96A3] bg-white/5 group-hover:text-[#F5F5F2]'
+                                    }`}
                                 >
                                   {ticket.category}
                                 </span>
@@ -668,11 +728,10 @@ export const SellTicketPage: React.FC = () => {
               <button
                 type="submit"
                 disabled={isRequestingOtp || !ticketCode.trim()}
-                className={`w-full py-4 font-bold font-display uppercase tracking-widest text-xs rounded-xl transition-all duration-200 flex items-center justify-center gap-2 ${
-                  !ticketCode.trim() || isRequestingOtp
-                    ? 'bg-white/10 text-white/40 cursor-not-allowed border border-white/5'
-                    : 'bg-[#FF5A36] hover:bg-[#FF7252] text-white shadow-lg shadow-[#FF5A36]/30 hover:shadow-xl hover:shadow-[#FF5A36]/50 hover:-translate-y-0.5 active:translate-y-0 cursor-pointer'
-                }`}
+                className={`w-full py-4 font-bold font-display uppercase tracking-widest text-xs rounded-xl transition-all duration-200 flex items-center justify-center gap-2 ${!ticketCode.trim() || isRequestingOtp
+                  ? 'bg-white/10 text-white/40 cursor-not-allowed border border-white/5'
+                  : 'bg-[#FF5A36] hover:bg-[#FF7252] text-white shadow-lg shadow-[#FF5A36]/30 hover:shadow-xl hover:shadow-[#FF5A36]/50 hover:-translate-y-0.5 active:translate-y-0 cursor-pointer'
+                  }`}
               >
                 {isRequestingOtp ? (
                   <>
@@ -800,85 +859,85 @@ export const SellTicketPage: React.FC = () => {
                 <div className="w-1/2 h-full bg-gradient-to-r from-transparent via-white/[0.04] to-transparent animate-ticket-shimmer" />
               </div>
 
-                {/* Concert image banner */}
-                <div className="relative h-44 overflow-hidden">
-                  <img
-                    src="/images/landing/featured-1.jpg"
-                    alt="Concert Ticket"
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-out"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-[#0A0D12] via-[#0A0D12]/50 to-transparent" />
-                </div>
-
-                {/* Ticket body */}
-                <div className="p-6 space-y-5">
-
-                  {/* Header row: label + verified status */}
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="space-y-1">
-                      <span className="text-[10px] text-[#8F96A3] font-mono font-bold uppercase tracking-[0.08em] block">
-                        OFFICIAL DIGITAL TICKET PASS
-                      </span>
-                      <h3 className="text-2xl font-extrabold font-display text-white group-hover:text-[#FF7252] transition-colors duration-300 leading-tight">
-                        Anh Trai Say Hi Concert 2026
-                      </h3>
-                    </div>
-
-                    {/* Verified status with pulsing radar ping effect */}
-                    <div className="flex items-center gap-2 shrink-0 pt-0.5">
-                      <span className="relative flex h-2 w-2">
-                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#FF5A36] opacity-75" />
-                        <span className="relative inline-flex rounded-full h-2 w-2 bg-[#FF5A36] shadow-[0_0_8px_#FF5A36]" />
-                      </span>
-                      <span className="text-[10px] font-mono font-bold uppercase tracking-[0.08em] text-[#FF5A36] whitespace-nowrap">
-                        VERIFIED · LOCKED
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Info row: ticket code + location */}
-                  <div className="grid grid-cols-2 divide-x divide-white/[0.07] bg-[#05070A] border border-white/[0.07] group-hover:border-white/[0.15] rounded-2xl overflow-hidden transition-colors duration-300">
-                    <div className="p-3.5 space-y-1 hover:bg-white/[0.02] transition-colors duration-200">
-                      <span className="text-[10px] text-[#8F96A3] font-mono font-bold uppercase tracking-[0.08em] block">
-                        MÃ VÉ GỐC
-                      </span>
-                      <p className="font-bold text-white font-mono text-sm tracking-wide group-hover:text-[#FF5A36] transition-colors duration-200">
-                        {ticketCode}
-                      </p>
-                    </div>
-                    <div className="p-3.5 pl-4 space-y-1 hover:bg-white/[0.02] transition-colors duration-200">
-                      <span className="text-[10px] text-[#8F96A3] font-mono font-bold uppercase tracking-[0.08em] block">
-                        ĐỊA ĐIỂM
-                      </span>
-                      <p className="font-bold text-white text-sm">Sân Vận Động Mỹ Đình</p>
-                    </div>
-                  </div>
-
-                  {/* Price cap row */}
-                  <div className="grid grid-cols-2 divide-x divide-white/[0.07] bg-[#05070A] border border-white/[0.07] group-hover:border-white/[0.15] rounded-2xl overflow-hidden transition-colors duration-300">
-                    <div className="p-4 space-y-1.5 hover:bg-white/[0.02] transition-colors duration-200">
-                      <span className="text-[10px] text-[#8F96A3] font-mono font-bold uppercase tracking-[0.08em] block">
-                        GIÁ VÉ GỐC
-                      </span>
-                      <p className="text-lg font-bold font-display text-white">
-                        {faceValue.toLocaleString('vi-VN')} VNĐ
-                      </p>
-                    </div>
-                    <div className="p-4 pl-5 space-y-1.5 hover:bg-white/[0.02] transition-colors duration-200">
-                      <span className="text-[10px] text-[#8F96A3] font-mono font-bold uppercase tracking-[0.08em] block">
-                        GIÁ BÁN LẠI TỐI ĐA
-                      </span>
-                      <p className="text-lg font-bold font-display text-white">
-                        {faceValue.toLocaleString('vi-VN')} VNĐ
-                      </p>
-                      <span className="text-[10px] text-[#8F96A3] font-mono block leading-tight">
-                        Theo quy định TicketShield
-                      </span>
-                    </div>
-                  </div>
-
-                </div>
+              {/* Concert image banner */}
+              <div className="relative h-44 overflow-hidden">
+                <img
+                  src="/images/landing/featured-1.jpg"
+                  alt="Concert Ticket"
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-out"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-[#0A0D12] via-[#0A0D12]/50 to-transparent" />
               </div>
+
+              {/* Ticket body */}
+              <div className="p-6 space-y-5">
+
+                {/* Header row: label + verified status */}
+                <div className="flex items-start justify-between gap-4">
+                  <div className="space-y-1">
+                    <span className="text-[10px] text-[#8F96A3] font-mono font-bold uppercase tracking-[0.08em] block">
+                      OFFICIAL DIGITAL TICKET PASS
+                    </span>
+                    <h3 className="text-2xl font-extrabold font-display text-white group-hover:text-[#FF7252] transition-colors duration-300 leading-tight">
+                      Anh Trai Say Hi Concert 2026
+                    </h3>
+                  </div>
+
+                  {/* Verified status with pulsing radar ping effect */}
+                  <div className="flex items-center gap-2 shrink-0 pt-0.5">
+                    <span className="relative flex h-2 w-2">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#FF5A36] opacity-75" />
+                      <span className="relative inline-flex rounded-full h-2 w-2 bg-[#FF5A36] shadow-[0_0_8px_#FF5A36]" />
+                    </span>
+                    <span className="text-[10px] font-mono font-bold uppercase tracking-[0.08em] text-[#FF5A36] whitespace-nowrap">
+                      VERIFIED · LOCKED
+                    </span>
+                  </div>
+                </div>
+
+                {/* Info row: ticket code + location */}
+                <div className="grid grid-cols-2 divide-x divide-white/[0.07] bg-[#05070A] border border-white/[0.07] group-hover:border-white/[0.15] rounded-2xl overflow-hidden transition-colors duration-300">
+                  <div className="p-3.5 space-y-1 hover:bg-white/[0.02] transition-colors duration-200">
+                    <span className="text-[10px] text-[#8F96A3] font-mono font-bold uppercase tracking-[0.08em] block">
+                      MÃ VÉ GỐC
+                    </span>
+                    <p className="font-bold text-white font-mono text-sm tracking-wide group-hover:text-[#FF5A36] transition-colors duration-200">
+                      {ticketCode}
+                    </p>
+                  </div>
+                  <div className="p-3.5 pl-4 space-y-1 hover:bg-white/[0.02] transition-colors duration-200">
+                    <span className="text-[10px] text-[#8F96A3] font-mono font-bold uppercase tracking-[0.08em] block">
+                      ĐỊA ĐIỂM
+                    </span>
+                    <p className="font-bold text-white text-sm">Sân Vận Động Mỹ Đình</p>
+                  </div>
+                </div>
+
+                {/* Price cap row */}
+                <div className="grid grid-cols-2 divide-x divide-white/[0.07] bg-[#05070A] border border-white/[0.07] group-hover:border-white/[0.15] rounded-2xl overflow-hidden transition-colors duration-300">
+                  <div className="p-4 space-y-1.5 hover:bg-white/[0.02] transition-colors duration-200">
+                    <span className="text-[10px] text-[#8F96A3] font-mono font-bold uppercase tracking-[0.08em] block">
+                      GIÁ VÉ GỐC
+                    </span>
+                    <p className="text-lg font-bold font-display text-white">
+                      {faceValue.toLocaleString('vi-VN')} VNĐ
+                    </p>
+                  </div>
+                  <div className="p-4 pl-5 space-y-1.5 hover:bg-white/[0.02] transition-colors duration-200">
+                    <span className="text-[10px] text-[#8F96A3] font-mono font-bold uppercase tracking-[0.08em] block">
+                      GIÁ BÁN LẠI TỐI ĐA
+                    </span>
+                    <p className="text-lg font-bold font-display text-white">
+                      {faceValue.toLocaleString('vi-VN')} VNĐ
+                    </p>
+                    <span className="text-[10px] text-[#8F96A3] font-mono block leading-tight">
+                      Theo quy định TicketShield
+                    </span>
+                  </div>
+                </div>
+
+              </div>
+            </div>
 
             {/* Glowing CTA Button with Shimmer Sheen */}
             <button
@@ -899,7 +958,7 @@ export const SellTicketPage: React.FC = () => {
                 Thiết Lập Giá Rao Bán
               </h2>
               <p className="text-xs text-[#A3A8B3]">
-                Giá bán lại không được vượt quá giá gốc ({faceValue.toLocaleString('vi-VN')} VNĐ) để chống đầu cơ.
+                Giá bán lại không được vượt quá giá vé gốc ({faceValue.toLocaleString('vi-VN')} VNĐ) theo quy định chống đầu cơ.
               </p>
             </div>
 
@@ -910,54 +969,133 @@ export const SellTicketPage: React.FC = () => {
               </span>
 
               <div className="text-4xl sm:text-5xl font-extrabold font-display text-white tracking-tight flex items-center justify-center gap-2 transition-all duration-300">
-                <span className="transition-all duration-300">{resalePrice.toLocaleString('vi-VN')}</span>
+                <span className="transition-all duration-300">
+                  {resalePrice > 0 ? resalePrice.toLocaleString('vi-VN') : '0'}
+                </span>
                 <span className="text-base font-normal text-[#FF5A36]">VNĐ</span>
               </div>
 
+              {/* Manual Price Input – Compact row with stepper */}
+              <div className="space-y-1.5">
+                {/* Label + Input row */}
+                <div className="flex items-center gap-3">
+                  {/* Label */}
+                  <div className="flex flex-col text-left shrink-0">
+                    <span className="text-[10px] text-[#A3A8B3] font-mono uppercase tracking-wider whitespace-nowrap font-semibold">
+                      Nhập giá (VNĐ)
+                    </span>
+                    <span className="text-[9px] text-[#8F96A3] font-mono whitespace-nowrap">
+                      (Không vượt quá giá vé gốc)
+                    </span>
+                  </div>
+
+                  {/* Stepper row: [ input ] [ − ] [ + ] */}
+                  <div className="flex items-center flex-1 gap-2">
+                    {/* Input */}
+                    <div className="relative flex-1 group/input">
+                      <input
+                        id="resale-price-input"
+                        type="text"
+                        inputMode="numeric"
+                        value={priceInputText}
+                        onChange={handlePriceInputChange}
+                        onFocus={(e) => e.target.select()}
+                        onBlur={handlePriceInputBlur}
+                        className={`w-full bg-[#05070A] border rounded-xl pl-3 pr-14 py-2.5 text-sm font-mono font-bold text-white tracking-wider text-right focus:outline-none transition-all duration-200 ${resalePrice > faceValue
+                            ? 'border-rose-500 focus:ring-2 focus:ring-rose-500/30'
+                            : 'border-white/15 focus:border-[#FF5A36] focus:ring-2 focus:ring-[#FF5A36]/30 group-hover/input:border-white/25'
+                          }`}
+                        placeholder="0"
+                      />
+                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-mono text-[#FF5A36] font-bold pointer-events-none">
+                        VNĐ
+                      </span>
+                    </div>
+
+                    {/* Decrease button */}
+                    <button
+                      type="button"
+                      onClick={() => handleStepPrice(-10000)}
+                      className="w-10 h-10 shrink-0 rounded-xl bg-[#05070A] border border-white/10 text-white hover:border-[#FF5A36] hover:text-[#FF5A36] hover:bg-[#FF5A36]/10 transition-all duration-150 flex items-center justify-center font-bold text-lg leading-none active:scale-95 cursor-pointer"
+                      title="Giảm 10.000 VNĐ"
+                    >
+                      −
+                    </button>
+
+                    {/* Increase button */}
+                    <button
+                      type="button"
+                      onClick={() => handleStepPrice(10000)}
+                      className="w-10 h-10 shrink-0 rounded-xl bg-[#05070A] border border-white/10 text-white hover:border-[#FF5A36] hover:text-[#FF5A36] hover:bg-[#FF5A36]/10 transition-all duration-150 flex items-center justify-center font-bold text-lg leading-none active:scale-95 cursor-pointer"
+                      title="Tăng 10.000 VNĐ"
+                    >
+                      +
+                    </button>
+                  </div>
+                </div>
+
+                {/* Validation hint - FIXED HEIGHT to eliminate vertical jumping */}
+                <div className="min-h-[20px] flex items-center justify-end text-[10px] font-mono">
+                  {resalePrice > faceValue && (
+                    <span className="text-rose-400 font-semibold">
+                      ⚠ Không vượt quá giá vé gốc ({faceValue.toLocaleString('vi-VN')} VNĐ)
+                    </span>
+                  )}
+                  {resalePrice < faceValue && resalePrice > 0 && (
+                    <span className="text-emerald-400">
+                      ✓ Giảm {(faceValue - resalePrice).toLocaleString('vi-VN')} VNĐ ({Math.round((1 - resalePrice / faceValue) * 100)}%) so với giá vé gốc
+                    </span>
+                  )}
+                  {resalePrice === faceValue && (
+                    <span className="text-[#A3A8B3]">
+                      Bằng 100% giá vé gốc ({faceValue.toLocaleString('vi-VN')} VNĐ)
+                    </span>
+                  )}
+                </div>
+              </div>
+
+
               {/* Quick Discount Buttons */}
+
               <div className="space-y-2">
                 <span className="text-[11px] text-[#A3A8B3]">Tùy chọn giá nhanh:</span>
                 <div className="grid grid-cols-4 gap-2 text-xs font-mono">
                   <button
                     onClick={() => handleApplyDiscount(5)}
-                    className={`py-2.5 rounded-xl border transition-all duration-200 hover:scale-105 active:scale-95 ${
-                      resalePrice === Math.round(faceValue * 0.95)
-                        ? 'bg-[#FF5A36]/20 border-[#FF5A36] text-[#FF5A36] font-bold shadow-lg shadow-[#FF5A36]/20'
-                        : 'bg-[#05070A] border-white/10 text-[#A3A8B3] hover:text-white hover:border-white/30'
-                    }`}
+                    className={`py-2.5 rounded-xl border transition-all duration-200 hover:scale-105 active:scale-95 ${resalePrice === Math.round(faceValue * 0.95)
+                      ? 'bg-[#FF5A36]/20 border-[#FF5A36] text-[#FF5A36] font-bold shadow-lg shadow-[#FF5A36]/20'
+                      : 'bg-[#05070A] border-white/10 text-[#A3A8B3] hover:text-white hover:border-white/30'
+                      }`}
                   >
                     -5%
                   </button>
 
                   <button
                     onClick={() => handleApplyDiscount(10)}
-                    className={`py-2.5 rounded-xl border transition-all duration-200 hover:scale-105 active:scale-95 ${
-                      resalePrice === Math.round(faceValue * 0.9)
-                        ? 'bg-[#FF5A36]/20 border-[#FF5A36] text-[#FF5A36] font-bold shadow-lg shadow-[#FF5A36]/20'
-                        : 'bg-[#05070A] border-white/10 text-[#A3A8B3] hover:text-white hover:border-white/30'
-                    }`}
+                    className={`py-2.5 rounded-xl border transition-all duration-200 hover:scale-105 active:scale-95 ${resalePrice === Math.round(faceValue * 0.9)
+                      ? 'bg-[#FF5A36]/20 border-[#FF5A36] text-[#FF5A36] font-bold shadow-lg shadow-[#FF5A36]/20'
+                      : 'bg-[#05070A] border-white/10 text-[#A3A8B3] hover:text-white hover:border-white/30'
+                      }`}
                   >
                     -10%
                   </button>
 
                   <button
                     onClick={() => handleApplyDiscount(15)}
-                    className={`py-2.5 rounded-xl border transition-all duration-200 hover:scale-105 active:scale-95 ${
-                      resalePrice === Math.round(faceValue * 0.85)
-                        ? 'bg-[#FF5A36]/20 border-[#FF5A36] text-[#FF5A36] font-bold shadow-lg shadow-[#FF5A36]/20'
-                        : 'bg-[#05070A] border-white/10 text-[#A3A8B3] hover:text-white hover:border-white/30'
-                    }`}
+                    className={`py-2.5 rounded-xl border transition-all duration-200 hover:scale-105 active:scale-95 ${resalePrice === Math.round(faceValue * 0.85)
+                      ? 'bg-[#FF5A36]/20 border-[#FF5A36] text-[#FF5A36] font-bold shadow-lg shadow-[#FF5A36]/20'
+                      : 'bg-[#05070A] border-white/10 text-[#A3A8B3] hover:text-white hover:border-white/30'
+                      }`}
                   >
                     -15%
                   </button>
 
                   <button
                     onClick={() => handleApplyDiscount(0)}
-                    className={`py-2.5 rounded-xl border transition-all duration-200 hover:scale-105 active:scale-95 ${
-                      resalePrice === faceValue
-                        ? 'bg-[#FF5A36]/20 border-[#FF5A36] text-[#FF5A36] font-bold shadow-lg shadow-[#FF5A36]/20'
-                        : 'bg-[#05070A] border-white/10 text-[#A3A8B3] hover:text-white hover:border-white/30'
-                    }`}
+                    className={`py-2.5 rounded-xl border transition-all duration-200 hover:scale-105 active:scale-95 ${resalePrice === faceValue
+                      ? 'bg-[#FF5A36]/20 border-[#FF5A36] text-[#FF5A36] font-bold shadow-lg shadow-[#FF5A36]/20'
+                      : 'bg-[#05070A] border-white/10 text-[#A3A8B3] hover:text-white hover:border-white/30'
+                      }`}
                   >
                     Bằng Giá Gốc
                   </button>
