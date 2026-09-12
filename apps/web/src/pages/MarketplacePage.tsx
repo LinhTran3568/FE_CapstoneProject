@@ -60,28 +60,28 @@ export const MarketplacePage: React.FC = () => {
 
   // Filter options definitions
   const dateOptions = [
-    { id: 'all', label: 'Tất cả ngày' },
-    { id: 'upcoming', label: 'Sắp diễn ra' },
-    { id: 'this-month', label: 'Trong tháng này' },
+    { id: 'all', label: 'All Dates' },
+    { id: 'upcoming', label: 'Upcoming' },
+    { id: 'this-month', label: 'This Month' },
   ] as const;
 
   const locationOptions = [
-    { id: 'all', label: 'Địa điểm' },
-    { id: 'hanoi', label: 'Hà Nội' },
-    { id: 'hcm', label: 'TP.HCM' },
+    { id: 'all', label: 'Location' },
+    { id: 'hanoi', label: 'Hanoi' },
+    { id: 'hcm', label: 'Ho Chi Minh City' },
   ] as const;
 
   const tierOptions = [
-    { id: 'all', label: 'Loại vé' },
+    { id: 'all', label: 'Ticket Tier' },
     { id: 'vip', label: 'VIP' },
-    { id: 'general', label: 'General / GA' },
+    { id: 'general', label: 'General Admission' },
     { id: 'standard', label: 'Standard' },
   ] as const;
 
   const sortOptions = [
-    { id: 'newest', label: 'Mới nhất' },
-    { id: 'price-asc', label: 'Giá thấp → cao' },
-    { id: 'date-asc', label: 'Sắp diễn ra' },
+    { id: 'newest', label: 'Newest' },
+    { id: 'price-asc', label: 'Price: Low → High' },
+    { id: 'date-asc', label: 'Event Date: Soonest' },
   ] as const;
 
   // Filter & sort listings based on user selections
@@ -107,12 +107,12 @@ export const MarketplacePage: React.FC = () => {
       // Location filter
       if (selectedLocation === 'hanoi') {
         const venue = (item.eventVenue || '').toLowerCase();
-        if (!venue.includes('hà nội') && !venue.includes('ha noi') && !venue.includes('mỹ đình') && !venue.includes('my dinh')) {
+        if (!venue.includes('hà nội') && !venue.includes('ha noi') && !venue.includes('hanoi') && !venue.includes('mỹ đình') && !venue.includes('my dinh')) {
           return false;
         }
       } else if (selectedLocation === 'hcm') {
         const venue = (item.eventVenue || '').toLowerCase();
-        if (!venue.includes('hcm') && !venue.includes('hồ chí minh') && !venue.includes('ho chi minh') && !venue.includes('vạn hạnh')) {
+        if (!venue.includes('hcm') && !venue.includes('hồ chí minh') && !venue.includes('ho chi minh') && !venue.includes('vạn hạnh') && !venue.includes('van hanh')) {
           return false;
         }
       }
@@ -174,7 +174,7 @@ export const MarketplacePage: React.FC = () => {
       matches.push({
         id: 'mock-1',
         title: 'Anh Trai Say Hi Concert 2026',
-        venue: 'Sân Vận Động Mỹ Đình · Hà Nội',
+        venue: 'My Dinh National Stadium · Hanoi',
         tier: 'VIP Zone A',
         price: 2500000,
       });
@@ -202,7 +202,7 @@ export const MarketplacePage: React.FC = () => {
   };
 
   const handleBuy = (title: string, price: number) => {
-    showToast(`Khởi tạo thanh toán Escrow an toàn cho vé "${title}" (${formatVND(price)})...`, 'info');
+    showToast(`Initiating secure Escrow checkout for "${title}" (${formatVND(price)})...`, 'info');
   };
 
   const hasActiveFilters = selectedDate !== 'all' || selectedLocation !== 'all' || selectedTier !== 'all';
@@ -376,17 +376,15 @@ export const MarketplacePage: React.FC = () => {
 
         {/* Header Section */}
         <div className="text-center space-y-2 max-w-3xl mx-auto pt-2 pb-6">
-          <span className="inline-block text-[11px] font-mono uppercase tracking-[0.2em] text-[#FF5A36] font-bold">
-            RESALE MARKETPLACE
-          </span>
-
           <h1 className="text-3xl sm:text-4xl md:text-5xl font-extrabold font-display text-white tracking-tight uppercase">
-            CHỢ VÉ BÁN LẠI
+            RESALE MARKETPLACE
           </h1>
 
-          <p className="text-xs sm:text-sm text-[#8B929C] max-w-lg mx-auto font-normal">
-            Vé chính chủ · Xác minh từ Ban Tổ Chức · Escrow bảo vệ giao dịch
-          </p>
+          <div className="flex justify-center">
+            <span className="inline-block px-4 py-1.5 rounded-full bg-black/30 backdrop-blur-md border border-white/15 text-xs sm:text-sm font-semibold text-[#FF5A36] tracking-wide shadow-lg">
+              100% Verified Tickets · Organizer Protected · Safe Escrow Checkout
+            </span>
+          </div>
         </div>
 
         {/* ======================================================================= */}
@@ -405,7 +403,7 @@ export const MarketplacePage: React.FC = () => {
               <Search className="w-4 h-4 text-[#8B929C] ml-3 mr-1.5 shrink-0" />
               <input
                 type="text"
-                placeholder="Tìm sự kiện, nghệ sĩ hoặc địa điểm..."
+                placeholder="Search events, artists, or venues..."
                 value={searchTerm}
                 onChange={(e) => {
                   setSearchTerm(e.target.value);
@@ -427,7 +425,7 @@ export const MarketplacePage: React.FC = () => {
                     setShowSuggestions(false);
                   }}
                   className="p-1 text-[#8B929C] hover:text-white rounded-lg transition-colors cursor-pointer"
-                  title="Xóa tìm kiếm"
+                  title="Clear search"
                 >
                   <X className="w-4 h-4" />
                 </button>
@@ -435,9 +433,9 @@ export const MarketplacePage: React.FC = () => {
 
               <button
                 type="submit"
-                className="w-[84px] h-[42px] px-3 bg-[#FF5A36] hover:bg-[#FF7252] text-white font-bold font-display uppercase tracking-wider text-xs rounded-xl shadow-md transition-all flex items-center justify-center gap-1 cursor-pointer shrink-0"
+                className="w-[88px] h-[42px] px-3 bg-[#FF5A36] hover:bg-[#FF7252] text-white font-bold font-display uppercase tracking-wider text-xs rounded-xl shadow-md transition-all flex items-center justify-center gap-1 cursor-pointer shrink-0"
               >
-                <span>TÌM</span>
+                <span>SEARCH</span>
                 <ArrowRight className="w-3.5 h-3.5" />
               </button>
             </form>
@@ -446,7 +444,7 @@ export const MarketplacePage: React.FC = () => {
             {showSuggestions && autocompleteSuggestions.length > 0 && (
               <div className="absolute top-full left-0 right-0 mt-2 bg-[#0A0E17]/95 backdrop-blur-2xl border border-white/15 rounded-2xl shadow-2xl overflow-hidden text-left p-2 z-50">
                 <div className="px-3 py-1.5 text-[10px] font-mono font-bold uppercase tracking-wider text-[#8B929C] border-b border-white/10 mb-1">
-                  KẾT QUẢ GỢI Ý
+                  SUGGESTED RESULTS
                 </div>
 
                 <div className="space-y-1">
@@ -500,7 +498,7 @@ export const MarketplacePage: React.FC = () => {
                 />
                 <span>
                   {selectedDate === 'all'
-                    ? 'Tất cả ngày'
+                    ? 'All Dates'
                     : dateOptions.find((d) => d.id === selectedDate)?.label}
                 </span>
                 <ChevronDown
@@ -550,7 +548,7 @@ export const MarketplacePage: React.FC = () => {
                 />
                 <span>
                   {selectedLocation === 'all'
-                    ? 'Địa điểm'
+                    ? 'Location'
                     : locationOptions.find((l) => l.id === selectedLocation)?.label}
                 </span>
                 <ChevronDown
@@ -600,7 +598,7 @@ export const MarketplacePage: React.FC = () => {
                 />
                 <span>
                   {selectedTier === 'all'
-                    ? 'Loại vé'
+                    ? 'Ticket Tier'
                     : tierOptions.find((t) => t.id === selectedTier)?.label}
                 </span>
                 <ChevronDown
@@ -638,10 +636,10 @@ export const MarketplacePage: React.FC = () => {
                 type="button"
                 onClick={handleResetFilters}
                 className="h-11 px-3.5 rounded-xl text-xs sm:text-[13px] font-mono text-[#8B929C] hover:text-white bg-[#0A0C10]/85 hover:bg-[#12161F] border border-white/15 hover:border-white/30 transition-all flex items-center gap-1.5 cursor-pointer backdrop-blur-md"
-                title="Xóa bộ lọc"
+                title="Reset filters"
               >
                 <X className="w-3.5 h-3.5 text-[#FF5A36]" />
-                <span>Đặt lại</span>
+                <span>Reset</span>
               </button>
             )}
           </div>
@@ -651,13 +649,15 @@ export const MarketplacePage: React.FC = () => {
         {/* 4. LISTING HEADER & SINGLE SORT DROPDOWN (CLEAR 44PX VERTICAL SEPARATION)*/}
         {/* ======================================================================= */}
         <div className="flex items-end justify-between gap-3 mt-11 mb-6">
-          <div>
+          <div className="space-y-1.5">
             <h2 className="text-base sm:text-lg font-bold font-display uppercase tracking-wider text-white">
-              VÉ ĐANG NIÊM YẾT
+              ACTIVE LISTINGS
             </h2>
-            <p className="text-xs text-[#8B929C] font-mono mt-0.5">
-              {String(filteredListings.length).padStart(2, '0')} vé đang được bán
-            </p>
+            <div>
+              <span className="inline-block px-2.5 py-0.5 rounded-full bg-black/30 backdrop-blur-md border border-white/15 text-xs font-mono font-semibold text-[#FF5A36] tracking-wide shadow-sm">
+                {String(filteredListings.length).padStart(2, '0')} tickets available
+              </span>
+            </div>
           </div>
 
           {/* Single Compact Sorting Dropdown */}
@@ -667,13 +667,13 @@ export const MarketplacePage: React.FC = () => {
               onClick={() => setIsSortOpen(!isSortOpen)}
               className="h-10 px-3.5 rounded-xl bg-[#0A0C10]/85 hover:bg-[#12161F] border border-white/15 hover:border-[#FF5A36]/40 text-xs sm:text-[13px] font-sans text-[#8B929C] hover:text-white flex items-center gap-2 transition-all cursor-pointer backdrop-blur-md group"
             >
-              <span>Sắp xếp:</span>
+              <span>Sort by:</span>
               <span className="text-white font-medium">{sortOptions.find((s) => s.id === sortBy)?.label}</span>
               <ChevronDown className={`w-3.5 h-3.5 text-[#8B929C] group-hover:text-white transition-transform ${isSortOpen ? 'rotate-180 text-white' : ''}`} />
             </button>
 
             {isSortOpen && (
-              <div className="absolute top-full right-0 mt-1.5 w-48 bg-[#0A0E17]/98 backdrop-blur-2xl border border-white/15 rounded-xl shadow-2xl p-1 z-40 text-left font-sans text-xs sm:text-[13px]">
+              <div className="absolute top-full right-0 mt-1.5 w-52 bg-[#0A0E17]/98 backdrop-blur-2xl border border-white/15 rounded-xl shadow-2xl p-1 z-40 text-left font-sans text-xs sm:text-[13px]">
                 {sortOptions.map((opt) => (
                   <button
                     key={opt.id}
@@ -700,7 +700,7 @@ export const MarketplacePage: React.FC = () => {
         {isLoading && (
           <div className="py-24 flex flex-col items-center justify-center gap-3 text-center">
             <Loader2 className="w-8 h-8 text-[#FF5A36] animate-spin" />
-            <p className="text-xs text-[#8B929C] font-mono">Đang tải danh sách vé trực tiếp từ hệ thống...</p>
+            <p className="text-xs text-[#8B929C] font-mono">Loading verified ticket listings in real-time...</p>
           </div>
         )}
 
@@ -710,9 +710,9 @@ export const MarketplacePage: React.FC = () => {
             <div className="w-12 h-12 mx-auto rounded-full bg-rose-500/10 text-rose-400 flex items-center justify-center">
               <AlertCircle className="w-6 h-6" />
             </div>
-            <h3 className="text-base font-bold text-white">Không thể kết nối đến máy chủ API</h3>
+            <h3 className="text-base font-bold text-white">Unable to connect to API server</h3>
             <p className="text-xs text-[#8B929C] max-w-md mx-auto font-mono">
-              {error instanceof Error ? error.message : 'Vui lòng kiểm tra dịch vụ Backend đang chạy và thử lại.'}
+              {error instanceof Error ? error.message : 'Please check that backend services are online and try again.'}
             </p>
             <button
               onClick={() => refetch()}
@@ -720,7 +720,7 @@ export const MarketplacePage: React.FC = () => {
               className="px-5 py-2.5 bg-white/10 hover:bg-white/20 text-white font-bold font-display text-xs uppercase tracking-wider rounded-xl inline-flex items-center gap-2 transition-all cursor-pointer"
             >
               <RefreshCw className={`w-3.5 h-3.5 ${isFetching ? 'animate-spin' : ''}`} />
-              <span>Thử lại</span>
+              <span>Retry</span>
             </button>
           </div>
         )}
@@ -733,13 +733,13 @@ export const MarketplacePage: React.FC = () => {
             </div>
             <h3 className="text-lg font-bold text-white">
               {hasActiveFilters || searchTerm
-                ? 'Không tìm thấy vé nào phù hợp'
-                : 'Hiện chưa có vé nào đang rao bán trên thị trường'}
+                ? 'No matching tickets found'
+                : 'No tickets currently listed on the marketplace'}
             </h3>
             <p className="text-xs text-[#8B929C] max-w-md mx-auto">
               {hasActiveFilters || searchTerm
-                ? 'Hãy thử thay đổi từ khóa tìm kiếm hoặc bấm đặt lại bộ lọc.'
-                : 'Hãy là người đầu tiên đăng bán vé chính chủ với bảo vệ Escrow!'}
+                ? 'Try adjusting your search keyword or resetting filters.'
+                : 'Be the first to list verified tickets with Escrow protection!'}
             </p>
             {(hasActiveFilters || searchTerm) && (
               <button
@@ -751,7 +751,7 @@ export const MarketplacePage: React.FC = () => {
                 className="px-4 py-2 bg-white/10 hover:bg-white/20 text-white text-xs font-mono rounded-xl transition-all inline-flex items-center gap-1.5 cursor-pointer"
               >
                 <RefreshCw className="w-3.5 h-3.5" />
-                <span>Xóa tất cả bộ lọc & tìm kiếm</span>
+                <span>Clear all filters & search</span>
               </button>
             )}
           </div>
@@ -816,7 +816,7 @@ export const MarketplacePage: React.FC = () => {
                       {listing.sellerFullName && (
                         <div className="flex items-center gap-2.5 text-xs text-[#94A3B8]">
                           <UserCheck className="w-4 h-4 text-[#20C997] shrink-0 drop-shadow-sm" />
-                          <span>Người bán: <strong className="text-white font-semibold">{listing.sellerFullName}</strong></span>
+                          <span>Seller: <strong className="text-white font-semibold">{listing.sellerFullName}</strong></span>
                         </div>
                       )}
                     </div>
@@ -826,13 +826,13 @@ export const MarketplacePage: React.FC = () => {
                   <div className="pt-4 border-t border-white/15 flex items-center justify-between gap-3">
                     <div>
                       <span className="text-[11px] text-[#94A3B8] uppercase font-mono font-bold tracking-wider block">
-                        GIÁ BÁN LẠI
+                        RESALE PRICE
                       </span>
                       <p className="text-2xl sm:text-3xl font-black font-display text-white tabular-nums drop-shadow-[0_2px_10px_rgba(0,0,0,0.8)]">
                         {formatVND(listing.resalePrice)}
                       </p>
                       <p className="text-xs text-[#94A3B8] font-mono mt-0.5">
-                        Gốc {formatVND(listing.originalPrice)}
+                        Orig. {formatVND(listing.originalPrice)}
                         {listing.discountPercentage > 0 && (
                           <span className="text-[#20C997] font-bold ml-1">(-{listing.discountPercentage}%)</span>
                         )}
@@ -843,7 +843,7 @@ export const MarketplacePage: React.FC = () => {
                       onClick={() => handleBuy(listing.eventName, listing.resalePrice)}
                       className="h-11 px-5 sm:px-6 bg-gradient-to-r from-[#FF5A36] to-[#FF7252] hover:brightness-110 active:scale-95 text-white font-black font-display text-xs uppercase tracking-wider rounded-xl shadow-[0_4px_25px_rgba(255,90,54,0.5)] transition-all flex items-center justify-center gap-1.5 cursor-pointer shrink-0"
                     >
-                      <span>MUA VÉ</span>
+                      <span>BUY TICKET</span>
                       <ArrowRight className="w-4 h-4 stroke-[2.5]" />
                     </button>
                   </div>
