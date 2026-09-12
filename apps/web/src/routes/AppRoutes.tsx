@@ -11,6 +11,7 @@ import { MarketplacePage } from '../pages/MarketplacePage';
 import { SellTicketPage } from '../pages/SellTicketPage';
 import { MyListingsPage } from '../pages/MyListingsPage';
 import { MyTicketsPage } from '../pages/MyTicketsPage';
+import { OrganizerPortalPage } from '../pages/OrganizerPortalPage';
 import { ProtectedRoute, GuestRoute } from './ProtectedRoute';
 
 export const AppRoutes: React.FC = () => {
@@ -19,6 +20,7 @@ export const AppRoutes: React.FC = () => {
       {/* Public Pages */}
       <Route path="/" element={<HomePage />} />
       <Route path="/marketplace" element={<MarketplacePage />} />
+      <Route path="/organizer" element={<OrganizerPortalPage />} />
 
       {/* Guest-only Pages (Cannot access when already authenticated) */}
       <Route element={<GuestRoute />}>

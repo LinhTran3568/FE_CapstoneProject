@@ -14,6 +14,14 @@ export const buildPrivateShareLink = (
   origin: string = window.location.origin
 ): string => `${origin}/p/${encodeURIComponent(shareToken)}`;
 
+/**
+ * Link to a PUBLIC listing on the Marketplace.
+ */
+export const buildPublicShareLink = (
+  listingId: string,
+  origin: string = window.location.origin
+): string => `${origin}/marketplace?listingId=${encodeURIComponent(listingId)}`;
+
 /** Copy text to the clipboard, falling back to a hidden textarea on older browsers. */
 export const copyToClipboard = async (text: string): Promise<void> => {
   if (navigator.clipboard?.writeText) {

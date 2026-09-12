@@ -144,6 +144,13 @@ export const Navbar: React.FC = () => {
               <Sparkles className="w-3.5 h-3.5" />
               <span>Marketplace</span>
             </Link>
+            <Link
+              to="/organizer"
+              title="Mock Organizer Operator Portal"
+              className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-orange-500/10 text-orange-400 hover:bg-orange-500/20 border border-orange-500/30 transition-colors"
+            >
+              MO Portal
+            </Link>
           </nav>
         ) : (
           /* LOGGED IN MODE: Direct Functional App Links */
@@ -192,6 +199,17 @@ export const Navbar: React.FC = () => {
             >
               <Sparkles className="w-3.5 h-3.5" />
               <span>My Tickets</span>
+            </Link>
+
+            <Link
+              to="/organizer"
+              title="Mock Organizer Operator Portal"
+              className={`px-3 py-2 rounded-xl text-[10px] font-mono font-bold uppercase tracking-wider transition-all flex items-center gap-1.5 ${location.pathname === '/organizer'
+                  ? 'bg-orange-500/20 text-orange-400 border border-orange-500/40'
+                  : 'text-orange-400/80 hover:text-orange-400 hover:bg-orange-500/10'
+                }`}
+            >
+              MO Portal
             </Link>
           </nav>
         )}
