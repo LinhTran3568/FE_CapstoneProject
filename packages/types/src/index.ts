@@ -186,6 +186,19 @@ export interface SellerListingDto {
 }
 
 /**
+ * Generic paginated response from backend `TicketShield.Application.Common.Models.PaginatedList<T>`.
+ */
+export interface PaginatedList<T> {
+  items: T[];
+  pageNumber: number;
+  pageSize: number;
+  totalCount: number;
+  totalPages: number;
+  hasPreviousPage: boolean;
+  hasNextPage: boolean;
+}
+
+/**
  * Public marketplace resale listing.
  * GET /api/v1/resale-listings → backend `ResaleListingDetailDto`.
  */

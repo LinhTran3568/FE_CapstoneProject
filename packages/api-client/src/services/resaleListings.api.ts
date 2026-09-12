@@ -1,12 +1,13 @@
 import type {
   CancelResaleListingResponse,
   ListingStatus,
+  PaginatedList,
   ResaleListingDetailDto,
   SellerListingDto,
 } from '@ticketshield/types';
 import { httpClient } from './client';
 
-export type { ResaleListingDetailDto };
+export type { ResaleListingDetailDto, PaginatedList };
 
 export const resaleListingsApi = {
   /**
@@ -18,14 +19,14 @@ export const resaleListingsApi = {
     size?: number;
     keyword?: string;
     eventId?: string;
-  }): Promise<ResaleListingDetailDto[]> => {
+  }): Promise<PaginatedList<ResaleListingDetailDto>> => {
     const searchParams = new URLSearchParams();
     if (params?.page) searchParams.set('page', params.page.toString());
     if (params?.size) searchParams.set('size', params.size.toString());
     if (params?.keyword) searchParams.set('keyword', params.keyword);
     if (params?.eventId) searchParams.set('eventId', params.eventId);
     const query = searchParams.toString() ? `?${searchParams.toString()}` : '';
-    return httpClient<ResaleListingDetailDto[]>(`/resale-listings${query}`, {
+    return httpClient<PaginatedList<ResaleListingDetailDto>>(`/resale-listings${query}`, {
       method: 'GET',
     });
   },

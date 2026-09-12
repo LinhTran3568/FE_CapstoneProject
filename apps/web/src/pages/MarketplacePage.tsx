@@ -9,6 +9,7 @@ import {
   RefreshCw,
   UserCheck,
   ChevronDown,
+  ChevronLeft,
   Check,
   X,
   Ticket
@@ -22,6 +23,10 @@ export const MarketplacePage: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [isSearchFocused, setIsSearchFocused] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
+
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 12;
 
   // Filter states
   const [selectedDate, setSelectedDate] = useState<'all' | 'upcoming' | 'this-month'>('all');
@@ -37,9 +42,13 @@ export const MarketplacePage: React.FC = () => {
   const filterBarRef = useRef<HTMLDivElement>(null);
   const sortDropdownRef = useRef<HTMLDivElement>(null);
 
-  const { data: listings = [], isLoading, isError, error, refetch, isFetching } = useMarketplaceListings({
+  const { data: paginatedData, isLoading, isError, error, refetch, isFetching } = useMarketplaceListings({
     keyword: searchTerm.trim() || undefined,
+    page: currentPage,
+    size: pageSize,
   });
+
+  const listings = paginatedData?.items || [];
 
   // Handle outside clicks to close autocomplete, filter popovers & sort dropdown
   useEffect(() => {
@@ -850,6 +859,77 @@ export const MarketplacePage: React.FC = () => {
                 </div>
               </div>
             ))}
+          </div>
+        )}
+
+        {/* ======================================================================= */}
+        {/* 6. PAGINATION NAVIGATION BAR                                             */}
+        {/* ======================================================================= */}
+        {!isLoading && !isError && (paginatedData?.totalPages || 0) > 1 && (
+          <div className="pt-8 pb-4 flex flex-col sm:flex-row items-center justify-between gap-4 border-t border-white/10">
+            <div className="text-xs font-mono text-[#A3A8B3]">
+              Showing page <strong className="text-white font-bold">{paginatedData?.pageNumber}</strong> of{' '}
+              <strong className="text-white font-bold">{paginatedData?.totalPages}</strong> ({paginatedData?.totalCount} tickets total)
+            </div>
+
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  if (paginatedData?.hasPreviousPage) {
+                    setCurrentPage((p) => Math.max(1, p - 1));
+                    window.scrollTo({ top: 400, behavior: 'smooth' });
+                  }
+                }}
+                disabled={!paginatedData?.hasPreviousPage || isFetching}
+                className="px-4 py-2 bg-[#0A0D12] hover:bg-white/10 disabled:opacity-40 disabled:cursor-not-allowed border border-white/15 hover:border-white/30 rounded-xl text-xs font-mono font-bold text-white transition-all flex items-center gap-1.5 cursor-pointer"
+              >
+                <ChevronLeft className="w-4 h-4" />
+                <span>Prev</span>
+              </button>
+
+              <div className="flex items-center gap-1">
+                {Array.from({ length: paginatedData?.totalPages || 1 }, (_, i) => i + 1)
+                  .filter((p) => p === 1 || p === paginatedData?.totalPages || Math.abs(p - (paginatedData?.pageNumber || 1)) <= 1)
+                  .map((p, idx, arr) => (
+                    <React.Fragment key={p}>
+                      {idx > 0 && arr[idx - 1] !== p - 1 && (
+                        <span className="px-1 text-slate-500 font-mono text-xs">...</span>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setCurrentPage(p);
+                          window.scrollTo({ top: 400, behavior: 'smooth' });
+                        }}
+                        disabled={isFetching}
+                        className={`w-9 h-9 rounded-xl font-mono text-xs font-bold transition-all flex items-center justify-center cursor-pointer ${
+                          p === paginatedData?.pageNumber
+                            ? 'bg-[#FF5A36] text-white shadow-lg shadow-[#FF5A36]/30'
+                            : 'bg-[#0A0D12] hover:bg-white/10 text-[#A3A8B3] hover:text-white border border-white/10'
+                        }`}
+                      >
+                        {p}
+                      </button>
+                    </React.Fragment>
+                  ))}
+              </div>
+
+              <button
+                type="button"
+                onClick={() => {
+                  if (paginatedData?.hasNextPage) {
+                    setCurrentPage((p) => p + 1);
+                    window.scrollTo({ top: 400, behavior: 'smooth' });
+                  }
+                }}
+                disabled={!paginatedData?.hasNextPage || isFetching}
+                className="px-4 py-2 bg-[#0A0D12] hover:bg-white/10 disabled:opacity-40 disabled:cursor-not-allowed border border-white/15 hover:border-white/30 rounded-xl text-xs font-mono font-bold text-white transition-all flex items-center gap-1.5 cursor-pointer"
+              >
+                <span>Next</span>
+                <ArrowRight className="w-4 h-4" />
+              </button>
+            </div>
           </div>
         )}
 

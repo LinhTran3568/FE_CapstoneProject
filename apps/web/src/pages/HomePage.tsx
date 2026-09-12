@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { useAuthStore } from '../stores/authStore';
 import { HeroSection } from '../components/landing/HeroSection';
 import { FlowSection } from '../components/landing/FlowSection';
 import { PartnersSection } from '../components/landing/PartnersSection';
@@ -10,6 +11,14 @@ export default function Home() {
   const containerRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
   const location = useLocation();
+  const { user } = useAuthStore();
+
+  // If user is already authenticated, redirect away from Guest Landing Page to Marketplace
+  useEffect(() => {
+    if (user) {
+      navigate('/marketplace', { replace: true });
+    }
+  }, [user, navigate]);
 
   useEffect(() => {
     if (location.state && (location.state as any).scrollTo) {
@@ -44,6 +53,10 @@ export default function Home() {
     }
   }, [location, navigate]);
 
+  if (user) {
+    return null;
+  }
+
   return (
     <div className="home-container content-wrapper" ref={containerRef}>
       {/* SECTION 1: HERO */}
@@ -52,7 +65,7 @@ export default function Home() {
       {/* SECTION 2: 3D BOX CAROUSEL FLOW */}
       <FlowSection />
 
-      {/* SECTION 3: CÁC BÊN LIÊN KẾT (MARQUEE ALONG SVG PATH) */}
+      {/* SECTION 3: PARTNERS MARQUEE */}
       <PartnersSection />
 
       {/* SECTION 4: 3D TICKET MACHINE & CALL TO ACTION */}
