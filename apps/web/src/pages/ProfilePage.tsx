@@ -33,8 +33,7 @@ export const ProfilePage: React.FC = () => {
 
   const isReseller = 
     user?.role === 'RESELLER' || 
-    (user?.role as string) === 'SELLER' || 
-    user?.email?.toLowerCase().includes('seller');
+    (user?.role as string) === 'SELLER';
 
   const handleSaveProfile = (e: React.FormEvent) => {
     e.preventDefault();

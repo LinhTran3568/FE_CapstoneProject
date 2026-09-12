@@ -26,3 +26,7 @@ pnpm-debug.log*
 .idea/
 .DS_Store
 Thumbs.db
+
+# Local Agent Directives & Rules (Never push to remote)
+.agents/
+

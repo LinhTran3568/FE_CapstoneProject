@@ -5,7 +5,7 @@ import { loginSchema, LoginFormData } from '@ticketshield/validation';
 import { authApi } from '@ticketshield/api-client';
 import { useAuthStore } from '../stores/authStore';
 import { useUIStore } from '../stores/uiStore';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { Mail, Lock, Globe, ArrowLeft } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { TicketShieldLogo } from '../components/ui/TicketShieldLogo';
@@ -14,7 +14,10 @@ export const LoginPage: React.FC = () => {
   const { login } = useAuthStore();
   const { showToast } = useUIStore();
   const navigate = useNavigate();
+  const location = useLocation();
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+
+  const from = (location.state as any)?.from?.pathname || '/marketplace';
 
   const {
     register,
@@ -33,7 +36,7 @@ export const LoginPage: React.FC = () => {
       const res = await authApi.login(data);
       login(res.user, res.token);
       showToast('Login successful! Welcome back.', 'success');
-      navigate('/');
+      navigate(from, { replace: true });
     } catch (err: any) {
       showToast('Login failed: ' + err.message, 'error');
     }
@@ -42,11 +45,11 @@ export const LoginPage: React.FC = () => {
   const handleGoogleLogin = async () => {
     try {
       setIsGoogleLoading(true);
-      const dummyGoogleToken = 'google_id_token_demo_' + Date.now();
-      const res = await authApi.googleLogin(dummyGoogleToken);
+      const mockGoogleToken = 'mock-google-token-demo@ticketshield.vn-Google User';
+      const res = await authApi.googleLogin(mockGoogleToken);
       login(res.user, res.token);
       showToast('Google login successful!', 'success');
-      navigate('/');
+      navigate(from, { replace: true });
     } catch (err: any) {
       showToast('Google login failed: ' + err.message, 'error');
     } finally {

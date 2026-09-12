@@ -11,22 +11,24 @@ import { MarketplacePage } from '../pages/MarketplacePage';
 import { SellTicketPage } from '../pages/SellTicketPage';
 import { MyListingsPage } from '../pages/MyListingsPage';
 import { MyTicketsPage } from '../pages/MyTicketsPage';
-import { SecurityPage } from '../pages/SecurityPage';
-import { ProtectedRoute } from './ProtectedRoute';
+import { ProtectedRoute, GuestRoute } from './ProtectedRoute';
 
 export const AppRoutes: React.FC = () => {
   return (
     <Routes>
-      {/* Public Routes */}
+      {/* Public Pages */}
       <Route path="/" element={<HomePage />} />
       <Route path="/marketplace" element={<MarketplacePage />} />
-      <Route path="/security" element={<SecurityPage />} />
-      <Route path="/login" element={<LoginPage />} />
-      <Route path="/register" element={<RegisterPage />} />
-      <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-      <Route path="/reset-password" element={<ResetPasswordPage />} />
 
-      {/* Protected Routes */}
+      {/* Guest-only Pages (Cannot access when already authenticated) */}
+      <Route element={<GuestRoute />}>
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/register" element={<RegisterPage />} />
+        <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+        <Route path="/reset-password" element={<ResetPasswordPage />} />
+      </Route>
+
+      {/* Protected Pages (Requires authenticated session) */}
       <Route element={<ProtectedRoute />}>
         <Route path="/profile" element={<ProfilePage />} />
         <Route path="/sell-ticket" element={<SellTicketPage />} />

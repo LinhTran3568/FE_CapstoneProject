@@ -15,6 +15,7 @@ import {
   QrCode,
   Edit3,
   Check,
+  ChevronDown,
   Info,
   AlertCircle,
   Loader2,
@@ -90,7 +91,7 @@ export const SellTicketPage: React.FC = () => {
     }
   }, [verificationId, currentStep, ticketCode, faceValue, resalePrice, priceInputText, verificationResult]);
 
-  // Original ticket list from Organizer partner
+  // Original ticket list from Organizer partner (simulating user owning multiple tickets)
   const userTickets = [
     {
       category: 'VIP',
@@ -104,6 +105,20 @@ export const SellTicketPage: React.FC = () => {
       code: 'ATSH-GA-999',
       price: '1.200.000 VND',
       rawPrice: 1200000,
+      status: 'VALID',
+    },
+    {
+      category: 'CAT-1',
+      code: 'ATSH-CAT1-201',
+      price: '1.800.000 VND',
+      rawPrice: 1800000,
+      status: 'VALID',
+    },
+    {
+      category: 'CAT-2',
+      code: 'ATSH-CAT2-305',
+      price: '1.500.000 VND',
+      rawPrice: 1500000,
       status: 'VALID',
     },
     {
@@ -559,7 +574,7 @@ export const SellTicketPage: React.FC = () => {
   };
 
   return (
-    <div className="relative min-h-screen bg-[#05070A] text-[#F5F5F2] pt-28 pb-20 px-4 sm:px-6 md:px-12 font-sans antialiased selection:bg-[#FF5A36] selection:text-white overflow-hidden">
+    <div className="relative min-h-screen bg-[#05070A] text-[#F5F5F2] pt-20 pb-12 px-4 sm:px-6 md:px-12 font-sans antialiased selection:bg-[#FF5A36] selection:text-white overflow-hidden">
       {/* Inline Animation Styles */}
       <style>{`
         @keyframes fadeInUp {
@@ -657,51 +672,12 @@ export const SellTicketPage: React.FC = () => {
       <div className="absolute top-1/4 -left-48 w-96 h-96 bg-[#FF5A36]/10 rounded-full blur-3xl pointer-events-none" />
       <div className="absolute bottom-1/4 -right-48 w-96 h-96 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none" />
 
-      <div className="relative z-10 max-w-4xl mx-auto space-y-8">
+      <div className="relative z-10 max-w-3xl mx-auto space-y-4">
 
-        {/* Step Progress Bar Header */}
-        <div className="space-y-4">
-          <div className="max-w-2xl mx-auto h-1.5 bg-white/10 rounded-full overflow-hidden p-0.5">
-            <div
-              className="h-full bg-gradient-to-r from-[#FF5A36] to-emerald-400 rounded-full transition-all duration-500 ease-out shadow-sm shadow-[#FF5A36]/50"
-              style={{ width: `${(currentStep / 6) * 100}%` }}
-            />
-          </div>
-
-          <div className="flex items-center justify-center gap-2 sm:gap-4 max-w-2xl mx-auto px-4">
-            {[1, 2, 3, 4, 5, 6].map((stepNum) => {
-              const isCompleted = stepNum < currentStep;
-              const isCurrent = stepNum === currentStep;
-              return (
-                <React.Fragment key={stepNum}>
-                  <button
-                    onClick={() => {
-                      if (stepNum < currentStep) setCurrentStep(stepNum);
-                    }}
-                    className={`w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center font-bold text-xs sm:text-sm font-display transition-all duration-300 active:scale-95 ${isCompleted
-                      ? 'bg-emerald-500 text-black shadow-lg shadow-emerald-500/30 cursor-pointer hover:scale-110'
-                      : isCurrent
-                        ? 'bg-[#FF5A36] text-white shadow-xl shadow-[#FF5A36]/50 scale-110 border-2 border-white/30 ring-4 ring-[#FF5A36]/20'
-                        : 'bg-[#0A0D12] text-[#A3A8B3] border border-white/10 hover:border-white/30'
-                      }`}
-                  >
-                    {isCompleted ? <Check className="w-4 h-4 text-black stroke-[3]" /> : stepNum}
-                  </button>
-
-                  {stepNum < 6 && (
-                    <div
-                      className={`flex-1 h-[2px] rounded-full transition-all duration-500 ${stepNum < currentStep ? 'bg-emerald-500 shadow-sm shadow-emerald-500/50' : 'bg-white/10'
-                        }`}
-                    />
-                  )}
-                </React.Fragment>
-              );
-            })}
-          </div>
-
-          {/* Sub-header Navigation Row */}
-          <div className="flex items-center justify-between text-xs text-[#A3A8B3] font-mono max-w-2xl mx-auto px-2">
-            {currentStep > 1 && currentStep < 6 ? (
+        {/* Process Stepper Header Bar (Compact & Close Proximity) */}
+        <div className="w-fit mx-auto bg-[#0A0D14]/95 backdrop-blur-xl border border-white/10 rounded-full px-4 py-2 sm:px-5 sm:py-2 shadow-2xl flex items-center justify-center gap-3 sm:gap-5">
+          <div className="flex items-center gap-2 sm:gap-2.5 min-w-0">
+            {currentStep > 1 && currentStep < 6 && (
               <button
                 type="button"
                 onClick={() => {
@@ -711,25 +687,61 @@ export const SellTicketPage: React.FC = () => {
                     setCurrentStep((prev) => prev - 1);
                   }
                 }}
-                className="flex items-center gap-1.5 hover:text-white transition-colors group cursor-pointer"
+                className="p-1 bg-white/10 hover:bg-white/20 text-white rounded-full transition-colors flex items-center justify-center cursor-pointer shrink-0"
+                title="Back to previous step"
               >
-                <ArrowLeft className="w-3.5 h-3.5 group-hover:-translate-x-1 transition-transform duration-200" />
-                <span>Back</span>
+                <ArrowLeft className="w-3.5 h-3.5" />
               </button>
-            ) : (
-              <div />
             )}
-
-            <span className="font-bold uppercase text-[#FF5A36] tracking-wider transition-all duration-300">
-              {currentStep === 1 && 'STEP 1 / 6: ENTER ORIGINAL TICKET CODE'}
-              {currentStep === 2 && 'STEP 2 / 6: VERIFY OTP CODE'}
-              {currentStep === 3 && 'STEP 3 / 6: TICKET VERIFIED & LOCKED'}
-              {currentStep === 4 && 'STEP 4 / 6: SET RESALE PRICE'}
-              {currentStep === 5 && 'STEP 5 / 6: CONFIRM LISTING'}
-              {currentStep === 6 && 'STEP 6 / 6: LISTING PUBLISHED'}
+            <span className="font-mono font-bold text-white text-xs sm:text-sm tracking-wide shrink-0">
+              {currentStep === 1 && 'Step 1: Enter Ticket Code'}
+              {currentStep === 2 && 'Step 2: Organizer Verification'}
+              {currentStep === 3 && 'Step 3: Confirm Ticket Details'}
+              {currentStep === 4 && 'Step 4: Set Resale Price'}
+              {currentStep === 5 && 'Step 5: Review & Publish'}
+              {currentStep === 6 && 'Step 6: Listing Complete'}
             </span>
           </div>
+
+          <div className="w-px h-3.5 bg-white/15 shrink-0 hidden sm:block" />
+
+          <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
+            {[1, 2, 3, 4, 5, 6].map((stepNum) => {
+              const isCompleted = stepNum < currentStep;
+              const isCurrent = stepNum === currentStep;
+              return (
+                <React.Fragment key={stepNum}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (stepNum < currentStep) setCurrentStep(stepNum);
+                    }}
+                    disabled={stepNum > currentStep}
+                    className={`w-5 h-5 sm:w-6 sm:h-6 rounded-full flex items-center justify-center text-[10px] sm:text-[11px] font-bold font-mono transition-all duration-200 ${
+                      isCurrent
+                        ? "bg-[#FF5722] text-white shadow-md shadow-[#FF5722]/30 scale-105 ring-2 ring-[#FF5722]/30"
+                        : isCompleted
+                        ? "bg-emerald-500 text-black cursor-pointer hover:scale-105"
+                        : "bg-[#151B26] text-slate-400 border border-white/5 cursor-default"
+                    }`}
+                    title={`Step ${stepNum}`}
+                  >
+                    {isCompleted ? <Check className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-black stroke-[3]" /> : stepNum}
+                  </button>
+                  {stepNum < 6 && (
+                    <div
+                      className={`w-1.5 sm:w-2.5 h-[1.5px] rounded-full transition-colors ${
+                        stepNum < currentStep ? "bg-emerald-500" : "bg-slate-700/70"
+                      }`}
+                    />
+                  )}
+                </React.Fragment>
+              );
+            })}
+          </div>
         </div>
+
+
 
         {/* Draft resume session banner */}
         {resumeDraftAvailable && currentStep > 1 && currentStep < 6 && (
@@ -774,126 +786,44 @@ export const SellTicketPage: React.FC = () => {
 
         {/* STEP 1: ENTER TICKET CODE */}
         {currentStep === 1 && (
-          <div key={1} className="animate-fade-in-up max-w-xl mx-auto space-y-8 text-center pt-4">
+          <div key={1} className="animate-fade-in-up max-w-lg mx-auto space-y-6 text-center pt-4">
             <div className="space-y-3">
-              <h1 className="text-3xl sm:text-4xl font-extrabold font-display text-white tracking-tight">
+              <h1 className="text-2xl sm:text-3xl font-extrabold font-display text-white tracking-tight">
                 Enter Original Ticket Code
               </h1>
               <p className="text-xs sm:text-sm text-[#A3A8B3] max-w-md mx-auto leading-relaxed">
-                Ticket identifier code from the Organizer system to initiate Escrow Lock.
+                Enter the ticket identifier code issued by the Organizer partner to initiate verification and Escrow lock.
               </p>
             </div>
 
             <form onSubmit={handleNextStep1} className="space-y-6 text-left bg-[#0A0D12]/90 backdrop-blur-md border border-white/10 p-6 sm:p-8 rounded-3xl shadow-2xl hover:border-white/20 transition-all duration-300">
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <label className="text-xs font-semibold uppercase tracking-wider text-[#A3A8B3] font-display">
-                    Original Ticket Code (Ticket Identifier Code)
-                  </label>
-                  <span className="text-[10px] text-[#A3A8B3] font-mono">Type code or select from below</span>
-                </div>
+              <div className="space-y-2.5">
+                <label className="text-xs sm:text-sm font-semibold uppercase tracking-wider text-[#A3A8B3] font-display block">
+                  Original Ticket Code
+                </label>
+
+                {/* Rescaled Prominent Input: Compact width, increased height */}
                 <div className="relative group">
-                  <Ticket className="w-5 h-5 text-[#FF5A36] absolute left-4 top-3.5 group-focus-within:scale-110 group-focus-within:text-[#FF7252] transition-all duration-200 pointer-events-none" />
+                  <Ticket className="w-5 h-5 sm:w-6 sm:h-6 text-[#FF5A36] absolute left-4 sm:left-5 top-1/2 -translate-y-1/2 group-focus-within:scale-110 group-focus-within:text-[#FF7252] transition-all duration-200 pointer-events-none z-10" />
+                  
                   <input
                     type="text"
                     value={ticketCode}
                     onChange={(e) => setTicketCode(e.target.value.toUpperCase())}
                     placeholder="e.g. ATSH-VIP-888"
-                    className="w-full bg-[#05070A] border border-white/15 rounded-xl pl-12 pr-11 py-3.5 text-base font-mono tracking-wider text-white placeholder-[#A3A8B3]/40 focus:outline-none focus:border-[#FF5A36] focus:ring-2 focus:ring-[#FF5A36]/30 transition-all duration-200"
+                    className="w-full h-16 sm:h-[72px] bg-[#05070A] border border-white/15 rounded-2xl pl-14 sm:pl-16 pr-12 sm:pr-14 text-base sm:text-lg font-mono font-bold tracking-widest text-white placeholder-[#A3A8B3]/30 focus:outline-none focus:border-[#FF5A36] focus:ring-4 focus:ring-[#FF5A36]/20 transition-all duration-200"
                     required
                   />
+
                   {ticketCode && (
                     <button
                       type="button"
                       onClick={() => setTicketCode('')}
-                      className="absolute right-3.5 top-1/2 -translate-y-1/2 p-1 text-[#8F96A3] hover:text-white hover:bg-white/10 rounded-lg transition-all duration-150"
+                      className="absolute right-3.5 sm:right-4 top-1/2 -translate-y-1/2 p-2 text-[#8F96A3] hover:text-white hover:bg-white/10 rounded-xl transition-all duration-150 cursor-pointer"
                       title="Clear code"
                     >
-                      <X className="w-4 h-4" />
+                      <X className="w-5 h-5" />
                     </button>
-                  )}
-                </div>
-
-                <div className="mt-4 space-y-2.5">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[11px] font-bold uppercase text-[#8F96A3] tracking-[0.08em] font-display">
-                      ELIGIBLE TICKETS FOR RESALE
-                    </span>
-                    {!isLoadingListings && (
-                      <span className="text-[10px] text-[#A3A8B3] font-mono">
-                        {eligibleTickets.length} available
-                      </span>
-                    )}
-                  </div>
-
-                  {isLoadingListings ? (
-                    <div className="py-5 text-center space-y-2 bg-[#05070A] border border-white/10 rounded-xl">
-                      <Loader2 className="w-5 h-5 text-[#FF5A36] animate-spin mx-auto" />
-                      <p className="text-[11px] text-[#A3A8B3] font-mono">Checking ticket availability...</p>
-                    </div>
-                  ) : eligibleTickets.length > 0 ? (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      {eligibleTickets.map((ticket) => {
-                        const isSelected = ticketCode === ticket.code;
-                        return (
-                          <button
-                            key={ticket.code}
-                            type="button"
-                            onClick={() => setTicketCode(ticketCode === ticket.code ? '' : ticket.code)}
-                            className={`group relative overflow-hidden rounded-xl p-3.5 text-left transition-all duration-200 cursor-pointer ${isSelected
-                              ? 'bg-[#0A0D12] border border-[#FF5A36] shadow-[0_0_20px_rgba(255,90,54,0.12)] -translate-y-0.5'
-                              : 'bg-[#0A0D12] border border-white/[0.08] hover:border-white/20 hover:bg-[#11161F] hover:-translate-y-0.5'
-                              }`}
-                          >
-                            {/* Left digital ticket indicator line */}
-                            <div
-                              className={`absolute left-0 top-0 bottom-0 w-1 transition-colors duration-200 ${isSelected ? 'bg-[#FF5A36]' : 'bg-white/10 group-hover:bg-[#FF5A36]/60'
-                                }`}
-                            />
-
-                            {/* Subtle perforation notch */}
-                            <div className="absolute -right-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 rounded-full bg-[#05070A] border-l border-white/[0.08] pointer-events-none" />
-
-                            <div className="pl-1.5 pr-2">
-                              <div className="flex items-center justify-between mb-1.5">
-                                <span
-                                  className={`text-[10px] font-bold tracking-wider uppercase px-1.5 py-0.5 rounded ${isSelected
-                                    ? 'text-[#FF5A36] bg-[#FF5A36]/10'
-                                    : 'text-[#8F96A3] bg-white/5 group-hover:text-[#F5F5F2]'
-                                    }`}
-                                >
-                                  {ticket.category}
-                                </span>
-                                <span className="text-[11px] font-semibold text-[#8F96A3] font-mono group-hover:text-[#F5F5F2]">
-                                  {ticket.price}
-                                </span>
-                              </div>
-
-                              <div className="font-mono text-sm font-bold tracking-wider text-[#F5F5F2] flex items-center justify-between">
-                                <span>{ticket.code}</span>
-                                {isSelected && (
-                                  <span className="text-[10px] font-sans font-semibold text-[#FF5A36] tracking-normal">
-                                    Selected
-                                  </span>
-                                )}
-                              </div>
-                            </div>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  ) : (
-                    <div className="p-4 bg-[#05070A] border border-white/10 rounded-xl text-center space-y-1.5">
-                      <p className="text-xs text-[#A3A8B3]">
-                        No eligible tickets found for resale (all tickets have been listed on Marketplace or are unavailable).
-                      </p>
-                      <Link
-                        to="/my-listings"
-                        className="text-xs text-[#FF5A36] hover:underline font-mono inline-flex items-center gap-1 font-semibold"
-                      >
-                        <span>Manage your listed tickets in My Listings</span>
-                      </Link>
-                    </div>
                   )}
                 </div>
               </div>
@@ -901,14 +831,15 @@ export const SellTicketPage: React.FC = () => {
               <button
                 type="submit"
                 disabled={isRequestingOtp || !ticketCode.trim()}
-                className={`w-full py-4 font-bold font-display uppercase tracking-widest text-xs rounded-xl transition-all duration-200 flex items-center justify-center gap-2 ${!ticketCode.trim() || isRequestingOtp
-                  ? 'bg-white/10 text-white/40 cursor-not-allowed border border-white/5'
-                  : 'bg-[#FF5A36] hover:bg-[#FF7252] text-white shadow-lg shadow-[#FF5A36]/30 hover:shadow-xl hover:shadow-[#FF5A36]/50 hover:-translate-y-0.5 active:translate-y-0 cursor-pointer'
-                  }`}
+                className={`w-full h-14 sm:h-15 font-bold font-display uppercase tracking-widest text-xs sm:text-sm rounded-2xl transition-all duration-200 flex items-center justify-center gap-2 ${
+                  !ticketCode.trim() || isRequestingOtp
+                    ? 'bg-white/10 text-white/40 cursor-not-allowed border border-white/5'
+                    : 'bg-[#FF5A36] hover:bg-[#FF7252] text-white shadow-lg shadow-[#FF5A36]/30 hover:shadow-xl hover:shadow-[#FF5A36]/50 hover:-translate-y-0.5 active:translate-y-0 cursor-pointer'
+                }`}
               >
                 {isRequestingOtp ? (
                   <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <Loader2 className="w-5 h-5 animate-spin" />
                     <span>Initializing verification...</span>
                   </>
                 ) : (

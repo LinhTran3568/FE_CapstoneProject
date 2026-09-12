@@ -1,9 +1,21 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../stores/authStore';
 import { useUIStore } from '../../stores/uiStore';
-import { User as UserIcon, LogOut, Ticket, Sparkles, LayoutDashboard } from 'lucide-react';
 import { TicketShieldLogo } from '../ui/TicketShieldLogo';
+import {
+  Ticket,
+  PlusCircle,
+  ListFilter,
+  ShieldCheck,
+  User as UserIcon,
+  LogOut,
+  ChevronDown,
+  Menu,
+  X,
+  Sparkles,
+  ArrowRight
+} from 'lucide-react';
 
 export const Navbar: React.FC = () => {
   const { user, logout } = useAuthStore();
@@ -12,45 +24,53 @@ export const Navbar: React.FC = () => {
   const navigate = useNavigate();
 
   const [scrolled, setScrolled] = useState(false);
+  const [userDropdownOpen, setUserDropdownOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  const isHome = location.pathname === '/';
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  const isLandingPage = location.pathname === '/';
 
   useEffect(() => {
     const handleScroll = () => {
-      setScrolled(window.scrollY > 40);
+      setScrolled(window.scrollY > 30);
     };
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setUserDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
   const handleBrandClick = (e: React.MouseEvent) => {
     e.preventDefault();
-    if (isHome) {
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    } else {
-      navigate('/');
-      setTimeout(() => {
+    if (!user) {
+      if (isLandingPage) {
         window.scrollTo({ top: 0, behavior: 'smooth' });
-      }, 100);
+      } else {
+        navigate('/');
+      }
+    } else {
+      navigate('/marketplace');
     }
   };
 
   const handleLogout = () => {
+    setUserDropdownOpen(false);
     logout();
-    showToast('Signed out successfully', 'info');
-    navigate('/login');
+    showToast('Signed out successfully. Returned to Landing Page.', 'info');
+    navigate('/');
   };
-
-  const isReseller =
-    user?.role === 'RESELLER' ||
-    (user?.role as string) === 'SELLER' ||
-    user?.email?.toLowerCase().includes('seller') ||
-    user?.fullName?.toLowerCase().includes('seller');
 
   const scrollToSection = (sectionId: string) => {
     setMobileMenuOpen(false);
-    if (location.pathname === '/') {
+    if (isLandingPage) {
       if (sectionId === 'hero') {
         window.scrollTo({ top: 0, behavior: 'smooth' });
       } else {
@@ -59,19 +79,8 @@ export const Navbar: React.FC = () => {
           const headerOffset = 64;
           const elementRect = el.getBoundingClientRect();
           const absoluteElementTop = elementRect.top + window.scrollY;
-          const elementHeight = el.offsetHeight;
-          const viewportHeight = window.innerHeight;
-
-          let targetScrollTop = absoluteElementTop - headerOffset - 16;
-          if (sectionId === 'flow') {
-            // Precise offset to center Flow 3D carousel in viewport
-            targetScrollTop = absoluteElementTop - 20;
-          } else if (elementHeight < viewportHeight) {
-            targetScrollTop = Math.min(targetScrollTop, absoluteElementTop - (viewportHeight - elementHeight) / 2);
-          }
-
           window.scrollTo({
-            top: Math.max(0, targetScrollTop),
+            top: Math.max(0, absoluteElementTop - headerOffset),
             behavior: 'smooth',
           });
         }
@@ -81,233 +90,189 @@ export const Navbar: React.FC = () => {
     }
   };
 
-  const getNavLinks = () => {
-    // 1. Guest Navigation on Landing Page -> Focus on Landing Section Anchors
-    if (!user) {
-      return [
-        { label: 'Home', action: () => scrollToSection('hero') },
-        { label: 'How It Works', action: () => scrollToSection('flow') },
-        { label: 'Partners', action: () => scrollToSection('partners') },
-        { label: 'Official Issuer', action: () => scrollToSection('ticket-dispenser') },
-        { label: 'Resale Marketplace', href: '/marketplace' },
-      ];
-    }
+  const isSeller =
+    user?.role === 'RESELLER' ||
+    (user?.role as string) === 'SELLER';
 
-    // 2. Logged-in Navigation -> Direct App Links (Bỏ Home & How It Works sau khi login)
-    if (isReseller) {
-      return [
-        { label: 'Resale Marketplace', href: '/marketplace' },
-        { label: 'Sell Ticket', href: '/sell-ticket' },
-        { label: 'My Listings', href: '/my-listings' },
-        { label: 'My Tickets', href: '/my-tickets' },
-      ];
-    }
-
-    if (user.role === 'ADMIN') {
-      return [
-        { label: 'Resale Marketplace', href: '/marketplace' },
-        { label: 'Manage Listings', href: '/my-listings' },
-      ];
-    }
-
-    return [
-      { label: 'Resale Marketplace', href: '/marketplace' },
-      { label: 'Sell Ticket', href: '/sell-ticket' },
-      { label: 'My Tickets', href: '/my-tickets' },
-    ];
-  };
-
-  const navLinks = getNavLinks();
+  const isAdmin = user?.role === 'ADMIN';
 
   return (
     <header
-      className={`fixed top-0 left-0 right-0 z-50 h-[72px] transition-all duration-300 ${
-        scrolled || !isHome
-          ? 'bg-[#05070A]/95 backdrop-blur-xl border-b border-white/[0.08] shadow-2xl shadow-black/40'
-          : 'bg-[#05070A]/80 backdrop-blur-md border-b border-white/[0.05]'
-      }`}
+      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${scrolled
+          ? 'bg-[#05070A]/95 backdrop-blur-2xl border-b border-white/10 shadow-[0_10px_35px_rgba(0,0,0,0.85)] py-3'
+          : 'bg-gradient-to-b from-[#05070A]/90 via-[#05070A]/40 to-transparent py-4'
+        }`}
     >
-      <div className="max-w-7xl mx-auto h-full px-6 md:px-12 flex items-center justify-between gap-6">
-        <a href="/" onClick={handleBrandClick} className="shrink-0 flex items-center">
+      <div className="max-w-7xl mx-auto px-6 md:px-12 flex items-center justify-between">
+        {/* Brand Logo */}
+        <a href="/" onClick={handleBrandClick} className="focus:outline-none shrink-0 group">
           <TicketShieldLogo size="md" />
         </a>
 
-        <nav className="hidden lg:flex items-center space-x-7 text-xs font-semibold uppercase tracking-wider whitespace-nowrap shrink-0">
-          {navLinks.map((link) => (
-            link.href ? (
-              <Link
-                key={link.label}
-                to={link.href}
-                className={`relative py-1 transition-colors duration-200 ${
-                  location.pathname === link.href
-                    ? 'text-[#FF5A36] font-bold'
-                    : 'text-[#8B929C] hover:text-[#F5F5F5]'
+        {/* Navigation Links */}
+        {!user ? (
+          /* GUEST MODE: Landing Section Scroll Anchors */
+          <nav className="hidden lg:flex items-center gap-6 bg-[#090C12]/80 backdrop-blur-md px-6 py-2 rounded-full border border-white/10 shadow-inner">
+            <button
+              onClick={() => scrollToSection('hero')}
+              className="text-xs font-mono font-bold uppercase tracking-wider text-[#CBD5E1] hover:text-[#FF5A36] transition-colors cursor-pointer"
+            >
+              Home
+            </button>
+            <button
+              onClick={() => scrollToSection('flow')}
+              className="text-xs font-mono font-bold uppercase tracking-wider text-[#CBD5E1] hover:text-[#FF5A36] transition-colors cursor-pointer"
+            >
+              How it work ?
+            </button>
+            <button
+              onClick={() => scrollToSection('partners')}
+              className="text-xs font-mono font-bold uppercase tracking-wider text-[#CBD5E1] hover:text-[#FF5A36] transition-colors cursor-pointer"
+            >
+              Partners
+            </button>
+            <button
+              onClick={() => scrollToSection('ticket-dispenser')}
+              className="text-xs font-mono font-bold uppercase tracking-wider text-[#CBD5E1] hover:text-[#FF5A36] transition-colors cursor-pointer"
+            >
+              Issuer Pass
+            </button>
+            <Link
+              to="/marketplace"
+              className="text-xs font-mono font-bold uppercase tracking-wider text-[#20C997] hover:text-emerald-400 transition-colors flex items-center gap-1.5"
+            >
+              <Sparkles className="w-3.5 h-3.5" />
+              <span>Marketplace</span>
+            </Link>
+          </nav>
+        ) : (
+          /* LOGGED IN MODE: Direct Functional App Links */
+          <nav className="hidden md:flex items-center gap-1 bg-[#090C12]/90 backdrop-blur-md p-1.5 rounded-2xl border border-white/10 shadow-inner">
+            <Link
+              to="/marketplace"
+              className={`px-4 py-2 rounded-xl text-xs font-mono font-bold uppercase tracking-wider transition-all flex items-center gap-2 ${location.pathname === '/marketplace'
+                  ? 'bg-[#FF5A36] text-white shadow-[0_2px_15px_rgba(255,90,54,0.4)]'
+                  : 'text-[#94A3B8] hover:text-white hover:bg-white/[0.06]'
                 }`}
-              >
-                {link.label}
-                {location.pathname === link.href && (
-                  <span className="absolute bottom-0 left-0 right-0 h-[2px] bg-[#FF5A36] rounded-full shadow-[0_0_8px_#FF5A36]" />
-                )}
-              </Link>
-            ) : (
-              <button
-                key={link.label}
-                onClick={link.action}
-                type="button"
-                className="text-[#8B929C] hover:text-[#FF5A36] transition-colors duration-200 font-semibold uppercase tracking-wider cursor-pointer"
-              >
-                {link.label}
-              </button>
-            )
-          ))}
-        </nav>
+            >
+              <Ticket className="w-3.5 h-3.5" />
+              <span>Marketplace</span>
+            </Link>
 
-        <div className="hidden md:flex items-center space-x-3.5 text-xs shrink-0">
-          {user ? (
-            <div className="flex items-center gap-3">
+            <Link
+              to="/sell-ticket"
+              className={`px-4 py-2 rounded-xl text-xs font-mono font-bold uppercase tracking-wider transition-all flex items-center gap-2 ${location.pathname === '/sell-ticket'
+                  ? 'bg-[#FF5A36] text-white shadow-[0_2px_15px_rgba(255,90,54,0.4)]'
+                  : 'text-[#94A3B8] hover:text-white hover:bg-white/[0.06]'
+                }`}
+            >
+              <PlusCircle className="w-3.5 h-3.5" />
+              <span>Sell Ticket</span>
+            </Link>
+
+            {(isSeller || isAdmin) && (
               <Link
-                to="/profile"
-                className="flex items-center gap-2.5 px-3.5 py-1.5 rounded-full bg-[#0B0E12] border border-white/[0.08] hover:border-[#FF5A36]/50 transition-all font-semibold text-[#F5F5F5] group whitespace-nowrap"
-                title="View Profile & Account"
+                to="/my-listings"
+                className={`px-4 py-2 rounded-xl text-xs font-mono font-bold uppercase tracking-wider transition-all flex items-center gap-2 ${location.pathname === '/my-listings'
+                    ? 'bg-[#FF5A36] text-white shadow-[0_2px_15px_rgba(255,90,54,0.4)]'
+                    : 'text-[#94A3B8] hover:text-white hover:bg-white/[0.06]'
+                  }`}
               >
-                <div className="w-6 h-6 rounded-full bg-[#FF5A36]/20 text-[#FF5A36] group-hover:bg-[#FF5A36] group-hover:text-white transition-all flex items-center justify-center font-bold text-xs">
-                  {user.fullName ? user.fullName[0].toUpperCase() : <UserIcon className="w-3.5 h-3.5" />}
-                </div>
-                <span className="font-display font-medium max-w-[120px] truncate">{user.fullName || 'Account'}</span>
-
-                {isReseller ? (
-                  <span className="text-[10px] bg-gradient-to-r from-[#FF5A36] to-amber-500 text-white font-extrabold px-2 py-0.5 rounded-full font-mono uppercase tracking-wider shadow">
-                    RESELLER
-                  </span>
-                ) : user.role === 'ADMIN' ? (
-                  <span className="text-[10px] bg-red-500 text-white font-extrabold px-2 py-0.5 rounded-full font-mono">
-                    ADMIN
-                  </span>
-                ) : (
-                  <span className="text-[10px] bg-white/10 text-[#A3A8B3] px-2 py-0.5 rounded-full font-mono">
-                    BUYER
-                  </span>
-                )}
+                <ListFilter className="w-3.5 h-3.5" />
+                <span>My Listings</span>
               </Link>
+            )}
 
-              <button
-                onClick={handleLogout}
-                title="Sign Out"
-                className="p-2 rounded-full bg-[#0A0D12] border border-white/10 text-[#A3A8B3] hover:text-red-400 hover:border-red-500/40 transition-all"
-              >
-                <LogOut className="w-4 h-4" />
-              </button>
-            </div>
+            <Link
+              to="/my-tickets"
+              className={`px-4 py-2 rounded-xl text-xs font-mono font-bold uppercase tracking-wider transition-all flex items-center gap-2 ${location.pathname === '/my-tickets'
+                  ? 'bg-[#FF5A36] text-white shadow-[0_2px_15px_rgba(255,90,54,0.4)]'
+                  : 'text-[#94A3B8] hover:text-white hover:bg-white/[0.06]'
+                }`}
+            >
+              <Sparkles className="w-3.5 h-3.5" />
+              <span>My Tickets</span>
+            </Link>
+          </nav>
+        )}
+
+        {/* Right Actions */}
+        <div className="hidden sm:flex items-center gap-3">
+          {!user ? (
+            <Link
+              to="/login"
+              className="px-5 py-2.5 bg-gradient-to-r from-[#FF5A36] to-[#FF7252] hover:brightness-110 text-white font-display font-black text-xs uppercase tracking-wider rounded-xl shadow-[0_4px_20px_rgba(255,90,54,0.4)] transition-all flex items-center gap-1.5"
+            >
+              <span>Sign In</span>
+              <ArrowRight className="w-3.5 h-3.5 stroke-[2.5]" />
+            </Link>
           ) : (
-            <div className="flex items-center space-x-3">
-              <Link
-                to="/login"
-                className="px-6 py-2 rounded-full bg-white hover:bg-[#F5F5F2] text-[#05070A] font-extrabold tracking-wider transition-all duration-200 shadow-xl shadow-white/25 hover:shadow-2xl hover:shadow-white/45 hover:-translate-y-0.5 active:translate-y-0 uppercase font-display"
+            <div className="relative" ref={dropdownRef}>
+              <button
+                onClick={() => setUserDropdownOpen(!userDropdownOpen)}
+                className="flex items-center gap-3 p-1.5 pr-3 rounded-2xl bg-[#090C12] border border-white/15 hover:border-[#FF5A36]/60 transition-all cursor-pointer group focus:outline-none"
               >
-                Login
-              </Link>
-              <Link
-                to="/register"
-                className="px-6 py-2 bg-[#FF5A36] hover:bg-[#FF7252] text-white font-extrabold rounded-full tracking-wider transition-all duration-200 shadow-xl shadow-[#FF5A36]/30 hover:shadow-2xl hover:shadow-[#FF5A36]/50 hover:-translate-y-0.5 active:translate-y-0 uppercase font-display"
-              >
-                Get Started
-              </Link>
+                <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-[#FF5A36] to-[#FF7252] text-white flex items-center justify-center font-bold text-xs shadow-md">
+                  {user.fullName ? user.fullName.charAt(0).toUpperCase() : 'U'}
+                </div>
+
+                <div className="flex flex-col text-left">
+                  <span className="text-xs font-bold font-display text-white line-clamp-1 group-hover:text-[#FF5A36] transition-colors">
+                    {user.fullName || 'User'}
+                  </span>
+                  <span className="text-[10px] font-mono text-[#8B929C]">
+                    {isAdmin ? 'ADMIN' : isSeller ? 'SELLER' : 'BUYER'}
+                  </span>
+                </div>
+
+                <ChevronDown
+                  className={`w-3.5 h-3.5 text-[#8B929C] group-hover:text-white transition-transform duration-200 ${userDropdownOpen ? 'rotate-180 text-white' : ''
+                    }`}
+                />
+              </button>
+
+              {/* User Dropdown */}
+              {userDropdownOpen && (
+                <div className="absolute right-0 mt-2 w-56 bg-[#0B0E14]/95 backdrop-blur-2xl border border-white/15 rounded-2xl p-2 shadow-[0_20px_50px_rgba(0,0,0,0.9)] animate-in fade-in slide-in-from-top-2 space-y-1 z-50">
+                  <div className="p-3 bg-white/[0.03] rounded-xl border border-white/5 space-y-1">
+                    <p className="text-xs font-bold text-white truncate">{user.fullName}</p>
+                    <p className="text-[11px] font-mono text-[#8B929C] truncate">{user.email}</p>
+                  </div>
+
+                  <Link
+                    to="/profile"
+                    onClick={() => setUserDropdownOpen(false)}
+                    className="w-full px-3 py-2.5 rounded-xl text-xs font-mono text-[#CBD5E1] hover:text-white hover:bg-white/10 flex items-center gap-2.5 transition-colors"
+                  >
+                    <UserIcon className="w-4 h-4 text-[#FF5A36]" />
+                    <span>My Profile</span>
+                  </Link>
+
+
+
+                  <div className="pt-1 border-t border-white/10">
+                    <button
+                      onClick={handleLogout}
+                      className="w-full px-3 py-2.5 rounded-xl text-xs font-mono text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 flex items-center gap-2.5 transition-colors cursor-pointer"
+                    >
+                      <LogOut className="w-4 h-4 text-rose-400" />
+                      <span>Sign Out</span>
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>
 
+        {/* Mobile Toggle */}
         <button
           onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-          className="lg:hidden text-[#F5F5F2] p-2 focus:outline-none"
-          aria-label="Toggle menu"
+          className="lg:hidden p-2 text-white hover:text-[#FF5A36] focus:outline-none"
         >
-          <svg className="w-6 h-6 fill-current" viewBox="0 0 24 24">
-            {mobileMenuOpen ? (
-              <path
-                fillRule="evenodd"
-                clipRule="evenodd"
-                d="M18.293 5.293a1 1 0 011.414 1.414L13.414 12l6.293 6.293a1 1 0 01-1.414 1.414L12 13.414l-6.293 6.293a1 1 0 01-1.414-1.414L10.586 12 4.293 5.707a1 1 0 011.414-1.414L12 10.586l6.293-6.293z"
-              />
-            ) : (
-              <path
-                fillRule="evenodd"
-                clipRule="evenodd"
-                d="M4 6h16v2H4V6zm0 5h16v2H4v-2zm0 5h16v2H4v-2z"
-              />
-            )}
-          </svg>
+          {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
         </button>
       </div>
-
-      {mobileMenuOpen && (
-        <div className="lg:hidden bg-[#05070A]/95 backdrop-blur-xl border-b border-white/10 px-6 py-6 space-y-4">
-          {navLinks.map((link) => (
-            link.href ? (
-              <Link
-                key={link.label}
-                to={link.href}
-                onClick={() => setMobileMenuOpen(false)}
-                className="block text-[#A3A8B3] hover:text-[#F5F5F2] text-base font-medium"
-              >
-                {link.label}
-              </Link>
-            ) : (
-              <button
-                key={link.label}
-                onClick={() => {
-                  setMobileMenuOpen(false);
-                  link.action?.();
-                }}
-                className="block text-left w-full text-[#A3A8B3] hover:text-[#F5F5F2] text-base font-medium"
-              >
-                {link.label}
-              </button>
-            )
-          ))}
-          <div className="pt-4 border-t border-white/10 flex flex-col gap-3">
-            {user ? (
-              <>
-                <Link
-                  to="/profile"
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="w-full text-center py-3 bg-[#0A0D12] text-[#F5F5F2] font-medium rounded-full border border-white/10 flex items-center justify-center gap-2 text-xs"
-                >
-                  <UserIcon className="w-4 h-4 text-[#FF5A36]" />
-                  <span>Profile ({user.fullName})</span>
-                </Link>
-                <button
-                  onClick={() => {
-                    setMobileMenuOpen(false);
-                    handleLogout();
-                  }}
-                  className="w-full text-center py-3 bg-red-500/20 text-red-400 font-medium rounded-full text-xs"
-                >
-                  Sign Out
-                </button>
-              </>
-            ) : (
-              <>
-                <Link
-                  to="/login"
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="text-[#F5F5F2] font-medium text-center py-2 text-xs"
-                >
-                  Login
-                </Link>
-                <Link
-                  to="/register"
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="w-full text-center py-3 bg-[#FF5A36] text-white font-medium rounded-full text-xs"
-                >
-                  Get Started
-                </Link>
-              </>
-            )}
-          </div>
-        </div>
-      )}
     </header>
   );
 };
-
-export default Navbar;

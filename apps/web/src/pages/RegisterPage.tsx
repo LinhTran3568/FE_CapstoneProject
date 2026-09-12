@@ -5,7 +5,7 @@ import { registerSchema, RegisterFormData } from '@ticketshield/validation';
 import { authApi } from '@ticketshield/api-client';
 import { useAuthStore } from '../stores/authStore';
 import { useUIStore } from '../stores/uiStore';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { TicketShieldLogo } from '../components/ui/TicketShieldLogo';
@@ -14,6 +14,9 @@ export const RegisterPage: React.FC = () => {
   const { login } = useAuthStore();
   const { showToast } = useUIStore();
   const navigate = useNavigate();
+  const location = useLocation();
+
+  const from = (location.state as any)?.from?.pathname || '/marketplace';
 
   const {
     register,
@@ -37,7 +40,7 @@ export const RegisterPage: React.FC = () => {
       const res = await authApi.register(data);
       login(res.user, res.token);
       showToast('Account registered successfully!', 'success');
-      navigate('/');
+      navigate(from, { replace: true });
     } catch (err: any) {
       showToast('Registration failed: ' + err.message, 'error');
     }
