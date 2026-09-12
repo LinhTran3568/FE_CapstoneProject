@@ -251,7 +251,16 @@ export const SellTicketPage: React.FC = () => {
       showToast('Xác thực OTP & Khóa vé gốc thành công!', 'success');
       setCurrentStep(3);
     } catch (err: any) {
-      showToast('Mã xác thực OTP không chính xác hoặc phiên đã hết hạn. Vui lòng thử lại!', 'error');
+      const serverMsg = err?.response?.data?.message || err?.message || '';
+      if (serverMsg.includes('TICKET_LOCKED')) {
+        showToast('Vé này hiện đang bị khóa hoặc đã được đăng bán trên hệ thống!', 'error');
+      } else if (serverMsg.includes('OTP_INVALID')) {
+        showToast('Mã xác thực OTP không chính xác. Vui lòng kiểm tra lại!', 'error');
+      } else if (serverMsg.includes('OTP_EXPIRED') || serverMsg.includes('VERIFICATION_CLOSED')) {
+        showToast('Phiên xác thực đã hết hạn. Vui lòng bấm Gửi lại mã OTP!', 'error');
+      } else {
+        showToast(serverMsg || 'Mã xác thực OTP không chính xác hoặc phiên đã hết hạn. Vui lòng thử lại!', 'error');
+      }
     } finally {
       setIsVerifyingOtp(false);
     }
