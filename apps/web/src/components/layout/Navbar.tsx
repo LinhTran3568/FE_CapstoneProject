@@ -93,33 +93,27 @@ export const Navbar: React.FC = () => {
       ];
     }
 
-    // 2. Logged-in Navigation -> Direct App Links
+    // 2. Logged-in Navigation -> Direct App Links (Bỏ Home & How It Works sau khi login)
     if (isReseller) {
       return [
-        { label: 'Home', action: isHome ? () => scrollToSection('hero') : undefined, href: isHome ? undefined : '/' },
         { label: 'Resale Marketplace', href: '/marketplace' },
         { label: 'Sell Ticket', href: '/sell-ticket' },
         { label: 'My Listings', href: '/my-listings' },
         { label: 'My Tickets', href: '/my-tickets' },
-        { label: 'How It Works', action: () => scrollToSection('flow') },
       ];
     }
 
     if (user.role === 'ADMIN') {
       return [
-        { label: 'Home', action: isHome ? () => scrollToSection('hero') : undefined, href: isHome ? undefined : '/' },
         { label: 'Resale Marketplace', href: '/marketplace' },
         { label: 'Manage Listings', href: '/my-listings' },
-        { label: 'How It Works', action: () => scrollToSection('flow') },
       ];
     }
 
     return [
-      { label: 'Home', action: isHome ? () => scrollToSection('hero') : undefined, href: isHome ? undefined : '/' },
       { label: 'Resale Marketplace', href: '/marketplace' },
       { label: 'Sell Ticket', href: '/sell-ticket' },
       { label: 'My Tickets', href: '/my-tickets' },
-      { label: 'How It Works', action: () => scrollToSection('flow') },
     ];
   };
 
