@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useUIStore } from '../stores/uiStore';
 import { useAuthStore } from '../stores/authStore';
@@ -17,7 +17,8 @@ import {
   Check,
   Info,
   AlertCircle,
-  Loader2
+  Loader2,
+  X
 } from 'lucide-react';
 
 export const SellTicketPage: React.FC = () => {
@@ -33,7 +34,7 @@ export const SellTicketPage: React.FC = () => {
   }, [currentStep]);
 
   // Resale Workflow Verification state
-  const [ticketCode, setTicketCode] = useState('ATSH-VIP-888');
+  const [ticketCode, setTicketCode] = useState('');
   const [verificationId, setVerificationId] = useState<string>('');
   const [verificationResult, setVerificationResult] = useState<VerificationResult | null>(null);
   const [isRequestingOtp, setIsRequestingOtp] = useState<boolean>(false);
@@ -101,19 +102,6 @@ export const SellTicketPage: React.FC = () => {
     return true;
   });
 
-  // Tự động chọn mã vé đủ điều kiện đầu tiên nếu mã hiện tại không khả dụng
-  useEffect(() => {
-    if (eligibleTickets.length > 0) {
-      const isCurrentEligible = eligibleTickets.some((t) => t.code === ticketCode);
-      if (!isCurrentEligible) {
-        setTicketCode(eligibleTickets[0].code);
-      }
-    } else if (!isLoadingListings && eligibleTickets.length === 0) {
-      if (ticketCode === 'ATSH-VIP-888' || ticketCode === 'ATSH-GA-999') {
-        setTicketCode('');
-      }
-    }
-  }, [eligibleTickets, isLoadingListings]);
 
   // Step 2 OTP Form state
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
@@ -566,18 +554,28 @@ export const SellTicketPage: React.FC = () => {
                   <label className="text-xs font-semibold uppercase tracking-wider text-[#A3A8B3] font-display">
                     Mã Vé Gốc (Ticket Identifier Code)
                   </label>
-                  <span className="text-[10px] text-[#A3A8B3] font-mono">Tự động viết hoa</span>
+                  <span className="text-[10px] text-[#A3A8B3] font-mono">Tự do gõ mã hoặc chọn bên dưới</span>
                 </div>
                 <div className="relative group">
-                  <Ticket className="w-5 h-5 text-[#FF5A36] absolute left-4 top-3.5 group-focus-within:scale-110 group-focus-within:text-[#FF7252] transition-all duration-200" />
+                  <Ticket className="w-5 h-5 text-[#FF5A36] absolute left-4 top-3.5 group-focus-within:scale-110 group-focus-within:text-[#FF7252] transition-all duration-200 pointer-events-none" />
                   <input
                     type="text"
                     value={ticketCode}
                     onChange={(e) => setTicketCode(e.target.value.toUpperCase())}
                     placeholder="Ví dụ: ATSH-VIP-888"
-                    className="w-full bg-[#05070A] border border-white/15 rounded-xl pl-12 pr-4 py-3.5 text-base font-mono tracking-wider text-white placeholder-[#A3A8B3]/40 focus:outline-none focus:border-[#FF5A36] focus:ring-2 focus:ring-[#FF5A36]/30 transition-all duration-200"
+                    className="w-full bg-[#05070A] border border-white/15 rounded-xl pl-12 pr-11 py-3.5 text-base font-mono tracking-wider text-white placeholder-[#A3A8B3]/40 focus:outline-none focus:border-[#FF5A36] focus:ring-2 focus:ring-[#FF5A36]/30 transition-all duration-200"
                     required
                   />
+                  {ticketCode && (
+                    <button
+                      type="button"
+                      onClick={() => setTicketCode('')}
+                      className="absolute right-3.5 top-1/2 -translate-y-1/2 p-1 text-[#8F96A3] hover:text-white hover:bg-white/10 rounded-lg transition-all duration-150"
+                      title="Xóa mã để nhập lại"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  )}
                 </div>
 
                 <div className="mt-4 space-y-2.5">
@@ -605,7 +603,7 @@ export const SellTicketPage: React.FC = () => {
                           <button
                             key={ticket.code}
                             type="button"
-                            onClick={() => setTicketCode(ticket.code)}
+                            onClick={() => setTicketCode(ticketCode === ticket.code ? '' : ticket.code)}
                             className={`group relative overflow-hidden rounded-xl p-3.5 text-left transition-all duration-200 cursor-pointer ${
                               isSelected
                                 ? 'bg-[#0A0D12] border border-[#FF5A36] shadow-[0_0_20px_rgba(255,90,54,0.12)] -translate-y-0.5'
@@ -669,8 +667,12 @@ export const SellTicketPage: React.FC = () => {
 
               <button
                 type="submit"
-                disabled={isRequestingOtp}
-                className="w-full py-4 bg-[#FF5A36] hover:bg-[#FF7252] text-white font-bold font-display uppercase tracking-widest text-xs rounded-xl shadow-lg shadow-[#FF5A36]/30 hover:shadow-xl hover:shadow-[#FF5A36]/50 hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200 flex items-center justify-center gap-2"
+                disabled={isRequestingOtp || !ticketCode.trim()}
+                className={`w-full py-4 font-bold font-display uppercase tracking-widest text-xs rounded-xl transition-all duration-200 flex items-center justify-center gap-2 ${
+                  !ticketCode.trim() || isRequestingOtp
+                    ? 'bg-white/10 text-white/40 cursor-not-allowed border border-white/5'
+                    : 'bg-[#FF5A36] hover:bg-[#FF7252] text-white shadow-lg shadow-[#FF5A36]/30 hover:shadow-xl hover:shadow-[#FF5A36]/50 hover:-translate-y-0.5 active:translate-y-0 cursor-pointer'
+                }`}
               >
                 {isRequestingOtp ? (
                   <>
