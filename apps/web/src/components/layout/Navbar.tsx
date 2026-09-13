@@ -137,20 +137,6 @@ export const Navbar: React.FC = () => {
             >
               Issuer Pass
             </button>
-            <Link
-              to="/marketplace"
-              className="text-xs font-mono font-bold uppercase tracking-wider text-[#20C997] hover:text-emerald-400 transition-colors flex items-center gap-1.5"
-            >
-              <Sparkles className="w-3.5 h-3.5" />
-              <span>Marketplace</span>
-            </Link>
-            <Link
-              to="/organizer"
-              title="Mock Organizer Operator Portal"
-              className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-orange-500/10 text-orange-400 hover:bg-orange-500/20 border border-orange-500/30 transition-colors"
-            >
-              MO Portal
-            </Link>
           </nav>
         ) : (
           /* LOGGED IN MODE: Direct Functional App Links */
@@ -177,18 +163,16 @@ export const Navbar: React.FC = () => {
               <span>Sell Ticket</span>
             </Link>
 
-            {(isSeller || isAdmin) && (
-              <Link
-                to="/my-listings"
-                className={`px-4 py-2 rounded-xl text-xs font-mono font-bold uppercase tracking-wider transition-all flex items-center gap-2 ${location.pathname === '/my-listings'
-                    ? 'bg-[#FF5A36] text-white shadow-[0_2px_15px_rgba(255,90,54,0.4)]'
-                    : 'text-[#94A3B8] hover:text-white hover:bg-white/[0.06]'
-                  }`}
-              >
-                <ListFilter className="w-3.5 h-3.5" />
-                <span>My Listings</span>
-              </Link>
-            )}
+            <Link
+              to="/my-listings"
+              className={`px-4 py-2 rounded-xl text-xs font-mono font-bold uppercase tracking-wider transition-all flex items-center gap-2 ${location.pathname === '/my-listings'
+                  ? 'bg-[#FF5A36] text-white shadow-[0_2px_15px_rgba(255,90,54,0.4)]'
+                  : 'text-[#94A3B8] hover:text-white hover:bg-white/[0.06]'
+                }`}
+            >
+              <ListFilter className="w-3.5 h-3.5" />
+              <span>My Listings</span>
+            </Link>
 
             <Link
               to="/my-tickets"
@@ -266,7 +250,23 @@ export const Navbar: React.FC = () => {
                     <span>My Profile</span>
                   </Link>
 
+                  <Link
+                    to="/my-listings"
+                    onClick={() => setUserDropdownOpen(false)}
+                    className="w-full px-3 py-2.5 rounded-xl text-xs font-mono text-[#CBD5E1] hover:text-white hover:bg-white/10 flex items-center gap-2.5 transition-colors"
+                  >
+                    <ListFilter className="w-4 h-4 text-[#FF5A36]" />
+                    <span>My Listings</span>
+                  </Link>
 
+                  <Link
+                    to="/my-tickets"
+                    onClick={() => setUserDropdownOpen(false)}
+                    className="w-full px-3 py-2.5 rounded-xl text-xs font-mono text-[#CBD5E1] hover:text-white hover:bg-white/10 flex items-center gap-2.5 transition-colors"
+                  >
+                    <Sparkles className="w-4 h-4 text-[#FF5A36]" />
+                    <span>My Tickets</span>
+                  </Link>
 
                   <div className="pt-1 border-t border-white/10">
                     <button
@@ -291,6 +291,103 @@ export const Navbar: React.FC = () => {
           {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
         </button>
       </div>
+
+      {/* Mobile Drawer Menu */}
+      {mobileMenuOpen && (
+        <div className="lg:hidden px-6 pt-3 pb-6 bg-[#05070A]/95 backdrop-blur-2xl border-b border-white/10 space-y-2 animate-in fade-in slide-in-from-top-4">
+          {!user ? (
+            <div className="flex flex-col gap-1">
+              <button
+                onClick={() => scrollToSection('hero')}
+                className="px-4 py-2.5 rounded-xl text-xs font-mono font-bold uppercase text-white hover:bg-white/10 text-left transition-colors"
+              >
+                Home
+              </button>
+              <button
+                onClick={() => scrollToSection('flow')}
+                className="px-4 py-2.5 rounded-xl text-xs font-mono font-bold uppercase text-white hover:bg-white/10 text-left transition-colors"
+              >
+                How it work ?
+              </button>
+              <button
+                onClick={() => scrollToSection('partners')}
+                className="px-4 py-2.5 rounded-xl text-xs font-mono font-bold uppercase text-white hover:bg-white/10 text-left transition-colors"
+              >
+                Partners
+              </button>
+              <button
+                onClick={() => scrollToSection('ticket-dispenser')}
+                className="px-4 py-2.5 rounded-xl text-xs font-mono font-bold uppercase text-white hover:bg-white/10 text-left transition-colors"
+              >
+                Issuer Pass
+              </button>
+              <Link
+                to="/login"
+                onClick={() => setMobileMenuOpen(false)}
+                className="mt-2 px-4 py-3 rounded-xl bg-gradient-to-r from-[#FF5A36] to-[#FF7252] text-white text-xs font-display font-black uppercase tracking-wider flex items-center justify-between shadow-lg shadow-[#FF5A36]/30"
+              >
+                <span>Sign In</span>
+                <ArrowRight className="w-4 h-4" />
+              </Link>
+            </div>
+          ) : (
+            <div className="flex flex-col gap-1">
+              <Link
+                to="/marketplace"
+                onClick={() => setMobileMenuOpen(false)}
+                className="px-4 py-2.5 rounded-xl text-xs font-mono font-bold uppercase text-white hover:bg-white/10 flex items-center gap-2"
+              >
+                <Ticket className="w-4 h-4 text-[#FF5A36]" />
+                <span>Marketplace</span>
+              </Link>
+              <Link
+                to="/sell-ticket"
+                onClick={() => setMobileMenuOpen(false)}
+                className="px-4 py-2.5 rounded-xl text-xs font-mono font-bold uppercase text-white hover:bg-white/10 flex items-center gap-2"
+              >
+                <PlusCircle className="w-4 h-4 text-[#FF5A36]" />
+                <span>Sell Ticket</span>
+              </Link>
+              <Link
+                to="/my-listings"
+                onClick={() => setMobileMenuOpen(false)}
+                className="px-4 py-2.5 rounded-xl text-xs font-mono font-bold uppercase text-white hover:bg-white/10 flex items-center gap-2"
+              >
+                <ListFilter className="w-4 h-4 text-[#FF5A36]" />
+                <span>My Listings</span>
+              </Link>
+              <Link
+                to="/my-tickets"
+                onClick={() => setMobileMenuOpen(false)}
+                className="px-4 py-2.5 rounded-xl text-xs font-mono font-bold uppercase text-white hover:bg-white/10 flex items-center gap-2"
+              >
+                <Sparkles className="w-4 h-4 text-[#FF5A36]" />
+                <span>My Tickets</span>
+              </Link>
+              <Link
+                to="/organizer"
+                onClick={() => setMobileMenuOpen(false)}
+                className="px-4 py-2.5 rounded-xl text-xs font-mono font-bold uppercase text-orange-400 hover:bg-orange-500/10 flex items-center gap-2"
+              >
+                <ShieldCheck className="w-4 h-4" />
+                <span>MO Portal</span>
+              </Link>
+              <div className="pt-2 border-t border-white/10">
+                <button
+                  onClick={() => {
+                    setMobileMenuOpen(false);
+                    handleLogout();
+                  }}
+                  className="w-full px-4 py-2.5 rounded-xl text-xs font-mono font-bold uppercase text-rose-400 hover:bg-rose-500/10 flex items-center gap-2 text-left"
+                >
+                  <LogOut className="w-4 h-4" />
+                  <span>Sign Out</span>
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
     </header>
   );
 };
