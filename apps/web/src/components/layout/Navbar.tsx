@@ -14,7 +14,8 @@ import {
   Menu,
   X,
   Sparkles,
-  ArrowRight
+  ArrowRight,
+  Search
 } from 'lucide-react';
 
 export const Navbar: React.FC = () => {
@@ -26,9 +27,19 @@ export const Navbar: React.FC = () => {
   const [scrolled, setScrolled] = useState(false);
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [navSearchTerm, setNavSearchTerm] = useState('');
 
   const dropdownRef = useRef<HTMLDivElement>(null);
   const isLandingPage = location.pathname === '/';
+
+  const handleNavSearchSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (navSearchTerm.trim()) {
+      navigate(`/marketplace?q=${encodeURIComponent(navSearchTerm.trim())}`);
+    } else {
+      navigate('/marketplace');
+    }
+  };
 
   useEffect(() => {
     const handleScroll = () => {
@@ -50,44 +61,15 @@ export const Navbar: React.FC = () => {
 
   const handleBrandClick = (e: React.MouseEvent) => {
     e.preventDefault();
-    if (!user) {
-      if (isLandingPage) {
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-      } else {
-        navigate('/');
-      }
-    } else {
-      navigate('/marketplace');
-    }
+    navigate('/');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleLogout = () => {
     setUserDropdownOpen(false);
     logout();
-    showToast('Signed out successfully. Returned to Landing Page.', 'info');
+    showToast('Signed out successfully.', 'info');
     navigate('/');
-  };
-
-  const scrollToSection = (sectionId: string) => {
-    setMobileMenuOpen(false);
-    if (isLandingPage) {
-      if (sectionId === 'hero') {
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-      } else {
-        const el = document.getElementById(sectionId);
-        if (el) {
-          const headerOffset = 64;
-          const elementRect = el.getBoundingClientRect();
-          const absoluteElementTop = elementRect.top + window.scrollY;
-          window.scrollTo({
-            top: Math.max(0, absoluteElementTop - headerOffset),
-            behavior: 'smooth',
-          });
-        }
-      }
-    } else {
-      navigate('/', { state: { scrollTo: sectionId } });
-    }
   };
 
   const isSeller =
@@ -103,47 +85,52 @@ export const Navbar: React.FC = () => {
           : 'bg-gradient-to-b from-[#05070A]/90 via-[#05070A]/40 to-transparent py-4'
         }`}
     >
-      <div className="max-w-7xl mx-auto px-6 md:px-12 flex items-center justify-between">
-        {/* Brand Logo */}
-        <a href="/" onClick={handleBrandClick} className="focus:outline-none shrink-0 group">
-          <TicketShieldLogo size="md" />
-        </a>
+      <div className="max-w-7xl mx-auto px-6 md:px-12 flex items-center justify-between gap-4">
+        {/* Brand Logo & Search Bar */}
+        <div className="flex items-center gap-4 sm:gap-6">
+          <a href="/" onClick={handleBrandClick} className="focus:outline-none shrink-0 group">
+            <TicketShieldLogo size="md" />
+          </a>
+
+          {/* Global Navbar Search Bar */}
+          <form
+            onSubmit={handleNavSearchSubmit}
+            className="hidden sm:flex items-center gap-2 h-9 w-44 md:w-60 lg:w-72 bg-white/5 hover:bg-white/10 focus-within:bg-[#0D1117] focus-within:border-[#FF5A36] border border-white/10 rounded-full px-3 transition-all"
+          >
+            <Search className="w-3.5 h-3.5 text-[#8B929C] shrink-0" />
+            <input
+              type="text"
+              placeholder="Tìm sự kiện, vé..."
+              value={navSearchTerm}
+              onChange={(e) => setNavSearchTerm(e.target.value)}
+              className="w-full bg-transparent border-0 text-white placeholder-[#8B929C] text-xs font-medium focus:outline-none"
+            />
+          </form>
+        </div>
 
         {/* Navigation Links */}
         {!user ? (
-          /* GUEST MODE: Landing Section Scroll Anchors */
-          <nav className="hidden lg:flex items-center gap-6 bg-[#090C12]/80 backdrop-blur-md px-6 py-2 rounded-full border border-white/10 shadow-inner">
-            <button
-              onClick={() => scrollToSection('hero')}
-              className="text-xs font-mono font-bold uppercase tracking-wider text-[#CBD5E1] hover:text-[#FF5A36] transition-colors cursor-pointer"
+          /* GUEST MODE */
+          <nav className="hidden lg:flex items-center gap-2 bg-[#090C12]/80 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/10 shadow-inner">
+            <Link
+              to="/"
+              className={`px-3.5 py-1.5 rounded-full text-xs font-mono font-bold uppercase tracking-wider transition-colors ${
+                location.pathname === '/' ? 'text-[#FF5A36] bg-white/10' : 'text-[#CBD5E1] hover:text-[#FF5A36]'
+              }`}
             >
-              Home
-            </button>
-            <button
-              onClick={() => scrollToSection('flow')}
-              className="text-xs font-mono font-bold uppercase tracking-wider text-[#CBD5E1] hover:text-[#FF5A36] transition-colors cursor-pointer"
-            >
-              How it work ?
-            </button>
-            <button
-              onClick={() => scrollToSection('partners')}
-              className="text-xs font-mono font-bold uppercase tracking-wider text-[#CBD5E1] hover:text-[#FF5A36] transition-colors cursor-pointer"
-            >
-              Partners
-            </button>
-            <button
-              onClick={() => scrollToSection('ticket-dispenser')}
-              className="text-xs font-mono font-bold uppercase tracking-wider text-[#CBD5E1] hover:text-[#FF5A36] transition-colors cursor-pointer"
-            >
-              Issuer Pass
-            </button>
+              Trang chủ
+            </Link>
+
             <Link
               to="/marketplace"
-              className="text-xs font-mono font-bold uppercase tracking-wider text-[#20C997] hover:text-emerald-400 transition-colors flex items-center gap-1.5"
+              className={`px-3.5 py-1.5 rounded-full text-xs font-mono font-bold uppercase tracking-wider transition-colors flex items-center gap-1.5 ${
+                location.pathname === '/marketplace' ? 'text-[#FF5A36] bg-white/10' : 'text-[#20C997] hover:text-emerald-400'
+              }`}
             >
-              <Sparkles className="w-3.5 h-3.5" />
-              <span>Marketplace</span>
+              <Ticket className="w-3.5 h-3.5" />
+              <span>Sàn vé</span>
             </Link>
+
             <Link
               to="/organizer"
               title="Mock Organizer Operator Portal"
@@ -156,58 +143,74 @@ export const Navbar: React.FC = () => {
           /* LOGGED IN MODE: Direct Functional App Links */
           <nav className="hidden md:flex items-center gap-1 bg-[#090C12]/90 backdrop-blur-md p-1.5 rounded-2xl border border-white/10 shadow-inner">
             <Link
-              to="/marketplace"
-              className={`px-4 py-2 rounded-xl text-xs font-mono font-bold uppercase tracking-wider transition-all flex items-center gap-2 ${location.pathname === '/marketplace'
+              to="/"
+              className={`px-3.5 py-2 rounded-xl text-xs font-mono font-bold uppercase tracking-wider transition-all flex items-center gap-1.5 ${
+                location.pathname === '/'
                   ? 'bg-[#FF5A36] text-white shadow-[0_2px_15px_rgba(255,90,54,0.4)]'
                   : 'text-[#94A3B8] hover:text-white hover:bg-white/[0.06]'
-                }`}
+              }`}
+            >
+              <span>Trang chủ</span>
+            </Link>
+
+            <Link
+              to="/marketplace"
+              className={`px-3.5 py-2 rounded-xl text-xs font-mono font-bold uppercase tracking-wider transition-all flex items-center gap-1.5 ${
+                location.pathname === '/marketplace'
+                  ? 'bg-[#FF5A36] text-white shadow-[0_2px_15px_rgba(255,90,54,0.4)]'
+                  : 'text-[#94A3B8] hover:text-white hover:bg-white/[0.06]'
+              }`}
             >
               <Ticket className="w-3.5 h-3.5" />
-              <span>Marketplace</span>
+              <span>Sàn vé</span>
             </Link>
 
             <Link
               to="/sell-ticket"
-              className={`px-4 py-2 rounded-xl text-xs font-mono font-bold uppercase tracking-wider transition-all flex items-center gap-2 ${location.pathname === '/sell-ticket'
+              className={`px-3.5 py-2 rounded-xl text-xs font-mono font-bold uppercase tracking-wider transition-all flex items-center gap-1.5 ${
+                location.pathname === '/sell-ticket'
                   ? 'bg-[#FF5A36] text-white shadow-[0_2px_15px_rgba(255,90,54,0.4)]'
                   : 'text-[#94A3B8] hover:text-white hover:bg-white/[0.06]'
-                }`}
+              }`}
             >
               <PlusCircle className="w-3.5 h-3.5" />
-              <span>Sell Ticket</span>
+              <span>Bán vé</span>
             </Link>
 
             {(isSeller || isAdmin) && (
               <Link
                 to="/my-listings"
-                className={`px-4 py-2 rounded-xl text-xs font-mono font-bold uppercase tracking-wider transition-all flex items-center gap-2 ${location.pathname === '/my-listings'
+                className={`px-3.5 py-2 rounded-xl text-xs font-mono font-bold uppercase tracking-wider transition-all flex items-center gap-1.5 ${
+                  location.pathname === '/my-listings'
                     ? 'bg-[#FF5A36] text-white shadow-[0_2px_15px_rgba(255,90,54,0.4)]'
                     : 'text-[#94A3B8] hover:text-white hover:bg-white/[0.06]'
-                  }`}
+                }`}
               >
                 <ListFilter className="w-3.5 h-3.5" />
-                <span>My Listings</span>
+                <span>Vé đang bán</span>
               </Link>
             )}
 
             <Link
               to="/my-tickets"
-              className={`px-4 py-2 rounded-xl text-xs font-mono font-bold uppercase tracking-wider transition-all flex items-center gap-2 ${location.pathname === '/my-tickets'
+              className={`px-3.5 py-2 rounded-xl text-xs font-mono font-bold uppercase tracking-wider transition-all flex items-center gap-1.5 ${
+                location.pathname === '/my-tickets'
                   ? 'bg-[#FF5A36] text-white shadow-[0_2px_15px_rgba(255,90,54,0.4)]'
                   : 'text-[#94A3B8] hover:text-white hover:bg-white/[0.06]'
-                }`}
+              }`}
             >
               <Sparkles className="w-3.5 h-3.5" />
-              <span>My Tickets</span>
+              <span>Vé của tôi</span>
             </Link>
 
             <Link
               to="/organizer"
               title="Mock Organizer Operator Portal"
-              className={`px-3 py-2 rounded-xl text-[10px] font-mono font-bold uppercase tracking-wider transition-all flex items-center gap-1.5 ${location.pathname === '/organizer'
+              className={`px-2.5 py-2 rounded-xl text-[10px] font-mono font-bold uppercase tracking-wider transition-all flex items-center gap-1.5 ${
+                location.pathname === '/organizer'
                   ? 'bg-orange-500/20 text-orange-400 border border-orange-500/40'
                   : 'text-orange-400/80 hover:text-orange-400 hover:bg-orange-500/10'
-                }`}
+              }`}
             >
               MO Portal
             </Link>
