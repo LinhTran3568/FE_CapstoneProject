@@ -17,6 +17,7 @@ import {
 import { useUIStore } from '../stores/uiStore';
 import { useMarketplaceListings } from '../hooks/useMarketplaceListings';
 import { formatEventDateTime, formatVND } from '../utils/formatters';
+import { TicketShieldTrustBadge } from '../components/ui/TicketShieldTrustBadge';
 
 export const MarketplacePage: React.FC = () => {
   const { showToast } = useUIStore();
@@ -785,12 +786,9 @@ export const MarketplacePage: React.FC = () => {
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-[#090C12] via-black/40 to-transparent pointer-events-none" />
 
-                  {/* Top-Left Verified Badge */}
-                  <div className="absolute top-3.5 left-3.5">
-                    <span className="px-3 py-1 bg-[#06090E]/92 backdrop-blur-md border border-[#20C997]/70 text-[11px] font-black font-mono text-[#20C997] rounded-full uppercase flex items-center gap-1.5 shadow-xl">
-                      <Check className="w-3 h-3 stroke-[3]" />
-                      {listing.verificationStatus || 'VERIFIED'}
-                    </span>
+                  {/* Top-Left Verified Trust Badge */}
+                  <div className="absolute top-3.5 left-3.5 z-10">
+                    <TicketShieldTrustBadge variant="compact" isPrivate={listing.isPrivate} />
                   </div>
 
                   {/* Top-Right Masked Ticket Code */}

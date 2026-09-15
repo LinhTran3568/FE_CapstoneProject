@@ -28,6 +28,8 @@ import {
   Share2,
   Sparkles
 } from 'lucide-react';
+import { TicketShieldTrustBadge } from '../components/ui/TicketShieldTrustBadge';
+import { PrivateResaleScenarioModal } from '../components/ui/PrivateResaleScenarioModal';
 import { buildPrivateShareLink, buildPublicShareLink, copyToClipboard } from '../utils/shareLink';
 
 export const SellTicketPage: React.FC = () => {
@@ -51,6 +53,10 @@ export const SellTicketPage: React.FC = () => {
   const [verificationId, setVerificationId] = useState<string>('');
   const [verificationResult, setVerificationResult] = useState<VerificationResult | null>(null);
   const [isRequestingOtp, setIsRequestingOtp] = useState<boolean>(false);
+
+  // Scenario Modal state
+  const [showScenarioModal, setShowScenarioModal] = useState<boolean>(false);
+  const [activeFeeTooltip, setActiveFeeTooltip] = useState<'seller' | 'buyer' | null>(null);
 
   // Step 4 Pricing state (declared early for draft storage)
   const [faceValue, setFaceValue] = useState<number>(2500000);
@@ -1349,12 +1355,27 @@ export const SellTicketPage: React.FC = () => {
                 </div>
               </div>
 
-              {/* Net Payout Box */}
-              <div className="p-4 bg-[#05070A] border border-white/10 rounded-2xl flex items-center justify-between text-xs hover:border-emerald-500/30 transition-all duration-300">
-                <span className="text-[#A3A8B3]">Seller Net Payout:</span>
-                <span className="text-xl font-bold font-display text-emerald-400 transition-all duration-300">
-                  {resalePrice.toLocaleString('vi-VN')} VND
-                </span>
+              {/* Platform Fee & Net Payout Breakdown Box */}
+              <div className="p-4 bg-[#05070A] border border-emerald-500/30 rounded-2xl space-y-2.5 text-xs">
+                <div className="flex items-center justify-between pb-2 border-b border-gray-800">
+                  <span className="text-[#A3A8B3] font-semibold flex items-center gap-1.5">
+                    <ShieldCheck className="w-4 h-4 text-emerald-400" />
+                    <span>Chi Tiết Biểu Phí Sàn (Uniform Fee Model)</span>
+                  </span>
+                  <span className="text-[10px] font-mono bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 px-2 py-0.5 rounded">
+                    Phí Người Bán 3%
+                  </span>
+                </div>
+                <div className="flex justify-between items-center text-amber-400 text-[11px]">
+                  <span>- Phí dịch vụ người bán (3%):</span>
+                  <span className="font-mono font-semibold">-{Math.max(Math.round(resalePrice * 0.03), 5000).toLocaleString('vi-VN')} VND</span>
+                </div>
+                <div className="flex justify-between items-center text-emerald-400 font-bold text-sm pt-1.5 border-t border-gray-800">
+                  <span>= Thực nhận của Người bán (Net Payout):</span>
+                  <span className="font-mono text-emerald-400 font-display">
+                    {Math.max(resalePrice - Math.max(Math.round(resalePrice * 0.03), 5000), 0).toLocaleString('vi-VN')} VND
+                  </span>
+                </div>
               </div>
 
               <button
@@ -1374,47 +1395,108 @@ export const SellTicketPage: React.FC = () => {
 
         {/* STEP 5: REVIEW & CONFIRM LISTING */}
         {currentStep === 5 && (
-          <div key={5} className="animate-fade-in-up max-w-xl mx-auto space-y-6 pt-2">
-            <div className="space-y-2 text-center">
-              <h2 className="text-3xl font-extrabold font-display text-white">
-                Review & Confirm Listing
+          <div key={5} className="animate-fade-in-up max-w-[640px] mx-auto space-y-5 pt-2">
+            <div className="space-y-1 text-center">
+              <h2 className="text-2xl font-bold font-display text-white">
+                Review &amp; Confirm Listing
               </h2>
-              <p className="text-xs text-[#A3A8B3]">
+              <p className="text-xs text-gray-400">
                 Review your ticket details before publishing to TicketShield Marketplace.
               </p>
             </div>
 
-            {/* Final Preview Card */}
-            <div className="bg-[#0A0D12]/90 backdrop-blur-md border border-white/10 rounded-3xl overflow-hidden shadow-2xl space-y-6 p-6 sm:p-8 hover:border-white/20 transition-all duration-300">
-              <div className="space-y-2">
-                <span className="text-[10px] text-[#FF5A36] font-mono uppercase font-bold">VERIFIED DIGITAL TICKET PASS</span>
-                <h3 className="text-xl font-bold font-display text-white">Anh Trai Say Hi Concert 2026</h3>
-                <p className="text-xs text-[#A3A8B3] flex items-center gap-1.5 font-mono">
-                  <Ticket className="w-3.5 h-3.5 text-cyan-400" /> Ticket Code: {ticketCode}
-                </p>
+            {/* Main Panel */}
+            <div className="bg-[#0B0E14] border border-gray-800 rounded-2xl overflow-hidden shadow-2xl p-6 sm:p-7 space-y-6 text-left">
+              {/* 1. Ticket Summary Header */}
+              <div className="flex items-start justify-between gap-4 pb-4 border-b border-gray-800/80">
+                <div className="space-y-1">
+                  <h3 className="text-lg font-bold text-white tracking-wide">
+                    Anh Trai Say Hi Concert 2026
+                  </h3>
+                  <div className="flex items-center gap-2 text-xs text-gray-400 font-mono">
+                    <Ticket className="w-3.5 h-3.5 text-cyan-400" />
+                    <span>Ticket Code: <strong className="text-gray-200">{ticketCode || 'ATSH-VIP-8862'}</strong></span>
+                  </div>
+                </div>
+                <span className="px-2.5 py-1 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[11px] font-semibold font-mono rounded-full shrink-0 uppercase">
+                  VERIFIED
+                </span>
               </div>
 
-              <div className="grid grid-cols-2 gap-4 p-4 bg-[#05070A] border border-white/10 rounded-2xl text-xs">
+              {/* 2. Compact Price Comparison */}
+              <div className="grid grid-cols-2 gap-4 text-xs pb-3 border-b border-gray-800/80">
                 <div>
-                  <span className="text-[10px] text-[#A3A8B3]">ORIGINAL PRICE</span>
-                  <p className="font-bold text-white font-display text-sm">{faceValue.toLocaleString('vi-VN')} VND</p>
+                  <span className="text-gray-400 font-medium block mb-0.5 uppercase tracking-wider text-[11px]">ORIGINAL PRICE</span>
+                  <span className="font-mono font-bold text-white text-sm">
+                    {faceValue.toLocaleString('vi-VN')} VND
+                  </span>
                 </div>
                 <div className="text-right">
-                  <span className="text-[10px] text-[#A3A8B3]">RESALE PRICE</span>
-                  <p className="font-bold text-[#FF5A36] font-display text-sm">{resalePrice.toLocaleString('vi-VN')} VND</p>
+                  <span className="text-gray-400 font-medium block mb-0.5 uppercase tracking-wider text-[11px]">RESALE PRICE</span>
+                  <span className="font-mono font-bold text-[#FF5A36] text-sm">
+                    {resalePrice.toLocaleString('vi-VN')} VND
+                  </span>
                 </div>
               </div>
 
-              {/* Listing Mode Selection: Public vs Private (Clean Segmented Control) */}
-              <div className="space-y-2 text-left pt-1">
-                <label className="text-[11px] font-semibold text-[#A3A8B3] uppercase tracking-wider block">
-                  Visibility
-                </label>
-                <div className="grid grid-cols-2 p-1 bg-[#05070A] border border-white/10 rounded-xl gap-1">
+              {/* 3. Redesigned Fee Breakdown ("PRICE BREAKDOWN") */}
+              <div className="space-y-3 pb-3 border-b border-gray-800/80">
+                <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider block">
+                  PRICE BREAKDOWN
+                </span>
+
+                <div className="space-y-2.5 text-xs">
+                  {/* Resale Price */}
+                  <div className="flex justify-between items-center text-gray-300">
+                    <span>Resale Price</span>
+                    <span className="font-mono font-medium text-white">{resalePrice.toLocaleString('vi-VN')} VND</span>
+                  </div>
+
+                  {/* Seller Fee */}
+                  <div className="relative flex justify-between items-center text-gray-300">
+                    <div className="flex items-center gap-1.5">
+                      <span>Seller Fee · 3%</span>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setActiveFeeTooltip(activeFeeTooltip === 'seller' ? null : 'seller');
+                        }}
+                        className="w-4 h-4 rounded-full bg-gray-800 hover:bg-gray-700 text-gray-400 hover:text-white text-[10px] font-bold flex items-center justify-center transition-colors cursor-pointer"
+                        title="Seller fee info"
+                      >
+                        ?
+                      </button>
+                      {activeFeeTooltip === 'seller' && (
+                        <div className="absolute left-0 top-full mt-1.5 w-68 p-3 bg-[#131822] border border-gray-700 rounded-xl shadow-2xl text-[11px] text-gray-200 z-30 animate-in fade-in zoom-in-95 duration-150">
+                          <div className="font-semibold text-white mb-1">3% Seller Fee</div>
+                          <div>TicketShield deducts 3% from the resale price for transaction processing and order support.</div>
+                        </div>
+                      )}
+                    </div>
+                    <span className="font-mono text-gray-400">-{Math.max(Math.round(resalePrice * 0.03), 5000).toLocaleString('vi-VN')} VND</span>
+                  </div>
+
+                  {/* Seller Net Payout (Primary Number) */}
+                  <div className="flex justify-between items-center pt-1 text-sm font-bold">
+                    <span className="text-white">You Receive</span>
+                    <span className="font-mono text-emerald-400 text-base">
+                      {Math.max(resalePrice - Math.max(Math.round(resalePrice * 0.03), 5000), 0).toLocaleString('vi-VN')} VND
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* 4. Visibility Control */}
+              <div className="space-y-2 pt-1">
+                <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider block">
+                  VISIBILITY
+                </span>
+                <div className="grid grid-cols-2 p-1 bg-[#05070A] border border-gray-800 rounded-xl gap-1">
                   <button
                     type="button"
                     onClick={() => setIsPrivateListing(false)}
-                    className={`py-2.5 px-3 rounded-lg text-xs font-semibold transition-all flex items-center justify-center gap-2 ${
+                    className={`py-2.5 px-3 rounded-lg text-xs font-semibold transition-all flex items-center justify-center gap-2 cursor-pointer ${
                       !isPrivateListing
                         ? 'bg-white/10 text-white font-bold shadow-sm'
                         : 'text-[#8F96A3] hover:text-white hover:bg-white/[0.03]'
@@ -1427,9 +1509,9 @@ export const SellTicketPage: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => setIsPrivateListing(true)}
-                    className={`py-2.5 px-3 rounded-lg text-xs font-semibold transition-all flex items-center justify-center gap-2 ${
+                    className={`py-2.5 px-3 rounded-lg text-xs font-semibold transition-all flex items-center justify-center gap-2 cursor-pointer ${
                       isPrivateListing
-                        ? 'bg-white/10 text-white font-bold shadow-sm'
+                        ? 'bg-purple-950/60 border border-purple-500/40 text-purple-200 font-bold shadow-sm'
                         : 'text-[#8F96A3] hover:text-white hover:bg-white/[0.03]'
                     }`}
                   >
@@ -1437,38 +1519,39 @@ export const SellTicketPage: React.FC = () => {
                     <span>Private</span>
                   </button>
                 </div>
-                <p className="text-[11px] text-[#8F96A3] leading-relaxed">
+                <p className="text-[11px] text-gray-400">
                   {!isPrivateListing
                     ? 'Listed openly on Marketplace. Anyone can search and buy.'
-                    : 'Hidden from Marketplace. Accessible only via secret link or QR.'}
+                    : 'Hidden from Marketplace. Accessible only via secret link or QR code.'}
                 </p>
               </div>
 
-              {/* Terms Checkbox */}
-              <label className="flex items-center gap-3 text-xs text-[#F5F5F2] cursor-pointer pt-1 group">
+              {/* 5. Confirmation Checkbox */}
+              <label className="flex items-center gap-2.5 text-xs text-gray-300 cursor-pointer pt-2 group">
                 <input
                   type="checkbox"
                   checked={agreedTerms}
                   onChange={(e) => setAgreedTerms(e.target.checked)}
-                  className="rounded border-white/20 bg-[#05070A] text-[#FF5A36] focus:ring-0 w-4 h-4"
+                  className="rounded border-gray-700 bg-black text-[#FF5A36] focus:ring-0 w-4 h-4 cursor-pointer"
                 />
-                <span className="group-hover:text-white transition-colors duration-200">
+                <span className="group-hover:text-white transition-colors">
                   I certify that I am the authentic ticket owner and agree to list on TicketShield Marketplace
                 </span>
               </label>
 
+              {/* 6. Publish Button */}
               <button
                 onClick={handlePublishListing}
                 disabled={isPublishing || !agreedTerms}
-                className="w-full py-4 bg-[#FF5A36] hover:bg-[#FF7252] disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold font-display uppercase tracking-widest text-xs rounded-xl shadow-lg shadow-[#FF5A36]/30 hover:shadow-xl hover:shadow-[#FF5A36]/50 hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer"
+                className="w-full py-3.5 bg-[#FF5A36] hover:bg-[#FF7252] disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold font-display uppercase tracking-wider text-xs rounded-xl shadow-md transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer mt-2"
               >
                 {isPublishing ? (
                   <>
                     <Loader2 className="w-4 h-4 animate-spin" />
-                    <span>Publishing...</span>
+                    <span>PUBLISHING...</span>
                   </>
                 ) : (
-                  <span>Publish</span>
+                  <span>PUBLISH LISTING</span>
                 )}
               </button>
             </div>
@@ -1786,6 +1869,12 @@ export const SellTicketPage: React.FC = () => {
           );
         })()}
 
+        {/* Private Resale Scenario Messaging Modal */}
+        <PrivateResaleScenarioModal
+          isOpen={showScenarioModal}
+          onClose={() => setShowScenarioModal(false)}
+          role="seller"
+        />
       </div>
     </div>
   );
