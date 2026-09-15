@@ -46,6 +46,27 @@ export type VerificationStatus =
   | 'Verified'
   | 'Rejected';
 
+export interface TrendingEventDto {
+  id?: string;
+  eventId?: string;
+  name: string;
+  artist?: string;
+  category?: string;
+  city?: string;
+  bannerUrl?: string;
+  venue: string;
+  description?: string;
+  eventStartAt: string;
+  eventEndAt?: string;
+  minResalePrice?: number;
+  originalPriceFrom?: number;
+  totalAvailableListings: number;
+  organizerName?: string;
+}
+
+export type MarketplaceListingDto = ResaleListingDetailDto;
+
+
 export type EscrowStatus =
   | 'PENDING'
   | 'FUNDED'
