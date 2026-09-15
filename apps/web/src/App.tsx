@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { CheckCircle2, AlertCircle, AlertTriangle, Info, X } from 'lucide-react';
 import { Navbar } from './components/layout/Navbar';
 import { Footer } from './components/layout/Footer';
+import { QuickActionSpeedDial } from './components/layout/QuickActionSpeedDial';
 import { AppRoutes } from './routes/AppRoutes';
 import { useUIStore } from './stores/uiStore';
 import { useAuthStore } from './stores/authStore';
@@ -126,6 +127,7 @@ const AppContent: React.FC = () => {
         <AppRoutes />
       </main>
       {!isAuthPage && <Footer />}
+      {!isAuthPage && <QuickActionSpeedDial />}
       <ToastContainer />
     </div>
   );

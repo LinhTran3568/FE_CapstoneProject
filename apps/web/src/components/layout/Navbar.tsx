@@ -123,7 +123,7 @@ export const Navbar: React.FC = () => {
             <Search className="w-3.5 h-3.5 text-[#8B929C] shrink-0" />
             <input
               type="text"
-              placeholder="Tìm sự kiện, vé..."
+              placeholder="Search events, tickets..."
               value={navSearchTerm}
               onChange={(e) => setNavSearchTerm(e.target.value)}
               className="w-full bg-transparent border-0 text-white placeholder-[#8B929C] text-xs font-medium focus:outline-none"
@@ -131,119 +131,57 @@ export const Navbar: React.FC = () => {
           </form>
         </div>
 
-        {/* Navigation Links */}
-        {!user ? (
-          /* GUEST MODE */
-          <nav className="hidden lg:flex items-center gap-2 bg-[#090C12]/80 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/10 shadow-inner">
-            <Link
-              to="/"
-              className={`px-3.5 py-1.5 rounded-full text-xs font-mono font-bold uppercase tracking-wider transition-colors ${
-                location.pathname === '/' ? 'text-[#FF5A36] bg-white/10' : 'text-[#CBD5E1] hover:text-[#FF5A36]'
-              }`}
-            >
-              Trang chủ
-            </Link>
+        {/* Navigation Links - Clean 2-Tab Discovery Pill */}
+        <nav className="hidden md:flex items-center gap-1.5 bg-[#090C12]/90 backdrop-blur-md p-1.5 rounded-full border border-white/10 shadow-inner">
+          <Link
+            to="/"
+            className={`px-4 py-1.5 rounded-full text-xs font-mono font-bold uppercase tracking-wider whitespace-nowrap transition-all ${
+              location.pathname === '/'
+                ? 'bg-[#FF5A36] text-white shadow-[0_2px_15px_rgba(255,90,54,0.4)]'
+                : 'text-[#94A3B8] hover:text-white hover:bg-white/[0.06]'
+            }`}
+          >
+            Home
+          </Link>
 
-            <Link
-              to="/marketplace"
-              className={`px-3.5 py-1.5 rounded-full text-xs font-mono font-bold uppercase tracking-wider transition-colors flex items-center gap-1.5 ${
-                location.pathname === '/marketplace' ? 'text-[#FF5A36] bg-white/10' : 'text-[#20C997] hover:text-emerald-400'
-              }`}
-            >
-              <Ticket className="w-3.5 h-3.5" />
-              <span>Sàn vé</span>
-            </Link>
-
-            <Link
-              to="/organizer"
-              title="Mock Organizer Operator Portal"
-              className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-orange-500/10 text-orange-400 hover:bg-orange-500/20 border border-orange-500/30 transition-colors"
-            >
-              MO Portal
-            </Link>
-          </nav>
-        ) : (
-          /* LOGGED IN MODE: Direct Functional App Links */
-          <nav className="hidden md:flex items-center gap-1 bg-[#090C12]/90 backdrop-blur-md p-1.5 rounded-2xl border border-white/10 shadow-inner">
-            <Link
-              to="/"
-              className={`px-3.5 py-2 rounded-xl text-xs font-mono font-bold uppercase tracking-wider transition-all flex items-center gap-1.5 ${
-                location.pathname === '/'
-                  ? 'bg-[#FF5A36] text-white shadow-[0_2px_15px_rgba(255,90,54,0.4)]'
-                  : 'text-[#94A3B8] hover:text-white hover:bg-white/[0.06]'
-              }`}
-            >
-              <span>Trang chủ</span>
-            </Link>
-
-            <Link
-              to="/marketplace"
-              className={`px-3.5 py-2 rounded-xl text-xs font-mono font-bold uppercase tracking-wider transition-all flex items-center gap-1.5 ${
-                location.pathname === '/marketplace'
-                  ? 'bg-[#FF5A36] text-white shadow-[0_2px_15px_rgba(255,90,54,0.4)]'
-                  : 'text-[#94A3B8] hover:text-white hover:bg-white/[0.06]'
-              }`}
-            >
-              <Ticket className="w-3.5 h-3.5" />
-              <span>Sàn vé</span>
-            </Link>
-
-            <Link
-              to="/sell-ticket"
-              className={`px-3.5 py-2 rounded-xl text-xs font-mono font-bold uppercase tracking-wider transition-all flex items-center gap-1.5 ${
-                location.pathname === '/sell-ticket'
-                  ? 'bg-[#FF5A36] text-white shadow-[0_2px_15px_rgba(255,90,54,0.4)]'
-                  : 'text-[#94A3B8] hover:text-white hover:bg-white/[0.06]'
-              }`}
-            >
-              <PlusCircle className="w-3.5 h-3.5" />
-              <span>Bán vé</span>
-            </Link>
-
-            <Link
-              to="/my-listings"
-              className={`px-3.5 py-2 rounded-xl text-xs font-mono font-bold uppercase tracking-wider transition-all flex items-center gap-1.5 ${
-                location.pathname === '/my-listings'
-                  ? 'bg-[#FF5A36] text-white shadow-[0_2px_15px_rgba(255,90,54,0.4)]'
-                  : 'text-[#94A3B8] hover:text-white hover:bg-white/[0.06]'
-              }`}
-            >
-              <ListFilter className="w-3.5 h-3.5" />
-              <span>Vé đang bán</span>
-            </Link>
-
-            <Link
-              to="/my-tickets"
-              className={`px-3.5 py-2 rounded-xl text-xs font-mono font-bold uppercase tracking-wider transition-all flex items-center gap-1.5 ${
-                location.pathname === '/my-tickets'
-                  ? 'bg-[#FF5A36] text-white shadow-[0_2px_15px_rgba(255,90,54,0.4)]'
-                  : 'text-[#94A3B8] hover:text-white hover:bg-white/[0.06]'
-              }`}
-            >
-              <Sparkles className="w-3.5 h-3.5" />
-              <span>Vé của tôi</span>
-            </Link>
-
-            <Link
-              to="/organizer"
-              title="Mock Organizer Operator Portal"
-              className={`px-2.5 py-2 rounded-xl text-[10px] font-mono font-bold uppercase tracking-wider transition-all flex items-center gap-1.5 ${
-                location.pathname === '/organizer'
-                  ? 'bg-orange-500/20 text-orange-400 border border-orange-500/40'
-                  : 'text-orange-400/80 hover:text-orange-400 hover:bg-orange-500/10'
-              }`}
-            >
-              MO Portal
-            </Link>
-          </nav>
-        )}
+          <Link
+            to="/marketplace"
+            className={`px-4 py-1.5 rounded-full text-xs font-mono font-bold uppercase tracking-wider whitespace-nowrap transition-all flex items-center gap-1.5 ${
+              location.pathname === '/marketplace'
+                ? 'bg-[#FF5A36] text-white shadow-[0_2px_15px_rgba(255,90,54,0.4)]'
+                : 'text-[#94A3B8] hover:text-white hover:bg-white/[0.06]'
+            }`}
+          >
+            <Ticket className="w-3.5 h-3.5" />
+            <span>Marketplace</span>
+          </Link>
+        </nav>
 
         {/* Right Actions */}
         <div className="hidden sm:flex items-center gap-3">
+          {/* Sell Ticket CTA Button - Always accessible */}
+          <Link
+            to="/sell-ticket"
+            className={`group px-4 py-2 rounded-xl text-xs font-mono font-bold uppercase tracking-wider whitespace-nowrap transition-all flex items-center gap-1.5 ${
+              location.pathname === '/sell-ticket'
+                ? 'bg-[#FF5A36] text-black shadow-[0_2px_15px_rgba(255,90,54,0.4)]'
+                : 'bg-white/5 text-white hover:bg-[#FF5A36] hover:text-black border border-white/15 hover:border-[#FF5A36]'
+            }`}
+          >
+            <PlusCircle
+              className={`w-3.5 h-3.5 transition-colors ${
+                location.pathname === '/sell-ticket'
+                  ? 'text-black'
+                  : 'text-[#FF5A36] group-hover:text-black'
+              }`}
+            />
+            <span>Sell Ticket</span>
+          </Link>
+
           {!user ? (
             <Link
               to="/login"
-              className="px-5 py-2.5 bg-gradient-to-r from-[#FF5A36] to-[#FF7252] hover:brightness-110 text-white font-display font-black text-xs uppercase tracking-wider rounded-xl shadow-[0_4px_20px_rgba(255,90,54,0.4)] transition-all flex items-center gap-1.5"
+              className="px-5 py-2.5 bg-gradient-to-r from-[#FF5A36] to-[#FF7252] hover:brightness-110 text-white font-display font-black text-xs uppercase tracking-wider rounded-xl shadow-[0_4px_20px_rgba(255,90,54,0.4)] transition-all flex items-center gap-1.5 whitespace-nowrap"
             >
               <span>Sign In</span>
               <ArrowRight className="w-3.5 h-3.5 stroke-[2.5]" />
@@ -268,26 +206,27 @@ export const Navbar: React.FC = () => {
                 </div>
 
                 <ChevronDown
-                  className={`w-3.5 h-3.5 text-[#8B929C] group-hover:text-white transition-transform duration-200 ${userDropdownOpen ? 'rotate-180 text-white' : ''
-                    }`}
+                  className={`w-3.5 h-3.5 text-[#8B929C] group-hover:text-white transition-transform duration-200 ${
+                    userDropdownOpen ? 'rotate-180 text-white' : ''
+                  }`}
                 />
               </button>
 
               {/* User Dropdown */}
               {userDropdownOpen && (
-                <div className="absolute right-0 mt-2 w-56 bg-[#0B0E14]/95 backdrop-blur-2xl border border-white/15 rounded-2xl p-2 shadow-[0_20px_50px_rgba(0,0,0,0.9)] animate-in fade-in slide-in-from-top-2 space-y-1 z-50">
+                <div className="absolute right-0 mt-2 w-60 bg-[#0B0E14]/95 backdrop-blur-2xl border border-white/15 rounded-2xl p-2 shadow-[0_20px_50px_rgba(0,0,0,0.9)] animate-in fade-in slide-in-from-top-2 space-y-1 z-50">
                   <div className="p-3 bg-white/[0.03] rounded-xl border border-white/5 space-y-1">
                     <p className="text-xs font-bold text-white truncate">{user.fullName}</p>
                     <p className="text-[11px] font-mono text-[#8B929C] truncate">{user.email}</p>
                   </div>
 
                   <Link
-                    to="/profile"
+                    to="/my-tickets"
                     onClick={() => setUserDropdownOpen(false)}
                     className="w-full px-3 py-2.5 rounded-xl text-xs font-mono text-[#CBD5E1] hover:text-white hover:bg-white/10 flex items-center gap-2.5 transition-colors"
                   >
-                    <UserIcon className="w-4 h-4 text-[#FF5A36]" />
-                    <span>My Profile</span>
+                    <Sparkles className="w-4 h-4 text-[#FF5A36]" />
+                    <span>My Tickets</span>
                   </Link>
 
                   <Link
@@ -300,15 +239,24 @@ export const Navbar: React.FC = () => {
                   </Link>
 
                   <Link
-                    to="/my-tickets"
+                    to="/profile"
                     onClick={() => setUserDropdownOpen(false)}
                     className="w-full px-3 py-2.5 rounded-xl text-xs font-mono text-[#CBD5E1] hover:text-white hover:bg-white/10 flex items-center gap-2.5 transition-colors"
                   >
-                    <Sparkles className="w-4 h-4 text-[#FF5A36]" />
-                    <span>My Tickets</span>
+                    <UserIcon className="w-4 h-4 text-[#FF5A36]" />
+                    <span>My Profile</span>
                   </Link>
 
                   <div className="pt-1 border-t border-white/10">
+                    <Link
+                      to="/organizer"
+                      onClick={() => setUserDropdownOpen(false)}
+                      className="w-full px-3 py-2 rounded-xl text-[11px] font-mono text-orange-400/80 hover:text-orange-400 hover:bg-orange-500/10 flex items-center gap-2.5 transition-colors"
+                    >
+                      <span className="w-2 h-2 rounded-full bg-orange-500 animate-pulse"></span>
+                      <span>MO Portal</span>
+                    </Link>
+
                     <button
                       onClick={handleLogout}
                       className="w-full px-3 py-2.5 rounded-xl text-xs font-mono text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 flex items-center gap-2.5 transition-colors cursor-pointer"
@@ -337,41 +285,13 @@ export const Navbar: React.FC = () => {
         <div className="lg:hidden px-6 pt-3 pb-6 bg-[#05070A]/95 backdrop-blur-2xl border-b border-white/10 space-y-2 animate-in fade-in slide-in-from-top-4">
           {!user ? (
             <div className="flex flex-col gap-1">
-              <button
-                onClick={() => scrollToSection('hero')}
+              <Link
+                to="/"
+                onClick={() => setMobileMenuOpen(false)}
                 className="px-4 py-2.5 rounded-xl text-xs font-mono font-bold uppercase text-white hover:bg-white/10 text-left transition-colors"
               >
                 Home
-              </button>
-              <button
-                onClick={() => scrollToSection('flow')}
-                className="px-4 py-2.5 rounded-xl text-xs font-mono font-bold uppercase text-white hover:bg-white/10 text-left transition-colors"
-              >
-                How it work ?
-              </button>
-              <button
-                onClick={() => scrollToSection('partners')}
-                className="px-4 py-2.5 rounded-xl text-xs font-mono font-bold uppercase text-white hover:bg-white/10 text-left transition-colors"
-              >
-                Partners
-              </button>
-              <button
-                onClick={() => scrollToSection('ticket-dispenser')}
-                className="px-4 py-2.5 rounded-xl text-xs font-mono font-bold uppercase text-white hover:bg-white/10 text-left transition-colors"
-              >
-                Issuer Pass
-              </button>
-              <Link
-                to="/login"
-                onClick={() => setMobileMenuOpen(false)}
-                className="mt-2 px-4 py-3 rounded-xl bg-gradient-to-r from-[#FF5A36] to-[#FF7252] text-white text-xs font-display font-black uppercase tracking-wider flex items-center justify-between shadow-lg shadow-[#FF5A36]/30"
-              >
-                <span>Sign In</span>
-                <ArrowRight className="w-4 h-4" />
               </Link>
-            </div>
-          ) : (
-            <div className="flex flex-col gap-1">
               <Link
                 to="/marketplace"
                 onClick={() => setMobileMenuOpen(false)}
@@ -389,12 +309,38 @@ export const Navbar: React.FC = () => {
                 <span>Sell Ticket</span>
               </Link>
               <Link
-                to="/my-listings"
+                to="/login"
+                onClick={() => setMobileMenuOpen(false)}
+                className="mt-2 px-4 py-3 rounded-xl bg-gradient-to-r from-[#FF5A36] to-[#FF7252] text-white text-xs font-display font-black uppercase tracking-wider flex items-center justify-between shadow-lg shadow-[#FF5A36]/30"
+              >
+                <span>Sign In</span>
+                <ArrowRight className="w-4 h-4" />
+              </Link>
+            </div>
+          ) : (
+            <div className="flex flex-col gap-1">
+              <Link
+                to="/"
+                onClick={() => setMobileMenuOpen(false)}
+                className="px-4 py-2.5 rounded-xl text-xs font-mono font-bold uppercase text-white hover:bg-white/10 text-left transition-colors"
+              >
+                Home
+              </Link>
+              <Link
+                to="/marketplace"
                 onClick={() => setMobileMenuOpen(false)}
                 className="px-4 py-2.5 rounded-xl text-xs font-mono font-bold uppercase text-white hover:bg-white/10 flex items-center gap-2"
               >
-                <ListFilter className="w-4 h-4 text-[#FF5A36]" />
-                <span>My Listings</span>
+                <Ticket className="w-4 h-4 text-[#FF5A36]" />
+                <span>Marketplace</span>
+              </Link>
+              <Link
+                to="/sell-ticket"
+                onClick={() => setMobileMenuOpen(false)}
+                className="px-4 py-2.5 rounded-xl text-xs font-mono font-bold uppercase text-[#FF5A36] hover:bg-[#FF5A36]/10 flex items-center gap-2 font-bold"
+              >
+                <PlusCircle className="w-4 h-4 text-[#FF5A36]" />
+                <span>Sell Ticket</span>
               </Link>
               <Link
                 to="/my-tickets"
@@ -403,6 +349,14 @@ export const Navbar: React.FC = () => {
               >
                 <Sparkles className="w-4 h-4 text-[#FF5A36]" />
                 <span>My Tickets</span>
+              </Link>
+              <Link
+                to="/my-listings"
+                onClick={() => setMobileMenuOpen(false)}
+                className="px-4 py-2.5 rounded-xl text-xs font-mono font-bold uppercase text-white hover:bg-white/10 flex items-center gap-2"
+              >
+                <ListFilter className="w-4 h-4 text-[#FF5A36]" />
+                <span>My Listings</span>
               </Link>
               <Link
                 to="/organizer"
@@ -418,7 +372,7 @@ export const Navbar: React.FC = () => {
                     setMobileMenuOpen(false);
                     handleLogout();
                   }}
-                  className="w-full px-4 py-2.5 rounded-xl text-xs font-mono font-bold uppercase text-rose-400 hover:bg-rose-500/10 flex items-center gap-2 text-left"
+                  className="w-full px-4 py-2.5 rounded-xl text-xs font-mono font-bold uppercase text-rose-400 hover:bg-rose-500/10 flex items-center gap-2 text-left cursor-pointer"
                 >
                   <LogOut className="w-4 h-4" />
                   <span>Sign Out</span>
