@@ -13,6 +13,10 @@ export interface VerificationResult {
   originalPrice?: number;
   listingId?: string;
   privateAccessToken?: string;
+  /** Event markup % snapshotted for this verification (0–100). */
+  markupPercent?: number;
+  /** Integer VND ceiling: Truncate(originalPrice * (1 + markupPercent/100)). */
+  priceCeiling?: number;
 }
 
 const generateIdempotencyKey = (): string => {

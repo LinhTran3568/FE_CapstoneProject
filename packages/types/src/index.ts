@@ -171,7 +171,7 @@ export interface SellerListingDto {
   originalTicketCode: string;
   /** VND */
   originalPrice: number;
-  /** VND, never above originalPrice (price ceiling rule) */
+  /** VND, never above the event price ceiling */
   resalePrice: number;
   discountAmount: number;
   discountPercentage: number;
