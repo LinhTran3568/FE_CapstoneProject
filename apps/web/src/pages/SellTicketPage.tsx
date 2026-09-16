@@ -62,6 +62,11 @@ export const SellTicketPage: React.FC = () => {
   const [faceValue, setFaceValue] = useState<number>(2500000);
   const [resalePrice, setResalePrice] = useState<number>(2500000);
   const [priceInputText, setPriceInputText] = useState<string>('2.500.000');
+  const markupPercent = verificationResult?.markupPercent ?? 0;
+  const priceCeiling =
+    verificationResult?.priceCeiling && verificationResult.priceCeiling > 0
+      ? verificationResult.priceCeiling
+      : Math.trunc(faceValue * (1 + markupPercent / 100));
 
   // Auto restore unfinished draft session from localStorage on load
   useEffect(() => {
@@ -109,6 +114,20 @@ export const SellTicketPage: React.FC = () => {
     {
       category: 'VIP',
       code: 'ATSH-VIP-888',
+      price: '2.500.000 VND',
+      rawPrice: 2500000,
+      status: 'VALID',
+    },
+    {
+      category: 'VIP',
+      code: 'ATSH-VIP-887',
+      price: '2.500.000 VND',
+      rawPrice: 2500000,
+      status: 'VALID',
+    },
+    {
+      category: 'VIP',
+      code: 'ATSH-VIP-886',
       price: '2.500.000 VND',
       rawPrice: 2500000,
       status: 'VALID',
@@ -246,7 +265,7 @@ export const SellTicketPage: React.FC = () => {
   };
 
   const updatePrice = (val: number) => {
-    const clamped = Math.max(0, Math.min(val, faceValue));
+    const clamped = Math.max(0, Math.min(val, priceCeiling));
     setResalePrice(clamped);
     setPriceInputText(clamped > 0 ? clamped.toLocaleString('vi-VN') : '');
   };
@@ -294,16 +313,16 @@ export const SellTicketPage: React.FC = () => {
   const handlePriceInputBlur = () => {
     if (!priceInputText || resalePrice === 0) {
       updatePrice(faceValue);
-    } else if (resalePrice > faceValue) {
-      updatePrice(faceValue);
+    } else if (resalePrice > priceCeiling) {
+      updatePrice(priceCeiling);
     }
   };
 
   const handleStepPrice = (delta: number) => {
     const current = resalePrice || 0;
     const next = current + delta;
-    if (delta > 0 && next > faceValue) {
-      updatePrice(faceValue);
+    if (delta > 0 && next > priceCeiling) {
+      updatePrice(priceCeiling);
       return;
     }
     if (next < 0) {
@@ -490,8 +509,11 @@ export const SellTicketPage: React.FC = () => {
       return;
     }
 
-    if (resalePrice > faceValue) {
-      showToast(`Resale price cannot exceed the original face value (${faceValue.toLocaleString('vi-VN')} VND)!`, 'warning');
+    if (resalePrice > priceCeiling) {
+      showToast(
+        `Resale price cannot exceed the event ceiling (${priceCeiling.toLocaleString('vi-VN')} VND). Lower the price and try again.`,
+        'warning'
+      );
       return;
     }
 
@@ -523,7 +545,10 @@ export const SellTicketPage: React.FC = () => {
       if (msg.includes('TICKET_ALREADY_LISTED')) {
         showToast('This ticket has already been listed! Please check "MY LISTINGS".', 'warning');
       } else if (msg.includes('PRICE_EXCEEDS_CEILING')) {
-        showToast(`Resale price cannot exceed the original face value (${faceValue.toLocaleString('vi-VN')} VND)!`, 'warning');
+        showToast(
+          `Resale price cannot exceed the event ceiling (${priceCeiling.toLocaleString('vi-VN')} VND). Lower the price and try again.`,
+          'warning'
+        );
       } else {
         showToast('Could not create listing at this time. Please try again later!', 'error');
       }
@@ -1173,10 +1198,12 @@ export const SellTicketPage: React.FC = () => {
                       MAX RESALE PRICE
                     </span>
                     <p className="text-lg font-bold font-display text-white">
-                      {faceValue.toLocaleString('vi-VN')} VND
+                      {priceCeiling.toLocaleString('vi-VN')} VND
                     </p>
                     <span className="text-[10px] text-[#8F96A3] font-mono block leading-tight">
-                      Per TicketShield policy
+                      {markupPercent > 0
+                        ? `Face value + ${markupPercent}% event markup`
+                        : 'Per TicketShield policy'}
                     </span>
                   </div>
                 </div>
@@ -1203,7 +1230,8 @@ export const SellTicketPage: React.FC = () => {
                 Set Resale Price
               </h2>
               <p className="text-xs text-[#A3A8B3]">
-                Resale price cannot exceed the original face value ({faceValue.toLocaleString('vi-VN')} VND) per anti-scalping regulations.
+                Slide or type a price up to the event ceiling ({priceCeiling.toLocaleString('vi-VN')} VND
+                {markupPercent > 0 ? `, face value + ${markupPercent}%` : ''}).
               </p>
             </div>
 
@@ -1220,6 +1248,29 @@ export const SellTicketPage: React.FC = () => {
                 <span className="text-base font-normal text-[#FF5A36]">VND</span>
               </div>
 
+              <div className="space-y-2 text-left">
+                <label htmlFor="resale-price-slider" className="sr-only">
+                  Resale price within the event ceiling
+                </label>
+                <input
+                  id="resale-price-slider"
+                  type="range"
+                  min={1000}
+                  max={Math.max(priceCeiling, 1000)}
+                  step={1000}
+                  value={Math.min(Math.max(Math.round((resalePrice || 1000) / 1000) * 1000, 1000), Math.max(priceCeiling, 1000))}
+                  onChange={(e) => updatePrice(Number(e.target.value))}
+                  aria-valuemin={1000}
+                  aria-valuemax={priceCeiling}
+                  aria-valuenow={resalePrice}
+                  className="w-full h-2 appearance-none rounded-full cursor-pointer bg-white/10 accent-[#FF5A36]"
+                />
+                <div className="flex items-center justify-between text-[10px] font-mono text-[#8F96A3]">
+                  <span>Min</span>
+                  <span>Max {priceCeiling.toLocaleString('vi-VN')}</span>
+                </div>
+              </div>
+
               {/* Manual Price Input – Compact row with stepper */}
               <div className="space-y-1.5">
                 {/* Label + Input row */}
@@ -1230,7 +1281,7 @@ export const SellTicketPage: React.FC = () => {
                       Custom Price (VND)
                     </span>
                     <span className="text-[9px] text-[#8F96A3] font-mono whitespace-nowrap">
-                      (Cannot exceed face value)
+                      (Cannot exceed event ceiling)
                     </span>
                   </div>
 
@@ -1246,7 +1297,7 @@ export const SellTicketPage: React.FC = () => {
                         onChange={handlePriceInputChange}
                         onFocus={(e) => e.target.select()}
                         onBlur={handlePriceInputBlur}
-                        className={`w-full bg-[#05070A] border rounded-xl pl-3 pr-14 py-2.5 text-sm font-mono font-bold text-white tracking-wider text-right focus:outline-none transition-all duration-200 ${resalePrice > faceValue
+                        className={`w-full bg-[#05070A] border rounded-xl pl-3 pr-14 py-2.5 text-sm font-mono font-bold text-white tracking-wider text-right focus:outline-none transition-all duration-200 ${resalePrice > priceCeiling
                           ? 'border-rose-500 focus:ring-2 focus:ring-rose-500/30'
                           : 'border-white/15 focus:border-[#FF5A36] focus:ring-2 focus:ring-[#FF5A36]/30 group-hover/input:border-white/25'
                           }`}
@@ -1276,13 +1327,13 @@ export const SellTicketPage: React.FC = () => {
                     <button
                       type="button"
                       onClick={() => handleStepPrice(10000)}
-                      disabled={resalePrice >= faceValue}
+                      disabled={resalePrice >= priceCeiling}
                       className={`w-10 h-10 shrink-0 rounded-xl bg-[#05070A] border transition-all duration-150 flex items-center justify-center font-bold text-lg leading-none ${
-                        resalePrice >= faceValue
+                        resalePrice >= priceCeiling
                           ? 'border-white/5 text-white/20 cursor-not-allowed opacity-40'
                           : 'border-white/10 text-white hover:border-[#FF5A36] hover:text-[#FF5A36] hover:bg-[#FF5A36]/10 active:scale-95 cursor-pointer'
                       }`}
-                      title={resalePrice >= faceValue ? "Cannot exceed original face value" : "Increase 10,000 VND"}
+                      title={resalePrice >= priceCeiling ? 'Cannot exceed the event ceiling' : 'Increase 10,000 VND'}
                     >
                       +
                     </button>
@@ -1291,19 +1342,24 @@ export const SellTicketPage: React.FC = () => {
 
                 {/* Validation hint */}
                 <div className="min-h-[20px] flex items-center justify-end text-[10px] font-mono">
-                  {resalePrice > faceValue && (
+                  {resalePrice > priceCeiling && (
                     <span className="text-rose-400 font-semibold">
-                      ⚠ Cannot exceed face value ({faceValue.toLocaleString('vi-VN')} VND)
+                      Cannot exceed the event ceiling ({priceCeiling.toLocaleString('vi-VN')} VND)
                     </span>
                   )}
                   {resalePrice < faceValue && resalePrice > 0 && (
                     <span className="text-emerald-400">
-                      ✓ Save {(faceValue - resalePrice).toLocaleString('vi-VN')} VND ({Math.round((1 - resalePrice / faceValue) * 100)}%) below face value
+                      {(faceValue - resalePrice).toLocaleString('vi-VN')} VND ({Math.round((1 - resalePrice / faceValue) * 100)}%) below face value
                     </span>
                   )}
                   {resalePrice === faceValue && (
                     <span className="text-[#A3A8B3]">
-                      At 100% face value ({faceValue.toLocaleString('vi-VN')} VND)
+                      At face value ({faceValue.toLocaleString('vi-VN')} VND)
+                    </span>
+                  )}
+                  {resalePrice > faceValue && resalePrice <= priceCeiling && (
+                    <span className="text-[#A3A8B3]">
+                      {(resalePrice - faceValue).toLocaleString('vi-VN')} VND above face, within the {markupPercent}% ceiling
                     </span>
                   )}
                 </div>
@@ -1312,7 +1368,7 @@ export const SellTicketPage: React.FC = () => {
               {/* Quick Discount Buttons */}
               <div className="space-y-2">
                 <span className="text-[11px] text-[#A3A8B3]">Quick price presets:</span>
-                <div className="grid grid-cols-4 gap-2 text-xs font-mono">
+                <div className={`grid gap-2 text-xs font-mono ${priceCeiling > faceValue ? 'grid-cols-2 sm:grid-cols-5' : 'grid-cols-4'}`}>
                   <button
                     onClick={() => handleApplyDiscount(5)}
                     className={`py-2.5 rounded-xl border transition-all duration-200 hover:scale-105 active:scale-95 ${resalePrice === Math.round(faceValue * 0.95)
@@ -1352,6 +1408,18 @@ export const SellTicketPage: React.FC = () => {
                   >
                     Face Value
                   </button>
+
+                  {priceCeiling > faceValue && (
+                    <button
+                      onClick={() => updatePrice(priceCeiling)}
+                      className={`py-2.5 rounded-xl border transition-all duration-200 hover:scale-105 active:scale-95 ${resalePrice === priceCeiling
+                        ? 'bg-[#FF5A36]/20 border-[#FF5A36] text-[#FF5A36] font-bold shadow-lg shadow-[#FF5A36]/20'
+                        : 'bg-[#05070A] border-white/10 text-[#A3A8B3] hover:text-white hover:border-white/30'
+                        }`}
+                    >
+                      Max Price
+                    </button>
+                  )}
                 </div>
               </div>
 
@@ -1380,9 +1448,9 @@ export const SellTicketPage: React.FC = () => {
 
               <button
                 onClick={() => setCurrentStep(5)}
-                disabled={resalePrice > faceValue || resalePrice <= 0}
+                disabled={resalePrice > priceCeiling || resalePrice <= 0}
                 className={`w-full py-4 font-bold font-display uppercase tracking-widest text-xs rounded-xl transition-all duration-200 flex items-center justify-center gap-2 ${
-                  resalePrice > faceValue || resalePrice <= 0
+                  resalePrice > priceCeiling || resalePrice <= 0
                     ? 'bg-white/5 text-white/30 border border-white/5 cursor-not-allowed opacity-50'
                     : 'bg-[#FF5A36] hover:bg-[#FF7252] text-white shadow-lg shadow-[#FF5A36]/30 hover:shadow-xl hover:shadow-[#FF5A36]/50 hover:-translate-y-0.5 active:translate-y-0 cursor-pointer'
                 }`}
