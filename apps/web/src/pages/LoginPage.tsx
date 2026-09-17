@@ -3,10 +3,11 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { loginSchema, LoginFormData } from '@ticketshield/validation';
 import { authApi } from '@ticketshield/api-client';
+import { GoogleLogin, CredentialResponse } from '@react-oauth/google';
 import { useAuthStore } from '../stores/authStore';
 import { useUIStore } from '../stores/uiStore';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
-import { Mail, Lock, Globe, ArrowLeft } from 'lucide-react';
+import { Mail, Lock, ArrowLeft } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { TicketShieldLogo } from '../components/ui/TicketShieldLogo';
 
@@ -42,19 +43,26 @@ export const LoginPage: React.FC = () => {
     }
   };
 
-  const handleGoogleLogin = async () => {
+  const handleGoogleSuccess = async (credentialResponse: CredentialResponse) => {
+    if (!credentialResponse.credential) {
+      showToast('Google login failed: Missing ID token', 'error');
+      return;
+    }
     try {
       setIsGoogleLoading(true);
-      const mockGoogleToken = 'mock-google-token-demo@ticketshield.vn-Google User';
-      const res = await authApi.googleLogin(mockGoogleToken);
+      const res = await authApi.googleLogin(credentialResponse.credential);
       login(res.user, res.token);
-      showToast('Google login successful!', 'success');
+      showToast('Google login successful! Welcome back.', 'success');
       navigate(from, { replace: true });
     } catch (err: any) {
       showToast('Google login failed: ' + err.message, 'error');
     } finally {
       setIsGoogleLoading(false);
     }
+  };
+
+  const handleGoogleError = () => {
+    showToast('Google login was cancelled or failed to initialize.', 'error');
   };
 
   return (
@@ -227,16 +235,23 @@ export const LoginPage: React.FC = () => {
           </div>
 
           {/* Google Login Button */}
-          <Button
-            type="button"
-            variant="secondary"
-            isLoading={isGoogleLoading}
-            onClick={handleGoogleLogin}
-            className="w-full bg-[#05070A] border border-white/15 hover:border-white/30 text-[#F5F5F2] py-3 rounded-xl flex items-center justify-center gap-2 font-display text-xs font-semibold uppercase tracking-wider hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200"
-          >
-            <Globe className="w-4 h-4 text-[#FF5A36]" />
-            <span>Continue with Google</span>
-          </Button>
+          <div className="w-full flex justify-center py-1">
+            {isGoogleLoading ? (
+              <div className="py-3 text-xs text-[#A3A8B3] animate-pulse font-display">
+                Verifying Google Credentials...
+              </div>
+            ) : (
+              <GoogleLogin
+                onSuccess={handleGoogleSuccess}
+                onError={handleGoogleError}
+                theme="filled_black"
+                shape="pill"
+                size="large"
+                width="360"
+                text="continue_with"
+              />
+            )}
+          </div>
 
           {/* Redirect Link */}
           <p className="text-center text-xs text-[#A3A8B3]">
