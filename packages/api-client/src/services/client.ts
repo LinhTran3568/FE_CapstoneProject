@@ -158,6 +158,19 @@ axiosClient.interceptors.response.use(
   }
 );
 
+const parseApiResponseErrorMessage = (data: ApiResponse<any>, defaultMessage?: string): string => {
+  if (data?.errors) {
+    if (Array.isArray(data.errors) && data.errors.length > 0) {
+      return data.errors.join(', ');
+    }
+    if (typeof data.errors === 'object' && data.errors !== null) {
+      const messages = Object.values(data.errors).flat().filter(Boolean);
+      if (messages.length > 0) return messages.join(', ');
+    }
+  }
+  return data?.message || defaultMessage || 'Đã xảy ra lỗi không xác định.';
+};
+
 export async function httpClient<T>(
   endpoint: string,
   options: RequestInit = {}
@@ -191,23 +204,16 @@ export async function httpClient<T>(
 
     const data = response.data;
     if (!data.success) {
-      const errorMsg =
-        data.errors && data.errors.length > 0
-          ? data.errors.join(', ')
-          : data.message || `Request failed with status ${response.status}`;
-      throw new Error(errorMsg);
+      throw new Error(parseApiResponseErrorMessage(data, `Request failed with status ${response.status}`));
     }
 
     return data.data;
   } catch (err: any) {
     if (axios.isAxiosError(err) && err.response?.data) {
       const resData = err.response.data as ApiResponse<T>;
-      const errorMsg =
-        resData.errors && resData.errors.length > 0
-          ? resData.errors.join(', ')
-          : resData.message || err.message || `Request failed with status ${err.response.status}`;
-      throw new Error(errorMsg);
+      throw new Error(parseApiResponseErrorMessage(resData, err.message || `Request failed with status ${err.response.status}`));
     }
     throw err;
   }
 }
+

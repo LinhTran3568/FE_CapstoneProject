@@ -13,10 +13,12 @@ export const ResetPasswordPage: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const initialEmail = searchParams.get('email') || '';
+  const [isResending, setIsResending] = React.useState(false);
 
   const {
     register,
     handleSubmit,
+    watch,
     formState: { errors, isSubmitting },
   } = useForm<ResetPasswordFormData>({
     resolver: zodResolver(resetPasswordSchema),
@@ -28,6 +30,8 @@ export const ResetPasswordPage: React.FC = () => {
     },
   });
 
+  const currentEmail = watch('email');
+
   const onSubmit = async (data: ResetPasswordFormData) => {
     try {
       const msg = await authApi.resetPassword({
@@ -35,10 +39,26 @@ export const ResetPasswordPage: React.FC = () => {
         otp: data.otp,
         newPassword: data.newPassword,
       });
-      showToast(msg || 'Password reset successfully! Please sign in.', 'success');
+      showToast(msg || 'Mật khẩu đã được đặt lại thành công! Vui lòng đăng nhập.', 'success');
       navigate('/login');
     } catch (err: any) {
-      showToast('Password reset failed: ' + err.message, 'error');
+      showToast('Đặt lại mật khẩu thất bại: ' + err.message, 'error');
+    }
+  };
+
+  const handleResendOtp = async () => {
+    if (!currentEmail || !/^\S+@\S+\.\S+$/.test(currentEmail)) {
+      showToast('Vui lòng nhập địa chỉ email hợp lệ để gửi lại mã OTP.', 'error');
+      return;
+    }
+    try {
+      setIsResending(true);
+      const msg = await authApi.forgotPassword(currentEmail);
+      showToast(msg || 'Mã OTP mới đã được gửi tới email của bạn.', 'success');
+    } catch (err: any) {
+      showToast('Gửi lại mã OTP thất bại: ' + err.message, 'error');
+    } finally {
+      setIsResending(false);
     }
   };
 
@@ -130,9 +150,19 @@ export const ResetPasswordPage: React.FC = () => {
             </div>
 
             <div>
-              <label className="block text-xs font-semibold uppercase tracking-wider text-[#A3A8B3] mb-1 font-display">
-                6-Digit OTP Code
-              </label>
+              <div className="flex items-center justify-between mb-1">
+                <label className="block text-xs font-semibold uppercase tracking-wider text-[#A3A8B3] font-display">
+                  6-Digit OTP Code
+                </label>
+                <button
+                  type="button"
+                  onClick={handleResendOtp}
+                  disabled={isResending}
+                  className="text-xs text-[#FF5A36] hover:underline font-medium font-display disabled:opacity-50 transition-colors"
+                >
+                  {isResending ? 'Sending...' : 'Resend Code'}
+                </button>
+              </div>
               <div className="relative">
                 <ShieldCheck className="w-4 h-4 text-[#A3A8B3] absolute left-3.5 top-3.5" />
                 <input
