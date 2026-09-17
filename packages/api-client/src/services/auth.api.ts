@@ -1,13 +1,16 @@
 import { User } from '@ticketshield/types';
 import { LoginFormData, RegisterFormData } from '@ticketshield/validation';
-import { httpClient, TOKEN_STORAGE_KEY } from './client';
+import { httpClient, TOKEN_STORAGE_KEY, REFRESH_TOKEN_STORAGE_KEY } from './client';
 
 export interface BackendAuthResult {
-  userId: string;
-  email: string;
-  fullName: string;
-  role: string;
-  token: string;
+  userId?: string;
+  email?: string;
+  fullName?: string;
+  role?: string;
+  token?: string;
+  accessToken?: string;
+  refreshToken?: string;
+  user?: BackendUserProfile;
 }
 
 export interface BackendUserProfile {
@@ -16,25 +19,47 @@ export interface BackendUserProfile {
   fullName: string;
   phoneNumber?: string;
   role: string;
-  isActive: boolean;
-  createdAt: string;
+  isActive?: boolean;
+  createdAt?: string;
 }
 
 export interface AuthResponse {
   user: User;
   token: string;
+  refreshToken?: string;
 }
 
-const mapBackendUserToFE = (dto: BackendAuthResult | BackendUserProfile): User => ({
-  id: dto.userId,
-  email: dto.email,
-  fullName: dto.fullName,
-  phoneNumber: (dto as BackendUserProfile).phoneNumber || '',
-  role: (dto.role as any) || 'BUYER',
-  isVerified: true,
-  kycStatus: 'VERIFIED',
-  createdAt: (dto as BackendUserProfile).createdAt || new Date().toISOString(),
-});
+const mapBackendUserToFE = (dto: BackendAuthResult | BackendUserProfile): User => {
+  const profile = (dto as BackendAuthResult).user || (dto as BackendUserProfile);
+  const userId = profile.userId || (dto as BackendAuthResult).userId || '';
+  const email = profile.email || (dto as BackendAuthResult).email || '';
+  const fullName = profile.fullName || (dto as BackendAuthResult).fullName || '';
+  const role = profile.role || (dto as BackendAuthResult).role || 'BUYER';
+  const phoneNumber = profile.phoneNumber || '';
+  const createdAt = profile.createdAt || new Date().toISOString();
+
+  return {
+    id: userId,
+    email,
+    fullName,
+    phoneNumber,
+    role: (role as any) || 'BUYER',
+    isVerified: true,
+    kycStatus: 'VERIFIED',
+    createdAt,
+  };
+};
+
+const storeTokens = (accessToken?: string, refreshToken?: string) => {
+  if (typeof window !== 'undefined') {
+    if (accessToken) {
+      localStorage.setItem(TOKEN_STORAGE_KEY, accessToken);
+    }
+    if (refreshToken) {
+      localStorage.setItem(REFRESH_TOKEN_STORAGE_KEY, refreshToken);
+    }
+  }
+};
 
 export const authApi = {
   login: async (credentials: LoginFormData): Promise<AuthResponse> => {
@@ -46,13 +71,15 @@ export const authApi = {
       }),
     });
 
-    if (typeof window !== 'undefined' && result.token) {
-      localStorage.setItem(TOKEN_STORAGE_KEY, result.token);
-    }
+    const accessToken = result.accessToken || result.token || '';
+    const refreshToken = result.refreshToken || '';
+
+    storeTokens(accessToken, refreshToken);
 
     return {
       user: mapBackendUserToFE(result),
-      token: result.token,
+      token: accessToken,
+      refreshToken,
     };
   },
 
@@ -67,13 +94,15 @@ export const authApi = {
       }),
     });
 
-    if (typeof window !== 'undefined' && result.token) {
-      localStorage.setItem(TOKEN_STORAGE_KEY, result.token);
-    }
+    const accessToken = result.accessToken || result.token || '';
+    const refreshToken = result.refreshToken || '';
+
+    storeTokens(accessToken, refreshToken);
 
     return {
       user: mapBackendUserToFE(result),
-      token: result.token,
+      token: accessToken,
+      refreshToken,
     };
   },
 
@@ -90,13 +119,33 @@ export const authApi = {
       body: JSON.stringify({ idToken }),
     });
 
-    if (typeof window !== 'undefined' && result.token) {
-      localStorage.setItem(TOKEN_STORAGE_KEY, result.token);
-    }
+    const accessToken = result.accessToken || result.token || '';
+    const refreshToken = result.refreshToken || '';
+
+    storeTokens(accessToken, refreshToken);
 
     return {
       user: mapBackendUserToFE(result),
-      token: result.token,
+      token: accessToken,
+      refreshToken,
+    };
+  },
+
+  refreshToken: async (refreshToken: string): Promise<AuthResponse> => {
+    const result = await httpClient<BackendAuthResult>('/auth/refresh-token', {
+      method: 'POST',
+      body: JSON.stringify({ refreshToken }),
+    });
+
+    const accessToken = result.accessToken || result.token || '';
+    const newRefreshToken = result.refreshToken || refreshToken;
+
+    storeTokens(accessToken, newRefreshToken);
+
+    return {
+      user: mapBackendUserToFE(result),
+      token: accessToken,
+      refreshToken: newRefreshToken,
     };
   },
 
@@ -121,6 +170,7 @@ export const authApi = {
   logout: async (): Promise<void> => {
     if (typeof window !== 'undefined') {
       localStorage.removeItem(TOKEN_STORAGE_KEY);
+      localStorage.removeItem(REFRESH_TOKEN_STORAGE_KEY);
     }
   },
 };
