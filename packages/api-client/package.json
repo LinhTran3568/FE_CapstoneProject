@@ -8,7 +8,8 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@ticketshield/types": "file:../types"
+    "@ticketshield/types": "file:../types",
+    "axios": "^1.7.9"
   },
   "devDependencies": {
     "typescript": "^5.4.0"
