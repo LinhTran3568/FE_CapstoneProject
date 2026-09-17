@@ -9,8 +9,7 @@ export interface ApiResponse<T> {
 
 const getBaseUrl = (): string => {
   if (typeof window !== 'undefined') {
-    const metaEnv = (import.meta as any)?.env;
-    const envUrl = metaEnv?.VITE_API_BASE_URL || metaEnv?.VITE_API_URL || (window as any)?.__ENV__?.VITE_API_BASE_URL;
+    const envUrl = import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL || (window as any)?.__ENV__?.VITE_API_BASE_URL;
     if (envUrl) return envUrl;
   }
   return 'http://localhost:5000/api/v1';

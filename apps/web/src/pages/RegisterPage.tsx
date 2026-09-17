@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { registerSchema, RegisterFormData } from '@ticketshield/validation';
 import { authApi } from '@ticketshield/api-client';
+import { GoogleLogin, CredentialResponse } from '@react-oauth/google';
 import { useAuthStore } from '../stores/authStore';
 import { useUIStore } from '../stores/uiStore';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
@@ -15,6 +16,7 @@ export const RegisterPage: React.FC = () => {
   const { showToast } = useUIStore();
   const navigate = useNavigate();
   const location = useLocation();
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
 
   const from = (location.state as any)?.from?.pathname || '/marketplace';
 
@@ -44,6 +46,28 @@ export const RegisterPage: React.FC = () => {
     } catch (err: any) {
       showToast('Registration failed: ' + err.message, 'error');
     }
+  };
+
+  const handleGoogleSuccess = async (credentialResponse: CredentialResponse) => {
+    if (!credentialResponse.credential) {
+      showToast('Google sign-up failed: Missing ID token', 'error');
+      return;
+    }
+    try {
+      setIsGoogleLoading(true);
+      const res = await authApi.googleLogin(credentialResponse.credential);
+      login(res.user, res.token);
+      showToast('Google account connected successfully!', 'success');
+      navigate(from, { replace: true });
+    } catch (err: any) {
+      showToast('Google sign-up failed: ' + err.message, 'error');
+    } finally {
+      setIsGoogleLoading(false);
+    }
+  };
+
+  const handleGoogleError = () => {
+    showToast('Google sign-up was cancelled or failed to initialize.', 'error');
   };
 
   return (
@@ -244,6 +268,34 @@ export const RegisterPage: React.FC = () => {
               Create Account
             </Button>
           </form>
+
+          {/* Divider */}
+          <div className="relative flex py-1 items-center">
+            <div className="flex-grow border-t border-white/10"></div>
+            <span className="flex-shrink mx-4 text-xs text-[#A3A8B3] uppercase tracking-widest font-display">
+              Or continue with
+            </span>
+            <div className="flex-grow border-t border-white/10"></div>
+          </div>
+
+          {/* Google Sign-Up Button */}
+          <div className="w-full flex justify-center py-1">
+            {isGoogleLoading ? (
+              <div className="py-3 text-xs text-[#A3A8B3] animate-pulse font-display">
+                Verifying Google Credentials...
+              </div>
+            ) : (
+              <GoogleLogin
+                onSuccess={handleGoogleSuccess}
+                onError={handleGoogleError}
+                theme="filled_black"
+                shape="pill"
+                size="large"
+                width="360"
+                text="signup_with"
+              />
+            )}
+          </div>
 
           {/* Redirect Link */}
           <p className="text-center text-xs text-[#A3A8B3]">
