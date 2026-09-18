@@ -270,6 +270,23 @@ export interface HoldListingForPurchaseResponse {
   holdDurationSeconds: number;
 }
 
+export interface UserBankAccountDto {
+  id: string;
+  userId: string;
+  bankCode: string;
+  bankAccountNumber: string;
+  accountHolderName: string;
+  isDefault: boolean;
+  createdAt: string;
+}
+
+export interface CreateUserBankAccountRequest {
+  bankCode: string;
+  bankAccountNumber: string;
+  accountHolderName: string;
+  isDefault?: boolean;
+}
+
 /** POST /api/v1/resale-listings/{id}/cancel → backend `CancelResaleListingResponse`. */
 export interface CancelResaleListingResponse {
   listingId: string;

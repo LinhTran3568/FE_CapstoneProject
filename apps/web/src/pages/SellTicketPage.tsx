@@ -2,7 +2,8 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useUIStore } from '../stores/uiStore';
 import { useAuthStore } from '../stores/authStore';
-import { resaleApi, VerificationResult, SellerListingDto } from '@ticketshield/api-client';
+import { resaleApi, bankAccountsApi, VerificationResult, SellerListingDto } from '@ticketshield/api-client';
+import { UserBankAccountDto } from '@ticketshield/types';
 import { QRCodeCanvas } from 'qrcode.react';
 import {
   ShieldCheck,
@@ -26,10 +27,12 @@ import {
   ExternalLink,
   Globe,
   Share2,
-  Sparkles
+  Sparkles,
+  Building2
 } from 'lucide-react';
 import { TicketShieldTrustBadge } from '../components/ui/TicketShieldTrustBadge';
 import { PrivateResaleScenarioModal } from '../components/ui/PrivateResaleScenarioModal';
+import { SellerBankAccountModal } from '../components/profile/SellerBankAccountModal';
 import { buildPrivateShareLink, buildPublicShareLink, copyToClipboard } from '../utils/shareLink';
 
 export const SellTicketPage: React.FC = () => {
@@ -164,6 +167,28 @@ export const SellTicketPage: React.FC = () => {
 
   const [existingListings, setExistingListings] = useState<SellerListingDto[]>([]);
   const [isLoadingListings, setIsLoadingListings] = useState<boolean>(true);
+
+  // Seller Bank Account Enforcement state
+  const [bankAccounts, setBankAccounts] = useState<UserBankAccountDto[]>([]);
+  const [isLoadingBankAccounts, setIsLoadingBankAccounts] = useState<boolean>(true);
+  const [isAddBankModalOpen, setIsAddBankModalOpen] = useState<boolean>(false);
+
+  // Load seller bank accounts to verify payout readiness
+  const fetchBankAccounts = useCallback(async () => {
+    try {
+      setIsLoadingBankAccounts(true);
+      const res = await bankAccountsApi.getMyBankAccounts();
+      setBankAccounts(res || []);
+    } catch (err) {
+      console.warn('Could not load bank accounts', err);
+    } finally {
+      setIsLoadingBankAccounts(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchBankAccounts();
+  }, [fetchBankAccounts]);
 
   // Load existing listings to exclude already listed tickets
   const fetchExistingListings = useCallback(async () => {
@@ -352,6 +377,14 @@ export const SellTicketPage: React.FC = () => {
   // Step 1: Request OTP for Ticket Verification
   const handleNextStep1 = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Enforce Seller Bank Account requirement before starting resale verification
+    if (bankAccounts.length === 0) {
+      showToast('⚠️ Bạn chưa cập nhật tài khoản ngân hàng thụ hưởng! Vui lòng liên kết tài khoản ngân hàng trước khi đăng bán vé.', 'warning');
+      setIsAddBankModalOpen(true);
+      return;
+    }
+
     const normalizedCode = ticketCode.trim().toUpperCase();
     if (!normalizedCode) {
       showToast('Please enter the ticket identifier code!', 'warning');
@@ -499,6 +532,13 @@ export const SellTicketPage: React.FC = () => {
 
   // Step 5: Publish Resale Listing
   const handlePublishListing = async () => {
+    // Enforce Seller Bank Account requirement before publishing
+    if (bankAccounts.length === 0) {
+      showToast('⚠️ Bạn chưa có tài khoản ngân hàng thụ hưởng để nhận tiền! Vui lòng thêm tài khoản trước khi hoàn tất đăng bán.', 'warning');
+      setIsAddBankModalOpen(true);
+      return;
+    }
+
     if (!agreedTerms) {
       showToast('Please agree to the authentic ticket listing terms!', 'warning');
       return;
@@ -940,6 +980,30 @@ export const SellTicketPage: React.FC = () => {
                 Enter the ticket identifier code issued by the Organizer partner to initiate verification and Escrow lock.
               </p>
             </div>
+
+            {/* Bank Account Warning Banner */}
+            {bankAccounts.length === 0 && !isLoadingBankAccounts && (
+              <div className="p-4 bg-amber-500/10 border border-amber-500/30 rounded-2xl flex items-start gap-3.5 text-left animate-fade-in-up">
+                <div className="p-2 bg-amber-500/20 text-amber-400 rounded-xl shrink-0">
+                  <Building2 className="w-5 h-5" />
+                </div>
+                <div className="space-y-1.5 flex-1">
+                  <h4 className="text-xs font-bold text-amber-300 uppercase tracking-wide">
+                    Yêu cầu Tài khoản Ngân hàng Thụ hưởng
+                  </h4>
+                  <p className="text-xs text-amber-200/80 leading-relaxed">
+                    Để nhận tiền bán vé tự động &amp; an toàn qua hệ thống <b>Escrow 24/7</b>, bạn cần cập nhật tài khoản ngân hàng chính chủ trước khi đăng bán.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => setIsAddBankModalOpen(true)}
+                    className="mt-1 px-3 py-1.5 bg-amber-500 text-black hover:bg-amber-400 rounded-lg text-xs font-bold transition-all flex items-center gap-1 cursor-pointer"
+                  >
+                    + Thêm tài khoản ngân hàng ngay
+                  </button>
+                </div>
+              </div>
+            )}
 
             <form onSubmit={handleNextStep1} className="space-y-6 text-left bg-[#0A0D12]/90 backdrop-blur-md border border-white/10 p-6 sm:p-8 rounded-3xl shadow-2xl hover:border-white/20 transition-all duration-300">
               <div className="space-y-2.5">
@@ -1555,6 +1619,54 @@ export const SellTicketPage: React.FC = () => {
                 </div>
               </div>
 
+              {/* Payout Destination Account */}
+              <div className="space-y-2 pt-1">
+                <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider block">
+                  PAYOUT BANK ACCOUNT (TÀI KHOẢN NHẬN TIỀN)
+                </span>
+                <div className="p-3.5 bg-[#05070A] border border-gray-800 rounded-xl">
+                  {bankAccounts.length > 0 ? (
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-lg bg-[#0052CC]/20 border border-[#0052CC]/40 flex items-center justify-center font-bold text-[#4C9EEB] text-xs font-mono">
+                          {bankAccounts[0].bankCode}
+                        </div>
+                        <div>
+                          <div className="font-semibold text-white text-xs sm:text-sm flex items-center gap-2">
+                            <span>{bankAccounts[0].accountHolderName}</span>
+                            <span className="text-[10px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-1.5 py-0.5 rounded font-mono">
+                              ✓ Verified
+                            </span>
+                          </div>
+                          <div className="text-[11px] text-[#A3A8B3]">
+                            Ngân hàng {bankAccounts[0].bankCode} • **** {bankAccounts[0].bankAccountNumber.slice(-4)}
+                          </div>
+                        </div>
+                      </div>
+                      {bankAccounts.length > 1 && (
+                        <span className="text-[10px] text-[#A3A8B3] font-mono">
+                          +{bankAccounts.length - 1} view all
+                        </span>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs text-amber-400 flex items-center gap-1.5">
+                        <AlertCircle className="w-4 h-4 text-amber-400" />
+                        <span>Chưa cập nhật tài khoản ngân hàng nhận tiền</span>
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setIsAddBankModalOpen(true)}
+                        className="px-2.5 py-1 bg-amber-500/20 text-amber-300 hover:bg-amber-500/30 border border-amber-500/40 rounded-lg text-xs font-bold transition-all cursor-pointer"
+                      >
+                        + Thêm tài khoản
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+
               {/* 4. Visibility Control */}
               <div className="space-y-2 pt-1">
                 <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider block">
@@ -1942,6 +2054,16 @@ export const SellTicketPage: React.FC = () => {
           isOpen={showScenarioModal}
           onClose={() => setShowScenarioModal(false)}
           role="seller"
+        />
+
+        {/* Seller Bank Account Setup Modal */}
+        <SellerBankAccountModal
+          isOpen={isAddBankModalOpen}
+          onClose={() => setIsAddBankModalOpen(false)}
+          onSuccess={() => {
+            fetchBankAccounts();
+            showToast('Đã lưu tài khoản ngân hàng thụ hưởng! Bạn có thể tiếp tục đăng bán vé.', 'success');
+          }}
         />
       </div>
     </div>
