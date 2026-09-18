@@ -159,16 +159,20 @@ axiosClient.interceptors.response.use(
 );
 
 const parseApiResponseErrorMessage = (data: ApiResponse<any>, defaultMessage?: string): string => {
-  if (data?.errors) {
-    if (Array.isArray(data.errors) && data.errors.length > 0) {
-      return data.errors.join(', ');
+  const rawData = data as any;
+  const errors = data?.errors || rawData?.Errors;
+  const message = data?.message || rawData?.Message;
+
+  if (errors) {
+    if (Array.isArray(errors) && errors.length > 0) {
+      return errors.join(', ');
     }
-    if (typeof data.errors === 'object' && data.errors !== null) {
-      const messages = Object.values(data.errors).flat().filter(Boolean);
+    if (typeof errors === 'object' && errors !== null) {
+      const messages = Object.values(errors).flat().filter(Boolean);
       if (messages.length > 0) return messages.join(', ');
     }
   }
-  return data?.message || defaultMessage || 'Đã xảy ra lỗi không xác định.';
+  return message || defaultMessage || 'Đã xảy ra lỗi không xác định.';
 };
 
 export async function httpClient<T>(

@@ -244,6 +244,32 @@ export interface ResaleListingDetailDto {
   createdAt: string;
 }
 
+export interface HoldListingForPurchaseRequest {
+  recipientName?: string;
+  recipientEmail?: string;
+  recipientIdCard?: string;
+  privateAccessToken?: string;
+}
+
+export interface HoldListingForPurchaseResponse {
+  escrowId: string;
+  listingId: string;
+  listingStatus: string;
+  paymentReference: string;
+  qrImageUrl: string;
+  quickLinkUrl: string;
+  bankBin: string;
+  accountNumber: string;
+  accountName: string;
+  resalePrice: number;
+  buyerFee: number;
+  sellerFee: number;
+  totalBuyerPaid: number;
+  netSellerPayout: number;
+  unlockAt: string;
+  holdDurationSeconds: number;
+}
+
 /** POST /api/v1/resale-listings/{id}/cancel → backend `CancelResaleListingResponse`. */
 export interface CancelResaleListingResponse {
   listingId: string;
