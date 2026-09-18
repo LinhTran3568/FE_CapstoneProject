@@ -14,11 +14,13 @@ export const ResetPasswordPage: React.FC = () => {
   const [searchParams] = useSearchParams();
   const initialEmail = searchParams.get('email') || '';
   const [isResending, setIsResending] = React.useState(false);
+  const [resendCooldown, setResendCooldown] = React.useState(0);
 
   const {
     register,
     handleSubmit,
     watch,
+    setValue,
     formState: { errors, isSubmitting },
   } = useForm<ResetPasswordFormData>({
     resolver: zodResolver(resetPasswordSchema),
@@ -29,6 +31,20 @@ export const ResetPasswordPage: React.FC = () => {
       confirmPassword: '',
     },
   });
+
+  React.useEffect(() => {
+    if (initialEmail) {
+      setValue('email', initialEmail);
+    }
+  }, [initialEmail, setValue]);
+
+  React.useEffect(() => {
+    if (resendCooldown <= 0) return;
+    const interval = setInterval(() => {
+      setResendCooldown((prev) => (prev > 0 ? prev - 1 : 0));
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [resendCooldown]);
 
   const currentEmail = watch('email');
 
@@ -42,7 +58,7 @@ export const ResetPasswordPage: React.FC = () => {
       showToast(msg || 'Mật khẩu đã được đặt lại thành công! Vui lòng đăng nhập.', 'success');
       navigate('/login');
     } catch (err: any) {
-      showToast('Đặt lại mật khẩu thất bại: ' + err.message, 'error');
+      showToast('Đặt lại mật khẩu thất bại: ' + (err.message || 'Đã xảy ra lỗi'), 'error');
     }
   };
 
@@ -55,8 +71,9 @@ export const ResetPasswordPage: React.FC = () => {
       setIsResending(true);
       const msg = await authApi.forgotPassword(currentEmail);
       showToast(msg || 'Mã OTP mới đã được gửi tới email của bạn.', 'success');
+      setResendCooldown(60);
     } catch (err: any) {
-      showToast('Gửi lại mã OTP thất bại: ' + err.message, 'error');
+      showToast('Gửi lại mã OTP thất bại: ' + (err.message || 'Đã xảy ra lỗi'), 'error');
     } finally {
       setIsResending(false);
     }
@@ -157,10 +174,14 @@ export const ResetPasswordPage: React.FC = () => {
                 <button
                   type="button"
                   onClick={handleResendOtp}
-                  disabled={isResending}
-                  className="text-xs text-[#FF5A36] hover:underline font-medium font-display disabled:opacity-50 transition-colors"
+                  disabled={isResending || resendCooldown > 0}
+                  className="text-xs text-[#FF5A36] hover:underline font-medium font-display disabled:opacity-50 disabled:no-underline transition-colors"
                 >
-                  {isResending ? 'Sending...' : 'Resend Code'}
+                  {isResending
+                    ? 'Đang gửi...'
+                    : resendCooldown > 0
+                    ? `Gửi lại sau (${resendCooldown}s)`
+                    : 'Gửi lại mã OTP'}
                 </button>
               </div>
               <div className="relative">
