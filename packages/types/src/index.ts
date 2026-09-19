@@ -281,6 +281,27 @@ export interface PaymentStatusDto {
   inSettlementBuffer: boolean;
 }
 
+/** GET /api/v1/mock-tickets/my-tickets (MockOrganizer :5001, Linh SCRUM-93) */
+export interface MockTicketDto {
+  id: string;
+  ticketCode: string;
+  eventName: string;
+  seatZone: string;
+  originalPrice: number;
+  ownerEmail: string;
+  ownerPhone?: string | null;
+  ownerName?: string | null;
+  status: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface MockTicketsListResponse {
+  success: boolean;
+  count: number;
+  data: MockTicketDto[];
+}
+
 export interface UserBankAccountDto {
   id: string;
   userId: string;

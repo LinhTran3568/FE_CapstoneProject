@@ -1,21 +1,20 @@
-import React from 'react';
-import { Ticket, QrCode, Calendar, MapPin, ShieldCheck, Download, Share2 } from 'lucide-react';
-import { useUIStore } from '../stores/uiStore';
+import React, { useCallback, useEffect, useId, useState } from 'react';
+import { Link } from 'react-router-dom';
+import { AlertCircle, Loader2, QrCode, RefreshCw, Ticket, X } from 'lucide-react';
+import { QRCodeCanvas } from 'qrcode.react';
+import type { MockTicketDto } from '@ticketshield/types';
+import { useMyTickets } from '../hooks/useMyTickets';
 
 export const MyTicketsPage: React.FC = () => {
-  const { showToast } = useUIStore();
-
-  const handleShowQR = (title: string) => {
-    showToast(`Displaying verified QR code for "${title}"`, 'success');
-  };
+  const { data: tickets = [], isPending, isError, error, refetch, isFetching } = useMyTickets();
+  const [qrTicket, setQrTicket] = useState<MockTicketDto | null>(null);
 
   return (
     <div className="relative min-h-screen bg-[#05070A] text-[#F5F5F2] pt-28 pb-20 px-6 md:px-12 font-sans antialiased overflow-hidden">
-      {/* Background Concert Image */}
       <div className="fixed inset-0 z-0 pointer-events-none">
         <img
           src="/images/landing/ticket-bg.jpg"
-          alt="Concert Background"
+          alt=""
           className="w-full h-full object-cover opacity-25 filter brightness-75 contrast-125 scale-105"
         />
         <div className="absolute inset-0 bg-gradient-to-b from-[#05070A]/90 via-[#05070A]/85 to-[#05070A]" />
@@ -23,8 +22,6 @@ export const MyTicketsPage: React.FC = () => {
       </div>
 
       <div className="relative z-10 max-w-6xl mx-auto space-y-8">
-        
-        {/* Header */}
         <div className="space-y-2">
           <h1 className="text-4xl font-extrabold font-display text-white uppercase tracking-tight">
             My Purchased Passes
@@ -32,61 +29,149 @@ export const MyTicketsPage: React.FC = () => {
           <p className="text-sm text-[#A3A8B3]">Your verified digital passes with dynamic entry QR authentication.</p>
         </div>
 
-        {/* Ticket Passes Cards */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {[
-            {
-              title: 'Anh Trai Vượt Ngàn Chông Gai Concert',
-              date: 'Dec 20, 2026 • 19:00',
-              venue: 'Sân Vận Động Mỹ Đình, Hà Nội',
-              zone: 'VIP Khái Hưng - Row 03 - Seat 12',
-              code: 'TS-99201-PASS',
-            },
-            {
-              title: 'Coldplay Music of the Spheres Tour',
-              date: 'Jan 15, 2027 • 20:00',
-              venue: 'Sân Vận Động Quốc Gia Singapore',
-              zone: 'Cat 1 Standing General',
-              code: 'TS-77182-PASS',
-            },
-          ].map((ticket, idx) => (
-            <div key={idx} className="bg-[#0A0D12] border border-white/10 rounded-3xl p-6 space-y-6 relative overflow-hidden shadow-2xl">
-              <div className="flex items-center justify-between border-b border-white/10 pb-4">
-                <span className="text-xs font-mono text-[#FF5A36] font-bold">DIGITAL PASS</span>
-                <span className="text-xs font-mono text-[#A3A8B3]">{ticket.code}</span>
-              </div>
+        {isPending && (
+          <div className="py-24 flex flex-col items-center justify-center gap-3 text-center">
+            <Loader2 className="w-8 h-8 text-[#FF5A36] animate-spin" aria-hidden="true" />
+            <p className="text-xs text-[#8B929C] font-mono">Đang tải vé đã mua...</p>
+          </div>
+        )}
 
-              <div className="space-y-3">
-                <h3 className="text-xl font-bold font-display text-white">{ticket.title}</h3>
-                <div className="space-y-1 text-xs text-[#A3A8B3] font-mono">
-                  <div className="flex items-center gap-2">
-                    <Calendar className="w-4 h-4 text-[#FF5A36]" />
-                    <span>{ticket.date}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <MapPin className="w-4 h-4 text-cyan-400" />
-                    <span>{ticket.venue}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Ticket className="w-4 h-4 text-amber-400" />
-                    <span className="text-white font-semibold">{ticket.zone}</span>
+        {isError && (
+          <div className="py-16 bg-[#0A0D12]/90 border border-rose-500/20 rounded-3xl p-8 text-center space-y-3 shadow-2xl">
+            <div className="w-12 h-12 mx-auto rounded-full bg-rose-500/10 text-rose-400 flex items-center justify-center">
+              <AlertCircle className="w-6 h-6" aria-hidden="true" />
+            </div>
+            <h2 className="text-base font-bold text-white">Không thể tải vé đã mua</h2>
+            <p className="text-xs text-[#8B929C] max-w-md mx-auto">
+              {error instanceof Error ? error.message : 'MockOrganizer chưa chạy (:5001). Không tải được vé đã mua.'}
+            </p>
+            <button
+              type="button"
+              onClick={() => refetch()}
+              disabled={isFetching}
+              className="px-4 py-2 min-h-11 bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 rounded-xl text-xs font-semibold inline-flex items-center gap-2 cursor-pointer transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF5A36] disabled:opacity-60"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${isFetching ? 'animate-spin' : ''}`} aria-hidden="true" />
+              <span>Tải lại dữ liệu</span>
+            </button>
+          </div>
+        )}
+
+        {!isPending && !isError && tickets.length === 0 && (
+          <div className="py-24 bg-[#090C12]/60 border border-white/10 rounded-3xl p-8 text-center space-y-4">
+            <div className="w-14 h-14 mx-auto rounded-2xl bg-[#FF5A36]/10 text-[#FF5A36] flex items-center justify-center">
+              <Ticket className="w-7 h-7" aria-hidden="true" />
+            </div>
+            <div className="space-y-1">
+              <h2 className="text-lg font-bold text-white">Chưa có vé đã thanh toán</h2>
+              <p className="text-xs text-[#8B929C] max-w-md mx-auto">
+                Mua vé trên sàn để vé hiện ở đây.
+              </p>
+            </div>
+            <Link
+              to="/marketplace"
+              className="inline-flex items-center justify-center px-5 py-2.5 min-h-11 bg-[#FF5A36] hover:bg-[#FF7252] text-white font-bold font-display text-xs uppercase tracking-wider rounded-xl shadow-lg shadow-[#FF5A36]/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+            >
+              Marketplace
+            </Link>
+          </div>
+        )}
+
+        {!isPending && !isError && tickets.length > 0 && (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {tickets.map((ticket) => (
+              <div
+                key={ticket.id}
+                className="bg-[#0A0D12] border border-white/10 rounded-3xl p-6 space-y-6 relative overflow-hidden shadow-2xl"
+              >
+                <div className="flex items-center justify-between border-b border-white/10 pb-4 gap-3">
+                  <span className="text-xs font-mono text-[#FF5A36] font-bold">DIGITAL PASS</span>
+                  <span className="text-xs font-mono text-[#A3A8B3] truncate">{ticket.ticketCode}</span>
+                </div>
+
+                <div className="space-y-3">
+                  <h2 className="text-xl font-bold font-display text-white">{ticket.eventName}</h2>
+                  <div className="flex items-center gap-2 text-xs text-[#A3A8B3] font-mono">
+                    <Ticket className="w-4 h-4 text-amber-400 shrink-0" aria-hidden="true" />
+                    <span className="text-white font-semibold">{ticket.seatZone}</span>
                   </div>
                 </div>
-              </div>
 
-              <div className="pt-4 border-t border-white/10 flex items-center justify-between">
-                <button
-                  onClick={() => handleShowQR(ticket.title)}
-                  className="px-5 py-2.5 bg-[#FF5A36] hover:bg-[#FF7252] text-white font-bold font-display text-xs uppercase tracking-wider rounded-xl shadow-lg shadow-[#FF5A36]/25 flex items-center gap-2"
-                >
-                  <QrCode className="w-4 h-4" />
-                  <span>Show Entry QR Code</span>
-                </button>
+                <div className="pt-4 border-t border-white/10">
+                  <button
+                    type="button"
+                    onClick={() => setQrTicket(ticket)}
+                    className="px-5 py-2.5 min-h-11 bg-[#FF5A36] hover:bg-[#FF7252] text-white font-bold font-display text-xs uppercase tracking-wider rounded-xl shadow-lg shadow-[#FF5A36]/25 flex items-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+                  >
+                    <QrCode className="w-4 h-4" aria-hidden="true" />
+                    <span>Show Entry QR Code</span>
+                  </button>
+                </div>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
+        )}
+      </div>
+
+      {qrTicket && (
+        <EntryQrModal ticket={qrTicket} onClose={() => setQrTicket(null)} />
+      )}
+    </div>
+  );
+};
+
+const EntryQrModal: React.FC<{ ticket: MockTicketDto; onClose: () => void }> = ({
+  ticket,
+  onClose,
+}) => {
+  const titleId = useId();
+  const handleKeyDown = useCallback(
+    (event: KeyboardEvent) => {
+      if (event.key === 'Escape') onClose();
+    },
+    [onClose]
+  );
+
+  useEffect(() => {
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [handleKeyDown]);
+
+  return (
+    <div
+      className="fixed inset-0 z-[90] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md"
+      onClick={onClose}
+    >
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+        className="bg-[#0A0D12] border border-white/20 rounded-3xl max-w-sm w-full p-6 space-y-5 shadow-2xl relative"
+        onClick={(event) => event.stopPropagation()}
+      >
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label="Close"
+          className="absolute top-4 right-4 min-w-11 min-h-11 inline-flex items-center justify-center rounded-xl text-[#A3A8B3] hover:text-white hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF5A36]"
+        >
+          <X className="w-5 h-5" aria-hidden="true" />
+        </button>
+
+        <div className="space-y-1 pr-10">
+          <p className="text-xs font-mono text-[#FF5A36] font-bold uppercase tracking-wider">Entry pass</p>
+          <h2 id={titleId} className="text-lg font-bold text-white">
+            {ticket.eventName}
+          </h2>
         </div>
 
+        <div className="flex flex-col items-center gap-3">
+          <div className="p-3.5 bg-white rounded-2xl">
+            <QRCodeCanvas value={ticket.ticketCode} size={180} level="H" includeMargin={false} />
+          </div>
+          <p className="text-sm font-mono text-white break-all text-center">{ticket.ticketCode}</p>
+          <p className="text-xs text-[#A3A8B3] text-center">{ticket.seatZone}</p>
+        </div>
       </div>
     </div>
   );
