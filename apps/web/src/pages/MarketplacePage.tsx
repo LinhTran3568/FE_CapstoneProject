@@ -424,6 +424,7 @@ export const MarketplacePage: React.FC = () => {
             `Đặt vé thành công! Mã đơn: ${orderData.orderId}. Vui lòng kiểm tra email và danh sách Vé Của Tôi.`,
             'success'
           );
+          navigate('/my-tickets');
         }}
       />
 

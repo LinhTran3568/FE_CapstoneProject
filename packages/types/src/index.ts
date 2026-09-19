@@ -270,6 +270,17 @@ export interface HoldListingForPurchaseResponse {
   holdDurationSeconds: number;
 }
 
+/** GET /api/v1/resale-listings/{id}/payment-status → backend GetPaymentStatusDto */
+export interface PaymentStatusDto {
+  listingId: string;
+  escrowId: string;
+  listingStatus: string;
+  escrowStatus: string;
+  paymentReference: string;
+  unlockAt: string | null;
+  inSettlementBuffer: boolean;
+}
+
 export interface UserBankAccountDto {
   id: string;
   userId: string;

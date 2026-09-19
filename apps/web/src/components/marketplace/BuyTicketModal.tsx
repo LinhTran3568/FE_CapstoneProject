@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   X,
   Clock,
@@ -19,6 +19,7 @@ import { resaleListingsApi } from '@ticketshield/api-client';
 import { formatVND } from '../../utils/formatters';
 import { useAuthStore } from '../../stores/authStore';
 import { useUIStore } from '../../stores/uiStore';
+import { usePaymentStatus } from '../../hooks/usePaymentStatus';
 
 interface BuyTicketModalProps {
   listing: MarketplaceListingDto | null;
@@ -33,8 +34,6 @@ export const BuyTicketModal: React.FC<BuyTicketModalProps> = ({
   onClose,
   onSuccess,
 }) => {
-  if (!isOpen || !listing) return null;
-
   const { user } = useAuthStore();
   const { showToast } = useUIStore();
 
@@ -54,9 +53,15 @@ export const BuyTicketModal: React.FC<BuyTicketModalProps> = ({
   // Countdown & Timer State
   const [timeLeft, setTimeLeft] = useState(600); // Default 600s (10 mins)
   const [isExpired, setIsExpired] = useState(false);
+  const [pollStopped, setPollStopped] = useState(false);
+  const paidHandledRef = useRef(false);
+  const pollErrorToastedRef = useRef(false);
 
   // Copy Feedback Indicators
   const [copiedType, setCopiedType] = useState<'amount' | 'reference' | 'account' | null>(null);
+
+  const pollEnabled = isOpen && Boolean(holdData) && !isExpired && !pollStopped;
+  const { data: paymentStatus, isError, error } = usePaymentStatus(listing?.listingId, pollEnabled);
 
   // Sync user profile when available
   useEffect(() => {
@@ -73,6 +78,9 @@ export const BuyTicketModal: React.FC<BuyTicketModalProps> = ({
       setHoldData(null);
       setIsExpired(false);
       setTimeLeft(600);
+      setPollStopped(false);
+      paidHandledRef.current = false;
+      pollErrorToastedRef.current = false;
     }
   }, [isOpen, listing]);
 
@@ -94,6 +102,44 @@ export const BuyTicketModal: React.FC<BuyTicketModalProps> = ({
 
     return () => clearInterval(timer);
   }, [holdData]);
+
+  useEffect(() => {
+    if (!paymentStatus || paidHandledRef.current) return;
+
+    if (paymentStatus.escrowStatus === 'RefundQueued') {
+      paidHandledRef.current = true;
+      setPollStopped(true);
+      setIsExpired(true);
+      showToast('Thanh toán không được chấp nhận. Tiền sẽ được hoàn theo hàng đợi hoàn tiền.', 'error');
+      return;
+    }
+
+    if (paymentStatus.listingStatus === 'Sold' || paymentStatus.escrowStatus === 'Locked') {
+      if (!listing) return;
+      paidHandledRef.current = true;
+      setPollStopped(true);
+      onSuccess({
+        orderId: paymentStatus.paymentReference || holdData?.paymentReference || `TS-${listing.listingId.substring(0, 8)}`,
+        listing,
+        escrowId: paymentStatus.escrowId || holdData?.escrowId,
+        paymentReference: paymentStatus.paymentReference || holdData?.paymentReference,
+        totalBuyerPaid: holdData?.totalBuyerPaid || listing.resalePrice,
+        buyerName: fullName,
+        buyerPhone: phone,
+        buyerEmail: email,
+      });
+    }
+  }, [paymentStatus, listing, holdData, fullName, phone, email, onSuccess, showToast]);
+
+  useEffect(() => {
+    if (!isError || !pollEnabled || pollErrorToastedRef.current) return;
+    pollErrorToastedRef.current = true;
+    setPollStopped(true);
+    const msg = error instanceof Error ? error.message : 'Không lấy được trạng thái thanh toán.';
+    showToast(msg, 'error');
+  }, [isError, error, pollEnabled, showToast]);
+
+  if (!isOpen || !listing) return null;
 
   const formatTimer = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -153,23 +199,14 @@ export const BuyTicketModal: React.FC<BuyTicketModalProps> = ({
     }
   };
 
-  // Step 2: Confirm Payment Completion
+  // Step 2: Confirm Payment Completion — poll is the only success path
   const handleConfirmPaid = () => {
     if (isExpired) {
       showToast('Đơn giữ chỗ đã hết hạn. Vui lòng đóng và thử lại.', 'error');
       return;
     }
 
-    onSuccess({
-      orderId: holdData?.paymentReference || `TS-${listing.listingId.substring(0, 8)}`,
-      listing,
-      escrowId: holdData?.escrowId,
-      paymentReference: holdData?.paymentReference,
-      totalBuyerPaid: holdData?.totalBuyerPaid || listing.resalePrice,
-      buyerName: fullName,
-      buyerPhone: phone,
-      buyerEmail: email,
-    });
+    showToast('Hệ thống đang chờ ngân hàng xác nhận. Giữ nguyên màn hình này.', 'info');
   };
 
   const finalPrice = Math.max(0, listing.resalePrice - discountAmount);
@@ -223,6 +260,11 @@ export const BuyTicketModal: React.FC<BuyTicketModalProps> = ({
                 <Clock className="w-3.5 h-3.5" />
                 <span>{isExpired ? 'ĐÃ HẾT HẠN' : formatTimer(timeLeft)}</span>
               </div>
+            )}
+            {holdData && !isExpired && (
+              <span className="hidden sm:inline text-[11px] text-cyan-300/90 font-medium">
+                Đang chờ xác nhận thanh toán...
+              </span>
             )}
             <button
               onClick={onClose}
@@ -535,7 +577,16 @@ export const BuyTicketModal: React.FC<BuyTicketModalProps> = ({
               <div className="text-xs text-zinc-400 flex items-center gap-1.5 flex-1 min-w-0 pr-2">
                 <Info className="w-4 h-4 text-cyan-400 shrink-0" />
                 <span className="truncate sm:whitespace-normal">
-                  Mã QR mới sẽ được gửi về email <strong className="text-white">{email}</strong> ngay khi nhận tiền.
+                  {isExpired ? (
+                    <>
+                      Mã QR mới sẽ được gửi về email <strong className="text-white">{email}</strong> ngay khi nhận tiền.
+                    </>
+                  ) : (
+                    <>
+                      Đang chờ xác nhận thanh toán... Mã QR mới sẽ được gửi về email{' '}
+                      <strong className="text-white">{email}</strong> ngay khi nhận tiền.
+                    </>
+                  )}
                 </span>
               </div>
 
