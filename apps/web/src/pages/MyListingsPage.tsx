@@ -42,6 +42,8 @@ const FILTER_TABS: FilterTabOption[] = [
 
 const TOAST_CANCEL_SUCCESS = 'Listing cancelled successfully. The original ticket has been unlocked by the Organizer.';
 const TOAST_CANCEL_ERROR = 'Could not contact the organizer to unlock the ticket. Please try again later.';
+const ESCROW_LOCKED_NOTICE =
+  'Tiền đang được bảo vệ trong quỹ Escrow LOCKED - Sẽ giải ngân sau 24h';
 
 /** Only listings nobody has bought yet can be cancelled (backend rule). */
 const canCancel = (listing: SellerListingDto) => listing.listingStatus === 'Verified';
@@ -365,6 +367,12 @@ export const MyListingsPage: React.FC = () => {
                         <span className="text-[11px] text-[#8B929C]/70 font-mono pl-1">
                           ID · {listing.originalTicketCode}
                         </span>
+
+                        {listing.listingStatus === 'Sold' && (
+                          <p className="basis-full w-full text-[11px] font-mono text-cyan-400/90 pt-1 leading-snug">
+                            {ESCROW_LOCKED_NOTICE}
+                          </p>
+                        )}
                       </div>
                     </div>
                   </div>
