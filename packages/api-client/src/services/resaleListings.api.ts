@@ -3,13 +3,20 @@ import type {
   HoldListingForPurchaseRequest,
   HoldListingForPurchaseResponse,
   ListingStatus,
+  PaymentStatusDto,
   PaginatedList,
   ResaleListingDetailDto,
   SellerListingDto,
 } from '@ticketshield/types';
 import { httpClient } from './client';
 
-export type { ResaleListingDetailDto, PaginatedList, HoldListingForPurchaseRequest, HoldListingForPurchaseResponse };
+export type {
+  ResaleListingDetailDto,
+  PaginatedList,
+  HoldListingForPurchaseRequest,
+  HoldListingForPurchaseResponse,
+  PaymentStatusDto,
+};
 
 export const resaleListingsApi = {
   /**
@@ -58,6 +65,17 @@ export const resaleListingsApi = {
         method: 'POST',
         body: JSON.stringify(request || {}),
       }
+    );
+  },
+
+  /**
+   * Poll escrow/listing status after hold (buyer of that escrow only).
+   * GET /resale-listings/{id}/payment-status  (JWT required)
+   */
+  getPaymentStatus: async (listingId: string): Promise<PaymentStatusDto> => {
+    return httpClient<PaymentStatusDto>(
+      `/resale-listings/${encodeURIComponent(listingId)}/payment-status`,
+      { method: 'GET' }
     );
   },
 
