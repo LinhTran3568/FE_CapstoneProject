@@ -203,6 +203,13 @@ export interface SellerListingDto {
   shareUrl: string | null;
   verificationStatus: VerificationStatus;
   listingStatus: ListingStatus;
+  escrowStatus?: string | null;
+  netSellerPayout?: number | null;
+  unlockAt?: string | null;
+  inSettlementBuffer?: boolean;
+  payoutStatus?: string | null;
+  payoutProcessedAt?: string | null;
+  payoutBankInfo?: string | null;
   createdAt: string;
 }
 

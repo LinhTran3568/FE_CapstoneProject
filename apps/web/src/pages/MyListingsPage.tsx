@@ -15,6 +15,9 @@ import {
   Ticket,
   Undo2,
   XCircle,
+  Clock,
+  CheckCircle2,
+  DollarSign,
 } from 'lucide-react';
 import type { ListingStatus, SellerListingDto } from '@ticketshield/types';
 import { useUIStore } from '../stores/uiStore';
@@ -366,6 +369,29 @@ export const MyListingsPage: React.FC = () => {
                           ID · {listing.originalTicketCode}
                         </span>
                       </div>
+
+                      {/* 2-Minute Escrow Settlement & Payout Banner */}
+                      {listing.listingStatus === 'Sold' && (
+                        <div className="pt-2">
+                          {listing.inSettlementBuffer ? (
+                            <div className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center gap-2 text-xs text-amber-300">
+                              <Clock className="w-4 h-4 text-amber-400 shrink-0 animate-pulse" />
+                              <div className="leading-tight">
+                                <span className="font-bold text-amber-400">Đang giữ ký quỹ Escrow 2 phút: </span>
+                                <span>Tiền bán vé ({formatVND(listing.netSellerPayout || listing.resalePrice)}) sẽ tự động giải ngân về tài khoản ngân hàng sau 2 phút.</span>
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center gap-2 text-xs text-emerald-300">
+                              <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                              <div className="leading-tight">
+                                <span className="font-bold text-emerald-400">Đã giải ngân thành công: </span>
+                                <span>Đã chuyển {formatVND(listing.netSellerPayout || listing.resalePrice)} về tài khoản ngân hàng {listing.payoutBankInfo || 'liên kết'}.</span>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </div>
                   </div>
 
