@@ -228,7 +228,9 @@ export interface PurchasedTicketDto {
   seatZone: string;
   ticketPassCode: string;
   totalAmountPaid: number;
-  status: string;
+  status: 'VALID' | 'IN_ESCROW' | 'PENDING_PAYMENT' | 'DISPUTED' | string;
+  paymentReference?: string | null;
+  holdExpiresAt?: string | null;
   recipientName: string;
   recipientEmail: string;
   qrCodeData: string;
@@ -300,15 +302,18 @@ export interface HoldListingForPurchaseResponse {
   holdDurationSeconds: number;
 }
 
-export interface GetPaymentStatusDto {
+/** GET /api/v1/resale-listings/{id}/payment-status → backend GetPaymentStatusDto */
+export interface PaymentStatusDto {
   listingId: string;
   escrowId: string;
-  listingStatus: ListingStatus;
+  listingStatus: string;
   escrowStatus: string;
   paymentReference: string;
-  unlockAt?: string;
+  unlockAt: string | null;
   inSettlementBuffer: boolean;
 }
+
+export type GetPaymentStatusDto = PaymentStatusDto;
 
 export interface UserBankAccountDto {
   id: string;
@@ -515,24 +520,4 @@ export interface AuditLog {
   timestamp: string;
 }
 
-export interface PurchasedTicketDto {
-  escrowId: string;
-  listingId: string;
-  eventId: string;
-  eventName: string;
-  eventVenue: string;
-  eventStartAt: string;
-  tierName: string;
-  seatZone: string;
-  ticketPassCode: string;
-  totalAmountPaid: number;
-  status: 'VALID' | 'IN_ESCROW' | 'PENDING_PAYMENT' | 'DISPUTED' | string;
-  paymentReference?: string | null;
-  holdExpiresAt?: string | null;
-  recipientName: string;
-  recipientEmail: string;
-  qrCodeData: string;
-  qrCodeImageUrl: string;
-  purchasedAt: string;
-}
 

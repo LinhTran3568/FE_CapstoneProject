@@ -3,6 +3,7 @@ import type {
   HoldListingForPurchaseRequest,
   HoldListingForPurchaseResponse,
   ListingStatus,
+  PaymentStatusDto,
   PaginatedList,
   PurchasedTicketDto,
   ResaleListingDetailDto,
@@ -16,6 +17,7 @@ export type {
   HoldListingForPurchaseRequest,
   HoldListingForPurchaseResponse,
   PurchasedTicketDto,
+  PaymentStatusDto,
 };
 
 export const resaleListingsApi = {
@@ -79,45 +81,14 @@ export const resaleListingsApi = {
   },
 
   /**
-   * Get payment status of a held listing.
-   * GET /resale-listings/{id}/payment-status (JWT required)
+   * Poll escrow/listing status after hold (buyer of that escrow only).
+   * GET /resale-listings/{id}/payment-status  (JWT required)
    */
-  getPaymentStatus: async (listingId: string): Promise<import('@ticketshield/types').GetPaymentStatusDto> => {
-    return httpClient<import('@ticketshield/types').GetPaymentStatusDto>(
+  getPaymentStatus: async (listingId: string): Promise<PaymentStatusDto> => {
+    return httpClient<PaymentStatusDto>(
       `/resale-listings/${encodeURIComponent(listingId)}/payment-status`,
       { method: 'GET' }
     );
-  },
-
-  /**
-   * Simulate SePay VietQR payment webhook (Local Dev Testing).
-   * POST /webhooks/sepay
-   */
-  simulateSePayPayment: async (payload: {
-    paymentReference: string;
-    transferAmount: number;
-    accountNumber?: string;
-  }): Promise<any> => {
-    return httpClient<any>(`/webhooks/sepay`, {
-      method: 'POST',
-      headers: {
-        Authorization: 'Apikey TicketShieldWebhookKey2026',
-      },
-      body: JSON.stringify({
-        id: Math.floor(Math.random() * 1000000),
-        gateway: 'MBBank',
-        transactionDate: new Date().toISOString(),
-        accountNumber: payload.accountNumber || '0938434102',
-        code: null,
-        content: payload.paymentReference,
-        transferType: 'in',
-        transferAmount: payload.transferAmount,
-        accumulated: payload.transferAmount,
-        subAccount: null,
-        referenceCode: `FT${Date.now()}`,
-        description: payload.paymentReference,
-      }),
-    });
   },
 
   /**
