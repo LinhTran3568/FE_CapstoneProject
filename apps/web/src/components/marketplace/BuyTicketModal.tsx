@@ -259,12 +259,10 @@ export const BuyTicketModal: React.FC<BuyTicketModalProps> = ({
     <div
       id="buy-ticket-modal-backdrop"
       className="fixed inset-0 z-50 bg-black/90 backdrop-blur-md flex items-center justify-center p-3 sm:p-4 overflow-y-auto"
-      onClick={onClose}
     >
       <div
         id="buy-ticket-modal-content"
         className="relative w-full max-w-3xl bg-[#0b0e17] border border-[#232738] rounded-3xl shadow-[0_0_50px_rgba(0,0,0,0.8)] overflow-hidden my-4 text-white"
-        onClick={(e) => e.stopPropagation()}
       >
         {/* Modal Header */}
         <div className="flex items-center justify-between px-5 sm:px-6 py-4 border-b border-[#1d2232] bg-[#111422]">
