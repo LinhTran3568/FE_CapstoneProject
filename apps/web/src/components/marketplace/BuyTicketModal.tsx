@@ -103,6 +103,8 @@ export const BuyTicketModal: React.FC<BuyTicketModalProps> = ({
     return () => clearInterval(timer);
   }, [holdData]);
 
+  const [isCheckingPayment, setIsCheckingPayment] = useState(false);
+
   useEffect(() => {
     if (!paymentStatus || paidHandledRef.current) return;
 
@@ -118,6 +120,7 @@ export const BuyTicketModal: React.FC<BuyTicketModalProps> = ({
       if (!listing) return;
       paidHandledRef.current = true;
       setPollStopped(true);
+      showToast('Thanh toán thành công! Giao dịch đã được khóa Escrow an toàn.', 'success');
       onSuccess({
         orderId: paymentStatus.paymentReference || holdData?.paymentReference || `TS-${listing.listingId.substring(0, 8)}`,
         listing,
@@ -199,14 +202,38 @@ export const BuyTicketModal: React.FC<BuyTicketModalProps> = ({
     }
   };
 
-  // Step 2: Confirm Payment Completion — poll is the only success path
-  const handleConfirmPaid = () => {
+  // Step 2: Confirm Payment Completion
+  const handleConfirmPaid = async () => {
     if (isExpired) {
       showToast('Đơn giữ chỗ đã hết hạn. Vui lòng đóng và thử lại.', 'error');
       return;
     }
 
-    showToast('Hệ thống đang chờ ngân hàng xác nhận. Giữ nguyên màn hình này.', 'info');
+    if (!holdData) return;
+
+    try {
+      setIsCheckingPayment(true);
+      const res = await resaleListingsApi.getPaymentStatus(listing.listingId);
+      if (res.escrowStatus === 'Locked' || res.listingStatus === 'Sold') {
+        showToast('Thanh toán thành công! Giao dịch đã được xác nhận vào quỹ Escrow.', 'success');
+        onSuccess({
+          orderId: holdData.paymentReference || `TS-${listing.listingId.substring(0, 8)}`,
+          listing,
+          escrowId: holdData.escrowId,
+          paymentReference: holdData.paymentReference,
+          totalBuyerPaid: holdData.totalBuyerPaid || listing.resalePrice,
+          buyerName: fullName,
+          buyerPhone: phone,
+          buyerEmail: email,
+        });
+      } else {
+        showToast('Hệ thống đang kiểm tra giao dịch chuyển khoản VietQR. Vui lòng đợi trong giây lát...', 'info');
+      }
+    } catch (err: any) {
+      showToast(err?.message || 'Đang kiểm tra giao dịch...', 'info');
+    } finally {
+      setIsCheckingPayment(false);
+    }
   };
 
   const finalPrice = Math.max(0, listing.resalePrice - discountAmount);
@@ -222,12 +249,10 @@ export const BuyTicketModal: React.FC<BuyTicketModalProps> = ({
     <div
       id="buy-ticket-modal-backdrop"
       className="fixed inset-0 z-50 bg-black/90 backdrop-blur-md flex items-center justify-center p-3 sm:p-4 overflow-y-auto"
-      onClick={onClose}
     >
       <div
         id="buy-ticket-modal-content"
         className="relative w-full max-w-3xl bg-[#0b0e17] border border-[#232738] rounded-3xl shadow-[0_0_50px_rgba(0,0,0,0.8)] overflow-hidden my-4 text-white"
-        onClick={(e) => e.stopPropagation()}
       >
         {/* Modal Header */}
         <div className="flex items-center justify-between px-5 sm:px-6 py-4 border-b border-[#1d2232] bg-[#111422]">
@@ -590,22 +615,22 @@ export const BuyTicketModal: React.FC<BuyTicketModalProps> = ({
                 </span>
               </div>
 
-              <div className="flex items-center gap-2.5 w-full sm:w-auto shrink-0">
+              <div className="flex items-center gap-2.5 w-full sm:w-auto shrink-0 flex-wrap justify-end">
                 <button
                   type="button"
                   onClick={onClose}
-                  className="flex-1 sm:flex-none px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/15 text-xs font-bold text-white transition-colors cursor-pointer shrink-0"
+                  className="px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/15 text-xs font-bold text-white transition-colors cursor-pointer shrink-0"
                 >
                   Hủy / Để Sau
                 </button>
                 <button
                   type="button"
                   onClick={handleConfirmPaid}
-                  disabled={isExpired}
-                  className="flex-1 sm:flex-none px-5 py-2.5 bg-gradient-to-r from-emerald-500 to-teal-600 hover:brightness-110 disabled:opacity-40 text-white font-bold text-xs uppercase tracking-wider rounded-xl shadow-[0_4px_15px_rgba(16,185,129,0.3)] transition-all flex items-center justify-center gap-1.5 cursor-pointer shrink-0"
+                  disabled={isExpired || isCheckingPayment}
+                  className="px-5 py-2.5 bg-gradient-to-r from-emerald-500 to-teal-600 hover:brightness-110 disabled:opacity-40 text-white font-bold text-xs uppercase tracking-wider rounded-xl shadow-[0_4px_15px_rgba(16,185,129,0.3)] transition-all flex items-center justify-center gap-1.5 cursor-pointer shrink-0"
                 >
-                  <CheckCircle2 className="w-4 h-4 shrink-0" />
-                  <span>Tôi đã chuyển khoản</span>
+                  <CheckCircle2 className={`w-4 h-4 shrink-0 ${isCheckingPayment ? 'animate-spin' : ''}`} />
+                  <span>{isCheckingPayment ? 'Đang kiểm tra...' : 'Tôi đã chuyển khoản'}</span>
                 </button>
               </div>
             </div>
