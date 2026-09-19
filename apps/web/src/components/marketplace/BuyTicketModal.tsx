@@ -96,7 +96,6 @@ export const BuyTicketModal: React.FC<BuyTicketModalProps> = ({
   }, [holdData]);
 
   // Real-time Payment Status Polling (every 2.5s)
-  const [isSimulatingPayment, setIsSimulatingPayment] = useState(false);
   const [isCheckingPayment, setIsCheckingPayment] = useState(false);
 
   useEffect(() => {
@@ -191,27 +190,6 @@ export const BuyTicketModal: React.FC<BuyTicketModalProps> = ({
     }
   };
 
-  // Step 2: Confirm Payment Completion or Trigger Dev Test
-  const handleSimulatePayment = async () => {
-    if (!holdData) return;
-    try {
-      setIsSimulatingPayment(true);
-      showToast('Đang gửi tín hiệu khớp lệnh SePAY VietQR...', 'info');
-
-      await resaleListingsApi.simulateSePayPayment({
-        paymentReference: holdData.paymentReference,
-        transferAmount: holdData.totalBuyerPaid,
-        accountNumber: holdData.accountNumber,
-      });
-
-      showToast('Đã gửi xác nhận webhook SePAY thành công! Hệ thống đang tự động cập nhật...', 'success');
-    } catch (err: any) {
-      showToast(err?.message || 'Lỗi khi gửi tín hiệu thanh toán.', 'error');
-    } finally {
-      setIsSimulatingPayment(false);
-    }
-  };
-
   const handleConfirmPaid = async () => {
     if (isExpired) {
       showToast('Đơn giữ chỗ đã hết hạn. Vui lòng đóng và thử lại.', 'error');
@@ -236,8 +214,7 @@ export const BuyTicketModal: React.FC<BuyTicketModalProps> = ({
           buyerEmail: email,
         });
       } else {
-        // In local environment or pending state, inform user and allow dev simulation
-        showToast('Hệ thống đang kiểm tra giao dịch từ SePAY VietQR. Nếu bạn đang chạy Localhost (chưa cắm Ngrok), hãy bấm nút "⚡ Giả lập khớp lệnh SePAY (Dev Test)" để hoàn tất tức thì!', 'info');
+        showToast('Hệ thống đang kiểm tra giao dịch chuyển khoản VietQR. Vui lòng đợi trong giây lát...', 'info');
       }
     } catch (err: any) {
       showToast(err?.message || 'Đang kiểm tra giao dịch...', 'info');
@@ -618,16 +595,6 @@ export const BuyTicketModal: React.FC<BuyTicketModalProps> = ({
                   className="px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/15 text-xs font-bold text-white transition-colors cursor-pointer shrink-0"
                 >
                   Hủy / Để Sau
-                </button>
-                <button
-                  type="button"
-                  onClick={handleSimulatePayment}
-                  disabled={isExpired || isSimulatingPayment}
-                  className="px-4 py-2.5 bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 font-bold text-xs rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer shrink-0 shadow-lg shadow-amber-500/10"
-                  title="Giả lập Webhook SePAY gửi tín hiệu tiền đã vào tài khoản (Dành cho test môi trường Localhost)"
-                >
-                  <Sparkles className={`w-3.5 h-3.5 ${isSimulatingPayment ? 'animate-spin' : ''}`} />
-                  <span>{isSimulatingPayment ? 'Đang khớp...' : '⚡ Giả lập khớp lệnh (Dev Test)'}</span>
                 </button>
                 <button
                   type="button"

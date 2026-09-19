@@ -216,15 +216,10 @@ export const MyTicketsPage: React.FC = () => {
                           <Clock className="w-3 h-3 animate-pulse" />
                           <span>CHỜ THANH TOÁN (GIỮ CHỖ)</span>
                         </span>
-                      ) : isEscrow ? (
-                        <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase bg-cyan-500/15 border border-cyan-500/30 text-cyan-400 flex items-center gap-1">
-                          <Lock className="w-3 h-3" />
-                          <span>KÝ QUỸ 2P</span>
-                        </span>
                       ) : (
                         <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 flex items-center gap-1">
                           <ShieldCheck className="w-3 h-3" />
-                          <span>CHÍNH CHỦ</span>
+                          <span>CHÍNH CHỦ (ĐÃ THANH TOÁN)</span>
                         </span>
                       )}
                     </div>
