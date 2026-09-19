@@ -5,6 +5,7 @@ import type {
   ListingStatus,
   PaymentStatusDto,
   PaginatedList,
+  PurchasedTicketDto,
   ResaleListingDetailDto,
   SellerListingDto,
 } from '@ticketshield/types';
@@ -15,6 +16,7 @@ export type {
   PaginatedList,
   HoldListingForPurchaseRequest,
   HoldListingForPurchaseResponse,
+  PurchasedTicketDto,
   PaymentStatusDto,
 };
 
@@ -47,6 +49,16 @@ export const resaleListingsApi = {
   getMyListings: async (status?: ListingStatus): Promise<SellerListingDto[]> => {
     const query = status ? `?status=${encodeURIComponent(status)}` : '';
     return httpClient<SellerListingDto[]>(`/resale-listings/my-listings${query}`, {
+      method: 'GET',
+    });
+  },
+
+  /**
+   * Purchased digital passes for the signed-in buyer.
+   * GET /resale-listings/my-purchased-tickets (JWT required)
+   */
+  getMyPurchasedTickets: async (): Promise<PurchasedTicketDto[]> => {
+    return httpClient<PurchasedTicketDto[]>(`/resale-listings/my-purchased-tickets`, {
       method: 'GET',
     });
   },

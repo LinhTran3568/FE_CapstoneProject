@@ -45,4 +45,36 @@ export const bankAccountsApi = {
       body: JSON.stringify(request),
     });
   },
+
+  /**
+   * Auto-lookup beneficiary account holder name via BE proxy (avoids browser CORS).
+   * Calls GET /api/v1/user-bank-accounts/lookup-name?bin={bin}&accountNumber={accountNumber}
+   * Returns isVerified:true ONLY when the bank API confirms the name.
+   */
+  lookupAccountHolderName: async (
+    bankCode: string,
+    accountNumber: string,
+  ): Promise<{ success: boolean; accountName: string; isVerified: boolean }> => {
+    const bank = VIETNAM_BANKS.find((b) => b.code === bankCode);
+    const bin = bank?.bin;
+
+    const cleanAcc = accountNumber.replace(/\D/g, '');
+    if (!cleanAcc || cleanAcc.length < 6 || !bin) {
+      return { success: false, accountName: '', isVerified: false };
+    }
+
+    try {
+      const result = await httpClient<{ success: boolean; accountName: string; isVerified: boolean }>(
+        `/user-bank-accounts/lookup-name?bin=${encodeURIComponent(bin)}&accountNumber=${encodeURIComponent(cleanAcc)}`,
+        { method: 'GET' }
+      );
+      return result;
+    } catch {
+      // BE proxy thất bại - user cần nhập thủ công
+    }
+
+    return { success: false, accountName: '', isVerified: false };
+  },
 };
+
+

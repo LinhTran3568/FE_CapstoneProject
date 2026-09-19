@@ -203,7 +203,39 @@ export interface SellerListingDto {
   shareUrl: string | null;
   verificationStatus: VerificationStatus;
   listingStatus: ListingStatus;
+  escrowStatus?: string | null;
+  netSellerPayout?: number | null;
+  unlockAt?: string | null;
+  inSettlementBuffer?: boolean;
+  payoutStatus?: string | null;
+  payoutProcessedAt?: string | null;
+  payoutBankInfo?: string | null;
   createdAt: string;
+}
+
+/**
+ * Purchased ticket pass for buyers
+ * GET /api/v1/resale-listings/my-purchased-tickets
+ */
+export interface PurchasedTicketDto {
+  escrowId: string;
+  listingId: string;
+  eventId: string;
+  eventName: string;
+  eventVenue: string;
+  eventStartAt: string;
+  tierName: string;
+  seatZone: string;
+  ticketPassCode: string;
+  totalAmountPaid: number;
+  status: 'VALID' | 'IN_ESCROW' | 'PENDING_PAYMENT' | 'DISPUTED' | string;
+  paymentReference?: string | null;
+  holdExpiresAt?: string | null;
+  recipientName: string;
+  recipientEmail: string;
+  qrCodeData: string;
+  qrCodeImageUrl: string;
+  purchasedAt: string;
 }
 
 /**
@@ -280,6 +312,8 @@ export interface PaymentStatusDto {
   unlockAt: string | null;
   inSettlementBuffer: boolean;
 }
+
+export type GetPaymentStatusDto = PaymentStatusDto;
 
 export interface UserBankAccountDto {
   id: string;
@@ -485,3 +519,5 @@ export interface AuditLog {
   ipAddress: string;
   timestamp: string;
 }
+
+

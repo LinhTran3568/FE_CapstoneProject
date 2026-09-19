@@ -12,6 +12,7 @@ import {
   Search,
   MapPin,
 } from 'lucide-react';
+import { useQueryClient } from '@tanstack/react-query';
 import { useUIStore } from '../stores/uiStore';
 import { useAuthStore } from '../stores/authStore';
 import { useMarketplaceListings } from '../hooks/useMarketplaceListings';
@@ -22,6 +23,7 @@ import { StageMapModal } from '../components/marketplace/StageMapModal';
 import { MarketplaceListingDto } from '@ticketshield/types';
 
 export const MarketplacePage: React.FC = () => {
+  const queryClient = useQueryClient();
   const { showToast } = useUIStore();
   const { isAuthenticated } = useAuthStore();
   const navigate = useNavigate();
@@ -420,6 +422,8 @@ export const MarketplacePage: React.FC = () => {
         onClose={() => setBuyingListing(null)}
         onSuccess={(orderData) => {
           setBuyingListing(null);
+          queryClient.invalidateQueries({ queryKey: ['resale-listings'] });
+          refetch();
           showToast(
             `Đặt vé thành công! Mã đơn: ${orderData.orderId}. Vui lòng kiểm tra email và danh sách Vé Của Tôi.`,
             'success'
