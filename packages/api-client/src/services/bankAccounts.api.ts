@@ -47,62 +47,34 @@ export const bankAccountsApi = {
   },
 
   /**
-   * Auto-lookup beneficiary account holder name by bank code & account number.
+   * Auto-lookup beneficiary account holder name via BE proxy (avoids browser CORS).
+   * Calls GET /api/v1/user-bank-accounts/lookup-name?bin={bin}&accountNumber={accountNumber}
+   * Returns isVerified:true ONLY when the bank API confirms the name.
    */
   lookupAccountHolderName: async (
     bankCode: string,
     accountNumber: string,
-    fallbackName?: string
   ): Promise<{ success: boolean; accountName: string; isVerified: boolean }> => {
     const bank = VIETNAM_BANKS.find((b) => b.code === bankCode);
-    const bin = bank?.bin || '970422';
+    const bin = bank?.bin;
 
     const cleanAcc = accountNumber.replace(/\D/g, '');
-    if (!cleanAcc || cleanAcc.length < 6) {
+    if (!cleanAcc || cleanAcc.length < 6 || !bin) {
       return { success: false, accountName: '', isVerified: false };
     }
 
     try {
-      const response = await fetch('https://api.vietqr.io/v2/lookup', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          bin,
-          accountNumber: cleanAcc,
-        }),
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        if (data.code === '00' && data.data?.accountName) {
-          return {
-            success: true,
-            accountName: String(data.data.accountName).toUpperCase(),
-            isVerified: true,
-          };
-        }
-      }
+      const result = await httpClient<{ success: boolean; accountName: string; isVerified: boolean }>(
+        `/user-bank-accounts/lookup-name?bin=${encodeURIComponent(bin)}&accountNumber=${encodeURIComponent(cleanAcc)}`,
+        { method: 'GET' }
+      );
+      return result;
     } catch {
-      // Fall through to fallback
+      // BE proxy thất bại - user cần nhập thủ công
     }
 
-    const normalizedFallback = fallbackName
-      ? fallbackName
-          .normalize('NFD')
-          .replace(/[\u0300-\u036f]/g, '')
-          .replace(/đ/g, 'd')
-          .replace(/Đ/g, 'D')
-          .toUpperCase()
-          .trim()
-      : '';
-
-    return {
-      success: true,
-      accountName: normalizedFallback,
-      isVerified: false,
-    };
+    return { success: false, accountName: '', isVerified: false };
   },
 };
+
 

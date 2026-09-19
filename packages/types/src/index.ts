@@ -270,6 +270,16 @@ export interface HoldListingForPurchaseResponse {
   holdDurationSeconds: number;
 }
 
+export interface GetPaymentStatusDto {
+  listingId: string;
+  escrowId: string;
+  listingStatus: ListingStatus;
+  escrowStatus: string;
+  paymentReference: string;
+  unlockAt?: string;
+  inSettlementBuffer: boolean;
+}
+
 export interface UserBankAccountDto {
   id: string;
   userId: string;

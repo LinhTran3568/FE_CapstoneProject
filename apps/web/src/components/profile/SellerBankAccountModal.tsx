@@ -23,52 +23,54 @@ export const SellerBankAccountModal: React.FC<SellerBankAccountModalProps> = ({
 
   const [bankCode, setBankCode] = useState('MB');
   const [accountNumber, setAccountNumber] = useState('');
-  const [accountHolderName, setAccountHolderName] = useState(
-    user?.fullName
-      ? user.fullName
-          .normalize('NFD')
-          .replace(/[\u0300-\u036f]/g, '')
-          .replace(/đ/g, 'd')
-          .replace(/Đ/g, 'D')
-          .toUpperCase()
-      : ''
-  );
+  // Để trống - user phải nhập tên chủ TK đúng theo thẻ ngân hàng, hoặc BE tự tra cứu
+  const [accountHolderName, setAccountHolderName] = useState('');
   const [isDefault, setIsDefault] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Auto Lookup state
   const [isSearchingName, setIsSearchingName] = useState(false);
   const [isVerifiedName, setIsVerifiedName] = useState(false);
+  const [lookupFailed, setLookupFailed] = useState(false);
 
   // Effect to automatically lookup account name when bank or accountNumber changes
   useEffect(() => {
     const cleanAcc = accountNumber.trim().replace(/\D/g, '');
     if (cleanAcc.length < 6) {
       setIsVerifiedName(false);
+      setLookupFailed(false);
       return;
     }
 
     const timer = setTimeout(async () => {
       setIsSearchingName(true);
+      setLookupFailed(false);
       try {
         const res = await bankAccountsApi.lookupAccountHolderName(
           bankCode,
           cleanAcc,
-          user?.fullName || ''
         );
-        if (res.accountName) {
+        if (res.success && res.accountName) {
+          // Chỉ cập nhật tên khi API trả về tên thực từ ngân hàng
           setAccountHolderName(res.accountName);
-          setIsVerifiedName(res.isVerified);
+          setIsVerifiedName(true);
+          setLookupFailed(false);
+        } else {
+          // Lookup thất bại - giữ nguyên tên hiện tại, thông báo nhập thủ công
+          setIsVerifiedName(false);
+          setLookupFailed(true);
         }
       } catch (e) {
         console.warn('Could not auto-lookup bank account name', e);
+        setIsVerifiedName(false);
+        setLookupFailed(true);
       } finally {
         setIsSearchingName(false);
       }
-    }, 500);
+    }, 800);
 
     return () => clearTimeout(timer);
-  }, [bankCode, accountNumber, user?.fullName]);
+  }, [bankCode, accountNumber]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -223,6 +225,11 @@ export const SellerBankAccountModal: React.FC<SellerBankAccountModalProps> = ({
                   Đã xác thực từ Ngân hàng
                 </span>
               )}
+              {!isSearchingName && lookupFailed && (
+                <span className="text-[10px] text-amber-400 font-mono flex items-center gap-1">
+                  ✏️ Vui lòng nhập thủ công
+                </span>
+              )}
             </div>
             <div className="relative">
               <input
@@ -236,7 +243,7 @@ export const SellerBankAccountModal: React.FC<SellerBankAccountModalProps> = ({
                   setAccountHolderName(e.target.value.toUpperCase());
                   setIsVerifiedName(false);
                 }}
-                placeholder="VD: NGUYEN VAN A"
+                placeholder="Nhập đúng tên chủ TK theo thẻ ngân hàng (VD: NGUYEN VAN A)"
                 className={`w-full h-11 px-3.5 rounded-xl bg-[#141826] border ${
                   isVerifiedName ? 'border-emerald-500/50 text-emerald-300' : 'border-[#262c40] text-white'
                 } text-xs font-bold uppercase tracking-wide placeholder-zinc-500 focus:outline-none focus:border-[#FF5A36]`}

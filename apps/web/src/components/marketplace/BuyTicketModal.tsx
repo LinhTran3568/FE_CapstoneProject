@@ -95,6 +95,44 @@ export const BuyTicketModal: React.FC<BuyTicketModalProps> = ({
     return () => clearInterval(timer);
   }, [holdData]);
 
+  // Real-time Payment Status Polling (every 2.5s)
+  const [isSimulatingPayment, setIsSimulatingPayment] = useState(false);
+  const [isCheckingPayment, setIsCheckingPayment] = useState(false);
+
+  useEffect(() => {
+    if (!holdData || isExpired) return;
+
+    let isMounted = true;
+    const pollInterval = setInterval(async () => {
+      try {
+        const res = await resaleListingsApi.getPaymentStatus(listing.listingId);
+        if (!isMounted) return;
+
+        if (res.escrowStatus === 'Locked' || res.listingStatus === 'Sold') {
+          clearInterval(pollInterval);
+          showToast('Thanh toán thành công! Giao dịch đã được khóa Escrow an toàn.', 'success');
+          onSuccess({
+            orderId: holdData.paymentReference || `TS-${listing.listingId.substring(0, 8)}`,
+            listing,
+            escrowId: holdData.escrowId,
+            paymentReference: holdData.paymentReference,
+            totalBuyerPaid: holdData.totalBuyerPaid || listing.resalePrice,
+            buyerName: fullName,
+            buyerPhone: phone,
+            buyerEmail: email,
+          });
+        }
+      } catch {
+        // Silently continue polling
+      }
+    }, 2500);
+
+    return () => {
+      isMounted = false;
+      clearInterval(pollInterval);
+    };
+  }, [holdData, isExpired, listing, fullName, phone, email, onSuccess, showToast]);
+
   const formatTimer = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
@@ -153,23 +191,59 @@ export const BuyTicketModal: React.FC<BuyTicketModalProps> = ({
     }
   };
 
-  // Step 2: Confirm Payment Completion
-  const handleConfirmPaid = () => {
+  // Step 2: Confirm Payment Completion or Trigger Dev Test
+  const handleSimulatePayment = async () => {
+    if (!holdData) return;
+    try {
+      setIsSimulatingPayment(true);
+      showToast('Đang gửi tín hiệu khớp lệnh SePAY VietQR...', 'info');
+
+      await resaleListingsApi.simulateSePayPayment({
+        paymentReference: holdData.paymentReference,
+        transferAmount: holdData.totalBuyerPaid,
+        accountNumber: holdData.accountNumber,
+      });
+
+      showToast('Đã gửi xác nhận webhook SePAY thành công! Hệ thống đang tự động cập nhật...', 'success');
+    } catch (err: any) {
+      showToast(err?.message || 'Lỗi khi gửi tín hiệu thanh toán.', 'error');
+    } finally {
+      setIsSimulatingPayment(false);
+    }
+  };
+
+  const handleConfirmPaid = async () => {
     if (isExpired) {
       showToast('Đơn giữ chỗ đã hết hạn. Vui lòng đóng và thử lại.', 'error');
       return;
     }
 
-    onSuccess({
-      orderId: holdData?.paymentReference || `TS-${listing.listingId.substring(0, 8)}`,
-      listing,
-      escrowId: holdData?.escrowId,
-      paymentReference: holdData?.paymentReference,
-      totalBuyerPaid: holdData?.totalBuyerPaid || listing.resalePrice,
-      buyerName: fullName,
-      buyerPhone: phone,
-      buyerEmail: email,
-    });
+    if (!holdData) return;
+
+    try {
+      setIsCheckingPayment(true);
+      const res = await resaleListingsApi.getPaymentStatus(listing.listingId);
+      if (res.escrowStatus === 'Locked' || res.listingStatus === 'Sold') {
+        showToast('Thanh toán thành công! Giao dịch đã được xác nhận vào quỹ Escrow.', 'success');
+        onSuccess({
+          orderId: holdData.paymentReference || `TS-${listing.listingId.substring(0, 8)}`,
+          listing,
+          escrowId: holdData.escrowId,
+          paymentReference: holdData.paymentReference,
+          totalBuyerPaid: holdData.totalBuyerPaid || listing.resalePrice,
+          buyerName: fullName,
+          buyerPhone: phone,
+          buyerEmail: email,
+        });
+      } else {
+        // In local environment or pending state, inform user and allow dev simulation
+        showToast('Hệ thống đang kiểm tra giao dịch từ SePAY VietQR. Nếu bạn đang chạy Localhost (chưa cắm Ngrok), hãy bấm nút "⚡ Giả lập khớp lệnh SePAY (Dev Test)" để hoàn tất tức thì!', 'info');
+      }
+    } catch (err: any) {
+      showToast(err?.message || 'Đang kiểm tra giao dịch...', 'info');
+    } finally {
+      setIsCheckingPayment(false);
+    }
   };
 
   const finalPrice = Math.max(0, listing.resalePrice - discountAmount);
@@ -539,22 +613,32 @@ export const BuyTicketModal: React.FC<BuyTicketModalProps> = ({
                 </span>
               </div>
 
-              <div className="flex items-center gap-2.5 w-full sm:w-auto shrink-0">
+              <div className="flex items-center gap-2.5 w-full sm:w-auto shrink-0 flex-wrap justify-end">
                 <button
                   type="button"
                   onClick={onClose}
-                  className="flex-1 sm:flex-none px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/15 text-xs font-bold text-white transition-colors cursor-pointer shrink-0"
+                  className="px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/15 text-xs font-bold text-white transition-colors cursor-pointer shrink-0"
                 >
                   Hủy / Để Sau
                 </button>
                 <button
                   type="button"
-                  onClick={handleConfirmPaid}
-                  disabled={isExpired}
-                  className="flex-1 sm:flex-none px-5 py-2.5 bg-gradient-to-r from-emerald-500 to-teal-600 hover:brightness-110 disabled:opacity-40 text-white font-bold text-xs uppercase tracking-wider rounded-xl shadow-[0_4px_15px_rgba(16,185,129,0.3)] transition-all flex items-center justify-center gap-1.5 cursor-pointer shrink-0"
+                  onClick={handleSimulatePayment}
+                  disabled={isExpired || isSimulatingPayment}
+                  className="px-4 py-2.5 bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 font-bold text-xs rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer shrink-0 shadow-lg shadow-amber-500/10"
+                  title="Giả lập Webhook SePAY gửi tín hiệu tiền đã vào tài khoản (Dành cho test môi trường Localhost)"
                 >
-                  <CheckCircle2 className="w-4 h-4 shrink-0" />
-                  <span>Tôi đã chuyển khoản</span>
+                  <Sparkles className={`w-3.5 h-3.5 ${isSimulatingPayment ? 'animate-spin' : ''}`} />
+                  <span>{isSimulatingPayment ? 'Đang khớp...' : '⚡ Giả lập khớp lệnh (Dev Test)'}</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={handleConfirmPaid}
+                  disabled={isExpired || isCheckingPayment}
+                  className="px-5 py-2.5 bg-gradient-to-r from-emerald-500 to-teal-600 hover:brightness-110 disabled:opacity-40 text-white font-bold text-xs uppercase tracking-wider rounded-xl shadow-[0_4px_15px_rgba(16,185,129,0.3)] transition-all flex items-center justify-center gap-1.5 cursor-pointer shrink-0"
+                >
+                  <CheckCircle2 className={`w-4 h-4 shrink-0 ${isCheckingPayment ? 'animate-spin' : ''}`} />
+                  <span>{isCheckingPayment ? 'Đang kiểm tra...' : 'Tôi đã chuyển khoản'}</span>
                 </button>
               </div>
             </div>
