@@ -1,5 +1,7 @@
 import type {
   CancelResaleListingResponse,
+  HoldListingForPurchaseRequest,
+  HoldListingForPurchaseResponse,
   ListingStatus,
   PaginatedList,
   ResaleListingDetailDto,
@@ -7,7 +9,7 @@ import type {
 } from '@ticketshield/types';
 import { httpClient } from './client';
 
-export type { ResaleListingDetailDto, PaginatedList };
+export type { ResaleListingDetailDto, PaginatedList, HoldListingForPurchaseRequest, HoldListingForPurchaseResponse };
 
 export const resaleListingsApi = {
   /**
@@ -43,12 +45,25 @@ export const resaleListingsApi = {
   },
 
   /**
+   * Hold a listing for purchase (10-minute escrow lock & dynamic VietQR details).
+   * POST /resale-listings/{id}/hold  (JWT required)
+   */
+  holdListing: async (
+    listingId: string,
+    request?: HoldListingForPurchaseRequest
+  ): Promise<HoldListingForPurchaseResponse> => {
+    return httpClient<HoldListingForPurchaseResponse>(
+      `/resale-listings/${encodeURIComponent(listingId)}/hold`,
+      {
+        method: 'POST',
+        body: JSON.stringify(request || {}),
+      }
+    );
+  },
+
+  /**
    * Cancel a listing that is still `Verified` (no buyer yet).
    * POST /resale-listings/{id}/cancel  (JWT required, caller must be the seller)
-   *
-   * The backend unlocks the original ticket at the organizer first. If that
-   * unlock fails, nothing is cancelled and this call throws — the listing keeps
-   * its current status so the seller can retry.
    */
   cancelListing: async (listingId: string): Promise<CancelResaleListingResponse> => {
     return httpClient<CancelResaleListingResponse>(
@@ -57,3 +72,4 @@ export const resaleListingsApi = {
     );
   },
 };
+
