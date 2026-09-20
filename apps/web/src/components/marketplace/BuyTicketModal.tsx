@@ -255,7 +255,11 @@ export const BuyTicketModal: React.FC<BuyTicketModalProps> = ({
     }
   };
 
-  const finalPrice = Math.max(0, listing.resalePrice - discountAmount);
+  // Uniform Fee Model for Buyer: 5% (Min 10,000 VND)
+  const buyerFeeRate = 0.05;
+  const minBuyerFee = 10000;
+  const estimatedBuyerFee = Math.max(Math.round(listing.resalePrice * buyerFeeRate), minBuyerFee);
+  const totalBuyerPaidEstimated = Math.max(0, listing.resalePrice + estimatedBuyerFee - discountAmount);
 
   // Dynamic QR Code URL fallback if API does not return a direct image
   const displayQrUrl =
@@ -350,15 +354,10 @@ export const BuyTicketModal: React.FC<BuyTicketModalProps> = ({
               </div>
 
               <div className="text-left sm:text-right shrink-0">
-                <div className="text-xs text-zinc-400">Giá vé công khai</div>
-                <div className="text-lg sm:text-xl font-extrabold text-[#FF5A36] font-display">
-                  {formatVND(finalPrice)}
+                <div className="text-xs text-zinc-400">Giá vé niêm yết</div>
+                <div className="text-lg sm:text-xl font-extrabold text-white font-display">
+                  {formatVND(listing.resalePrice)}
                 </div>
-                {discountAmount > 0 && (
-                  <div className="text-[11px] text-emerald-400 font-medium">
-                    Giảm giá: -{formatVND(discountAmount)}
-                  </div>
-                )}
               </div>
             </div>
 
@@ -450,12 +449,69 @@ export const BuyTicketModal: React.FC<BuyTicketModalProps> = ({
               </button>
             </div>
 
+            {/* Payment & Fee Breakdown Box */}
+            <div className="p-4 sm:p-4.5 bg-[#080B11]/90 border border-emerald-500/25 rounded-2xl space-y-2.5 text-xs shadow-lg">
+              <div className="flex items-center justify-between pb-2 border-b border-white/10">
+                <div className="flex items-center gap-2 font-semibold text-zinc-200">
+                  <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />
+                  <span>Chi tiết thanh toán</span>
+                </div>
+                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-500/10 text-emerald-300 border border-emerald-500/30">
+                  Phí bảo vệ người mua 5%
+                </span>
+              </div>
+
+              <div className="space-y-1.5 text-xs">
+                <div className="flex justify-between items-center text-zinc-400">
+                  <span>Giá vé niêm yết:</span>
+                  <span className="font-semibold text-zinc-200 tabular-nums">
+                    {formatVND(listing.resalePrice)}
+                  </span>
+                </div>
+
+                <div className="flex justify-between items-center text-zinc-400">
+                  <div className="flex items-center gap-1">
+                    <span>Phí dịch vụ &amp; Quỹ Escrow (5%):</span>
+                    <span className="text-[10px] text-zinc-500">(Tối thiểu 10.000 đ)</span>
+                  </div>
+                  <span className="font-medium text-amber-400 tabular-nums">
+                    + {formatVND(estimatedBuyerFee)}
+                  </span>
+                </div>
+
+                {discountAmount > 0 && (
+                  <div className="flex justify-between items-center text-emerald-400">
+                    <span>Mã giảm giá ({coupon}):</span>
+                    <span className="font-medium tabular-nums">
+                      - {formatVND(discountAmount)}
+                    </span>
+                  </div>
+                )}
+              </div>
+
+              <div className="flex justify-between items-baseline pt-2.5 border-t border-white/10">
+                <div>
+                  <span className="text-xs font-bold text-white block">
+                    Tổng thanh toán VietQR
+                  </span>
+                  <span className="text-[10px] text-zinc-400">
+                    (Bao gồm tiền vé + phí bảo hiểm sang tên)
+                  </span>
+                </div>
+                <div className="text-right">
+                  <span className="text-xl sm:text-2xl font-black text-[#FF5A36] font-display tabular-nums tracking-tight">
+                    {formatVND(totalBuyerPaidEstimated)}
+                  </span>
+                </div>
+              </div>
+            </div>
+
             {/* Submit Action */}
             <div className="pt-3 border-t border-[#1d2232] flex items-center justify-between gap-4">
               <div>
-                <span className="text-xs text-zinc-400 block">Tổng số tiền cần trả:</span>
-                <span className="text-2xl font-black font-display text-white">
-                  {formatVND(finalPrice)}
+                <span className="text-xs text-zinc-400 block">Tổng tiền thanh toán:</span>
+                <span className="text-2xl font-black font-display text-[#FF5A36]">
+                  {formatVND(totalBuyerPaidEstimated)}
                 </span>
               </div>
 
