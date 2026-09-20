@@ -1502,25 +1502,48 @@ export const SellTicketPage: React.FC = () => {
               </div>
 
               {/* Platform Fee & Net Payout Breakdown Box */}
-              <div className="p-4 bg-[#05070A] border border-emerald-500/30 rounded-2xl space-y-2.5 text-xs">
-                <div className="flex items-center justify-between pb-2 border-b border-gray-800">
-                  <span className="text-[#A3A8B3] font-semibold flex items-center gap-1.5">
-                    <ShieldCheck className="w-4 h-4 text-emerald-400" />
-                    <span>Chi Tiết Biểu Phí Sàn (Uniform Fee Model)</span>
-                  </span>
-                  <span className="text-[10px] font-mono bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 px-2 py-0.5 rounded">
-                    Phí Người Bán 3%
+              <div className="p-4 sm:p-5 bg-[#080B11]/90 backdrop-blur-sm border border-emerald-500/25 rounded-2xl space-y-3 shadow-lg">
+                <div className="flex items-center justify-between pb-2.5 border-b border-white/10">
+                  <div className="flex items-center gap-2 text-xs font-semibold text-zinc-200">
+                    <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />
+                    <span>Chi tiết biểu phí sàn</span>
+                  </div>
+                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-500/10 text-emerald-300 border border-emerald-500/30">
+                    Phí người bán 3%
                   </span>
                 </div>
-                <div className="flex justify-between items-center text-amber-400 text-[11px]">
-                  <span>- Phí dịch vụ người bán (3%):</span>
-                  <span className="font-mono font-semibold">-{Math.max(Math.round(resalePrice * 0.03), 5000).toLocaleString('vi-VN')} VND</span>
+
+                <div className="space-y-2 text-xs">
+                  <div className="flex justify-between items-center text-zinc-400">
+                    <span>Giá niêm yết:</span>
+                    <span className="font-semibold text-zinc-200 tabular-nums">
+                      {resalePrice.toLocaleString('vi-VN')} đ
+                    </span>
+                  </div>
+
+                  <div className="flex justify-between items-center text-zinc-400">
+                    <span>Phí dịch vụ người bán (3%):</span>
+                    <span className="font-medium text-amber-400 tabular-nums">
+                      - {Math.max(Math.round(resalePrice * 0.03), 5000).toLocaleString('vi-VN')} đ
+                    </span>
+                  </div>
                 </div>
-                <div className="flex justify-between items-center text-emerald-400 font-bold text-sm pt-1.5 border-t border-gray-800">
-                  <span>= Thực nhận của Người bán (Net Payout):</span>
-                  <span className="font-mono text-emerald-400 font-display">
-                    {Math.max(resalePrice - Math.max(Math.round(resalePrice * 0.03), 5000), 0).toLocaleString('vi-VN')} VND
-                  </span>
+
+                <div className="flex justify-between items-baseline pt-2.5 border-t border-white/10">
+                  <div>
+                    <span className="text-xs font-bold text-emerald-400 block">
+                      Thực nhận của người bán
+                    </span>
+                    <span className="text-[10px] text-zinc-500">
+                      (Tự động chuyển về STK sau khi giao dịch hoàn tất)
+                    </span>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-base sm:text-lg font-extrabold text-emerald-400 font-display tabular-nums tracking-tight">
+                      {Math.max(resalePrice - Math.max(Math.round(resalePrice * 0.03), 5000), 0).toLocaleString('vi-VN')}
+                    </span>
+                    <span className="ml-1 text-xs font-bold text-emerald-400">đ</span>
+                  </div>
                 </div>
               </div>
 
