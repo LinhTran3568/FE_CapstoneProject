@@ -8,6 +8,10 @@ import { useMyTickets } from '../hooks/useMyTickets';
 const entryPayload = (ticket: PurchasedTicketDto) =>
   (ticket.qrCodeData || ticket.ticketPassCode || '').trim();
 
+/** Returns true if the payload is a base64-encoded PNG/image data URL */
+const isBase64Image = (value: string) =>
+  value.startsWith('data:image/');
+
 const canShowEntryQr = (ticket: PurchasedTicketDto) => {
   const status = (ticket.status || '').trim().toUpperCase();
   if (status === 'PENDING_PAYMENT' || status === 'REFUNDED' || status === 'REFUNDQUEUED') {
@@ -126,7 +130,15 @@ export const MyTicketsPage: React.FC = () => {
                       <p className="text-xs text-[#8B929C]">{ticket.eventVenue}</p>
                     ) : null}
                     {code ? (
-                      <p className="text-xs font-mono text-[#A3A8B3] break-all">{code}</p>
+                      isBase64Image(code) ? (
+                        <img
+                          src={code}
+                          alt="QR Code vé"
+                          className="w-36 h-36 rounded-xl object-contain"
+                        />
+                      ) : (
+                        <p className="text-xs font-mono text-[#A3A8B3] break-all">{code}</p>
+                      )
                     ) : (
                       <p className="text-xs text-[#8B929C]">No organizer ticket code yet.</p>
                     )}
@@ -210,9 +222,15 @@ const EntryQrModal: React.FC<{ ticket: PurchasedTicketDto; onClose: () => void }
 
         <div className="flex flex-col items-center gap-3">
           <div className="p-3.5 bg-white rounded-2xl">
-            <QRCodeCanvas value={payload} size={180} level="H" includeMargin={false} />
+            {isBase64Image(payload) ? (
+              <img src={payload} alt="QR Code vé" className="w-[180px] h-[180px] object-contain" />
+            ) : (
+              <QRCodeCanvas value={payload} size={180} level="H" includeMargin={false} />
+            )}
           </div>
-          <p className="text-sm font-mono text-white break-all text-center">{payload}</p>
+          <p className="text-sm font-mono text-white break-all text-center">
+            {isBase64Image(payload) ? (ticket.ticketPassCode || '') : payload}
+          </p>
           <p className="text-xs text-[#A3A8B3] text-center">{ticket.seatZone}</p>
         </div>
       </div>
