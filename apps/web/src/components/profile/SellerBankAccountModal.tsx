@@ -16,8 +16,6 @@ export const SellerBankAccountModal: React.FC<SellerBankAccountModalProps> = ({
   onClose,
   onSuccess,
 }) => {
-  if (!isOpen) return null;
-
   const { user } = useAuthStore();
   const { showToast } = useUIStore();
 
@@ -35,6 +33,7 @@ export const SellerBankAccountModal: React.FC<SellerBankAccountModalProps> = ({
 
   // Effect to automatically lookup account name when bank or accountNumber changes
   useEffect(() => {
+    if (!isOpen) return;
     const cleanAcc = accountNumber.trim().replace(/\D/g, '');
     if (cleanAcc.length < 6) {
       setIsVerifiedName(false);
@@ -70,7 +69,19 @@ export const SellerBankAccountModal: React.FC<SellerBankAccountModalProps> = ({
     }, 800);
 
     return () => clearTimeout(timer);
-  }, [bankCode, accountNumber]);
+  }, [bankCode, accountNumber, isOpen]);
+
+  // Reset form state when modal is opened/closed
+  useEffect(() => {
+    if (!isOpen) {
+      setAccountNumber('');
+      setAccountHolderName('');
+      setBankCode('MB');
+      setIsDefault(true);
+      setIsVerifiedName(false);
+      setLookupFailed(false);
+    }
+  }, [isOpen]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -111,6 +122,9 @@ export const SellerBankAccountModal: React.FC<SellerBankAccountModalProps> = ({
   };
 
   const selectedBank = VIETNAM_BANKS.find((b) => b.code === bankCode) || VIETNAM_BANKS[0];
+
+  // Guard: Không render nếu modal chưa mở (đặt SAU tất cả hooks)
+  if (!isOpen) return null;
 
   return (
     <div
