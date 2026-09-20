@@ -211,6 +211,16 @@ export const MarketplacePage: React.FC = () => {
   }, [searchParams, isAuthenticated, listings]);
 
   const handleBuy = (listing: MarketplaceListingDto) => {
+    const rawStatus = (listing.listingStatus || '').toLowerCase();
+    if (rawStatus === 'transacting') {
+      showToast('Vé này hiện đang có người khác thực hiện giao dịch (giữ chỗ thanh toán). Vui lòng chọn vé khác hoặc quay lại sau!', 'warning');
+      return;
+    }
+    if (rawStatus === 'sold') {
+      showToast('Vé này đã được bán thành công. Vui lòng chọn vé khác!', 'warning');
+      return;
+    }
+
     if (!isAuthenticated) {
       showToast('Vui lòng đăng nhập để tiến hành đặt mua vé.', 'warning');
       navigate('/login', {

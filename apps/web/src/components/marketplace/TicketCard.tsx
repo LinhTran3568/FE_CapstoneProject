@@ -1,5 +1,5 @@
 import React from 'react';
-import { Calendar, MapPin, CheckCircle2 } from 'lucide-react';
+import { Calendar, MapPin, CheckCircle2, Lock } from 'lucide-react';
 import { MarketplaceListingDto } from '@ticketshield/types';
 import { formatEventDateTime } from '../../utils/formatters';
 
@@ -55,6 +55,13 @@ export const TicketCard: React.FC<TicketCardProps> = ({
   const zoneStyle = getZoneStyle(listing.tierName);
   const passCode = listing.maskedTicketCode || 'AT*********93';
 
+  // Status check: Verified, Transacting, Sold, Cancelled
+  const rawStatus = (listing.listingStatus || 'Verified').toLowerCase();
+  const isTransacting = rawStatus === 'transacting';
+  const isSold = rawStatus === 'sold';
+  const isCancelled = rawStatus === 'cancelled';
+  const isAvailable = !isTransacting && !isSold && !isCancelled;
+
   // Realistic stage/event photo background
   const getEventBackdrop = (name: string): string => {
     const lower = name.toLowerCase();
@@ -81,7 +88,13 @@ export const TicketCard: React.FC<TicketCardProps> = ({
   return (
     <div
       id={`ticket-card-${listing.listingId}`}
-      className="group relative isolate w-full h-[224px] sm:h-[230px] flex rounded-2xl bg-[#0a0c10] border border-white/10 hover:border-[#FF5A36] shadow-[0_10px_30px_rgba(0,0,0,0.85)] hover:shadow-[0_12px_40px_rgba(255,90,54,0.22)] transition-[border-color,box-shadow,transform] duration-200 ease-out hover:-translate-y-1 select-none cursor-pointer"
+      className={`group relative isolate w-full h-[224px] sm:h-[230px] flex rounded-2xl bg-[#0a0c10] border shadow-[0_10px_30px_rgba(0,0,0,0.85)] transition-[border-color,box-shadow,transform] duration-200 ease-out select-none cursor-pointer ${
+        isTransacting
+          ? 'border-amber-500/30 hover:border-amber-500/60 hover:shadow-[0_12px_40px_rgba(245,158,11,0.18)]'
+          : isSold
+          ? 'border-zinc-700/50 opacity-75'
+          : 'border-white/10 hover:border-[#FF5A36] hover:shadow-[0_12px_40px_rgba(255,90,54,0.22)] hover:-translate-y-1'
+      }`}
       onClick={() => onViewDetails && onViewDetails(listing)}
     >
       {/* ================= LEFT SECTION: MAIN BODY (65% width) ================= */}
@@ -94,7 +107,9 @@ export const TicketCard: React.FC<TicketCardProps> = ({
           <img
             src={backdropUrl}
             alt={listing.eventName}
-            className="w-full h-full object-cover object-center opacity-70 contrast-125 saturate-110 transition-transform duration-300 ease-out group-hover:scale-105"
+            className={`w-full h-full object-cover object-center contrast-125 saturate-110 transition-transform duration-300 ease-out group-hover:scale-105 ${
+              isSold ? 'opacity-40 grayscale' : isTransacting ? 'opacity-55' : 'opacity-70'
+            }`}
             loading="lazy"
           />
           {/* Multi-layer gradient overlays for instant high text contrast */}
@@ -103,8 +118,8 @@ export const TicketCard: React.FC<TicketCardProps> = ({
           <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_left,_var(--tw-gradient-stops))] from-amber-500/15 via-transparent to-transparent"></div>
         </div>
 
-        {/* Left Top Content: VIP Badge */}
-        <div className="relative z-10 flex items-center justify-between">
+        {/* Left Top Content: VIP Badge & Status Badges */}
+        <div className="relative z-10 flex items-center justify-between gap-2">
           <div
             className={`inline-flex items-center gap-2 px-3 py-1 rounded-full border backdrop-blur-md shadow-[0_0_12px_rgba(245,158,11,0.15)] ${zoneStyle.badge}`}
           >
@@ -113,12 +128,27 @@ export const TicketCard: React.FC<TicketCardProps> = ({
               {listing.tierName || 'VIP ZONE A'}
             </span>
           </div>
+
+          {isTransacting && (
+            <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-amber-400/50 bg-amber-500/20 text-amber-200 text-[10px] sm:text-[11px] font-bold tracking-wider uppercase backdrop-blur-md shadow-[0_0_12px_rgba(245,158,11,0.25)]">
+              <Lock className="w-3 h-3 text-amber-300 animate-pulse" />
+              <span>Đang giao dịch</span>
+            </div>
+          )}
+
+          {isSold && (
+            <div className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full border border-zinc-500/50 bg-zinc-800/90 text-zinc-300 text-[10px] sm:text-[11px] font-bold tracking-wider uppercase backdrop-blur-md">
+              <span>Đã bán</span>
+            </div>
+          )}
         </div>
 
         {/* Left Middle & Bottom Content */}
         <div className="relative z-10 space-y-2.5">
           {/* Event Heading - instant smooth color transition on card hover */}
-          <h2 className="text-[19px] sm:text-[21px] font-extrabold tracking-tight text-white leading-tight drop-shadow-sm group-hover:text-[#FF5A36] transition-colors duration-200 ease-out line-clamp-2">
+          <h2 className={`text-[19px] sm:text-[21px] font-extrabold tracking-tight leading-tight drop-shadow-sm transition-colors duration-200 ease-out line-clamp-2 ${
+            isSold ? 'text-zinc-400' : 'text-white group-hover:text-[#FF5A36]'
+          }`}>
             {listing.eventName}
           </h2>
 
@@ -278,18 +308,46 @@ export const TicketCard: React.FC<TicketCardProps> = ({
 
         {/* Stub Bottom: Action Button */}
         <div>
-          <button
-            id={`btn-buy-${listing.listingId}`}
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              onBuy(listing);
-            }}
-            className="w-full py-2.5 px-4 bg-[#ff5722] hover:bg-[#f4511e] active:scale-[0.98] transition-all duration-150 rounded-xl font-bold text-xs text-white tracking-wide shadow-[0_4px_14px_rgba(255,87,34,0.35)] flex items-center justify-center gap-1.5 cursor-pointer group/btn"
-          >
-            <span>MUA VÉ</span>
-            <span className="transition-transform duration-150 group-hover/btn:translate-x-1">→</span>
-          </button>
+          {isTransacting ? (
+            <div className="space-y-1">
+              <button
+                id={`btn-buy-${listing.listingId}`}
+                type="button"
+                disabled
+                className="w-full py-2.5 px-2.5 bg-amber-100 hover:bg-amber-100 border border-amber-300 text-amber-900 rounded-xl font-bold text-xs tracking-wide flex items-center justify-center gap-1.5 cursor-not-allowed select-none shadow-sm"
+                title="Vé này đang có người tiến hành giao dịch thanh toán"
+              >
+                <Lock className="w-3.5 h-3.5 text-amber-700 shrink-0" />
+                <span className="font-extrabold text-[11px]">ĐANG GIỮ CHỖ</span>
+              </button>
+              <div className="text-[10px] text-center font-medium text-amber-800 leading-none">
+                Đang có người đặt mua
+              </div>
+            </div>
+          ) : isSold ? (
+            <button
+              id={`btn-buy-${listing.listingId}`}
+              type="button"
+              disabled
+              className="w-full py-2.5 px-3 bg-slate-300 border border-slate-400 text-slate-600 rounded-xl font-bold text-xs tracking-wide flex items-center justify-center gap-1.5 cursor-not-allowed select-none"
+              title="Vé đã được bán thành công"
+            >
+              <span>ĐÃ BÁN</span>
+            </button>
+          ) : (
+            <button
+              id={`btn-buy-${listing.listingId}`}
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onBuy(listing);
+              }}
+              className="w-full py-2.5 px-4 bg-[#ff5722] hover:bg-[#f4511e] active:scale-[0.98] transition-all duration-150 rounded-xl font-bold text-xs text-white tracking-wide shadow-[0_4px_14px_rgba(255,87,34,0.35)] flex items-center justify-center gap-1.5 cursor-pointer group/btn"
+            >
+              <span>MUA VÉ</span>
+              <span className="transition-transform duration-150 group-hover/btn:translate-x-1">→</span>
+            </button>
+          )}
         </div>
       </div>
     </div>

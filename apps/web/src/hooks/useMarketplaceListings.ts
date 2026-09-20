@@ -8,6 +8,7 @@ export const useMarketplaceListings = (params?: { keyword?: string; eventId?: st
   useQuery<PaginatedList<ResaleListingDetailDto>>({
     queryKey: marketplaceListingsQueryKey(params),
     queryFn: () => resaleListingsApi.getMarketplaceListings(params),
-    staleTime: 10_000,
+    staleTime: 4_000,
+    refetchInterval: 5_000,
   });
 

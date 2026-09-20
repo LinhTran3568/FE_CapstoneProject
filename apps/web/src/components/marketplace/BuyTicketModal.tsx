@@ -17,6 +17,7 @@ import {
 import { MarketplaceListingDto, HoldListingForPurchaseResponse } from '@ticketshield/types';
 import { resaleListingsApi } from '@ticketshield/api-client';
 import { formatVND } from '../../utils/formatters';
+import { useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '../../stores/authStore';
 import { useUIStore } from '../../stores/uiStore';
 import { usePaymentStatus } from '../../hooks/usePaymentStatus';
@@ -34,6 +35,7 @@ export const BuyTicketModal: React.FC<BuyTicketModalProps> = ({
   onClose,
   onSuccess,
 }) => {
+  const queryClient = useQueryClient();
   const { user } = useAuthStore();
   const { showToast } = useUIStore();
 
@@ -158,6 +160,19 @@ export const BuyTicketModal: React.FC<BuyTicketModalProps> = ({
     } else {
       showToast('Mã giảm giá không hợp lệ. Gợi ý: SAYHI hoặc TICKETSHIELD', 'warning');
     }
+  };
+
+  const handleCancelAndClose = async () => {
+    if (holdData && !isExpired && !paidHandledRef.current && listing) {
+      try {
+        await resaleListingsApi.releaseHold(listing.listingId);
+        queryClient.invalidateQueries({ queryKey: ['resale-listings'] });
+        showToast('Đã hủy giữ chỗ vé, vé được mở lại trên sàn giao dịch.', 'info');
+      } catch {
+        // Silently ignore if already released or expired
+      }
+    }
+    onClose();
   };
 
   const handleCopy = (text: string, type: 'amount' | 'reference' | 'account') => {
@@ -292,7 +307,7 @@ export const BuyTicketModal: React.FC<BuyTicketModalProps> = ({
               </span>
             )}
             <button
-              onClick={onClose}
+              onClick={handleCancelAndClose}
               className="p-1.5 text-zinc-400 hover:text-white rounded-xl hover:bg-zinc-800 transition-colors cursor-pointer"
             >
               <X className="w-5 h-5" />
@@ -304,6 +319,17 @@ export const BuyTicketModal: React.FC<BuyTicketModalProps> = ({
         {!holdData ? (
           /* STEP 1: Buyer Information & Initial Hold Request */
           <form onSubmit={handleHoldListing} className="p-5 sm:p-6 space-y-5">
+            {/* Warning if listing is already transacting */}
+            {((listing.listingStatus || '').toLowerCase() === 'transacting') && (
+              <div className="p-4 rounded-2xl bg-amber-950/60 border border-amber-500/50 flex items-center gap-3 text-amber-200 text-xs">
+                <Lock className="w-5 h-5 text-amber-400 shrink-0" />
+                <div>
+                  <div className="font-bold text-amber-300">Vé này đang có người khác thực hiện giao dịch (đang giữ chỗ)</div>
+                  <div className="text-amber-200/80 mt-0.5">Hiện tại vé đang được giữ chỗ trong một phiên thanh toán khác. Vui lòng quay lại sau nếu phiên giao dịch đó bị hủy hoặc chọn vé khác trên sàn.</div>
+                </div>
+              </div>
+            )}
+
             {/* Ticket Summary Card */}
             <div className="p-4 rounded-2xl bg-[#141826] border border-[#262c40] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
               <div className="space-y-1">
@@ -431,13 +457,18 @@ export const BuyTicketModal: React.FC<BuyTicketModalProps> = ({
 
               <button
                 type="submit"
-                disabled={isHolding}
-                className="h-12 px-7 bg-gradient-to-r from-[#FF5A36] to-[#FF7252] hover:brightness-110 active:scale-95 disabled:opacity-50 text-white font-bold font-display text-xs uppercase tracking-wider rounded-xl shadow-[0_4px_20px_rgba(255,90,54,0.4)] transition-all flex items-center gap-2 cursor-pointer"
+                disabled={isHolding || ((listing.listingStatus || '').toLowerCase() === 'transacting')}
+                className="h-12 px-7 bg-gradient-to-r from-[#FF5A36] to-[#FF7252] hover:brightness-110 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold font-display text-xs uppercase tracking-wider rounded-xl shadow-[0_4px_20px_rgba(255,90,54,0.4)] transition-all flex items-center gap-2 cursor-pointer"
               >
                 {isHolding ? (
                   <>
                     <RefreshCw className="w-4 h-4 animate-spin" />
                     <span>Đang giữ chỗ 10 phút...</span>
+                  </>
+                ) : ((listing.listingStatus || '').toLowerCase() === 'transacting') ? (
+                  <>
+                    <Lock className="w-4 h-4 text-amber-300" />
+                    <span>Vé đang có giao dịch giữ chỗ</span>
                   </>
                 ) : (
                   <>
@@ -618,7 +649,7 @@ export const BuyTicketModal: React.FC<BuyTicketModalProps> = ({
               <div className="flex items-center gap-2.5 w-full sm:w-auto shrink-0 flex-wrap justify-end">
                 <button
                   type="button"
-                  onClick={onClose}
+                  onClick={handleCancelAndClose}
                   className="px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/15 text-xs font-bold text-white transition-colors cursor-pointer shrink-0"
                 >
                   Hủy / Để Sau

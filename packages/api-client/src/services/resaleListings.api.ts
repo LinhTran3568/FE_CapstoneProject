@@ -92,6 +92,17 @@ export const resaleListingsApi = {
   },
 
   /**
+   * Release hold early by buyer (Cancel hold & revert listing status to VERIFIED immediately).
+   * POST /resale-listings/{id}/release-hold  (JWT required)
+   */
+  releaseHold: async (listingId: string): Promise<{ listingId: string; listingStatus: string; releasedAt: string }> => {
+    return httpClient<{ listingId: string; listingStatus: string; releasedAt: string }>(
+      `/resale-listings/${encodeURIComponent(listingId)}/release-hold`,
+      { method: 'POST' }
+    );
+  },
+
+  /**
    * Cancel a listing that is still `Verified` (no buyer yet).
    * POST /resale-listings/{id}/cancel  (JWT required, caller must be the seller)
    */
