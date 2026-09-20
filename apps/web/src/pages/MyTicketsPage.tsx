@@ -10,7 +10,9 @@ const entryPayload = (ticket: PurchasedTicketDto) =>
 
 const canShowEntryQr = (ticket: PurchasedTicketDto) => {
   const status = (ticket.status || '').trim().toUpperCase();
-  if (status === 'PENDING_PAYMENT' || status === 'REFUNDED') return false;
+  if (status === 'PENDING_PAYMENT' || status === 'REFUNDED' || status === 'REFUNDQUEUED') {
+    return false;
+  }
   return entryPayload(ticket).length > 0;
 };
 
@@ -102,8 +104,8 @@ export const MyTicketsPage: React.FC = () => {
         {!isPending && !isError && tickets.length > 0 && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {tickets.map((ticket) => {
-              const code = entryPayload(ticket);
               const showQr = canShowEntryQr(ticket);
+              const code = showQr ? entryPayload(ticket) : '';
               return (
                 <div
                   key={ticket.escrowId}

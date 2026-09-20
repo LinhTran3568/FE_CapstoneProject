@@ -5,8 +5,12 @@ import { useAuthStore } from '../stores/authStore';
 
 export const myPurchasedTicketsQueryKey = ['resale-listings', 'my-purchased-tickets'] as const;
 
-const isRefunded = (ticket: PurchasedTicketDto) =>
-  (ticket.status || '').trim().toUpperCase() === 'REFUNDED';
+const unpaidOrRefundedStatuses = new Set(['PENDING_PAYMENT', 'REFUNDED', 'REFUNDQUEUED']);
+
+const isPaidPurchasedPass = (ticket: PurchasedTicketDto) => {
+  const status = (ticket.status || '').trim().toUpperCase();
+  return !unpaidOrRefundedStatuses.has(status);
+};
 
 export const useMyTickets = () => {
   const { isAuthenticated } = useAuthStore();
@@ -15,7 +19,7 @@ export const useMyTickets = () => {
     queryKey: myPurchasedTicketsQueryKey,
     queryFn: async () => {
       const tickets = await resaleListingsApi.getMyPurchasedTickets();
-      return (tickets ?? []).filter((ticket) => !isRefunded(ticket));
+      return (tickets ?? []).filter(isPaidPurchasedPass);
     },
     enabled: isAuthenticated,
   });
