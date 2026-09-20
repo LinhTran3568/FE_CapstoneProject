@@ -76,6 +76,13 @@ export const SellTicketPage: React.FC = () => {
       ? verificationResult.priceCeiling
       : Math.trunc(faceValue * (1 + markupPercent / 100));
 
+  // Step 2 OTP Form state & Expiry timestamp
+  const [otp, setOtp] = useState(['', '', '', '', '', '']);
+  const [isVerifyingOtp, setIsVerifyingOtp] = useState(false);
+  const [isResendingOtp, setIsResendingOtp] = useState(false);
+  const [otpExpiresAt, setOtpExpiresAt] = useState<number | null>(null);
+  const [otpTimeLeft, setOtpTimeLeft] = useState<number>(300);
+
   // Auto restore unfinished draft session from localStorage on load
   useEffect(() => {
     try {
@@ -89,6 +96,13 @@ export const SellTicketPage: React.FC = () => {
           setFaceValue(d.faceValue || 2500000);
           setResalePrice(d.resalePrice || 2500000);
           setPriceInputText(d.priceInputText || (d.resalePrice ? d.resalePrice.toLocaleString('vi-VN') : '2.500.000'));
+          
+          if (d.otpExpiresAt) {
+            setOtpExpiresAt(d.otpExpiresAt);
+            const remaining = Math.max(0, Math.floor((d.otpExpiresAt - Date.now()) / 1000));
+            setOtpTimeLeft(remaining);
+          }
+
           setCurrentStep(d.currentStep);
           setResumeDraftAvailable(true);
         }
@@ -111,11 +125,12 @@ export const SellTicketPage: React.FC = () => {
           faceValue,
           resalePrice,
           priceInputText: priceInputText || resalePrice.toLocaleString('vi-VN'),
+          otpExpiresAt,
           savedAt: Date.now(),
         })
       );
     }
-  }, [verificationId, currentStep, ticketCode, faceValue, resalePrice, priceInputText, verificationResult]);
+  }, [verificationId, currentStep, ticketCode, faceValue, resalePrice, priceInputText, verificationResult, otpExpiresAt]);
 
   const [existingListings, setExistingListings] = useState<SellerListingDto[]>([]);
   const [isLoadingListings, setIsLoadingListings] = useState<boolean>(true);
@@ -202,34 +217,34 @@ export const SellTicketPage: React.FC = () => {
     };
   }, []);
 
-  // Step 2 OTP Form state
-  const [otp, setOtp] = useState(['', '', '', '', '', '']);
-  const [isVerifyingOtp, setIsVerifyingOtp] = useState(false);
-  const [isResendingOtp, setIsResendingOtp] = useState(false);
-  const [otpTimeLeft, setOtpTimeLeft] = useState<number>(300);
-
-  // Countdown timer for OTP (5 minutes) - Auto unlock on expiration
+  // Countdown timer for OTP (5 minutes) - Based on exact target timestamp otpExpiresAt
   useEffect(() => {
     if (currentStep !== 2) return;
 
-    setOtpTimeLeft(300);
-    const interval = setInterval(() => {
-      setOtpTimeLeft((prev) => {
-        if (prev <= 1) {
-          clearInterval(interval);
-          if (verificationIdRef.current) {
-            resaleApi.closeVerification(verificationIdRef.current).catch(() => {});
-            showToast('Verification session expired (5 minutes). Ticket lock released at Organizer.', 'warning');
-            resetToStep1();
-          }
-          return 0;
+    let targetExpiry = otpExpiresAt;
+    if (!targetExpiry) {
+      targetExpiry = Date.now() + 300 * 1000;
+      setOtpExpiresAt(targetExpiry);
+    }
+
+    const checkAndTick = () => {
+      const remaining = Math.max(0, Math.floor((targetExpiry! - Date.now()) / 1000));
+      setOtpTimeLeft(remaining);
+
+      if (remaining <= 0) {
+        if (verificationIdRef.current) {
+          resaleApi.closeVerification(verificationIdRef.current).catch(() => {});
+          showToast('Verification session expired (5 minutes). Ticket lock released at Organizer.', 'warning');
+          resetToStep1();
         }
-        return prev - 1;
-      });
-    }, 1000);
+      }
+    };
+
+    checkAndTick();
+    const interval = setInterval(checkAndTick, 1000);
 
     return () => clearInterval(interval);
-  }, [currentStep]);
+  }, [currentStep, otpExpiresAt]);
 
   const formatOtpTimer = (seconds: number) => {
     const m = Math.floor(seconds / 60).toString().padStart(2, '0');
@@ -362,6 +377,9 @@ export const SellTicketPage: React.FC = () => {
       const result = await resaleApi.requestVerificationOtp(normalizedCode);
       setVerificationId(result.verificationId);
       setVerificationResult(result);
+      const targetExpiresAt = Date.now() + 300 * 1000;
+      setOtpExpiresAt(targetExpiresAt);
+      setOtpTimeLeft(300);
       if (result.originalPrice && result.originalPrice > 0) {
         setFaceValue(result.originalPrice);
         setResalePrice(result.originalPrice);
@@ -392,6 +410,8 @@ export const SellTicketPage: React.FC = () => {
     try {
       setIsResendingOtp(true);
       await resaleApi.resendVerificationOtp(verificationId);
+      const targetExpiresAt = Date.now() + 300 * 1000;
+      setOtpExpiresAt(targetExpiresAt);
       setOtpTimeLeft(300);
       setOtp(['', '', '', '', '', '']);
       showToast('OTP code resent successfully!', 'success');
@@ -454,6 +474,8 @@ export const SellTicketPage: React.FC = () => {
     setVerificationResult(null);
     setTicketCode('');
     setOtp(['', '', '', '', '', '']);
+    setOtpExpiresAt(null);
+    setOtpTimeLeft(300);
     setCurrentStep(1);
     setResumeDraftAvailable(false);
   };

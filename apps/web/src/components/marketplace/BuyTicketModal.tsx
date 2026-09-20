@@ -86,24 +86,28 @@ export const BuyTicketModal: React.FC<BuyTicketModalProps> = ({
     }
   }, [isOpen, listing]);
 
-  // 10-Minute Countdown Timer Handler
+  // 10-Minute Countdown Timer Handler based on target unlockAt timestamp
   useEffect(() => {
     if (!holdData) return;
 
-    const timer = setInterval(() => {
-      setTimeLeft((prev) => {
-        if (prev <= 1) {
-          clearInterval(timer);
-          setIsExpired(true);
-          showToast('Thời gian giữ chỗ vé (10 phút) đã hết hạn. Vui lòng thao tác lại!', 'warning');
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
+    const targetTime = holdData.unlockAt
+      ? new Date(holdData.unlockAt).getTime()
+      : Date.now() + (holdData.holdDurationSeconds || 600) * 1000;
+
+    const checkTimer = () => {
+      const remaining = Math.max(0, Math.floor((targetTime - Date.now()) / 1000));
+      setTimeLeft(remaining);
+      if (remaining <= 0) {
+        setIsExpired(true);
+        showToast('Thời gian giữ chỗ vé (10 phút) đã hết hạn. Vui lòng thao tác lại!', 'warning');
+      }
+    };
+
+    checkTimer();
+    const timer = setInterval(checkTimer, 1000);
 
     return () => clearInterval(timer);
-  }, [holdData]);
+  }, [holdData, showToast]);
 
   const [isCheckingPayment, setIsCheckingPayment] = useState(false);
 
