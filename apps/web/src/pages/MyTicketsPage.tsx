@@ -2,12 +2,30 @@ import React, { useCallback, useEffect, useId, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { AlertCircle, Loader2, QrCode, RefreshCw, Ticket, X } from 'lucide-react';
 import { QRCodeCanvas } from 'qrcode.react';
-import type { MockTicketDto } from '@ticketshield/types';
+import type { PurchasedTicketDto } from '@ticketshield/types';
 import { useMyTickets } from '../hooks/useMyTickets';
+
+const entryPayload = (ticket: PurchasedTicketDto) =>
+  (ticket.qrCodeData || ticket.ticketPassCode || '').trim();
+
+const canShowEntryQr = (ticket: PurchasedTicketDto) => {
+  const status = (ticket.status || '').trim().toUpperCase();
+  if (status === 'PENDING_PAYMENT' || status === 'REFUNDED') return false;
+  return entryPayload(ticket).length > 0;
+};
+
+const statusLabel = (ticket: PurchasedTicketDto) => {
+  const status = (ticket.status || '').trim().toUpperCase();
+  if (status === 'PENDING_PAYMENT') return 'Pending payment';
+  if (status === 'DISPUTED') return 'Disputed';
+  if (status === 'IN_ESCROW') return 'In escrow';
+  if (status === 'VALID') return 'Valid';
+  return ticket.status;
+};
 
 export const MyTicketsPage: React.FC = () => {
   const { data: tickets = [], isPending, isError, error, refetch, isFetching } = useMyTickets();
-  const [qrTicket, setQrTicket] = useState<MockTicketDto | null>(null);
+  const [qrTicket, setQrTicket] = useState<PurchasedTicketDto | null>(null);
 
   return (
     <div className="relative min-h-screen bg-[#05070A] text-[#F5F5F2] pt-28 pb-20 px-6 md:px-12 font-sans antialiased overflow-hidden">
@@ -26,13 +44,15 @@ export const MyTicketsPage: React.FC = () => {
           <h1 className="text-4xl font-extrabold font-display text-white uppercase tracking-tight">
             My Purchased Passes
           </h1>
-          <p className="text-sm text-[#A3A8B3]">Your verified digital passes with dynamic entry QR authentication.</p>
+          <p className="text-sm text-[#A3A8B3]">
+            Tickets bought on TicketShield. Entry code and QR come from the organizer after payment.
+          </p>
         </div>
 
         {isPending && (
           <div className="py-24 flex flex-col items-center justify-center gap-3 text-center">
             <Loader2 className="w-8 h-8 text-[#FF5A36] animate-spin" aria-hidden="true" />
-            <p className="text-xs text-[#8B929C] font-mono">Đang tải vé đã mua...</p>
+            <p className="text-xs text-[#8B929C] font-mono">Loading purchased tickets...</p>
           </div>
         )}
 
@@ -41,9 +61,11 @@ export const MyTicketsPage: React.FC = () => {
             <div className="w-12 h-12 mx-auto rounded-full bg-rose-500/10 text-rose-400 flex items-center justify-center">
               <AlertCircle className="w-6 h-6" aria-hidden="true" />
             </div>
-            <h2 className="text-base font-bold text-white">Không thể tải vé đã mua</h2>
+            <h2 className="text-base font-bold text-white">Could not load purchased tickets</h2>
             <p className="text-xs text-[#8B929C] max-w-md mx-auto">
-              {error instanceof Error ? error.message : 'MockOrganizer chưa chạy (:5001). Không tải được vé đã mua.'}
+              {error instanceof Error
+                ? error.message
+                : 'Core GET /resale-listings/my-purchased-tickets failed. Sign in again or check the Gateway.'}
             </p>
             <button
               type="button"
@@ -52,7 +74,7 @@ export const MyTicketsPage: React.FC = () => {
               className="px-4 py-2 min-h-11 bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 rounded-xl text-xs font-semibold inline-flex items-center gap-2 cursor-pointer transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF5A36] disabled:opacity-60"
             >
               <RefreshCw className={`w-3.5 h-3.5 ${isFetching ? 'animate-spin' : ''}`} aria-hidden="true" />
-              <span>Tải lại dữ liệu</span>
+              <span>Reload</span>
             </button>
           </div>
         )}
@@ -63,9 +85,9 @@ export const MyTicketsPage: React.FC = () => {
               <Ticket className="w-7 h-7" aria-hidden="true" />
             </div>
             <div className="space-y-1">
-              <h2 className="text-lg font-bold text-white">Chưa có vé đã thanh toán</h2>
+              <h2 className="text-lg font-bold text-white">No paid tickets yet</h2>
               <p className="text-xs text-[#8B929C] max-w-md mx-auto">
-                Mua vé trên sàn để vé hiện ở đây.
+                Buy on the marketplace. After the bank confirms, the new organizer code appears here.
               </p>
             </div>
             <Link
@@ -79,36 +101,54 @@ export const MyTicketsPage: React.FC = () => {
 
         {!isPending && !isError && tickets.length > 0 && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {tickets.map((ticket) => (
-              <div
-                key={ticket.id}
-                className="bg-[#0A0D12] border border-white/10 rounded-3xl p-6 space-y-6 relative overflow-hidden shadow-2xl"
-              >
-                <div className="flex items-center justify-between border-b border-white/10 pb-4 gap-3">
-                  <span className="text-xs font-mono text-[#FF5A36] font-bold">DIGITAL PASS</span>
-                  <span className="text-xs font-mono text-[#A3A8B3] truncate">{ticket.ticketCode}</span>
-                </div>
+            {tickets.map((ticket) => {
+              const code = entryPayload(ticket);
+              const showQr = canShowEntryQr(ticket);
+              return (
+                <div
+                  key={ticket.escrowId}
+                  className="bg-[#0A0D12] border border-white/10 rounded-3xl p-6 space-y-6 relative overflow-hidden shadow-2xl"
+                >
+                  <div className="flex items-center justify-between border-b border-white/10 pb-4 gap-3">
+                    <span className="text-xs font-mono text-[#FF5A36] font-bold">DIGITAL PASS</span>
+                    <span className="text-xs font-mono text-[#A3A8B3]">{statusLabel(ticket)}</span>
+                  </div>
 
-                <div className="space-y-3">
-                  <h2 className="text-xl font-bold font-display text-white">{ticket.eventName}</h2>
-                  <div className="flex items-center gap-2 text-xs text-[#A3A8B3] font-mono">
-                    <Ticket className="w-4 h-4 text-amber-400 shrink-0" aria-hidden="true" />
-                    <span className="text-white font-semibold">{ticket.seatZone}</span>
+                  <div className="space-y-3">
+                    <h2 className="text-xl font-bold font-display text-white">{ticket.eventName}</h2>
+                    <div className="flex items-center gap-2 text-xs text-[#A3A8B3] font-mono">
+                      <Ticket className="w-4 h-4 text-amber-400 shrink-0" aria-hidden="true" />
+                      <span className="text-white font-semibold">{ticket.seatZone}</span>
+                    </div>
+                    {ticket.eventVenue ? (
+                      <p className="text-xs text-[#8B929C]">{ticket.eventVenue}</p>
+                    ) : null}
+                    {code ? (
+                      <p className="text-xs font-mono text-[#A3A8B3] break-all">{code}</p>
+                    ) : (
+                      <p className="text-xs text-[#8B929C]">No organizer ticket code yet.</p>
+                    )}
+                  </div>
+
+                  <div className="pt-4 border-t border-white/10">
+                    {showQr ? (
+                      <button
+                        type="button"
+                        onClick={() => setQrTicket(ticket)}
+                        className="px-5 py-2.5 min-h-11 bg-[#FF5A36] hover:bg-[#FF7252] text-white font-bold font-display text-xs uppercase tracking-wider rounded-xl shadow-lg shadow-[#FF5A36]/25 flex items-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+                      >
+                        <QrCode className="w-4 h-4" aria-hidden="true" />
+                        <span>Show Entry QR Code</span>
+                      </button>
+                    ) : (
+                      <p className="text-xs text-[#8B929C]">
+                        Entry QR appears after payment succeeds and the organizer issues a new code.
+                      </p>
+                    )}
                   </div>
                 </div>
-
-                <div className="pt-4 border-t border-white/10">
-                  <button
-                    type="button"
-                    onClick={() => setQrTicket(ticket)}
-                    className="px-5 py-2.5 min-h-11 bg-[#FF5A36] hover:bg-[#FF7252] text-white font-bold font-display text-xs uppercase tracking-wider rounded-xl shadow-lg shadow-[#FF5A36]/25 flex items-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
-                  >
-                    <QrCode className="w-4 h-4" aria-hidden="true" />
-                    <span>Show Entry QR Code</span>
-                  </button>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>
@@ -120,11 +160,12 @@ export const MyTicketsPage: React.FC = () => {
   );
 };
 
-const EntryQrModal: React.FC<{ ticket: MockTicketDto; onClose: () => void }> = ({
+const EntryQrModal: React.FC<{ ticket: PurchasedTicketDto; onClose: () => void }> = ({
   ticket,
   onClose,
 }) => {
   const titleId = useId();
+  const payload = entryPayload(ticket);
   const handleKeyDown = useCallback(
     (event: KeyboardEvent) => {
       if (event.key === 'Escape') onClose();
@@ -167,9 +208,9 @@ const EntryQrModal: React.FC<{ ticket: MockTicketDto; onClose: () => void }> = (
 
         <div className="flex flex-col items-center gap-3">
           <div className="p-3.5 bg-white rounded-2xl">
-            <QRCodeCanvas value={ticket.ticketCode} size={180} level="H" includeMargin={false} />
+            <QRCodeCanvas value={payload} size={180} level="H" includeMargin={false} />
           </div>
-          <p className="text-sm font-mono text-white break-all text-center">{ticket.ticketCode}</p>
+          <p className="text-sm font-mono text-white break-all text-center">{payload}</p>
           <p className="text-xs text-[#A3A8B3] text-center">{ticket.seatZone}</p>
         </div>
       </div>

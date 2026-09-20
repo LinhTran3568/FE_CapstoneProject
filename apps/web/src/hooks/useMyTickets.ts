@@ -1,18 +1,22 @@
 import { useQuery } from '@tanstack/react-query';
-import { mockTicketsApi } from '@ticketshield/api-client';
-import type { MockTicketDto } from '@ticketshield/types';
+import { resaleListingsApi } from '@ticketshield/api-client';
+import type { PurchasedTicketDto } from '@ticketshield/types';
 import { useAuthStore } from '../stores/authStore';
 
-export const myTicketsQueryKey = (email: string) =>
-  ['mock-tickets', 'my-tickets', email] as const;
+export const myPurchasedTicketsQueryKey = ['resale-listings', 'my-purchased-tickets'] as const;
+
+const isRefunded = (ticket: PurchasedTicketDto) =>
+  (ticket.status || '').trim().toUpperCase() === 'REFUNDED';
 
 export const useMyTickets = () => {
-  const { isAuthenticated, user } = useAuthStore();
-  const email = user?.email?.trim() ?? '';
+  const { isAuthenticated } = useAuthStore();
 
-  return useQuery<MockTicketDto[]>({
-    queryKey: myTicketsQueryKey(email),
-    queryFn: () => mockTicketsApi.getMyTickets(email),
-    enabled: isAuthenticated && email.length > 0,
+  return useQuery<PurchasedTicketDto[]>({
+    queryKey: myPurchasedTicketsQueryKey,
+    queryFn: async () => {
+      const tickets = await resaleListingsApi.getMyPurchasedTickets();
+      return (tickets ?? []).filter((ticket) => !isRefunded(ticket));
+    },
+    enabled: isAuthenticated,
   });
 };
