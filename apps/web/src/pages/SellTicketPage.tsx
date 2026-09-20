@@ -3,7 +3,8 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useUIStore } from '../stores/uiStore';
 import { useAuthStore } from '../stores/authStore';
 import { resaleApi, bankAccountsApi, VerificationResult, SellerListingDto } from '@ticketshield/api-client';
-import { UserBankAccountDto } from '@ticketshield/types';
+import { UserBankAccountDto, PurchasedTicketDto } from '@ticketshield/types';
+import { useMyTickets } from '../hooks/useMyTickets';
 import { QRCodeCanvas } from 'qrcode.react';
 import {
   ShieldCheck,
@@ -39,6 +40,10 @@ export const SellTicketPage: React.FC = () => {
   const navigate = useNavigate();
   const { showToast } = useUIStore();
   const { user } = useAuthStore();
+  const { data: purchasedTickets = [], isPending: isLoadingPurchased } = useMyTickets();
+
+  const purchasedPassCode = (ticket: PurchasedTicketDto) =>
+    (ticket.ticketPassCode || ticket.qrCodeData || '').trim();
 
   const DRAFT_STORAGE_KEY = 'ticketshield_sell_draft';
 
@@ -112,59 +117,6 @@ export const SellTicketPage: React.FC = () => {
     }
   }, [verificationId, currentStep, ticketCode, faceValue, resalePrice, priceInputText, verificationResult]);
 
-  // Original ticket list from Organizer partner (simulating user owning multiple tickets)
-  const userTickets = [
-    {
-      category: 'VIP',
-      code: 'ATSH-VIP-888',
-      price: '2.500.000 VND',
-      rawPrice: 2500000,
-      status: 'VALID',
-    },
-    {
-      category: 'VIP',
-      code: 'ATSH-VIP-887',
-      price: '2.500.000 VND',
-      rawPrice: 2500000,
-      status: 'VALID',
-    },
-    {
-      category: 'VIP',
-      code: 'ATSH-VIP-886',
-      price: '2.500.000 VND',
-      rawPrice: 2500000,
-      status: 'VALID',
-    },
-    {
-      category: 'GENERAL',
-      code: 'ATSH-GA-999',
-      price: '1.200.000 VND',
-      rawPrice: 1200000,
-      status: 'VALID',
-    },
-    {
-      category: 'CAT-1',
-      code: 'ATSH-CAT1-201',
-      price: '1.800.000 VND',
-      rawPrice: 1800000,
-      status: 'VALID',
-    },
-    {
-      category: 'CAT-2',
-      code: 'ATSH-CAT2-305',
-      price: '1.500.000 VND',
-      rawPrice: 1500000,
-      status: 'VALID',
-    },
-    {
-      category: 'STANDARD',
-      code: 'ATSH-USED-001',
-      price: '800.000 VND',
-      rawPrice: 800000,
-      status: 'USED', // Used at venue gate -> Not eligible for resale
-    },
-  ];
-
   const [existingListings, setExistingListings] = useState<SellerListingDto[]>([]);
   const [isLoadingListings, setIsLoadingListings] = useState<boolean>(true);
 
@@ -207,20 +159,16 @@ export const SellTicketPage: React.FC = () => {
     fetchExistingListings();
   }, [fetchExistingListings]);
 
-  // Filter only eligible tickets for resale:
-  // 1. Must be VALID from Organizer (excluding USED, EXPIRED, LOCKED)
-  // 2. Not currently active on Marketplace
-  const eligibleTickets = userTickets.filter((t) => {
-    if (t.status !== 'VALID') return false;
-
-    const isAlreadyListed = existingListings.some(
+  // Purchased on TicketShield and released from escrow; not already listed.
+  const eligibleTickets = purchasedTickets.filter((t) => {
+    if ((t.status || '').trim().toUpperCase() !== 'VALID') return false;
+    const code = purchasedPassCode(t).toUpperCase();
+    if (!code) return false;
+    return !existingListings.some(
       (listing) =>
-        listing.originalTicketCode === t.code &&
+        (listing.originalTicketCode || '').toUpperCase() === code &&
         String(listing.listingStatus).toLowerCase() !== 'cancelled'
     );
-    if (isAlreadyListed) return false;
-
-    return true;
   });
 
   const verificationIdRef = useRef(verificationId);
@@ -400,9 +348,11 @@ export const SellTicketPage: React.FC = () => {
       return;
     }
 
-    const knownIneligible = userTickets.find((t) => t.code === normalizedCode && t.status !== 'VALID');
-    if (knownIneligible) {
-      showToast('This ticket is not eligible for resale (already used or invalid).', 'error');
+    const ownedPurchase = purchasedTickets.find(
+      (t) => purchasedPassCode(t).toUpperCase() === normalizedCode
+    );
+    if (ownedPurchase && (ownedPurchase.status || '').trim().toUpperCase() !== 'VALID') {
+      showToast('This ticket cannot be resold yet. Wait until escrow is released.', 'error');
       return;
     }
 
@@ -1006,6 +956,48 @@ export const SellTicketPage: React.FC = () => {
             )}
 
             <form onSubmit={handleNextStep1} className="space-y-6 text-left bg-[#0A0D12]/90 backdrop-blur-md border border-white/10 p-6 sm:p-8 rounded-3xl shadow-2xl hover:border-white/20 transition-all duration-300">
+              <div className="space-y-2.5">
+                <label
+                  htmlFor="sell-ticket-from-purchases"
+                  className="text-xs sm:text-sm font-semibold uppercase tracking-wider text-[#A3A8B3] font-display block"
+                >
+                  Chọn từ vé của tôi
+                </label>
+                <div className="relative">
+                  <select
+                    id="sell-ticket-from-purchases"
+                    value={
+                      eligibleTickets.some((t) => purchasedPassCode(t).toUpperCase() === ticketCode)
+                        ? ticketCode
+                        : ''
+                    }
+                    onChange={(e) => setTicketCode(e.target.value.toUpperCase())}
+                    disabled={isLoadingPurchased || eligibleTickets.length === 0}
+                    className="w-full h-14 sm:h-16 appearance-none bg-[#05070A] border border-white/15 rounded-2xl pl-4 pr-12 text-sm font-mono font-semibold text-white focus:outline-none focus:border-[#FF5A36] focus:ring-4 focus:ring-[#FF5A36]/20 disabled:opacity-50 cursor-pointer"
+                  >
+                    <option value="">
+                      {isLoadingPurchased
+                        ? 'Loading purchased tickets...'
+                        : eligibleTickets.length === 0
+                          ? 'No eligible purchased tickets'
+                          : 'Select a purchased ticket'}
+                    </option>
+                    {eligibleTickets.map((t) => {
+                      const code = purchasedPassCode(t).toUpperCase();
+                      return (
+                        <option key={t.escrowId} value={code}>
+                          {t.eventName} — {code}
+                        </option>
+                      );
+                    })}
+                  </select>
+                  <ChevronDown className="w-5 h-5 text-[#A3A8B3] absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none" aria-hidden="true" />
+                </div>
+                <p className="text-[11px] text-[#8B929C] leading-relaxed">
+                  Only tickets you bought on TicketShield after escrow is released. Seed or organizer codes still go in the box below.
+                </p>
+              </div>
+
               <div className="space-y-2.5">
                 <label className="text-xs sm:text-sm font-semibold uppercase tracking-wider text-[#A3A8B3] font-display block">
                   Original Ticket Code
