@@ -54,6 +54,12 @@ export const LISTING_STATUS_META: Record<ListingStatus, BadgeMeta> = {
     icon: Ban,
     description: 'Cancelled by you; the original ticket was unlocked',
   },
+  Expired: {
+    label: 'Expired',
+    tone: 'neutral',
+    icon: Ban,
+    description: 'Closed because the event is within 2 hours or has already started',
+  },
 };
 
 const VERIFICATION_META: Record<VerificationStatus, BadgeMeta> = {

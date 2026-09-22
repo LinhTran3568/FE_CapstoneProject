@@ -32,13 +32,15 @@ export type TicketStatus =
  * - Transacting → a buyer has paid into escrow
  * - Sold        → ownership transferred, escrow released
  * - Cancelled   → seller cancelled, original ticket unlocked at the organizer
+ * - Expired     → closed by resale cut-off (2 hours before event start)
  */
 export type ListingStatus =
   | 'Draft'
   | 'Verified'
   | 'Transacting'
   | 'Sold'
-  | 'Cancelled';
+  | 'Cancelled'
+  | 'Expired';
 
 /** Mirrors the backend enum `TicketShield.Domain.Enums.VerificationStatus`. */
 export type VerificationStatus =

@@ -26,7 +26,7 @@ import { ConfirmModal } from '../components/ui/ConfirmModal';
 import { formatEventDateTime, formatVND } from '../utils/formatters';
 import { buildPrivateShareLink, copyToClipboard } from '../utils/shareLink';
 
-type StatusFilter = 'all' | 'Verified' | 'Transacting' | 'Sold' | 'Cancelled';
+type StatusFilter = 'all' | 'Verified' | 'Transacting' | 'Sold' | 'Cancelled' | 'Expired';
 
 const ITEMS_PER_PAGE = 5;
 
@@ -41,6 +41,7 @@ const FILTER_TABS: FilterTabOption[] = [
   { key: 'Transacting', label: 'IN ESCROW' },
   { key: 'Sold', label: 'SOLD' },
   { key: 'Cancelled', label: 'CANCELLED' },
+  { key: 'Expired', label: 'EXPIRED' },
 ];
 
 const TOAST_CANCEL_SUCCESS = 'Listing cancelled successfully. The original ticket has been unlocked by the Organizer.';
@@ -89,6 +90,7 @@ export const MyListingsPage: React.FC = () => {
       Transacting: 0,
       Sold: 0,
       Cancelled: 0,
+      Expired: 0,
     };
     listings.forEach((listing) => {
       if (listing.listingStatus in result) {
@@ -603,6 +605,13 @@ const ListingStatusPill: React.FC<{ status: ListingStatus }> = ({ status }) => {
           <span>CANCELLED</span>
         </span>
       );
+    case 'Expired':
+      return (
+        <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold uppercase tracking-wider bg-white/[0.05] border border-white/[0.08] text-[#8B929C]">
+          <span className="w-1.5 h-1.5 rounded-full bg-[#8B929C]" />
+          <span>EXPIRED</span>
+        </span>
+      );
     default:
       return (
         <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold uppercase tracking-wider bg-white/[0.05] border border-white/[0.08] text-[#8B929C]">
@@ -638,6 +647,11 @@ const EmptyState: React.FC<{ filter: StatusFilter; onReset: () => void }> = ({ f
     Cancelled: {
       title: 'No cancelled listings',
       desc: 'Listings that were cancelled and released back to their original owners will appear here.',
+      showCta: false,
+    },
+    Expired: {
+      title: 'No expired listings',
+      desc: 'Listings closed because the event is within 2 hours or has already started will appear here.',
       showCta: false,
     },
   };
