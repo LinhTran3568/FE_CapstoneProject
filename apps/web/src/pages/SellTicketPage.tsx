@@ -529,6 +529,14 @@ export const SellTicketPage: React.FC = () => {
       return;
     }
 
+    if (resalePrice < 5000) {
+      showToast(
+        'Resale price must be at least the minimum seller fee (5.000 VND). Raise the price and try again.',
+        'warning'
+      );
+      return;
+    }
+
     try {
       setIsPublishing(true);
       const result = await resaleApi.publishListing(verificationId, resalePrice, isPrivateListing);
@@ -559,6 +567,11 @@ export const SellTicketPage: React.FC = () => {
       } else if (msg.includes('PRICE_EXCEEDS_CEILING')) {
         showToast(
           `Resale price cannot exceed the event ceiling (${priceCeiling.toLocaleString('vi-VN')} VND). Lower the price and try again.`,
+          'warning'
+        );
+      } else if (msg.includes('PRICE_BELOW_MINIMUM_SELLER_FEE')) {
+        showToast(
+          'Resale price must be at least the minimum seller fee. Raise the price and try again.',
           'warning'
         );
       } else {
@@ -1649,8 +1662,10 @@ export const SellTicketPage: React.FC = () => {
                   {/* Seller Net Payout (Primary Number) */}
                   <div className="flex justify-between items-center pt-1 text-sm font-bold">
                     <span className="text-white">You Receive</span>
-                    <span className="font-mono text-emerald-400 text-base">
-                      {Math.max(resalePrice - Math.max(Math.round(resalePrice * 0.03), 5000), 0).toLocaleString('vi-VN')} VND
+                    <span className={`font-mono text-base ${resalePrice < 5000 ? 'text-rose-400' : 'text-emerald-400'}`}>
+                      {resalePrice < 5000
+                        ? 'Below minimum fee'
+                        : `${Math.max(resalePrice - Math.max(Math.round(resalePrice * 0.03), 5000), 0).toLocaleString('vi-VN')} VND`}
                     </span>
                   </div>
                 </div>
