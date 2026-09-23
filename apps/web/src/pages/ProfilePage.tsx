@@ -25,12 +25,12 @@ import {
   Check
 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
-import { bankAccountsApi, VIETNAM_BANKS } from '@ticketshield/api-client';
+import { authApi, bankAccountsApi, VIETNAM_BANKS } from '@ticketshield/api-client';
 import { UserBankAccountDto } from '@ticketshield/types';
 import { SellerBankAccountModal } from '../components/profile/SellerBankAccountModal';
 
 export const ProfilePage: React.FC = () => {
-  const { user, logout } = useAuthStore();
+  const { user, logout, setUser } = useAuthStore();
   const { showToast } = useUIStore();
   const navigate = useNavigate();
 
@@ -68,13 +68,26 @@ export const ProfilePage: React.FC = () => {
     }
   };
 
-  const handleSaveProfile = (e: React.FormEvent) => {
+  const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsSaving(true);
-    setTimeout(() => {
-      setIsSaving(false);
+    if (!fullName.trim()) {
+      showToast('Họ và tên không được để trống.', 'error');
+      return;
+    }
+
+    try {
+      setIsSaving(true);
+      const updatedUser = await authApi.updateProfile({
+        fullName: fullName.trim(),
+        phoneNumber: phoneNumber.trim() || undefined,
+      });
+      setUser(updatedUser);
       showToast('Cập nhật thông tin tài khoản thành công!', 'success');
-    }, 600);
+    } catch (err: any) {
+      showToast(err.message || 'Cập nhật thông tin thất bại.', 'error');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const handleLogout = () => {

@@ -14,10 +14,12 @@ export interface BackendAuthResult {
 }
 
 export interface BackendUserProfile {
-  userId: string;
+  userId?: string;
+  id?: string;
   email: string;
   fullName: string;
   phoneNumber?: string;
+  idCardNumber?: string;
   role: string;
   isActive?: boolean;
   createdAt?: string;
@@ -165,6 +167,14 @@ export const authApi = {
         newPassword: data.newPassword,
       }),
     });
+  },
+
+  updateProfile: async (data: { fullName: string; phoneNumber?: string; idCardNumber?: string }): Promise<User> => {
+    const result = await httpClient<BackendUserProfile>('/auth/profile', {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+    return mapBackendUserToFE(result);
   },
 
   logout: async (): Promise<void> => {
