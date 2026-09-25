@@ -455,8 +455,8 @@ export const FlowSection: React.FC = () => {
             step="02"
             role="buyer"
             subtitle="Secure Payment"
-            title="Scan Code & Escrow Vault"
-            desc="Pay seamlessly via VietQR. Funds are securely locked in an independent escrow vault and only released after verified delivery."
+            title="Scan VietQR &amp; 24H Funds Protection"
+            desc="Pay conveniently via VietQR. Funds are safeguarded under 24-hour protection and only released after your brand-new official ticket is successfully reissued."
             visual={<VisualBuyer2 />}
           />
         ),
@@ -504,8 +504,8 @@ export const FlowSection: React.FC = () => {
             step="01"
             role="seller"
             subtitle="Ownership Verification"
-            title="Verify Owner via OTP"
-            desc="Enter ticket code and receive a 6-digit verification code directly at the owner's email. Once verified, original ticket is sealed into escrow."
+            title="OTP Organizer Verification"
+            desc="Enter your ticket code and verify ownership with a 6-digit OTP sent to your registered email. Once verified, the ticket is safely locked for resale."
             visual={<VisualSeller1 />}
           />
         ),
@@ -532,8 +532,8 @@ export const FlowSection: React.FC = () => {
             step="03"
             role="seller"
             subtitle="Automated Exchange"
-            title="Buyer Matched & Auto Reissued"
-            desc="Upon buyer checkout, buyer funds lock into escrow and ticket ownership transfers automatically without manual intervention."
+            title="Auto-Match &amp; Instant Re-issuance"
+            desc="Upon buyer payment, funds are safeguarded under 24-hour protection while a brand-new official ticket is reissued to the buyer."
             visual={<VisualSeller3 />}
           />
         ),

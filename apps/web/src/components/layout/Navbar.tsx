@@ -254,7 +254,7 @@ export const Navbar: React.FC = () => {
                       className="w-full px-3 py-2 rounded-xl text-[11px] font-mono text-orange-400/80 hover:text-orange-400 hover:bg-orange-500/10 flex items-center gap-2.5 transition-colors"
                     >
                       <span className="w-2 h-2 rounded-full bg-orange-500 animate-pulse"></span>
-                      <span>MO Portal</span>
+                      <span>Organizer Portal</span>
                     </Link>
 
                     <button
@@ -364,7 +364,7 @@ export const Navbar: React.FC = () => {
                 className="px-4 py-2.5 rounded-xl text-xs font-mono font-bold uppercase text-orange-400 hover:bg-orange-500/10 flex items-center gap-2"
               >
                 <ShieldCheck className="w-4 h-4" />
-                <span>MO Portal</span>
+                <span>Organizer Portal</span>
               </Link>
               <div className="pt-2 border-t border-white/10">
                 <button

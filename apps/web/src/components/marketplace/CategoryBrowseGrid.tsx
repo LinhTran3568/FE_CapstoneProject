@@ -13,7 +13,7 @@ interface CategoryCard {
 const CATEGORY_CARDS: CategoryCard[] = [
   {
     id: 'CONCERT',
-    name: 'Ca Nhạc & Live Concert',
+    name: 'Concerts & Live Music',
     count: 24,
     icon: Music,
     imageUrl: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?auto=format&fit=crop&w=600&q=80',
@@ -21,7 +21,7 @@ const CATEGORY_CARDS: CategoryCard[] = [
   },
   {
     id: 'FESTIVAL',
-    name: 'Festival & EDM',
+    name: 'Festivals & EDM',
     count: 12,
     icon: Zap,
     imageUrl: 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?auto=format&fit=crop&w=600&q=80',
@@ -29,7 +29,7 @@ const CATEGORY_CARDS: CategoryCard[] = [
   },
   {
     id: 'SPORTS',
-    name: 'Thể Thao & Bóng Đá',
+    name: 'Sports & Tournaments',
     count: 16,
     icon: Trophy,
     imageUrl: 'https://images.unsplash.com/photo-1508098682722-e99c43a406b2?auto=format&fit=crop&w=600&q=80',
@@ -37,7 +37,7 @@ const CATEGORY_CARDS: CategoryCard[] = [
   },
   {
     id: 'THEATER',
-    name: 'Sân Khấu & Kịch Nghệ',
+    name: 'Theater & Performing Arts',
     count: 8,
     icon: Theater,
     imageUrl: 'https://images.unsplash.com/photo-1507676184212-d03ab07a01bf?auto=format&fit=crop&w=600&q=80',
@@ -45,7 +45,7 @@ const CATEGORY_CARDS: CategoryCard[] = [
   },
   {
     id: 'WORKSHOP',
-    name: 'Hội Thảo & Gặp Gỡ',
+    name: 'Workshops & Talks',
     count: 5,
     icon: GraduationCap,
     imageUrl: 'https://images.unsplash.com/photo-1475721027785-f74eccf877e2?auto=format&fit=crop&w=600&q=80',
@@ -61,8 +61,8 @@ export const CategoryBrowseGrid: React.FC<CategoryBrowseGridProps> = ({ onSelect
   return (
     <div className="my-12">
       <div className="mb-5">
-        <h3 className="text-lg sm:text-xl font-bold font-display text-white">Khám Phá Theo Thể Loại</h3>
-        <p className="text-xs text-[#8B929C]">Lựa chọn các loại hình sự kiện bạn đang tìm kiếm</p>
+        <h3 className="text-lg sm:text-xl font-bold font-display text-white">Explore by Category</h3>
+        <p className="text-xs text-[#8B929C]">Choose the event categories you are looking for</p>
       </div>
 
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
@@ -96,7 +96,7 @@ export const CategoryBrowseGrid: React.FC<CategoryBrowseGridProps> = ({ onSelect
                   <h4 className="text-sm font-bold text-white group-hover:text-[#FF5A36] transition-colors leading-snug">
                     {cat.name}
                   </h4>
-                  <p className="text-[11px] text-[#94A3B8] font-mono mt-0.5">{cat.count} vé đang bán</p>
+                  <p className="text-[11px] text-[#94A3B8] font-mono mt-0.5">{cat.count} tickets available</p>
                 </div>
               </div>
             </button>

@@ -54,9 +54,9 @@ export const UpcomingTabbedSection: React.FC<UpcomingTabbedSectionProps> = ({
             <Calendar className="w-5 h-5" />
           </div>
           <div>
-            <h3 className="text-xl sm:text-2xl font-bold font-display text-white">Sự Kiện Sắp Diễn Ra</h3>
+            <h3 className="text-xl sm:text-2xl font-bold font-display text-white">Upcoming Events</h3>
             <p className="text-xs text-[#8B929C]">
-              Danh sách sự kiện tổng và số lượng vé đang mở bán trên sàn
+              Event directory and verified tickets available on the marketplace
             </p>
           </div>
         </div>
@@ -73,7 +73,7 @@ export const UpcomingTabbedSection: React.FC<UpcomingTabbedSectionProps> = ({
             }`}
           >
             <Clock className="w-3.5 h-3.5" />
-            <span>Trong 7 ngày tới</span>
+            <span>Next 7 Days</span>
           </button>
 
           <button
@@ -86,7 +86,7 @@ export const UpcomingTabbedSection: React.FC<UpcomingTabbedSectionProps> = ({
             }`}
           >
             <Calendar className="w-3.5 h-3.5" />
-            <span>Trong tháng này</span>
+            <span>This Month</span>
           </button>
         </div>
       </div>
@@ -101,7 +101,7 @@ export const UpcomingTabbedSection: React.FC<UpcomingTabbedSectionProps> = ({
               whileHover={{ scale: 1.15 }}
               whileTap={{ scale: 0.92 }}
               onClick={() => handleScroll('left')}
-              aria-label="Cuộn sang trái"
+              aria-label="Scroll left"
               className="w-11 h-11 rounded-full bg-[#0E131F]/90 hover:bg-[#FF5A36] border border-white/20 hover:border-[#FF5A36] text-white flex items-center justify-center transition-colors shadow-2xl cursor-pointer backdrop-blur-md"
             >
               <ChevronLeft className="w-5 h-5" />
@@ -117,7 +117,7 @@ export const UpcomingTabbedSection: React.FC<UpcomingTabbedSectionProps> = ({
               whileHover={{ scale: 1.15 }}
               whileTap={{ scale: 0.92 }}
               onClick={() => handleScroll('right')}
-              aria-label="Cuộn sang phải"
+              aria-label="Scroll right"
               className="w-11 h-11 rounded-full bg-[#0E131F]/90 hover:bg-[#FF5A36] border border-white/20 hover:border-[#FF5A36] text-white flex items-center justify-center transition-colors shadow-2xl cursor-pointer backdrop-blur-md"
             >
               <ChevronRight className="w-5 h-5" />
@@ -142,8 +142,8 @@ export const UpcomingTabbedSection: React.FC<UpcomingTabbedSectionProps> = ({
           </div>
         ) : (
           <div className="py-12 bg-[#090C12]/70 border border-white/10 rounded-2xl text-center space-y-2">
-            <p className="text-sm font-semibold text-white">Chưa có sự kiện nào trong mốc thời gian này</p>
-            <p className="text-xs text-[#8B929C]">Vui lòng chuyển sang tab "Trong tháng này" để xem thêm</p>
+            <p className="text-sm font-semibold text-white">No events found in this time range</p>
+            <p className="text-xs text-[#8B929C]">Please switch to the "This Month" tab to explore more</p>
           </div>
         )}
       </div>

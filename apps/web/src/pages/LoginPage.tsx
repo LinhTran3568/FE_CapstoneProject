@@ -136,14 +136,14 @@ export const LoginPage: React.FC = () => {
             <span className="text-[#FF5A36]">Starts Here.</span>
           </h1>
           <p className="text-[#A3A8B3] text-base leading-relaxed">
-            Access thousands of verified live concerts, music festivals, and theater tickets with 100% escrow protection.
+            Thousands of verified concert and music event tickets with 100% Real Fans and 24-Hour Funds Protection.
           </p>
         </div>
 
         {/* Bottom Ticker Info */}
         <div className="relative z-10 pt-6 border-t border-white/10 flex items-center justify-between text-xs text-[#A3A8B3] font-display">
-          <span>Cryptographic Pass Authentication</span>
-          <span className="text-[#F5F5F2] font-semibold">100% Escrow Protection</span>
+          <span>Direct Re-issuance from Organizers</span>
+          <span className="text-[#F5F5F2] font-semibold">24-Hour Funds Protection</span>
         </div>
       </div>
 

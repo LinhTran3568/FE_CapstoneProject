@@ -41,7 +41,7 @@ const FEATURED_ARTISTS: ArtistItem[] = [
   {
     id: 'art-5',
     name: 'Thành Lộc & Ngày Xửa Ngày Xưa',
-    genre: 'Kịch nghệ thiếu nhi',
+    genre: 'Theater / Family',
     avatarUrl: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=400&q=80',
     activeEventsCount: 5,
   },
@@ -62,8 +62,8 @@ export const FeaturedArtistsOrganizers: React.FC<FeaturedArtistsOrganizersProps>
           <Mic2 className="w-4 h-4" />
         </div>
         <div>
-          <h3 className="text-lg sm:text-xl font-bold font-display text-white">Nghệ Sĩ Được Yêu Thích</h3>
-          <p className="text-xs text-[#8B929C]">Khám phá các đêm diễn và concert của nghệ sĩ hàng đầu</p>
+          <h3 className="text-lg sm:text-xl font-bold font-display text-white">Popular Artists</h3>
+          <p className="text-xs text-[#8B929C]">Discover upcoming shows and concerts by top performers</p>
         </div>
       </div>
 
@@ -87,7 +87,7 @@ export const FeaturedArtistsOrganizers: React.FC<FeaturedArtistsOrganizersProps>
             </h4>
             <p className="text-[11px] text-[#8B929C] mt-0.5">{artist.genre}</p>
             <span className="mt-2 px-2 py-0.5 text-[10px] font-mono font-semibold rounded-full bg-white/5 text-[#CBD5E1] group-hover:bg-[#FF5A36]/10 group-hover:text-[#FF5A36]">
-              {artist.activeEventsCount} sự kiện
+              {artist.activeEventsCount} events
             </span>
           </button>
         ))}

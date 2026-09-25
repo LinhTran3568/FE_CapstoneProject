@@ -343,7 +343,7 @@ export const SellTicketPage: React.FC = () => {
 
     // Enforce Seller Bank Account requirement before starting resale verification
     if (bankAccounts.length === 0) {
-      showToast('⚠️ Bạn chưa cập nhật tài khoản ngân hàng thụ hưởng! Vui lòng liên kết tài khoản ngân hàng trước khi đăng bán vé.', 'warning');
+      showToast('⚠️ Please add a payout bank account before listing your ticket!', 'warning');
       setIsAddBankModalOpen(true);
       return;
     }
@@ -367,7 +367,7 @@ export const SellTicketPage: React.FC = () => {
       (t) => purchasedPassCode(t).toUpperCase() === normalizedCode
     );
     if (ownedPurchase && (ownedPurchase.status || '').trim().toUpperCase() !== 'VALID') {
-      showToast('This ticket cannot be resold yet. Wait until escrow is released.', 'error');
+      showToast('This ticket cannot be resold yet. Please wait until the 24-hour protection period has concluded.', 'error');
       return;
     }
 
@@ -506,7 +506,7 @@ export const SellTicketPage: React.FC = () => {
   const handlePublishListing = async () => {
     // Enforce Seller Bank Account requirement before publishing
     if (bankAccounts.length === 0) {
-      showToast('⚠️ Bạn chưa có tài khoản ngân hàng thụ hưởng để nhận tiền! Vui lòng thêm tài khoản trước khi hoàn tất đăng bán.', 'warning');
+      showToast('⚠️ Please link a payout bank account before completing your listing!', 'warning');
       setIsAddBankModalOpen(true);
       return;
     }
@@ -962,7 +962,7 @@ export const SellTicketPage: React.FC = () => {
                 Enter Original Ticket Code
               </h1>
               <p className="text-xs sm:text-sm text-[#A3A8B3] max-w-md mx-auto leading-relaxed">
-                Enter the ticket identifier code issued by the Organizer partner to initiate verification and Escrow lock.
+                Enter the original ticket code issued by the event organizer to begin ticket verification.
               </p>
             </div>
 
@@ -974,17 +974,17 @@ export const SellTicketPage: React.FC = () => {
                 </div>
                 <div className="space-y-1.5 flex-1">
                   <h4 className="text-xs font-bold text-amber-300 uppercase tracking-wide">
-                    Yêu cầu Tài khoản Ngân hàng Thụ hưởng
+                    Payout Bank Account Required
                   </h4>
                   <p className="text-xs text-amber-200/80 leading-relaxed">
-                    Để nhận tiền bán vé tự động &amp; an toàn qua hệ thống <b>Escrow 24/7</b>, bạn cần cập nhật tài khoản ngân hàng chính chủ trước khi đăng bán.
+                    To receive automatic and secure ticket payouts under our <b>24-Hour Funds Protection</b> guarantee, please link your bank account before listing.
                   </p>
                   <button
                     type="button"
                     onClick={() => setIsAddBankModalOpen(true)}
                     className="mt-1 px-3 py-1.5 bg-amber-500 text-black hover:bg-amber-400 rounded-lg text-xs font-bold transition-all flex items-center gap-1 cursor-pointer"
                   >
-                    + Thêm tài khoản ngân hàng ngay
+                    + Add Bank Account Now
                   </button>
                 </div>
               </div>
@@ -996,7 +996,7 @@ export const SellTicketPage: React.FC = () => {
                   htmlFor="sell-ticket-from-purchases"
                   className="text-xs sm:text-sm font-semibold uppercase tracking-wider text-[#A3A8B3] font-display block"
                 >
-                  Chọn từ vé của tôi
+                  Select from My Tickets
                 </label>
                 <div className="relative">
                   <select
@@ -1029,7 +1029,7 @@ export const SellTicketPage: React.FC = () => {
                   <ChevronDown className="w-5 h-5 text-[#A3A8B3] absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none" aria-hidden="true" />
                 </div>
                 <p className="text-[11px] text-[#8B929C] leading-relaxed">
-                  Only tickets you bought on TicketShield after escrow is released. Seed or organizer codes still go in the box below.
+                  Only tickets you purchased and have passed the 24-hour protection window are shown. Other ticket codes can be entered manually below.
                 </p>
               </div>
 
@@ -1519,25 +1519,25 @@ export const SellTicketPage: React.FC = () => {
                 <div className="flex items-center justify-between pb-2.5 border-b border-white/10">
                   <div className="flex items-center gap-2 text-xs font-semibold text-zinc-200">
                     <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />
-                    <span>Chi tiết biểu phí sàn</span>
+                    <span>Fee Breakdown</span>
                   </div>
                   <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-500/10 text-emerald-300 border border-emerald-500/30">
-                    Phí người bán 3%
+                    3% Seller Fee
                   </span>
                 </div>
 
                 <div className="space-y-2 text-xs">
                   <div className="flex justify-between items-center text-zinc-400">
-                    <span>Giá niêm yết:</span>
+                    <span>Listed Price:</span>
                     <span className="font-semibold text-zinc-200 tabular-nums">
-                      {resalePrice.toLocaleString('vi-VN')} đ
+                      {resalePrice.toLocaleString('vi-VN')} VND
                     </span>
                   </div>
 
                   <div className="flex justify-between items-center text-zinc-400">
-                    <span>Phí dịch vụ người bán (3%):</span>
+                    <span>Seller Service Fee (3%):</span>
                     <span className="font-medium text-amber-400 tabular-nums">
-                      - {Math.max(Math.round(resalePrice * 0.03), 5000).toLocaleString('vi-VN')} đ
+                      - {Math.max(Math.round(resalePrice * 0.03), 5000).toLocaleString('vi-VN')} VND
                     </span>
                   </div>
                 </div>
@@ -1545,17 +1545,17 @@ export const SellTicketPage: React.FC = () => {
                 <div className="flex justify-between items-baseline pt-2.5 border-t border-white/10">
                   <div>
                     <span className="text-xs font-bold text-emerald-400 block">
-                      Thực nhận của người bán
+                      Estimated Seller Payout
                     </span>
                     <span className="text-[10px] text-zinc-500">
-                      (Tự động chuyển về STK sau khi giao dịch hoàn tất)
+                      (Automatically deposited to your bank account after settlement)
                     </span>
                   </div>
                   <div className="text-right">
                     <span className="text-base sm:text-lg font-extrabold text-emerald-400 font-display tabular-nums tracking-tight">
                       {Math.max(resalePrice - Math.max(Math.round(resalePrice * 0.03), 5000), 0).toLocaleString('vi-VN')}
                     </span>
-                    <span className="ml-1 text-xs font-bold text-emerald-400">đ</span>
+                    <span className="ml-1 text-xs font-bold text-emerald-400">VND</span>
                   </div>
                 </div>
               </div>
@@ -1674,7 +1674,7 @@ export const SellTicketPage: React.FC = () => {
               {/* Payout Destination Account */}
               <div className="space-y-2 pt-1">
                 <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider block">
-                  PAYOUT BANK ACCOUNT (TÀI KHOẢN NHẬN TIỀN)
+                  PAYOUT BANK ACCOUNT
                 </span>
                 <div className="p-3.5 bg-[#05070A] border border-gray-800 rounded-xl">
                   {bankAccounts.length > 0 ? (
@@ -1691,7 +1691,7 @@ export const SellTicketPage: React.FC = () => {
                             </span>
                           </div>
                           <div className="text-[11px] text-[#A3A8B3]">
-                            Ngân hàng {bankAccounts[0].bankCode} • **** {bankAccounts[0].bankAccountNumber.slice(-4)}
+                            Bank {bankAccounts[0].bankCode} • **** {bankAccounts[0].bankAccountNumber.slice(-4)}
                           </div>
                         </div>
                       </div>
@@ -1705,14 +1705,14 @@ export const SellTicketPage: React.FC = () => {
                     <div className="flex items-center justify-between">
                       <span className="text-xs text-amber-400 flex items-center gap-1.5">
                         <AlertCircle className="w-4 h-4 text-amber-400" />
-                        <span>Chưa cập nhật tài khoản ngân hàng nhận tiền</span>
+                        <span>No payout bank account linked</span>
                       </span>
                       <button
                         type="button"
                         onClick={() => setIsAddBankModalOpen(true)}
                         className="px-2.5 py-1 bg-amber-500/20 text-amber-300 hover:bg-amber-500/30 border border-amber-500/40 rounded-lg text-xs font-bold transition-all cursor-pointer"
                       >
-                        + Thêm tài khoản
+                        + Add Account
                       </button>
                     </div>
                   )}
@@ -1805,11 +1805,11 @@ export const SellTicketPage: React.FC = () => {
                 month: '2-digit',
                 year: 'numeric',
               })
-            : '19:00, 26 Tháng 10, 2026';
+            : '19:00, Oct 26, 2026';
           const resolvedVenue = matchedListing?.eventVenue || 'Van Hanh Mall Stadium, TP.HCM';
           const resolvedTier = matchedListing?.tierName || (
             ticketCode.includes('VIP')
-              ? 'VIP Zone A - Hàng 1 Ghế 12'
+              ? 'VIP Zone A - Row 1 Seat 12'
               : ticketCode.includes('GA')
               ? 'GA Standing Zone 2'
               : 'Standard Zone C'
@@ -1833,8 +1833,8 @@ export const SellTicketPage: React.FC = () => {
                 </h2>
                 <p className="text-xs sm:text-sm text-[#A3A8B3] max-w-lg mx-auto">
                   {isPrivateListing
-                    ? 'Your ticket is secured with 100% Escrow Protection. Share your private link or QR code directly with your buyer.'
-                    : 'Your ticket is now live on TicketShield Marketplace with 100% Escrow Protection.'}
+                    ? 'Your ticket is protected with our 100% 24-Hour Funds Protection guarantee. Share your secret private link or QR code with your buyer.'
+                    : 'Your ticket is now listed publicly on TicketShield Marketplace under 100% 24-Hour Protection.'}
                 </p>
               </div>
 
@@ -1935,7 +1935,7 @@ export const SellTicketPage: React.FC = () => {
                             ORIGINAL PRICE
                           </span>
                           <span className="text-xs sm:text-sm text-[#A3A8B3] line-through font-mono">
-                            {faceValue.toLocaleString('vi-VN')} đ
+                            {faceValue.toLocaleString('vi-VN')} VND
                           </span>
                         </div>
                         <div className="text-right">
@@ -1943,7 +1943,7 @@ export const SellTicketPage: React.FC = () => {
                             RESALE PRICE
                           </span>
                           <span className="text-lg sm:text-xl font-extrabold font-display text-emerald-400">
-                            {resalePrice.toLocaleString('vi-VN')} đ
+                            {resalePrice.toLocaleString('vi-VN')} VND
                           </span>
                         </div>
                       </div>
@@ -2090,10 +2090,10 @@ export const SellTicketPage: React.FC = () => {
                     </div>
                   </div>
 
-                  {/* Escrow Guarantee Note */}
+                  {/* 24-Hour Guarantee Note */}
                   <div className="p-3 bg-white/[0.03] border border-white/[0.08] rounded-xl flex items-center gap-2.5 text-[11px] text-[#A3A8B3] text-left">
                     <Lock className="w-4 h-4 text-emerald-400 shrink-0" />
-                    <span>100% Escrow Protection: Buyer's payment is held until ticket entry is confirmed.</span>
+                    <span>100% 24-Hour Funds Protection: Payments are securely held until ticket verification is completed.</span>
                   </div>
                 </div>
               </div>
@@ -2114,7 +2114,7 @@ export const SellTicketPage: React.FC = () => {
           onClose={() => setIsAddBankModalOpen(false)}
           onSuccess={() => {
             fetchBankAccounts();
-            showToast('Đã lưu tài khoản ngân hàng thụ hưởng! Bạn có thể tiếp tục đăng bán vé.', 'success');
+            showToast('Payout bank account saved! You can now proceed with listing your ticket.', 'success');
           }}
         />
       </div>

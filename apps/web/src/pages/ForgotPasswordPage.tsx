@@ -26,7 +26,7 @@ export const ForgotPasswordPage: React.FC = () => {
   const onSubmit = async (data: ForgotPasswordFormData) => {
     try {
       const msg = await authApi.forgotPassword(data.email);
-      showToast(msg || '6-digit OTP code sent to your email address!', 'success');
+      showToast(msg || 'A 6-digit OTP verification code has been sent to your email!', 'success');
       navigate(`/reset-password?email=${encodeURIComponent(data.email)}`);
     } catch (err: any) {
       showToast('Request failed: ' + err.message, 'error');
@@ -72,12 +72,12 @@ export const ForgotPasswordPage: React.FC = () => {
             <span className="text-[#FF5A36]">Password.</span>
           </h1>
           <p className="text-[#A3A8B3] text-base leading-relaxed">
-            Enter your registered email address and we'll send you a 6-digit verification code to reset your account password.
+            Enter your registered email address and we'll send you a 6-digit verification code to reset your account password safely.
           </p>
         </div>
 
         <div className="relative z-10 pt-6 border-t border-white/10 text-xs text-[#A3A8B3] font-display">
-          <span>Secure Encrypted OTP Verification</span>
+          <span>100% Secure Account Verification</span>
         </div>
       </div>
 
@@ -99,7 +99,7 @@ export const ForgotPasswordPage: React.FC = () => {
               Forgot Password
             </h2>
             <p className="text-sm text-[#A3A8B3]">
-              Enter your email to receive a 6-digit OTP reset code
+              Enter your email to receive a 6-digit OTP verification code
             </p>
           </div>
 

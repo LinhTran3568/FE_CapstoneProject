@@ -15,22 +15,22 @@ interface QuickFilterBarProps {
 }
 
 const CITY_OPTIONS = [
-  { id: 'ALL', label: 'Tất cả địa điểm' },
-  { id: 'HN', label: 'Hà Nội' },
-  { id: 'HCM', label: 'TP. Hồ Chí Minh' },
-  { id: 'DN', label: 'Đà Nẵng' },
+  { id: 'ALL', label: 'All Locations' },
+  { id: 'HN', label: 'Hanoi' },
+  { id: 'HCM', label: 'Ho Chi Minh City' },
+  { id: 'DN', label: 'Da Nang' },
 ];
 
 const DATE_OPTIONS = [
-  { id: 'all', label: 'Mọi thời điểm' },
-  { id: 'upcoming', label: '7 ngày tới' },
-  { id: 'this-month', label: 'Trong tháng này' },
+  { id: 'all', label: 'Any Time' },
+  { id: 'upcoming', label: 'Next 7 Days' },
+  { id: 'this-month', label: 'This Month' },
 ];
 
 const SORT_OPTIONS = [
-  { id: 'newest', label: 'Mới niêm yết' },
-  { id: 'price-asc', label: 'Giá thấp → cao' },
-  { id: 'date-asc', label: 'Ngày diễn ra gần nhất' },
+  { id: 'newest', label: 'Newly Listed' },
+  { id: 'price-asc', label: 'Price: Low to High' },
+  { id: 'date-asc', label: 'Event Date: Soonest' },
 ];
 
 export const QuickFilterBar: React.FC<QuickFilterBarProps> = ({
@@ -59,24 +59,24 @@ export const QuickFilterBar: React.FC<QuickFilterBarProps> = ({
     filters.sortBy !== 'newest';
 
   const currentCityLabel =
-    CITY_OPTIONS.find((c) => c.id === filters.city)?.label || 'Địa điểm';
+    CITY_OPTIONS.find((c) => c.id === filters.city)?.label || 'Location';
 
   const currentDateLabel =
-    DATE_OPTIONS.find((d) => d.id === filters.dateRange)?.label || 'Thời gian';
+    DATE_OPTIONS.find((d) => d.id === filters.dateRange)?.label || 'Date';
 
   const currentSortLabel =
-    SORT_OPTIONS.find((s) => s.id === filters.sortBy)?.label || 'Sắp xếp';
+    SORT_OPTIONS.find((s) => s.id === filters.sortBy)?.label || 'Sort';
 
   return (
     <div ref={containerRef} className="relative z-40 w-full space-y-3 mb-8">
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-3 items-center">
-        {/* Search input (6 columns on desktop) */}
+        {/* Search input (5 columns on desktop) */}
         <div className="lg:col-span-5 relative">
           <div className="h-11 bg-[#090C12]/90 border border-white/10 hover:border-white/20 focus-within:border-[#FF5A36] focus-within:ring-1 focus-within:ring-[#FF5A36]/40 rounded-xl px-3 flex items-center gap-2 transition-all">
             <Search className="w-4 h-4 text-[#8B929C] shrink-0" />
             <input
               type="text"
-              placeholder="Tìm theo sự kiện, nghệ sĩ, địa điểm..."
+              placeholder="Search by event, artist, venue..."
               value={filters.keyword}
               onChange={(e) => onChange({ ...filters, keyword: e.target.value })}
               className="w-full bg-transparent border-0 text-white placeholder-[#8B929C] text-xs sm:text-sm font-medium focus:outline-none"
@@ -85,8 +85,8 @@ export const QuickFilterBar: React.FC<QuickFilterBarProps> = ({
               <button
                 type="button"
                 onClick={() => onChange({ ...filters, keyword: '' })}
-                className="p-1 text-[#8B929C] hover:text-white rounded-md transition-colors"
-                title="Xóa tìm kiếm"
+                className="p-1 text-[#8B929C] hover:text-white rounded-md transition-colors cursor-pointer"
+                title="Clear search"
               >
                 <X className="w-3.5 h-3.5" />
               </button>
@@ -94,7 +94,7 @@ export const QuickFilterBar: React.FC<QuickFilterBarProps> = ({
           </div>
         </div>
 
-        {/* City Filter (2.5 columns) */}
+        {/* City Filter (2 columns) */}
         <div className="lg:col-span-2 relative">
           <button
             type="button"
@@ -136,7 +136,7 @@ export const QuickFilterBar: React.FC<QuickFilterBarProps> = ({
           )}
         </div>
 
-        {/* Date Filter (2.5 columns) */}
+        {/* Date Filter (2 columns) */}
         <div className="lg:col-span-2 relative">
           <button
             type="button"
@@ -220,17 +220,17 @@ export const QuickFilterBar: React.FC<QuickFilterBarProps> = ({
           )}
         </div>
 
-        {/* Reset Filter Button (1 column / inline) */}
+        {/* Reset Filter Button (1 column) */}
         {hasActiveFilters && (
           <div className="lg:col-span-1 flex items-center justify-end">
             <button
               type="button"
               onClick={onReset}
               className="h-11 px-3 text-xs font-semibold text-[#FF5A36] hover:text-white bg-[#FF5A36]/10 hover:bg-[#FF5A36] border border-[#FF5A36]/30 rounded-xl transition-all flex items-center gap-1 cursor-pointer"
-              title="Đặt lại bộ lọc"
+              title="Reset filters"
             >
               <X className="w-3.5 h-3.5" />
-              <span>Xóa</span>
+              <span>Clear</span>
             </button>
           </div>
         )}

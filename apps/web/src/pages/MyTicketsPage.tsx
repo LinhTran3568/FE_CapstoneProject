@@ -24,7 +24,7 @@ const statusLabel = (ticket: PurchasedTicketDto) => {
   const status = (ticket.status || '').trim().toUpperCase();
   if (status === 'PENDING_PAYMENT') return 'Pending payment';
   if (status === 'DISPUTED') return 'Disputed';
-  if (status === 'IN_ESCROW') return 'In escrow';
+  if (status === 'IN_ESCROW') return 'Under 24h protection';
   if (status === 'VALID') return 'Valid';
   return ticket.status;
 };
@@ -133,7 +133,7 @@ export const MyTicketsPage: React.FC = () => {
                       isBase64Image(code) ? (
                         <img
                           src={code}
-                          alt="QR Code vé"
+                          alt="Ticket QR Code"
                           className="w-36 h-36 rounded-xl object-contain"
                         />
                       ) : (
@@ -223,7 +223,7 @@ const EntryQrModal: React.FC<{ ticket: PurchasedTicketDto; onClose: () => void }
         <div className="flex flex-col items-center gap-3">
           <div className="p-3.5 bg-white rounded-2xl">
             {isBase64Image(payload) ? (
-              <img src={payload} alt="QR Code vé" className="w-[180px] h-[180px] object-contain" />
+              <img src={payload} alt="Ticket QR Code" className="w-[180px] h-[180px] object-contain" />
             ) : (
               <QRCodeCanvas value={payload} size={180} level="H" includeMargin={false} />
             )}

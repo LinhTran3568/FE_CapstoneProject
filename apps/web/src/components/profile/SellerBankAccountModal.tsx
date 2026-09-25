@@ -55,7 +55,7 @@ export const SellerBankAccountModal: React.FC<SellerBankAccountModalProps> = ({
           setIsVerifiedName(true);
           setLookupFailed(false);
         } else {
-          // Lookup thất bại - giữ nguyên tên hiện tại, thông báo nhập thủ công
+          // Lookup failed - preserve current name, prompt for manual input
           setIsVerifiedName(false);
           setLookupFailed(true);
         }
@@ -90,18 +90,18 @@ export const SellerBankAccountModal: React.FC<SellerBankAccountModalProps> = ({
     const cleanHolderName = accountHolderName.trim().toUpperCase();
 
     if (!cleanAccountNumber || cleanAccountNumber.length < 6) {
-      showToast('Số tài khoản ngân hàng không hợp lệ (tối thiểu 6 chữ số)!', 'warning');
+      showToast('Invalid bank account number (minimum 6 digits)!', 'warning');
       return;
     }
 
     if (!cleanHolderName) {
-      showToast('Vui lòng nhập tên chủ tài khoản thụ hưởng!', 'warning');
+      showToast('Please enter the account holder name!', 'warning');
       return;
     }
 
     try {
       setIsSubmitting(true);
-      showToast('Đang kết nối & lưu thông tin tài khoản ngân hàng...', 'info');
+      showToast('Connecting & saving bank account...', 'info');
 
       const result = await bankAccountsApi.addBankAccount({
         bankCode,
@@ -110,11 +110,11 @@ export const SellerBankAccountModal: React.FC<SellerBankAccountModalProps> = ({
         isDefault,
       });
 
-      showToast('Đã thêm tài khoản ngân hàng thụ hưởng thành công!', 'success');
+      showToast('Payout bank account added successfully!', 'success');
       onSuccess(result);
       onClose();
     } catch (err: any) {
-      const msg = err?.message || 'Không thể chèn tài khoản ngân hàng. Vui lòng thử lại!';
+      const msg = err?.message || 'Could not add bank account. Please try again!';
       showToast(msg, 'error');
     } finally {
       setIsSubmitting(false);
@@ -145,10 +145,10 @@ export const SellerBankAccountModal: React.FC<SellerBankAccountModalProps> = ({
             </div>
             <div>
               <h2 className="text-base font-bold text-white font-display">
-                Thêm Tài Khoản Ngân Hàng Thụ Hưởng
+                Add Payout Bank Account
               </h2>
               <p className="text-[11px] text-zinc-400">
-                Nhận tiền bán vé tự động 24h từ Escrow
+                Receive automatic ticket sale payouts with 24-hour funds protection
               </p>
             </div>
           </div>
@@ -168,9 +168,9 @@ export const SellerBankAccountModal: React.FC<SellerBankAccountModalProps> = ({
           <div className="p-3.5 rounded-2xl bg-cyan-950/40 border border-cyan-500/30 flex items-start gap-3 text-xs">
             <ShieldCheck className="w-5 h-5 text-cyan-400 shrink-0 mt-0.5" />
             <div className="space-y-0.5">
-              <div className="font-bold text-cyan-300">Tự động giải ngân chính chủ</div>
+              <div className="font-bold text-cyan-300">Direct Organizer &amp; Payout Guarantee</div>
               <div className="text-zinc-300 text-[11px]">
-                Tiền thanh toán từ người mua sẽ được TicketShield chuyển trực tiếp vào STK ngân hàng này sau 24h sự kiện hoặc quét mã an toàn.
+                Ticket sales payout will be transferred directly to this bank account upon successful buyer verification.
               </div>
             </div>
           </div>
@@ -179,7 +179,7 @@ export const SellerBankAccountModal: React.FC<SellerBankAccountModalProps> = ({
           <div className="space-y-1.5">
             <label className="block text-xs font-bold uppercase tracking-wider text-zinc-400 flex items-center gap-1.5">
               <Building2 className="w-3.5 h-3.5 text-emerald-400" />
-              <span>Ngân hàng thụ hưởng *</span>
+              <span>Bank Name *</span>
             </label>
             <select
               value={bankCode}
@@ -198,7 +198,7 @@ export const SellerBankAccountModal: React.FC<SellerBankAccountModalProps> = ({
           <div className="space-y-1.5">
             <label className="block text-xs font-bold uppercase tracking-wider text-zinc-400 flex items-center gap-1.5">
               <CreditCard className="w-3.5 h-3.5 text-[#FF5A36]" />
-              <span>Số tài khoản ngân hàng (STK) *</span>
+              <span>Bank Account Number *</span>
             </label>
             <div className="relative">
               <input
@@ -209,7 +209,7 @@ export const SellerBankAccountModal: React.FC<SellerBankAccountModalProps> = ({
                   if (e.key === 'Enter') e.preventDefault();
                 }}
                 onChange={(e) => setAccountNumber(e.target.value.replace(/\D/g, ''))}
-                placeholder="VD: 0938434102"
+                placeholder="e.g. 0938434102"
                 className="w-full h-11 px-3.5 pr-10 rounded-xl bg-[#141826] border border-[#262c40] text-sm font-mono font-bold text-white placeholder-zinc-500 focus:outline-none focus:border-[#FF5A36]"
               />
               {isSearchingName && (
@@ -225,23 +225,23 @@ export const SellerBankAccountModal: React.FC<SellerBankAccountModalProps> = ({
             <div className="flex items-center justify-between">
               <label className="block text-xs font-bold uppercase tracking-wider text-zinc-400 flex items-center gap-1.5">
                 <User className="w-3.5 h-3.5 text-amber-400" />
-                <span>Tên chủ tài khoản (Viết hoa không dấu) *</span>
+                <span>Account Holder Name (ALL CAPS) *</span>
               </label>
               {isSearchingName && (
                 <span className="text-[10px] text-cyan-400 font-mono flex items-center gap-1 animate-pulse">
                   <RefreshCw className="w-3 h-3 animate-spin" />
-                  Đang tra cứu từ Ngân hàng...
+                  Looking up from bank...
                 </span>
               )}
               {!isSearchingName && isVerifiedName && (
                 <span className="text-[10px] bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 px-2 py-0.5 rounded-full font-bold flex items-center gap-1">
                   <Check className="w-3 h-3 stroke-[3]" />
-                  Đã xác thực từ Ngân hàng
+                  Verified by Bank
                 </span>
               )}
               {!isSearchingName && lookupFailed && (
                 <span className="text-[10px] text-amber-400 font-mono flex items-center gap-1">
-                  ✏️ Vui lòng nhập thủ công
+                  ✏️ Please enter manually
                 </span>
               )}
             </div>
@@ -257,7 +257,7 @@ export const SellerBankAccountModal: React.FC<SellerBankAccountModalProps> = ({
                   setAccountHolderName(e.target.value.toUpperCase());
                   setIsVerifiedName(false);
                 }}
-                placeholder="Nhập đúng tên chủ TK theo thẻ ngân hàng (VD: NGUYEN VAN A)"
+                placeholder="Enter exact name on bank card (e.g. NGUYEN VAN A)"
                 className={`w-full h-11 px-3.5 rounded-xl bg-[#141826] border ${
                   isVerifiedName ? 'border-emerald-500/50 text-emerald-300' : 'border-[#262c40] text-white'
                 } text-xs font-bold uppercase tracking-wide placeholder-zinc-500 focus:outline-none focus:border-[#FF5A36]`}
@@ -275,21 +275,21 @@ export const SellerBankAccountModal: React.FC<SellerBankAccountModalProps> = ({
               className="w-4 h-4 rounded bg-[#141826] border-[#262c40] text-[#FF5A36] focus:ring-0 cursor-pointer"
             />
             <label htmlFor="is-default-account" className="text-xs text-zinc-300 font-medium cursor-pointer">
-              Đặt làm tài khoản ngân hàng mặc định nhận tiền
+              Set as default payout bank account
             </label>
           </div>
 
           {/* Account Summary Preview */}
           <div className="p-3.5 rounded-xl bg-black/50 border border-white/5 space-y-1 text-xs font-mono">
-            <div className="text-[10px] text-zinc-400 uppercase tracking-wider">Xác nhận thông tin liên kết:</div>
+            <div className="text-[10px] text-zinc-400 uppercase tracking-wider">Confirm linked details:</div>
             <div className="text-white font-bold">
               {selectedBank.shortName} • {accountNumber || '0938*******'}
             </div>
             <div className="text-amber-400 font-bold uppercase flex items-center gap-2">
-              <span>{accountHolderName || 'TÊN CHỦ TÀI KHOẢN'}</span>
+              <span>{accountHolderName || 'ACCOUNT HOLDER NAME'}</span>
               {isVerifiedName && (
                 <span className="text-[9px] bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 px-1.5 py-0.2 rounded font-sans uppercase">
-                  ✓ Chính chủ Ngân hàng
+                  ✓ Bank Verified
                 </span>
               )}
             </div>
@@ -302,7 +302,7 @@ export const SellerBankAccountModal: React.FC<SellerBankAccountModalProps> = ({
               onClick={onClose}
               className="px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/15 text-xs font-bold text-white transition-colors cursor-pointer"
             >
-              Hủy
+              Cancel
             </button>
 
             <button
@@ -313,12 +313,12 @@ export const SellerBankAccountModal: React.FC<SellerBankAccountModalProps> = ({
               {isSubmitting ? (
                 <>
                   <RefreshCw className="w-4 h-4 animate-spin" />
-                  <span>Đang lưu...</span>
+                  <span>Saving...</span>
                 </>
               ) : (
                 <>
                   <Check className="w-4 h-4 stroke-[3]" />
-                  <span>Lưu Tài Khoản Ngân Hàng</span>
+                  <span>Save Bank Account</span>
                 </>
               )}
             </button>

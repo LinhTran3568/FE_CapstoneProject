@@ -69,7 +69,7 @@ export const OrganizerPortalPage: React.FC = () => {
   const handleCopy = (text: string, label: string) => {
     navigator.clipboard.writeText(text);
     setCopiedCode(text);
-    showToast(`Đã sao chép ${label}: ${text}`, 'success');
+    showToast(`Copied ${label}: ${text}`, 'success');
     setTimeout(() => setCopiedCode(null), 2000);
   };
 
@@ -84,13 +84,13 @@ export const OrganizerPortalPage: React.FC = () => {
 
       if (res.ok) {
         const newTicket: MockTicketDto = await res.json();
-        showToast(`Đã tạo vé mới: ${newTicket.ticketCode}`, 'success');
+        showToast(`Created new ticket: ${newTicket.ticketCode}`, 'success');
         fetchData();
       } else {
-        showToast('Không thể tạo vé mới!', 'error');
+        showToast('Unable to create new ticket!', 'error');
       }
     } catch {
-      showToast('Lỗi kết nối đến máy chủ MockOrganizer!', 'error');
+      showToast('Connection error to MockOrganizer server!', 'error');
     } finally {
       setIsGenerating(false);
     }
@@ -103,26 +103,26 @@ export const OrganizerPortalPage: React.FC = () => {
       });
 
       if (res.ok) {
-        showToast(`Đã khôi phục vé ${ticketCode} về trạng thái VALID!`, 'success');
+        showToast(`Reset ticket ${ticketCode} to VALID status!`, 'success');
         fetchData();
       } else {
-        showToast('Không thể reset vé!', 'error');
+        showToast('Unable to reset ticket!', 'error');
       }
     } catch {
-      showToast('Lỗi kết nối đến máy chủ MockOrganizer!', 'error');
+      showToast('Connection error to MockOrganizer server!', 'error');
     }
   };
 
   const handleResetAll = async () => {
-    if (!window.confirm('Bạn có chắc muốn reset toàn bộ CSDL về 3 vé gốc ban đầu?')) return;
+    if (!window.confirm('Are you sure you want to reset all data back to the default seed tickets?')) return;
     try {
       const res = await fetch(`${ORGANIZER_API}/reset-all`, { method: 'POST' });
       if (res.ok) {
-        showToast('Đã reset CSDL về dữ liệu mẫu ban đầu!', 'success');
+        showToast('Database reset to initial sample tickets!', 'success');
         fetchData();
       }
     } catch {
-      showToast('Lỗi kết nối!', 'error');
+      showToast('Connection error!', 'error');
     }
   };
 
@@ -146,7 +146,7 @@ export const OrganizerPortalPage: React.FC = () => {
                   {isConnected ? 'ONLINE (5001)' : 'OFFLINE'}
                 </span>
               </div>
-              <p className="text-xs text-slate-400">Cổng điều khiển ban tổ chức nội bộ • Hỗ trợ sinh vé test, tra cứu OTP và quản lý khóa vé</p>
+              <p className="text-xs text-slate-400">Internal Organizer Console • Test ticket generation, live OTP monitoring, and ticket status management</p>
             </div>
           </div>
 
@@ -154,24 +154,24 @@ export const OrganizerPortalPage: React.FC = () => {
             <button
               onClick={handleGenerateTicket}
               disabled={isGenerating || !isConnected}
-              className="px-4 py-2 bg-[#FF5A36] hover:bg-[#FF7252] disabled:opacity-50 text-white text-xs font-bold font-display rounded-xl shadow-lg shadow-[#FF5A36]/20 hover:shadow-[#FF5A36]/40 transition-all flex items-center gap-1.5 active:scale-95"
+              className="px-4 py-2 bg-[#FF5A36] hover:bg-[#FF7252] disabled:opacity-50 text-white text-xs font-bold font-display rounded-xl shadow-lg shadow-[#FF5A36]/20 hover:shadow-[#FF5A36]/40 transition-all flex items-center gap-1.5 active:scale-95 cursor-pointer"
             >
               <Plus className="w-3.5 h-3.5" />
-              <span>Sinh Vé Random</span>
+              <span>Generate Random Ticket</span>
             </button>
 
             <button
               onClick={fetchData}
               disabled={isLoading}
-              className="px-3 py-2 bg-white/10 hover:bg-white/15 text-white text-xs font-medium rounded-xl transition-all flex items-center gap-1.5"
+              className="px-3 py-2 bg-white/10 hover:bg-white/15 text-white text-xs font-medium rounded-xl transition-all flex items-center gap-1.5 cursor-pointer"
             >
               <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin' : ''}`} />
-              <span>Làm Mới</span>
+              <span>Refresh</span>
             </button>
 
             <button
               onClick={handleResetAll}
-              className="px-3 py-2 bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 border border-rose-500/20 text-xs font-medium rounded-xl transition-all flex items-center gap-1.5"
+              className="px-3 py-2 bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 border border-rose-500/20 text-xs font-medium rounded-xl transition-all flex items-center gap-1.5 cursor-pointer"
             >
               <RotateCcw className="w-3.5 h-3.5" />
               <span>Reset Seed</span>
@@ -186,16 +186,16 @@ export const OrganizerPortalPage: React.FC = () => {
               <KeyRound className="w-5 h-5 text-[#FF5A36]" />
               <div>
                 <h2 className="text-sm font-bold text-white uppercase tracking-wider font-display">Live OTP Monitor (Real-time)</h2>
-                <p className="text-xs text-slate-400">Mã OTP tự động xuất hiện tại đây khi có yêu cầu xác thực từ TicketShield</p>
+                <p className="text-xs text-slate-400">OTP codes appear here automatically when requested during TicketShield verification</p>
               </div>
             </div>
-            <span className="text-[11px] text-slate-400 font-mono">Tự cập nhật: 3s</span>
+            <span className="text-[11px] text-slate-400 font-mono">Auto-refresh: 3s</span>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
             {otps.length === 0 ? (
               <div className="col-span-full py-8 text-center text-xs text-slate-500 border border-white/5 rounded-xl">
-                Chưa có mã OTP nào được yêu cầu gần đây.
+                No OTP requests received recently.
               </div>
             ) : (
               otps.slice(0, 6).map((o) => (
@@ -208,8 +208,8 @@ export const OrganizerPortalPage: React.FC = () => {
                   }`}
                 >
                   <div className="flex items-center justify-between text-[10px] font-mono text-slate-400">
-                    <span>Vé: <strong className="text-white">{o.ticketCode}</strong></span>
-                    <span>{new Date(o.createdAt).toLocaleTimeString('vi-VN')}</span>
+                    <span>Ticket: <strong className="text-white">{o.ticketCode}</strong></span>
+                    <span>{new Date(o.createdAt).toLocaleTimeString()}</span>
                   </div>
 
                   <div className="flex items-center justify-between pt-1">
@@ -217,8 +217,8 @@ export const OrganizerPortalPage: React.FC = () => {
                       {o.otpCode}
                     </span>
                     <button
-                      onClick={() => handleCopy(o.otpCode, 'mã OTP')}
-                      className="px-3 py-1.5 bg-white/10 hover:bg-[#FF5A36] text-white text-[11px] font-bold rounded-lg transition-all flex items-center gap-1 shadow-sm"
+                      onClick={() => handleCopy(o.otpCode, 'OTP code')}
+                      className="px-3 py-1.5 bg-white/10 hover:bg-[#FF5A36] text-white text-[11px] font-bold rounded-lg transition-all flex items-center gap-1 shadow-sm cursor-pointer"
                     >
                       {copiedCode === o.otpCode ? (
                         <>
@@ -239,7 +239,7 @@ export const OrganizerPortalPage: React.FC = () => {
                     <span className={`px-1.5 py-0.5 rounded font-mono font-bold ${
                       o.isUsed ? 'bg-white/5 text-slate-400' : 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
                     }`}>
-                      {o.isUsed ? 'ĐÃ DÙNG' : 'SẴN SÀNG'}
+                      {o.isUsed ? 'USED' : 'READY'}
                     </span>
                   </div>
                 </div>
@@ -253,10 +253,10 @@ export const OrganizerPortalPage: React.FC = () => {
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
             <div className="flex items-center gap-2">
               <Ticket className="w-5 h-5 text-cyan-400" />
-              <h2 className="text-sm font-bold text-white uppercase tracking-wider font-display">Kho Vé Ban Tổ Chức (Mock Tickets)</h2>
+              <h2 className="text-sm font-bold text-white uppercase tracking-wider font-display">Organizer Ticket Inventory (Mock Tickets)</h2>
             </div>
             <div className="text-xs text-slate-400">
-              Tổng số vé: <span className="font-bold text-white font-mono">{tickets.length}</span>
+              Total Tickets: <span className="font-bold text-white font-mono">{tickets.length}</span>
             </div>
           </div>
 
@@ -264,20 +264,20 @@ export const OrganizerPortalPage: React.FC = () => {
             <table className="w-full text-left text-xs">
               <thead>
                 <tr className="border-b border-white/10 text-slate-400 font-mono uppercase text-[10px]">
-                  <th className="pb-3 pl-2">Mã Vé</th>
-                  <th className="pb-3">Sự Kiện</th>
-                  <th className="pb-3">Khu Vực Ghế</th>
-                  <th className="pb-3">Giá Gốc</th>
-                  <th className="pb-3">Email Chủ Vé</th>
-                  <th className="pb-3">Trạng Thái</th>
-                  <th className="pb-3 text-right pr-2">Thao Tác</th>
+                  <th className="pb-3 pl-2">Ticket Code</th>
+                  <th className="pb-3">Event Name</th>
+                  <th className="pb-3">Seat Zone</th>
+                  <th className="pb-3">Face Value</th>
+                  <th className="pb-3">Owner Email</th>
+                  <th className="pb-3">Status</th>
+                  <th className="pb-3 text-right pr-2">Action</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/5">
                 {tickets.length === 0 ? (
                   <tr>
                     <td colSpan={7} className="py-8 text-center text-slate-500">
-                      Không có vé nào trong kho dữ liệu.
+                      No tickets found in inventory.
                     </td>
                   </tr>
                 ) : (
@@ -292,9 +292,9 @@ export const OrganizerPortalPage: React.FC = () => {
                           <div className="flex items-center gap-1.5 font-mono font-bold text-white">
                             <span>{t.ticketCode}</span>
                             <button
-                              onClick={() => handleCopy(t.ticketCode, 'mã vé')}
-                              title="Sao chép mã vé"
-                              className="text-slate-400 hover:text-[#FF5A36] transition-colors p-1"
+                              onClick={() => handleCopy(t.ticketCode, 'ticket code')}
+                              title="Copy ticket code"
+                              className="text-slate-400 hover:text-[#FF5A36] transition-colors p-1 cursor-pointer"
                             >
                               <Copy className="w-3 h-3" />
                             </button>
@@ -303,7 +303,7 @@ export const OrganizerPortalPage: React.FC = () => {
                         <td className="py-3 text-slate-300">{t.eventName}</td>
                         <td className="py-3 text-slate-400 font-mono text-[11px]">{t.seatZone}</td>
                         <td className="py-3 font-mono font-bold text-[#FF5A36]">
-                          {Number(t.originalPrice).toLocaleString('vi-VN')} đ
+                          {Number(t.originalPrice).toLocaleString('vi-VN')} VND
                         </td>
                         <td className="py-3 text-slate-400 truncate max-w-[160px]">{t.ownerEmail}</td>
                         <td className="py-3">
@@ -315,7 +315,7 @@ export const OrganizerPortalPage: React.FC = () => {
                           {t.status !== 'VALID' ? (
                             <button
                               onClick={() => handleResetTicket(t.ticketCode)}
-                              className="px-2.5 py-1 bg-white/5 hover:bg-emerald-500/20 text-slate-300 hover:text-emerald-300 border border-white/10 hover:border-emerald-500/30 rounded-lg text-[10px] font-mono transition-all"
+                              className="px-2.5 py-1 bg-white/5 hover:bg-emerald-500/20 text-slate-300 hover:text-emerald-300 border border-white/10 hover:border-emerald-500/30 rounded-lg text-[10px] font-mono transition-all cursor-pointer"
                             >
                               Reset VALID
                             </button>
@@ -336,3 +336,5 @@ export const OrganizerPortalPage: React.FC = () => {
     </div>
   );
 };
+
+export default OrganizerPortalPage;

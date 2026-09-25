@@ -44,7 +44,7 @@ export const TicketExperience: React.FC = () => {
             <span className="text-[#FF5A36]">Your Ticket.</span>
           </h2>
           <p className="text-[#A3A8B3] text-base font-normal max-w-lg mx-auto">
-            Cryptographically signed digital pass. Instant mobile transfer with zero risk of duplication.
+            Directly reissued by official organizers. Instant digital transfer with zero risk of duplication or fake tickets.
           </p>
         </motion.div>
 
@@ -77,7 +77,7 @@ export const TicketExperience: React.FC = () => {
                 </span>
               </div>
               <span className="px-4 py-1.5 bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-bold uppercase tracking-widest rounded-full font-mono">
-                ✓ AUTHENTICATED PASS
+                ✓ OFFICIAL ORGANIZER PASS
               </span>
             </div>
 
@@ -135,7 +135,7 @@ export const TicketExperience: React.FC = () => {
             <div className="pt-6 border-t border-dashed border-white/20 flex items-center justify-between">
               <div>
                 <span className="text-[10px] tracking-widest text-[#A3A8B3] uppercase block font-display">
-                  PASS CRYPTO ID
+                  OFFICIAL TICKET ID
                 </span>
                 <span className="text-sm font-mono text-[#F5F5F2] tracking-wider">
                   TS-2026-99482-VN

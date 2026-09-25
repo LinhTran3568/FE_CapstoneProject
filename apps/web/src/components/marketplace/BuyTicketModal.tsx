@@ -99,7 +99,7 @@ export const BuyTicketModal: React.FC<BuyTicketModalProps> = ({
       setTimeLeft(remaining);
       if (remaining <= 0) {
         setIsExpired(true);
-        showToast('Thời gian giữ chỗ vé (10 phút) đã hết hạn. Vui lòng thao tác lại!', 'warning');
+        showToast('The 10-minute hold window has expired. Please try again!', 'warning');
       }
     };
 
@@ -118,7 +118,7 @@ export const BuyTicketModal: React.FC<BuyTicketModalProps> = ({
       paidHandledRef.current = true;
       setPollStopped(true);
       setIsExpired(true);
-      showToast('Thanh toán không được chấp nhận. Tiền sẽ được hoàn theo hàng đợi hoàn tiền.', 'error');
+      showToast('Payment was not accepted. Funds will be refunded to your account.', 'error');
       return;
     }
 
@@ -126,7 +126,7 @@ export const BuyTicketModal: React.FC<BuyTicketModalProps> = ({
       if (!listing) return;
       paidHandledRef.current = true;
       setPollStopped(true);
-      showToast('Thanh toán thành công! Giao dịch đã được khóa Escrow an toàn.', 'success');
+      showToast('Payment confirmed! Funds are secured under 24-hour protection.', 'success');
       onSuccess({
         orderId: paymentStatus.paymentReference || holdData?.paymentReference || `TS-${listing.listingId.substring(0, 8)}`,
         listing,
@@ -144,7 +144,7 @@ export const BuyTicketModal: React.FC<BuyTicketModalProps> = ({
     if (!isError || !pollEnabled || pollErrorToastedRef.current) return;
     pollErrorToastedRef.current = true;
     setPollStopped(true);
-    const msg = error instanceof Error ? error.message : 'Không lấy được trạng thái thanh toán.';
+    const msg = error instanceof Error ? error.message : 'Unable to check payment status.';
     showToast(msg, 'error');
   }, [isError, error, pollEnabled, showToast]);
 
@@ -160,9 +160,9 @@ export const BuyTicketModal: React.FC<BuyTicketModalProps> = ({
     if (coupon.trim().toUpperCase() === 'SAYHI' || coupon.trim().toUpperCase() === 'TICKETSHIELD') {
       setDiscountAmount(100000);
       setCouponApplied(true);
-      showToast('Đã áp dụng mã giảm giá 100.000 VNĐ!', 'success');
+      showToast('Applied 100,000 VND discount code!', 'success');
     } else {
-      showToast('Mã giảm giá không hợp lệ. Gợi ý: SAYHI hoặc TICKETSHIELD', 'warning');
+      showToast('Invalid promo code. Hint: SAYHI or TICKETSHIELD', 'warning');
     }
   };
 
@@ -171,7 +171,7 @@ export const BuyTicketModal: React.FC<BuyTicketModalProps> = ({
       try {
         await resaleListingsApi.releaseHold(listing.listingId);
         queryClient.invalidateQueries({ queryKey: ['resale-listings'] });
-        showToast('Đã hủy giữ chỗ vé, vé được mở lại trên sàn giao dịch.', 'info');
+        showToast('Reservation cancelled. Ticket is now available on the marketplace.', 'info');
       } catch {
         // Silently ignore if already released or expired
       }
@@ -182,7 +182,7 @@ export const BuyTicketModal: React.FC<BuyTicketModalProps> = ({
   const handleCopy = (text: string, type: 'amount' | 'reference' | 'account') => {
     navigator.clipboard.writeText(text);
     setCopiedType(type);
-    showToast(`Đã sao chép!`, 'success');
+    showToast(`Copied to clipboard!`, 'success');
     setTimeout(() => setCopiedType(null), 2000);
   };
 
@@ -190,17 +190,17 @@ export const BuyTicketModal: React.FC<BuyTicketModalProps> = ({
   const handleHoldListing = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) {
-      showToast('Bạn phải đăng nhập để thực hiện mua vé!', 'error');
+      showToast('Please sign in to purchase tickets!', 'error');
       return;
     }
     if (!fullName || !phone || !email) {
-      showToast('Vui lòng nhập đầy đủ thông tin người nhận vé!', 'warning');
+      showToast('Please provide all required recipient contact details!', 'warning');
       return;
     }
 
     try {
       setIsHolding(true);
-      showToast('Đang khởi tạo lệnh giữ chỗ 10 phút & tạo VietQR dynamic...', 'info');
+      showToast('Initializing 10-minute hold and generating dynamic VietQR...', 'info');
 
       const response = await resaleListingsApi.holdListing(listing.listingId, {
         recipientName: fullName,
@@ -212,9 +212,9 @@ export const BuyTicketModal: React.FC<BuyTicketModalProps> = ({
       setHoldData(response);
       setTimeLeft(response.holdDurationSeconds || 600);
       setIsExpired(false);
-      showToast('Giữ chỗ vé thành công trong 10 phút! Vui lòng quét mã VietQR để thanh toán.', 'success');
+      showToast('Ticket reserved for 10 minutes! Please scan the VietQR code to pay.', 'success');
     } catch (err: any) {
-      const msg = err?.message || 'Không thể giữ chỗ vé vào lúc này.';
+      const msg = err?.message || 'Unable to reserve this ticket at the moment.';
       showToast(msg, 'error');
     } finally {
       setIsHolding(false);
@@ -224,7 +224,7 @@ export const BuyTicketModal: React.FC<BuyTicketModalProps> = ({
   // Step 2: Confirm Payment Completion
   const handleConfirmPaid = async () => {
     if (isExpired) {
-      showToast('Đơn giữ chỗ đã hết hạn. Vui lòng đóng và thử lại.', 'error');
+      showToast('Reservation expired. Please close this window and try again.', 'error');
       return;
     }
 
@@ -234,7 +234,7 @@ export const BuyTicketModal: React.FC<BuyTicketModalProps> = ({
       setIsCheckingPayment(true);
       const res = await resaleListingsApi.getPaymentStatus(listing.listingId);
       if (res.escrowStatus === 'Locked' || res.listingStatus === 'Sold') {
-        showToast('Thanh toán thành công! Giao dịch đã được xác nhận vào quỹ Escrow.', 'success');
+        showToast('Payment confirmed! Funds are secured under 24-hour protection.', 'success');
         onSuccess({
           orderId: holdData.paymentReference || `TS-${listing.listingId.substring(0, 8)}`,
           listing,
@@ -246,10 +246,10 @@ export const BuyTicketModal: React.FC<BuyTicketModalProps> = ({
           buyerEmail: email,
         });
       } else {
-        showToast('Hệ thống đang kiểm tra giao dịch chuyển khoản VietQR. Vui lòng đợi trong giây lát...', 'info');
+        showToast('Checking VietQR transfer status. Please wait a moment...', 'info');
       }
     } catch (err: any) {
-      showToast(err?.message || 'Đang kiểm tra giao dịch...', 'info');
+      showToast(err?.message || 'Checking transaction status...', 'info');
     } finally {
       setIsCheckingPayment(false);
     }
@@ -286,10 +286,10 @@ export const BuyTicketModal: React.FC<BuyTicketModalProps> = ({
             </span>
             <div>
               <h2 className="text-sm sm:text-base font-bold text-white font-display uppercase tracking-wide">
-                {holdData ? 'Khung Thanh Toán VietQR Tự Động' : 'Giữ Chỗ & Đặt Mua Vé An Toàn'}
+                {holdData ? 'Automated VietQR Payment' : 'Secure Ticket Reservation & Purchase'}
               </h2>
               <p className="text-[11px] text-zinc-400">
-                {listing.eventName} • Đổi mã QR mới từ Ban tổ chức
+                {listing.eventName} • Direct Re-issuance from Event Organizer
               </p>
             </div>
           </div>
@@ -306,12 +306,12 @@ export const BuyTicketModal: React.FC<BuyTicketModalProps> = ({
                 }`}
               >
                 <Clock className="w-3.5 h-3.5" />
-                <span>{isExpired ? 'ĐÃ HẾT HẠN' : formatTimer(timeLeft)}</span>
+                <span>{isExpired ? 'EXPIRED' : formatTimer(timeLeft)}</span>
               </div>
             )}
             {holdData && !isExpired && (
               <span className="hidden sm:inline text-[11px] text-cyan-300/90 font-medium">
-                Đang chờ xác nhận thanh toán...
+                Awaiting payment confirmation...
               </span>
             )}
             <button
@@ -332,8 +332,8 @@ export const BuyTicketModal: React.FC<BuyTicketModalProps> = ({
               <div className="p-4 rounded-2xl bg-amber-950/60 border border-amber-500/50 flex items-center gap-3 text-amber-200 text-xs">
                 <Lock className="w-5 h-5 text-amber-400 shrink-0" />
                 <div>
-                  <div className="font-bold text-amber-300">Vé này đang có người khác thực hiện giao dịch (đang giữ chỗ)</div>
-                  <div className="text-amber-200/80 mt-0.5">Hiện tại vé đang được giữ chỗ trong một phiên thanh toán khác. Vui lòng quay lại sau nếu phiên giao dịch đó bị hủy hoặc chọn vé khác trên sàn.</div>
+                  <div className="font-bold text-amber-300">Ticket Currently in a Checkout Session</div>
+                  <div className="text-amber-200/80 mt-0.5">This ticket is reserved by another user. Please check back shortly or choose another verified ticket on the marketplace.</div>
                 </div>
               </div>
             )}
@@ -354,22 +354,22 @@ export const BuyTicketModal: React.FC<BuyTicketModalProps> = ({
               </div>
 
               <div className="text-left sm:text-right shrink-0">
-                <div className="text-xs text-zinc-400">Giá vé niêm yết</div>
+                <div className="text-xs text-zinc-400">Listed Price</div>
                 <div className="text-lg sm:text-xl font-extrabold text-white font-display">
                   {formatVND(listing.resalePrice)}
                 </div>
               </div>
             </div>
 
-            {/* Escrow Trust Guarantee Banner */}
+            {/* Protection Guarantee Banner */}
             <div className="p-3.5 rounded-2xl bg-emerald-950/40 border border-emerald-500/30 flex items-start gap-3">
               <ShieldCheck className="w-5 h-5 text-emerald-400 shrink-0 mt-0.5" />
               <div className="text-xs space-y-0.5">
                 <div className="font-bold text-emerald-300">
-                  Bảo hiểm giao dịch Smart Escrow 24h
+                  24-Hour Funds Protection &amp; Direct Organizer Re-issuance
                 </div>
                 <div className="text-zinc-300 text-[11px] leading-relaxed">
-                  Tiền chuyển khoản của bạn được giữ an toàn tại TicketShield. Ban tổ chức sẽ hủy mã QR cũ và cấp mã QR chính chủ hoàn toàn mới trực tiếp sang email của bạn.
+                  Your funds are safeguarded under TicketShield's 24-hour guarantee. The event organizer invalidates the previous ticket and issues a brand-new official ticket directly to your email.
                 </div>
               </div>
             </div>
@@ -377,22 +377,22 @@ export const BuyTicketModal: React.FC<BuyTicketModalProps> = ({
             {/* Buyer Contact Form */}
             <div className="space-y-3">
               <label className="block text-xs font-bold uppercase tracking-wider text-zinc-400">
-                Thông tin người nhận vé chính chủ
+                Official Ticket Recipient Information
               </label>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div>
-                  <span className="text-[11px] text-zinc-400 block mb-1">Họ và tên *</span>
+                  <span className="text-[11px] text-zinc-400 block mb-1">Full Name *</span>
                   <input
                     type="text"
                     required
                     value={fullName}
                     onChange={(e) => setFullName(e.target.value)}
-                    placeholder="Nguyễn Văn A"
+                    placeholder="John Doe"
                     className="w-full h-10 px-3 rounded-xl bg-[#141826] border border-[#262c40] text-xs text-white focus:outline-none focus:border-[#FF5A36]"
                   />
                 </div>
                 <div>
-                  <span className="text-[11px] text-zinc-400 block mb-1">Số điện thoại *</span>
+                  <span className="text-[11px] text-zinc-400 block mb-1">Phone Number *</span>
                   <input
                     type="tel"
                     required
@@ -403,7 +403,7 @@ export const BuyTicketModal: React.FC<BuyTicketModalProps> = ({
                   />
                 </div>
                 <div>
-                  <span className="text-[11px] text-zinc-400 block mb-1">Email nhận vé *</span>
+                  <span className="text-[11px] text-zinc-400 block mb-1">Ticket Delivery Email *</span>
                   <input
                     type="email"
                     required
@@ -417,13 +417,13 @@ export const BuyTicketModal: React.FC<BuyTicketModalProps> = ({
 
               <div>
                 <span className="text-[11px] text-zinc-400 block mb-1">
-                  Số CCCD / CMND (Dùng xác minh cổng soát vé Ban Tổ Chức)
+                  National ID / Passport (For venue entry verification)
                 </span>
                 <input
                   type="text"
                   value={idCard}
                   onChange={(e) => setIdCard(e.target.value)}
-                  placeholder="Nhập 12 số CCCD (Không bắt buộc)"
+                  placeholder="Enter ID number (Optional)"
                   className="w-full h-10 px-3 rounded-xl bg-[#141826] border border-[#262c40] text-xs text-white focus:outline-none focus:border-[#FF5A36]"
                 />
               </div>
@@ -433,7 +433,7 @@ export const BuyTicketModal: React.FC<BuyTicketModalProps> = ({
             <div className="flex gap-2">
               <input
                 type="text"
-                placeholder="Nhập mã giảm giá (VD: SAYHI)"
+                placeholder="Enter promo code (e.g. SAYHI)"
                 value={coupon}
                 onChange={(e) => setCoupon(e.target.value)}
                 disabled={couponApplied}
@@ -445,7 +445,7 @@ export const BuyTicketModal: React.FC<BuyTicketModalProps> = ({
                 disabled={couponApplied}
                 className="h-10 px-4 bg-white/10 hover:bg-white/15 disabled:opacity-50 text-xs font-bold rounded-xl text-white transition-colors cursor-pointer"
               >
-                {couponApplied ? 'Đã áp dụng' : 'Áp dụng'}
+                {couponApplied ? 'Applied' : 'Apply'}
               </button>
             </div>
 
@@ -454,16 +454,16 @@ export const BuyTicketModal: React.FC<BuyTicketModalProps> = ({
               <div className="flex items-center justify-between pb-2 border-b border-white/10">
                 <div className="flex items-center gap-2 font-semibold text-zinc-200">
                   <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />
-                  <span>Chi tiết thanh toán</span>
+                  <span>Payment Summary</span>
                 </div>
                 <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-500/10 text-emerald-300 border border-emerald-500/30">
-                  Phí bảo vệ người mua 5%
+                  5% Buyer Protection Fee
                 </span>
               </div>
 
               <div className="space-y-1.5 text-xs">
                 <div className="flex justify-between items-center text-zinc-400">
-                  <span>Giá vé niêm yết:</span>
+                  <span>Listed Price:</span>
                   <span className="font-semibold text-zinc-200 tabular-nums">
                     {formatVND(listing.resalePrice)}
                   </span>
@@ -471,8 +471,8 @@ export const BuyTicketModal: React.FC<BuyTicketModalProps> = ({
 
                 <div className="flex justify-between items-center text-zinc-400">
                   <div className="flex items-center gap-1">
-                    <span>Phí dịch vụ &amp; Quỹ Escrow (5%):</span>
-                    <span className="text-[10px] text-zinc-500">(Tối thiểu 10.000 đ)</span>
+                    <span>Service Fee &amp; 24h Buyer Protection (5%):</span>
+                    <span className="text-[10px] text-zinc-500">(Min. 10,000 VND)</span>
                   </div>
                   <span className="font-medium text-amber-400 tabular-nums">
                     + {formatVND(estimatedBuyerFee)}
@@ -481,7 +481,7 @@ export const BuyTicketModal: React.FC<BuyTicketModalProps> = ({
 
                 {discountAmount > 0 && (
                   <div className="flex justify-between items-center text-emerald-400">
-                    <span>Mã giảm giá ({coupon}):</span>
+                    <span>Promo Discount ({coupon}):</span>
                     <span className="font-medium tabular-nums">
                       - {formatVND(discountAmount)}
                     </span>
@@ -492,10 +492,10 @@ export const BuyTicketModal: React.FC<BuyTicketModalProps> = ({
               <div className="flex justify-between items-baseline pt-2.5 border-t border-white/10">
                 <div>
                   <span className="text-xs font-bold text-white block">
-                    Tổng thanh toán VietQR
+                    Total VietQR Payment
                   </span>
                   <span className="text-[10px] text-zinc-400">
-                    (Bao gồm tiền vé + phí bảo hiểm sang tên)
+                    (Includes ticket price + 24-hour protection fee)
                   </span>
                 </div>
                 <div className="text-right">
@@ -509,7 +509,7 @@ export const BuyTicketModal: React.FC<BuyTicketModalProps> = ({
             {/* Submit Action */}
             <div className="pt-3 border-t border-[#1d2232] flex items-center justify-between gap-4">
               <div>
-                <span className="text-xs text-zinc-400 block">Tổng tiền thanh toán:</span>
+                <span className="text-xs text-zinc-400 block">Total Amount:</span>
                 <span className="text-2xl font-black font-display text-[#FF5A36]">
                   {formatVND(totalBuyerPaidEstimated)}
                 </span>
@@ -523,16 +523,16 @@ export const BuyTicketModal: React.FC<BuyTicketModalProps> = ({
                 {isHolding ? (
                   <>
                     <RefreshCw className="w-4 h-4 animate-spin" />
-                    <span>Đang giữ chỗ 10 phút...</span>
+                    <span>Holding for 10 minutes...</span>
                   </>
                 ) : ((listing.listingStatus || '').toLowerCase() === 'transacting') ? (
                   <>
                     <Lock className="w-4 h-4 text-amber-300" />
-                    <span>Vé đang có giao dịch giữ chỗ</span>
+                    <span>Ticket Currently Reserved</span>
                   </>
                 ) : (
                   <>
-                    <span>Giữ chỗ 10 phút & Thanh toán VietQR</span>
+                    <span>Hold for 10 Mins &amp; Pay with VietQR</span>
                     <Check className="w-4 h-4 stroke-[3]" />
                   </>
                 )}
@@ -547,8 +547,8 @@ export const BuyTicketModal: React.FC<BuyTicketModalProps> = ({
               <div className="p-4 rounded-2xl bg-red-950/60 border border-red-500/50 flex items-center gap-3 text-red-200 text-xs">
                 <AlertTriangle className="w-5 h-5 text-red-400 shrink-0" />
                 <div className="flex-1">
-                  <div className="font-bold">Khung thời gian giữ chỗ vé đã kết thúc (10 phút)</div>
-                  <div>Vé đã được tự động mở lại trên sàn cho các người mua khác. Vui lòng đóng cửa sổ này và đặt giữ chỗ lại.</div>
+                  <div className="font-bold">Reservation window expired (10 minutes)</div>
+                  <div>The ticket has been automatically released back to the marketplace. Please close this window and try again.</div>
                 </div>
               </div>
             )}
@@ -559,7 +559,7 @@ export const BuyTicketModal: React.FC<BuyTicketModalProps> = ({
               <div className="md:col-span-5 flex flex-col items-center justify-center p-4 bg-[#070910] border border-[#232738] rounded-2xl relative overflow-hidden group">
                 <div className="text-[11px] font-mono text-zinc-400 mb-2 flex items-center gap-1.5">
                   <QrCode className="w-3.5 h-3.5 text-[#FF5A36]" />
-                  <span>Quét bằng ứng dụng ngân hàng</span>
+                  <span>Scan with any Banking App</span>
                 </div>
 
                 {/* QR Code Container */}
@@ -574,7 +574,7 @@ export const BuyTicketModal: React.FC<BuyTicketModalProps> = ({
                   {isExpired && (
                     <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/75 p-2 text-center">
                       <Lock className="w-8 h-8 text-red-400 mb-1" />
-                      <span className="text-xs font-bold text-red-400 uppercase">QR Hết Hạn</span>
+                      <span className="text-xs font-bold text-red-400 uppercase">QR Expired</span>
                     </div>
                   )}
                 </div>
@@ -585,7 +585,7 @@ export const BuyTicketModal: React.FC<BuyTicketModalProps> = ({
                     <span>Napas 247 QuickLink VietQR</span>
                   </div>
                   <div className="text-[10px] text-zinc-400 mt-0.5">
-                    Tự động điền đúng Số tiền & Nội dung chuyển khoản
+                    Automatically fills exact amount and payment reference
                   </div>
                 </div>
               </div>
@@ -594,29 +594,29 @@ export const BuyTicketModal: React.FC<BuyTicketModalProps> = ({
               <div className="md:col-span-7 space-y-3">
                 <div className="p-4 rounded-2xl bg-[#0e121d] border border-[#232738] space-y-3">
                   <div className="text-xs font-bold uppercase tracking-wider text-zinc-400 pb-2 border-b border-white/10 flex items-center justify-between">
-                    <span>Thông tin tài khoản nhận tiền</span>
+                    <span>Beneficiary Account Information</span>
                     <span className="text-[11px] font-normal text-emerald-400 flex items-center gap-1">
                       <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
-                      Hệ thống đang chờ giao dịch
+                      Awaiting payment receipt
                     </span>
                   </div>
 
                   {/* Account Name */}
                   <div className="flex items-center justify-between text-xs">
-                    <span className="text-zinc-400">Tên người nhận:</span>
+                    <span className="text-zinc-400">Account Name:</span>
                     <span className="font-bold text-white uppercase">{holdData.accountName || 'NGUYEN HUNG THINH'}</span>
                   </div>
 
                   {/* Bank Name */}
                   <div className="flex items-center justify-between text-xs">
-                    <span className="text-zinc-400">Ngân hàng:</span>
-                    <span className="font-bold text-white">MBBank (Ngân hàng Quân Đội)</span>
+                    <span className="text-zinc-400">Bank:</span>
+                    <span className="font-bold text-white">MBBank (Military Commercial Joint Stock Bank)</span>
                   </div>
 
                   {/* Account Number with Quick Copy */}
                   <div className="flex items-center justify-between text-xs py-1.5 px-2.5 rounded-xl bg-black/40 border border-white/5">
                     <div>
-                      <span className="text-zinc-400 block text-[10px]">Số tài khoản:</span>
+                      <span className="text-zinc-400 block text-[10px]">Account Number:</span>
                       <span className="font-mono font-bold text-white text-sm">
                         {holdData.accountNumber || '0938434102'}
                       </span>
@@ -631,14 +631,14 @@ export const BuyTicketModal: React.FC<BuyTicketModalProps> = ({
                       ) : (
                         <Copy className="w-3.5 h-3.5" />
                       )}
-                      <span>{copiedType === 'account' ? 'Đã chép' : 'Copy'}</span>
+                      <span>{copiedType === 'account' ? 'Copied' : 'Copy'}</span>
                     </button>
                   </div>
 
                   {/* Transfer Amount with Quick Copy */}
                   <div className="flex items-center justify-between text-xs py-1.5 px-2.5 rounded-xl bg-black/40 border border-white/5">
                     <div>
-                      <span className="text-zinc-400 block text-[10px]">Số tiền cần thanh toán:</span>
+                      <span className="text-zinc-400 block text-[10px]">Amount to Transfer:</span>
                       <span className="font-mono font-black text-[#FF5A36] text-base">
                         {formatVND(holdData.totalBuyerPaid)}
                       </span>
@@ -653,7 +653,7 @@ export const BuyTicketModal: React.FC<BuyTicketModalProps> = ({
                       ) : (
                         <Copy className="w-3.5 h-3.5" />
                       )}
-                      <span>{copiedType === 'amount' ? 'Đã chép' : 'Copy'}</span>
+                      <span>{copiedType === 'amount' ? 'Copied' : 'Copy'}</span>
                     </button>
                   </div>
 
@@ -662,7 +662,7 @@ export const BuyTicketModal: React.FC<BuyTicketModalProps> = ({
                     <div className="flex items-center justify-between text-[11px]">
                       <span className="font-bold text-amber-400 uppercase tracking-wider flex items-center gap-1">
                         <AlertTriangle className="w-3.5 h-3.5 text-amber-400" />
-                        Nội dung chuyển khoản chính xác:
+                        Exact Transfer Reference:
                       </span>
                       <button
                         type="button"
@@ -674,14 +674,14 @@ export const BuyTicketModal: React.FC<BuyTicketModalProps> = ({
                         ) : (
                           <Copy className="w-3.5 h-3.5" />
                         )}
-                        <span>{copiedType === 'reference' ? 'Đã chép' : 'Copy nội dung'}</span>
+                        <span>{copiedType === 'reference' ? 'Copied' : 'Copy Reference'}</span>
                       </button>
                     </div>
                     <div className="p-2 rounded-lg bg-black/60 font-mono text-center text-amber-300 font-extrabold text-base tracking-widest">
                       {holdData.paymentReference}
                     </div>
                     <p className="text-[10px] text-amber-200/80 text-center">
-                      *Vui lòng giữ nguyên nội dung mã này để hệ thống khớp lệnh thanh toán tự động qua SePay!
+                      *Please keep this reference exact so our automated system can instantly match your payment!
                     </p>
                   </div>
                 </div>
@@ -695,12 +695,12 @@ export const BuyTicketModal: React.FC<BuyTicketModalProps> = ({
                 <span className="truncate sm:whitespace-normal">
                   {isExpired ? (
                     <>
-                      Mã QR mới sẽ được gửi về email <strong className="text-white">{email}</strong> ngay khi nhận tiền.
+                      Your new ticket will be delivered to <strong className="text-white">{email}</strong> upon payment confirmation.
                     </>
                   ) : (
                     <>
-                      Đang chờ xác nhận thanh toán... Mã QR mới sẽ được gửi về email{' '}
-                      <strong className="text-white">{email}</strong> ngay khi nhận tiền.
+                      Awaiting payment confirmation... Your official ticket will be delivered to{' '}
+                      <strong className="text-white">{email}</strong> immediately.
                     </>
                   )}
                 </span>
@@ -712,7 +712,7 @@ export const BuyTicketModal: React.FC<BuyTicketModalProps> = ({
                   onClick={handleCancelAndClose}
                   className="px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/15 text-xs font-bold text-white transition-colors cursor-pointer shrink-0"
                 >
-                  Hủy / Để Sau
+                  Cancel / Later
                 </button>
                 <button
                   type="button"
@@ -721,7 +721,7 @@ export const BuyTicketModal: React.FC<BuyTicketModalProps> = ({
                   className="px-5 py-2.5 bg-gradient-to-r from-emerald-500 to-teal-600 hover:brightness-110 disabled:opacity-40 text-white font-bold text-xs uppercase tracking-wider rounded-xl shadow-[0_4px_15px_rgba(16,185,129,0.3)] transition-all flex items-center justify-center gap-1.5 cursor-pointer shrink-0"
                 >
                   <CheckCircle2 className={`w-4 h-4 shrink-0 ${isCheckingPayment ? 'animate-spin' : ''}`} />
-                  <span>{isCheckingPayment ? 'Đang kiểm tra...' : 'Tôi đã chuyển khoản'}</span>
+                  <span>{isCheckingPayment ? 'Verifying...' : 'I Have Paid'}</span>
                 </button>
               </div>
             </div>

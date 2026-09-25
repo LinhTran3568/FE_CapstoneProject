@@ -25,35 +25,35 @@ export const Security: React.FC = () => {
             </div>
 
             <p className="text-[#A3A8B3] text-lg leading-relaxed">
-              TicketShield eliminates scalping, fake tickets, and bot abuse with cryptographic verification and automated escrow settlement.
+              TicketShield completely eliminates scalping, fake tickets, and fraud with Real Fan Verification, Official Direct Re-issuance, and 24-Hour Funds Protection.
             </p>
 
             {/* Minimalist Editorial Status List (No Cards) */}
             <div className="space-y-6 pt-4 border-t border-white/10 font-display">
               <div className="flex items-center justify-between py-2 border-b border-white/5">
                 <span className="text-xl md:text-2xl font-extrabold text-[#F5F5F2] uppercase tracking-wider">
-                  VERIFIED
+                  REAL FANS - REAL TICKETS
                 </span>
                 <span className="text-xs font-mono text-emerald-400 uppercase tracking-widest bg-emerald-500/10 px-3 py-1 rounded-full border border-emerald-500/20">
-                  PASSED (0.00ms)
+                  OFFICIALLY VERIFIED
                 </span>
               </div>
 
               <div className="flex items-center justify-between py-2 border-b border-white/5">
                 <span className="text-xl md:text-2xl font-extrabold text-[#F5F5F2] uppercase tracking-wider">
-                  SECURE PAYMENT
+                  24-HOUR FUNDS PROTECTION
                 </span>
                 <span className="text-xs font-mono text-[#FF5A36] uppercase tracking-widest bg-[#FF5A36]/10 px-3 py-1 rounded-full border border-[#FF5A36]/20">
-                  ESCROW ACTIVE
+                  PROTECTION ACTIVE
                 </span>
               </div>
 
               <div className="flex items-center justify-between py-2 border-b border-white/5">
                 <span className="text-xl md:text-2xl font-extrabold text-[#F5F5F2] uppercase tracking-wider">
-                  READY FOR ENTRY
+                  READY FOR VENUE ENTRY
                 </span>
                 <span className="text-xs font-mono text-[#F5F5F2] uppercase tracking-widest bg-white/10 px-3 py-1 rounded-full border border-white/20">
-                  MOBILE BARCODE
+                  OFFICIAL BARCODE
                 </span>
               </div>
             </div>
@@ -74,16 +74,16 @@ export const Security: React.FC = () => {
               <div className="space-y-8">
                 <div className="flex items-center justify-between border-b border-white/10 pb-4">
                   <span className="text-xs font-display font-bold text-[#FF5A36] uppercase tracking-widest">
-                    SYSTEM CRYPTO SCANNER
+                    OFFICIAL VERIFICATION SYSTEM
                   </span>
                   <span className="text-xs text-emerald-400 font-mono tracking-widest bg-emerald-500/10 px-3 py-1 rounded-full border border-emerald-500/20">
-                    SCANNING ACTIVE
+                    PROTECTION ACTIVE
                   </span>
                 </div>
 
                 <div className="space-y-2">
                   <span className="text-xs text-[#A3A8B3] uppercase tracking-widest block font-display">
-                    Target Event Identification
+                    Protected Event
                   </span>
                   <div className="text-3xl font-extrabold font-display text-[#F5F5F2] uppercase">
                     COLDPLAY WORLD TOUR 2026
@@ -92,14 +92,14 @@ export const Security: React.FC = () => {
 
                 <div className="grid grid-cols-2 gap-4 bg-[#0A0D12] p-5 rounded-2xl border border-white/10 text-xs">
                   <div>
-                    <span className="text-[#A3A8B3] block mb-1">HASH VERIFICATION</span>
+                    <span className="text-[#A3A8B3] block mb-1 font-display uppercase tracking-wider">ORGANIZER VERIFICATION</span>
                     <span className="font-mono text-[#F5F5F2] text-xs truncate block">
-                      0x8f9a2b7c4e1c9003
+                      TS-OFFICIAL-2026-BTC
                     </span>
                   </div>
                   <div>
-                    <span className="text-[#A3A8B3] block mb-1">BOT DEFENSE ENGINE</span>
-                    <span className="text-emerald-400 font-semibold block">PASSED (100% SECURE)</span>
+                    <span className="text-[#A3A8B3] block mb-1 font-display uppercase tracking-wider">FAN VERIFICATION</span>
+                    <span className="text-emerald-400 font-semibold block">100% REAL FAN</span>
                   </div>
                 </div>
 
@@ -108,7 +108,7 @@ export const Security: React.FC = () => {
                   <div className="flex items-center gap-3">
                     <div className="w-3.5 h-3.5 rounded-full bg-[#FF5A36] animate-ping" />
                     <span className="text-sm font-bold text-[#F5F5F2] font-display uppercase tracking-wider">
-                      Pass Authenticated & Validated
+                      Official New Ticket Issued & Verified
                     </span>
                   </div>
                   <span className="text-sm font-bold text-[#FF5A36] font-display">100% GUARANTEED</span>

@@ -37,10 +37,10 @@ export const LISTING_STATUS_META: Record<ListingStatus, BadgeMeta> = {
     description: 'Listed and open for buyers',
   },
   Transacting: {
-    label: 'In Escrow',
+    label: '24h Protection',
     tone: 'info',
     icon: Hourglass,
-    description: 'A buyer has paid into escrow',
+    description: 'Buyer has paid; funds are held under 24-hour protection',
   },
   Sold: {
     label: 'Sold',

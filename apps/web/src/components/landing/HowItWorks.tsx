@@ -14,8 +14,8 @@ const steps = [
   },
   {
     num: '03',
-    title: 'SECURE',
-    desc: 'Complete your purchase safely through our encrypted escrow checkout system.',
+    title: 'PROTECT',
+    desc: 'Complete your purchase safely with 24-hour buyer funds protection and direct re-issuance from event organizers.',
   },
   {
     num: '04',

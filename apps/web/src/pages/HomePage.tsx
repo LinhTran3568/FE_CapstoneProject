@@ -169,13 +169,13 @@ export const HomePage: React.FC = () => {
           <div className="relative z-10 max-w-2xl mx-auto space-y-4">
             <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#FF5A36]/15 border border-[#FF5A36]/30 text-xs font-mono font-bold text-[#FF5A36] uppercase tracking-wider">
               <Sparkles className="w-3.5 h-3.5" />
-              Sàn Giao Dịch Vé Chính Hãng
+              Official Ticket Marketplace
             </span>
             <h2 className="text-2xl sm:text-3xl md:text-4xl font-black font-display text-white tracking-tight">
-              Tìm thấy tấm vé yêu thích của bạn ngay hôm nay
+              Find Your Favorite Event Tickets Today
             </h2>
             <p className="text-sm text-[#94A3B8]">
-              Mọi giao dịch đều được bảo vệ toàn diện: cấp lại vé chính chủ từ Ban tổ chức, nhận vé trước - thanh toán sau an toàn 100%.
+              Every transaction is fully protected: brand-new official ticket re-issued directly by the organizer, backed by 24-hour funds protection.
             </p>
             <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-4">
               <button
@@ -183,7 +183,7 @@ export const HomePage: React.FC = () => {
                 onClick={() => navigate('/marketplace')}
                 className="w-full sm:w-auto h-12 px-8 bg-gradient-to-r from-[#FF5A36] to-[#FF7252] hover:brightness-110 active:scale-95 text-white font-bold font-display text-sm uppercase tracking-wider rounded-2xl shadow-[0_4px_25px_rgba(255,90,54,0.4)] transition-all inline-flex items-center justify-center gap-2 cursor-pointer"
               >
-                <span>Đến Sàn Giao Dịch Vé</span>
+                <span>Explore Marketplace</span>
                 <ArrowRight className="w-4 h-4" />
               </button>
               <button
@@ -191,7 +191,7 @@ export const HomePage: React.FC = () => {
                 onClick={() => navigate('/sell-ticket')}
                 className="w-full sm:w-auto h-12 px-8 bg-white/5 hover:bg-white/10 border border-white/15 hover:border-white/30 text-white font-bold text-sm rounded-2xl transition-all inline-flex items-center justify-center gap-2 cursor-pointer"
               >
-                <span>Đăng bán vé của bạn</span>
+                <span>List Your Ticket</span>
               </button>
             </div>
           </div>

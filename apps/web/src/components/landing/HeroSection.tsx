@@ -75,7 +75,7 @@ export const HeroSection: React.FC = () => {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.85, delay: 0.15, ease: [0.16, 1, 0.3, 1] }}
         >
-          Verified Event Ticket Resale Marketplace — 100% Escrow &amp; Price Ceiling Protected
+          Verified Fan Event Ticket Resale — 100% Real Fans &amp; 24-Hour Funds Protection
         </motion.p>
 
         <motion.div

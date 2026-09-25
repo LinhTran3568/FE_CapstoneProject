@@ -12,8 +12,8 @@ const RouteLoadingScreen: React.FC = () => (
 );
 
 /**
- * Route chỉ cho phép người dùng đã đăng nhập.
- * Lưu lại location hiện tại để redirect về sau khi đăng nhập.
+ * Route only accessible to authenticated users.
+ * Saves current location for post-login redirect.
  */
 export const ProtectedRoute: React.FC = () => {
   const { isAuthenticated, isLoading } = useAuthStore();
@@ -31,8 +31,8 @@ export const ProtectedRoute: React.FC = () => {
 };
 
 /**
- * Route chỉ dành cho khách (chưa đăng nhập).
- * Khi đã đăng nhập, tự động chuyển tiếp sang Marketplace hoặc trang trước đó.
+ * Route only accessible to guest (unauthenticated) users.
+ * When authenticated, automatically redirects to Marketplace or previous page.
  */
 export const GuestRoute: React.FC = () => {
   const { isAuthenticated, isLoading } = useAuthStore();

@@ -73,7 +73,7 @@ export const ProfilePage: React.FC = () => {
   const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!fullName.trim()) {
-      showToast('Họ và tên không được để trống.', 'error');
+      showToast('Full name cannot be empty.', 'error');
       return;
     }
 
@@ -84,9 +84,9 @@ export const ProfilePage: React.FC = () => {
         phoneNumber: phoneNumber.trim() || undefined,
       });
       setUser(updatedUser);
-      showToast('Cập nhật thông tin tài khoản thành công!', 'success');
+      showToast('Profile updated successfully!', 'success');
     } catch (err: any) {
-      showToast(err.message || 'Cập nhật thông tin thất bại.', 'error');
+      showToast(err.message || 'Profile update failed.', 'error');
     } finally {
       setIsSaving(false);
     }
@@ -94,7 +94,7 @@ export const ProfilePage: React.FC = () => {
 
   const handleLogout = () => {
     logout();
-    showToast('Đã đăng xuất thành công', 'info');
+    showToast('Signed out successfully', 'info');
     navigate('/login');
   };
 
@@ -106,13 +106,13 @@ export const ProfilePage: React.FC = () => {
   if (!user) {
     return (
       <div className="min-h-screen pt-32 pb-20 px-6 max-w-4xl mx-auto text-center space-y-6">
-        <h2 className="text-3xl font-extrabold font-display text-white">Vui lòng đăng nhập</h2>
-        <p className="text-[#A3A8B3] text-sm">Bạn cần đăng nhập để xem thông tin trang cá nhân.</p>
+        <h2 className="text-3xl font-extrabold font-display text-white">Please Sign In</h2>
+        <p className="text-[#A3A8B3] text-sm">You need to sign in to view your profile page.</p>
         <Link
           to="/login"
           className="inline-block px-8 py-3 bg-[#FF5A36] text-white font-bold font-display uppercase tracking-widest text-xs rounded-full shadow-lg shadow-[#FF5A36]/30"
         >
-          Đăng Nhập Ngay
+          Sign In Now
         </Link>
       </div>
     );
@@ -156,11 +156,11 @@ export const ProfilePage: React.FC = () => {
                 </h1>
                 {isReseller ? (
                   <span className="px-3 py-1 bg-gradient-to-r from-[#FF5A36] to-amber-500 text-white text-[11px] font-extrabold font-mono uppercase tracking-widest rounded-full shadow-lg shadow-[#FF5A36]/20 flex items-center gap-1">
-                    <Sparkles className="w-3 h-3" /> Người Bán Chính Chủ
+                    <Sparkles className="w-3 h-3" /> Verified Seller
                   </span>
                 ) : (
                   <span className="px-3 py-1 bg-white/10 text-[#A3A8B3] text-[11px] font-bold font-mono uppercase tracking-wider rounded-full">
-                    {user.role || 'Thành Viên'}
+                    {user.role || 'Member'}
                   </span>
                 )}
               </div>
@@ -170,10 +170,10 @@ export const ProfilePage: React.FC = () => {
                   <Mail className="w-3.5 h-3.5 text-[#FF5A36]" /> {user.email}
                 </span>
                 <span className="flex items-center gap-1.5">
-                  <Phone className="w-3.5 h-3.5 text-cyan-400" /> {user.phoneNumber || 'Chưa cập nhật'}
+                  <Phone className="w-3.5 h-3.5 text-cyan-400" /> {user.phoneNumber || 'Not provided'}
                 </span>
                 <span className="flex items-center gap-1.5 text-emerald-400">
-                  <ShieldCheck className="w-3.5 h-3.5" /> Định Danh KYC Cấp 2
+                  <ShieldCheck className="w-3.5 h-3.5" /> 100% Real Fan Verified
                 </span>
               </div>
             </div>
@@ -187,7 +187,7 @@ export const ProfilePage: React.FC = () => {
                 className="flex-1 md:flex-none px-5 py-2.5 bg-[#FF5A36] hover:bg-[#FF7252] text-white font-bold font-display text-xs uppercase tracking-wider rounded-xl shadow-lg shadow-[#FF5A36]/25 transition-all flex items-center justify-center gap-2"
               >
                 <PlusCircle className="w-4 h-4" />
-                <span>Đăng Bán Vé</span>
+                <span>Sell Ticket</span>
               </a>
             )}
             <button
@@ -195,7 +195,7 @@ export const ProfilePage: React.FC = () => {
               className="px-4 py-2.5 bg-white/5 border border-white/10 hover:border-red-500/50 text-[#A3A8B3] hover:text-red-400 rounded-xl transition-all text-xs font-semibold flex items-center gap-2 cursor-pointer"
             >
               <LogOut className="w-4 h-4" />
-              <span>Đăng Xuất</span>
+              <span>Sign Out</span>
             </button>
           </div>
         </div>
@@ -204,19 +204,19 @@ export const ProfilePage: React.FC = () => {
         {isReseller && (
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div className="bg-[#0A0D12] border border-white/10 p-5 rounded-2xl space-y-1">
-              <span className="text-[11px] text-[#A3A8B3] uppercase tracking-wider font-display">Vé Đang Đăng Bán</span>
-              <p className="text-2xl font-bold font-display text-white">8 <span className="text-xs font-normal text-[#A3A8B3]">Vé</span></p>
+              <span className="text-[11px] text-[#A3A8B3] uppercase tracking-wider font-display">Active Listings</span>
+              <p className="text-2xl font-bold font-display text-white">8 <span className="text-xs font-normal text-[#A3A8B3]">Tickets</span></p>
             </div>
             <div className="bg-[#0A0D12] border border-[#FF5A36]/30 p-5 rounded-2xl space-y-1 bg-gradient-to-b from-[#FF5A36]/5 to-transparent">
-              <span className="text-[11px] text-amber-400 uppercase tracking-wider font-display">STK Thụ Hưởng</span>
-              <p className="text-2xl font-bold font-display text-white">{bankAccounts.length} <span className="text-xs font-normal text-[#A3A8B3]">Tài Khoản</span></p>
+              <span className="text-[11px] text-amber-400 uppercase tracking-wider font-display">Payout Accounts</span>
+              <p className="text-2xl font-bold font-display text-white">{bankAccounts.length} <span className="text-xs font-normal text-[#A3A8B3]">Accounts</span></p>
             </div>
             <div className="bg-[#0A0D12] border border-white/10 p-5 rounded-2xl space-y-1">
-              <span className="text-[11px] text-[#A3A8B3] uppercase tracking-wider font-display">Doanh Số Đã Nhận</span>
-              <p className="text-2xl font-bold font-display text-emerald-400">32.500.000 <span className="text-xs font-normal text-[#A3A8B3]">VND</span></p>
+              <span className="text-[11px] text-[#A3A8B3] uppercase tracking-wider font-display">Completed Sales</span>
+              <p className="text-2xl font-bold font-display text-emerald-400">32,500,000 <span className="text-xs font-normal text-[#A3A8B3]">VND</span></p>
             </div>
             <div className="bg-[#0A0D12] border border-white/10 p-5 rounded-2xl space-y-1">
-              <span className="text-[11px] text-[#A3A8B3] uppercase tracking-wider font-display">Điểm Uy Tín Sàn</span>
+              <span className="text-[11px] text-[#A3A8B3] uppercase tracking-wider font-display">Trust Score</span>
               <p className="text-2xl font-bold font-display text-amber-400">99.8% <span className="text-xs font-normal text-[#A3A8B3]">Platinum</span></p>
             </div>
           </div>
@@ -232,7 +232,7 @@ export const ProfilePage: React.FC = () => {
                 : 'text-[#A3A8B3] hover:text-white'
             }`}
           >
-            <span>Thông Tin Tài Khoản</span>
+            <span>Account Details</span>
             {activeTab === 'profile' && (
               <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#FF5A36] rounded-full" />
             )}
@@ -246,7 +246,7 @@ export const ProfilePage: React.FC = () => {
                 : 'text-[#A3A8B3] hover:text-white'
             }`}
           >
-            <span>Vé Tôi Đăng Bán</span>
+            <span>My Listings</span>
             <span className="px-2 py-0.5 bg-white/10 rounded-full text-[10px] text-white">8</span>
             {activeTab === 'listings' && (
               <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#FF5A36] rounded-full" />
@@ -261,7 +261,7 @@ export const ProfilePage: React.FC = () => {
                 : 'text-[#A3A8B3] hover:text-white'
             }`}
           >
-            <span>Vé Tôi Đã Mua</span>
+            <span>My Tickets</span>
             <span className="px-2 py-0.5 bg-white/10 rounded-full text-[10px] text-white">3</span>
             {activeTab === 'tickets' && (
               <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#FF5A36] rounded-full" />
@@ -276,10 +276,10 @@ export const ProfilePage: React.FC = () => {
                 : 'text-[#A3A8B3] hover:text-white'
             }`}
           >
-            <span>Ví Escrow & Ngân Hàng</span>
+            <span>Wallet &amp; Banks</span>
             {bankAccounts.length > 0 && (
               <span className="px-2 py-0.5 bg-emerald-500/20 text-emerald-400 rounded-full text-[10px] font-bold">
-                {bankAccounts.length} STK
+                {bankAccounts.length} Banks
               </span>
             )}
             {activeTab === 'wallet' && (
@@ -295,15 +295,15 @@ export const ProfilePage: React.FC = () => {
             <div className="lg:col-span-7 bg-[#0A0D12] border border-white/10 rounded-3xl p-6 md:p-8 space-y-6">
               <div className="space-y-1">
                 <h3 className="text-xl font-bold font-display text-white flex items-center gap-2">
-                  <Edit3 className="w-5 h-5 text-[#FF5A36]" /> Hồ Sơ Cá Nhân
+                  <Edit3 className="w-5 h-5 text-[#FF5A36]" /> Personal Profile
                 </h3>
-                <p className="text-xs text-[#A3A8B3]">Cập nhật các thông tin liên hệ và họ tên đại diện.</p>
+                <p className="text-xs text-[#A3A8B3]">Update your contact details and display name.</p>
               </div>
 
               <form onSubmit={handleSaveProfile} className="space-y-5 text-xs">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-[#A3A8B3] font-semibold uppercase tracking-wider mb-2 font-display">Họ và tên</label>
+                    <label className="block text-[#A3A8B3] font-semibold uppercase tracking-wider mb-2 font-display">Full Name</label>
                     <input
                       type="text"
                       value={fullName}
@@ -312,7 +312,7 @@ export const ProfilePage: React.FC = () => {
                     />
                   </div>
                   <div>
-                    <label className="block text-[#A3A8B3] font-semibold uppercase tracking-wider mb-2 font-display">Địa chỉ Email</label>
+                    <label className="block text-[#A3A8B3] font-semibold uppercase tracking-wider mb-2 font-display">Email Address</label>
                     <input
                       type="email"
                       value={user.email}
@@ -323,12 +323,12 @@ export const ProfilePage: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="block text-[#A3A8B3] font-semibold uppercase tracking-wider mb-2 font-display">Số điện thoại liên hệ</label>
+                  <label className="block text-[#A3A8B3] font-semibold uppercase tracking-wider mb-2 font-display">Contact Phone Number</label>
                   <input
                     type="text"
                     value={phoneNumber}
                     onChange={(e) => setPhoneNumber(e.target.value)}
-                    placeholder="VD: 0912345678"
+                    placeholder="e.g. 0912345678"
                     className="w-full bg-[#05070A] border border-white/15 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-[#FF5A36] placeholder:text-gray-600"
                   />
                 </div>
@@ -339,7 +339,7 @@ export const ProfilePage: React.FC = () => {
                     disabled={isSaving}
                     className="px-6 py-3 bg-[#FF5A36] hover:bg-[#FF7252] text-white font-bold font-display uppercase tracking-widest text-xs rounded-xl shadow-lg shadow-[#FF5A36]/30 transition-all cursor-pointer"
                   >
-                    {isSaving ? 'Đang Lưu...' : 'Lưu Thay Đổi'}
+                    {isSaving ? 'Saving...' : 'Save Changes'}
                   </button>
                 </div>
               </form>
@@ -351,14 +351,14 @@ export const ProfilePage: React.FC = () => {
                 <div className="flex items-center justify-between">
                   <div>
                     <h4 className="text-base font-bold font-display text-white flex items-center gap-2">
-                      <Building2 className="w-5 h-5 text-emerald-400" /> STK Ngân Hàng Thụ Hưởng
+                      <Building2 className="w-5 h-5 text-emerald-400" /> Payout Bank Account
                     </h4>
-                    <p className="text-[11px] text-[#A3A8B3]">Tài khoản nhận tiền tự động từ Escrow sau 24h</p>
+                    <p className="text-[11px] text-[#A3A8B3]">Automatic payout account after 24h protection</p>
                   </div>
                   <button
                     onClick={() => setIsBankModalOpen(true)}
                     className="p-2 bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/30 text-emerald-400 rounded-xl transition-all cursor-pointer"
-                    title="Thêm tài khoản ngân hàng"
+                    title="Add Bank Account"
                   >
                     <Plus className="w-4 h-4" />
                   </button>
@@ -368,20 +368,20 @@ export const ProfilePage: React.FC = () => {
                 {isLoadingAccounts ? (
                   <div className="p-6 text-center text-xs text-zinc-400 space-y-2">
                     <RefreshCw className="w-5 h-5 animate-spin mx-auto text-[#FF5A36]" />
-                    <span>Đang tải danh sách tài khoản ngân hàng...</span>
+                    <span>Loading bank accounts...</span>
                   </div>
                 ) : bankAccounts.length === 0 ? (
                   <div className="p-6 text-center bg-[#05070A] border border-white/10 rounded-2xl space-y-3">
                     <CreditCard className="w-8 h-8 text-zinc-500 mx-auto" />
                     <div className="text-xs text-[#A3A8B3]">
-                      Bạn chưa liên kết tài khoản ngân hàng nhận tiền nào.
+                      No payout bank account linked yet.
                     </div>
                     <button
                       onClick={() => setIsBankModalOpen(true)}
                       className="px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-black font-bold font-display text-xs uppercase tracking-wider rounded-xl transition-all cursor-pointer inline-flex items-center gap-1.5"
                     >
                       <Plus className="w-4 h-4" />
-                      <span>Liên Kết STK Ngay</span>
+                      <span>Link Bank Account Now</span>
                     </button>
                   </div>
                 ) : (
@@ -406,7 +406,7 @@ export const ProfilePage: React.FC = () => {
                               </span>
                               {account.isDefault && (
                                 <span className="px-2 py-0.5 rounded-full bg-emerald-500 text-black text-[9px] font-extrabold font-mono uppercase">
-                                  Mặc định
+                                  Default
                                 </span>
                               )}
                             </div>
@@ -426,7 +426,7 @@ export const ProfilePage: React.FC = () => {
                       className="w-full py-2.5 bg-white/5 hover:bg-white/10 border border-dashed border-white/15 text-xs font-bold text-white rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer"
                     >
                       <Plus className="w-4 h-4 text-emerald-400" />
-                      <span>Thêm Tài Khoản Ngân Hàng Khác</span>
+                      <span>Add Another Bank Account</span>
                     </button>
                   </div>
                 )}
@@ -440,22 +440,22 @@ export const ProfilePage: React.FC = () => {
           <div className="bg-[#0A0D12] border border-white/10 rounded-3xl p-6 md:p-8 space-y-6">
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
               <div>
-                <h3 className="text-xl font-bold font-display text-white">Vé Tôi Đang Đăng Bán</h3>
-                <p className="text-xs text-[#A3A8B3]">Danh sách các vé bạn đang rao bán trên Marketplace TicketShield.</p>
+                <h3 className="text-xl font-bold font-display text-white">My Active Listings</h3>
+                <p className="text-xs text-[#A3A8B3]">List of tickets you are currently selling on TicketShield.</p>
               </div>
               <a
                 href="/sell-ticket"
                 className="px-5 py-2.5 bg-[#FF5A36] text-white font-bold font-display text-xs uppercase tracking-wider rounded-xl shadow"
               >
-                + Đăng Bán Vé Mới
+                + List New Ticket
               </a>
             </div>
 
             <div className="space-y-3">
               {[
-                { title: 'Anh Trai Vượt Ngàn Chông Gai Concert 2026', zone: 'VIP A - Row 03', price: '1.800.000 VND', status: 'ACTIVE' },
-                { title: 'Coldplay Music of the Spheres Tour', zone: 'Cat 1 Standing', price: '3.200.000 VND', status: 'ACTIVE' },
-                { title: 'Lễ Hội Âm Nhạc Monsoon 2026', zone: 'Early Bird Pass', price: '950.000 VND', status: 'SOLD' },
+                { title: 'Say Hi Concert Tour 2026', zone: 'VIP A - Row 03', price: '1,800,000 VND', status: 'ACTIVE' },
+                { title: 'Coldplay Music of the Spheres Tour', zone: 'Cat 1 Standing', price: '3,200,000 VND', status: 'ACTIVE' },
+                { title: 'Monsoon Music Festival 2026', zone: 'Early Bird Pass', price: '950,000 VND', status: 'SOLD' },
               ].map((item, idx) => (
                 <div key={idx} className="p-4 bg-[#05070A] border border-white/10 rounded-2xl flex items-center justify-between gap-4">
                   <div className="flex items-center gap-4">
@@ -484,14 +484,14 @@ export const ProfilePage: React.FC = () => {
         {/* Tab Content: Purchased Tickets */}
         {activeTab === 'tickets' && (
           <div className="bg-[#0A0D12] border border-white/10 rounded-3xl p-6 md:p-8 space-y-6">
-            <h3 className="text-xl font-bold font-display text-white">Mã Vé Tôi Đã Mua</h3>
-            <p className="text-xs text-[#A3A8B3]">Danh sách mã vé QR chính chủ đã được xác thực an toàn.</p>
+            <h3 className="text-xl font-bold font-display text-white">My Purchased Tickets</h3>
+            <p className="text-xs text-[#A3A8B3]">List of verified official tickets ready for event entry.</p>
 
             <div className="p-8 text-center bg-[#05070A] border border-white/10 rounded-2xl space-y-3">
               <Ticket className="w-10 h-10 text-cyan-400 mx-auto" />
-              <h4 className="font-bold text-white text-base">Bạn đang sở hữu 3 vé chính chủ</h4>
+              <h4 className="font-bold text-white text-base">You own 3 official tickets</h4>
               <p className="text-xs text-[#A3A8B3] max-w-md mx-auto">
-                Tất cả mã QR đã được ban tổ chức cập nhật và sẵn sàng để quét tại cổng soát vé vào ngày diễn ra sự kiện.
+                All QR passes are verified directly with event organizers and ready for entrance scanning on event day.
               </p>
             </div>
           </div>
@@ -503,9 +503,9 @@ export const ProfilePage: React.FC = () => {
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
               <div>
                 <h3 className="text-xl font-bold font-display text-white flex items-center gap-2">
-                  <Wallet className="w-5 h-5 text-emerald-400" /> Ví Escrow & Ngân Hàng Thụ Hưởng
+                  <Wallet className="w-5 h-5 text-emerald-400" /> Payout Wallet &amp; Bank Accounts
                 </h3>
-                <p className="text-xs text-[#A3A8B3]">Quản lý số dư ký quỹ an toàn và danh sách STK ngân hàng nhận tiền.</p>
+                <p className="text-xs text-[#A3A8B3]">Manage your ticket sales balance and linked payout accounts.</p>
               </div>
 
               <button
@@ -513,38 +513,38 @@ export const ProfilePage: React.FC = () => {
                 className="px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-black font-bold font-display text-xs uppercase tracking-wider rounded-xl transition-all cursor-pointer flex items-center gap-1.5"
               >
                 <Plus className="w-4 h-4" />
-                <span>Thêm STK Thụ Hưởng</span>
+                <span>Add Bank Account</span>
               </button>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="p-6 bg-gradient-to-br from-emerald-950/40 to-[#05070A] border border-emerald-500/30 rounded-2xl space-y-3">
-                <span className="text-xs font-mono text-emerald-400 uppercase tracking-wider">Doanh Số Sẵn Sàng Rút</span>
-                <p className="text-3xl font-bold font-display text-white">32.500.000 VND</p>
+                <span className="text-xs font-mono text-emerald-400 uppercase tracking-wider">Available Balance</span>
+                <p className="text-3xl font-bold font-display text-white">32,500,000 VND</p>
                 <button
                   onClick={() => setIsBankModalOpen(true)}
                   className="px-5 py-2.5 bg-emerald-500 hover:bg-emerald-600 text-black font-bold font-display text-xs uppercase tracking-wider rounded-xl transition-all cursor-pointer"
                 >
-                  Rút Tiền Về Ngân Hàng
+                  Withdraw to Bank
                 </button>
               </div>
 
               <div className="p-6 bg-gradient-to-br from-cyan-950/40 to-[#05070A] border border-cyan-500/30 rounded-2xl space-y-3">
-                <span className="text-xs font-mono text-cyan-400 uppercase tracking-wider">Tiền Đang Tạm Giữ Escrow</span>
-                <p className="text-3xl font-bold font-display text-white">14.200.000 VND</p>
-                <p className="text-[11px] text-[#A3A8B3]">Tự động chuyển về STK ngân hàng thụ hưởng sau 24h quét mã an toàn.</p>
+                <span className="text-xs font-mono text-cyan-400 uppercase tracking-wider">Funds Under 24h Protection</span>
+                <p className="text-3xl font-bold font-display text-white">14,200,000 VND</p>
+                <p className="text-[11px] text-[#A3A8B3]">Automatically transferred to your payout bank account after the 24-hour protection period.</p>
               </div>
             </div>
 
             {/* Bank Accounts Section in Wallet Tab */}
             <div className="pt-4 space-y-4">
               <h4 className="text-base font-bold text-white font-display flex items-center gap-2">
-                <Building2 className="w-4 h-4 text-emerald-400" /> Tài Khoản Ngân Hàng Nhận Tiền Tự Động ({bankAccounts.length})
+                <Building2 className="w-4 h-4 text-emerald-400" /> Linked Payout Bank Accounts ({bankAccounts.length})
               </h4>
 
               {bankAccounts.length === 0 ? (
                 <div className="p-6 text-center bg-[#05070A] border border-white/10 rounded-2xl space-y-2 text-xs text-zinc-400">
-                  Chưa có STK ngân hàng thụ hưởng nào. Hãy thêm ngay để nhận tiền bán vé tự động!
+                  No payout bank accounts linked yet. Add one to receive automatic sales payouts!
                 </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -563,7 +563,7 @@ export const ProfilePage: React.FC = () => {
                         </span>
                         {acc.isDefault && (
                           <span className="px-2 py-0.5 rounded-full bg-emerald-500 text-black text-[9px] font-extrabold font-mono uppercase">
-                            Mặc định
+                            Default
                           </span>
                         )}
                       </div>

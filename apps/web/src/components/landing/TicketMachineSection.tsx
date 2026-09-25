@@ -610,8 +610,8 @@ export const TicketMachineSection: React.FC = () => {
         </h2>
 
         <p className="tm-description">
-          Experience instant digital ticket transfer directly reissued by official organizers. 
-          Funds held safely in an independent escrow vault for total protection.
+          Experience verified tickets directly reissued by official event organizers. 
+          Funds are protected for 24 hours, ensuring total safety for both buyers and sellers.
         </p>
 
         {/* CTA Actions */}

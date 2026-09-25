@@ -1,7 +1,7 @@
 import React from 'react';
-import { Calendar, MapPin, ArrowRight, Tag } from 'lucide-react';
-import { TrendingEventDto } from '@ticketshield/types';
+import { Calendar, MapPin, Tag, ArrowRight } from 'lucide-react';
 import { formatVND } from '../../utils/formatters';
+import { TrendingEventDto } from '@ticketshield/types';
 
 interface EventCardProps {
   event: TrendingEventDto;
@@ -12,10 +12,10 @@ export const EventCard: React.FC<EventCardProps> = ({ event, onSelectEvent }) =>
   const formatEventDate = (dateStr: string) => {
     try {
       const date = new Date(dateStr);
-      return date.toLocaleDateString('vi-VN', {
+      return date.toLocaleDateString('en-US', {
         weekday: 'short',
         day: '2-digit',
-        month: '2-digit',
+        month: 'short',
         year: 'numeric',
       });
     } catch {
@@ -24,9 +24,12 @@ export const EventCard: React.FC<EventCardProps> = ({ event, onSelectEvent }) =>
   };
 
   return (
-    <div className="h-full w-full bg-[#090C12]/95 border border-white/10 hover:border-[#FF5A36]/50 rounded-2xl overflow-hidden shadow-lg hover:shadow-[0_12px_35px_rgba(255,90,54,0.15)] transition-all duration-300 flex flex-col justify-between group select-none">
-      {/* 1. Fixed Height Event Banner / Poster */}
-      <div className="relative h-48 sm:h-52 w-full overflow-hidden bg-[#05070A] shrink-0">
+    <div
+      onClick={() => onSelectEvent(event.name)}
+      className="group relative bg-[#0D1117] border border-white/10 hover:border-[#FF5A36]/50 rounded-2xl overflow-hidden transition-all duration-300 hover:shadow-[0_8px_30px_rgba(255,90,54,0.15)] hover:-translate-y-1 flex flex-col cursor-pointer"
+    >
+      {/* 1. Event Banner / Poster */}
+      <div className="relative aspect-[16/9] w-full overflow-hidden bg-black/40">
         <img
           src={
             event.bannerUrl ||
@@ -43,11 +46,11 @@ export const EventCard: React.FC<EventCardProps> = ({ event, onSelectEvent }) =>
           <div className="absolute top-3 left-3">
             <span className="px-3 py-1 rounded-full bg-black/75 backdrop-blur-md border border-white/20 text-[11px] font-mono font-bold text-white uppercase shadow-md">
               {event.category === 'CONCERT'
-                ? 'Ca nhạc'
+                ? 'Concert'
                 : event.category === 'SPORTS'
-                ? 'Thể thao'
+                ? 'Sports'
                 : event.category === 'THEATER'
-                ? 'Sân khấu'
+                ? 'Theater'
                 : event.category === 'FESTIVAL'
                 ? 'Festival'
                 : event.category}
@@ -59,7 +62,7 @@ export const EventCard: React.FC<EventCardProps> = ({ event, onSelectEvent }) =>
         <div className="absolute top-3 right-3">
           <span className="px-2.5 py-1 rounded-full bg-black/85 backdrop-blur-md border border-emerald-500/40 text-[11px] font-mono font-bold text-emerald-400 flex items-center gap-1 shadow-md">
             <Tag className="w-3 h-3" />
-            <span>{event.totalAvailableListings} vé đang bán</span>
+            <span>{event.totalAvailableListings} available</span>
           </span>
         </div>
       </div>
@@ -78,10 +81,10 @@ export const EventCard: React.FC<EventCardProps> = ({ event, onSelectEvent }) =>
           <div className="h-5 flex items-center">
             {event.artist ? (
               <p className="text-xs text-[#CBD5E1] truncate">
-                Nghệ sĩ: <span className="text-white font-medium">{event.artist}</span>
+                Artist: <span className="text-white font-medium">{event.artist}</span>
               </p>
             ) : (
-              <p className="text-xs text-[#8B929C] italic">Nhiều nghệ sĩ biểu diễn</p>
+              <p className="text-xs text-[#8B929C] italic">Various Artists</p>
             )}
           </div>
 
@@ -105,11 +108,11 @@ export const EventCard: React.FC<EventCardProps> = ({ event, onSelectEvent }) =>
         <div className="pt-3.5 border-t border-white/10 flex items-center justify-between gap-3">
           <div>
             <span className="text-[10px] text-[#8B929C] uppercase font-mono tracking-wider block">
-              Vé trên sàn từ
+              Tickets From
             </span>
             <div className="h-7 flex items-baseline">
               <span className="text-lg sm:text-xl font-black font-display text-white tabular-nums">
-                {event.minResalePrice ? formatVND(event.minResalePrice) : 'Liên hệ'}
+                {event.minResalePrice ? formatVND(event.minResalePrice) : 'Contact'}
               </span>
             </div>
           </div>
@@ -119,7 +122,7 @@ export const EventCard: React.FC<EventCardProps> = ({ event, onSelectEvent }) =>
             onClick={() => onSelectEvent(event.name)}
             className="h-10 px-4 bg-[#FF5A36] hover:bg-[#FF7252] active:scale-95 text-white font-bold font-display text-xs uppercase tracking-wider rounded-xl shadow-md transition-all flex items-center gap-1.5 cursor-pointer shrink-0"
           >
-            <span>Xem vé</span>
+            <span>View Tickets</span>
             <ArrowRight className="w-3.5 h-3.5" />
           </button>
         </div>

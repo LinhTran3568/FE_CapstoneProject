@@ -1,5 +1,5 @@
 import React from 'react';
-import { Music, Trophy, Theater, ArrowRight, Zap } from 'lucide-react';
+import { Music, Zap, Trophy, Theater, ArrowRight } from 'lucide-react';
 import { MarketplaceListingDto } from '@ticketshield/types';
 import { TicketCard } from './TicketCard';
 
@@ -14,43 +14,54 @@ export const CategoryEventsShowcase: React.FC<CategoryEventsShowcaseProps> = ({
   onBuy,
   onViewCategory,
 }) => {
-  // Filter listings by category keywords
-  const concertListings = listings.filter((item) => {
-    const title = (item.eventName || '').toLowerCase();
+  // Helper filter by category/keyword
+  const concertListings = listings.filter((l) => {
+    const title = (l.eventName || '').toLowerCase();
     return (
       title.includes('concert') ||
       title.includes('live') ||
+      title.includes('tour') ||
       title.includes('show') ||
-      title.includes('âm nhạc') ||
       title.includes('say hi') ||
       title.includes('tri âm')
     );
   });
 
-  const sportsListings = listings.filter((item) => {
-    const title = (item.eventName || '').toLowerCase();
+  const sportsListings = listings.filter((l) => {
+    const title = (l.eventName || '').toLowerCase();
     return (
-      title.includes('bóng đá') ||
       title.includes('derby') ||
-      title.includes('v-league') ||
-      title.includes('fc') ||
-      title.includes('thể thao')
+      title.includes('bóng đá') ||
+      title.includes('football') ||
+      title.includes('clb') ||
+      title.includes('v-league')
     );
   });
 
-  const theaterListings = listings.filter((item) => {
-    const title = (item.eventName || '').toLowerCase();
-    return title.includes('kịch') || title.includes('ngày xửa') || title.includes('vở kịch');
+  const theaterListings = listings.filter((l) => {
+    const title = (l.eventName || '').toLowerCase();
+    return (
+      title.includes('ngày xửa') ||
+      title.includes('kịch') ||
+      title.includes('theater') ||
+      title.includes('nhà hát') ||
+      title.includes('bến thành')
+    );
   });
 
-  const festivalListings = listings.filter((item) => {
-    const title = (item.eventName || '').toLowerCase();
-    return title.includes('festival') || title.includes('edm') || title.includes('rave');
+  const festivalListings = listings.filter((l) => {
+    const title = (l.eventName || '').toLowerCase();
+    return (
+      title.includes('festival') ||
+      title.includes('ravolution') ||
+      title.includes('edm') ||
+      title.includes('chông gai')
+    );
   });
 
   return (
     <div className="space-y-12 my-10">
-      {/* 1. CA NHẠC & CONCERT */}
+      {/* 1. CONCERTS & LIVE MUSIC */}
       {concertListings.length > 0 && (
         <div>
           <div className="flex items-center justify-between mb-5">
@@ -60,9 +71,9 @@ export const CategoryEventsShowcase: React.FC<CategoryEventsShowcaseProps> = ({
               </div>
               <div>
                 <h3 className="text-lg sm:text-xl font-bold font-display text-white">
-                  Ca Nhạc & Live Concert
+                  Concerts &amp; Live Music
                 </h3>
-                <p className="text-xs text-[#8B929C]">Các đêm diễn âm nhạc bùng nổ</p>
+                <p className="text-xs text-[#8B929C]">High-energy concerts and live performances</p>
               </div>
             </div>
 
@@ -71,7 +82,7 @@ export const CategoryEventsShowcase: React.FC<CategoryEventsShowcaseProps> = ({
               onClick={() => onViewCategory('CONCERT')}
               className="text-xs font-semibold text-[#FF5A36] hover:text-white flex items-center gap-1 transition-colors cursor-pointer"
             >
-              <span>Xem tất cả ({concertListings.length})</span>
+              <span>View all ({concertListings.length})</span>
               <ArrowRight className="w-3.5 h-3.5" />
             </button>
           </div>
@@ -84,7 +95,7 @@ export const CategoryEventsShowcase: React.FC<CategoryEventsShowcaseProps> = ({
         </div>
       )}
 
-      {/* 2. THỂ THAO & DERBY */}
+      {/* 2. SPORTS & TOURNAMENTS */}
       {sportsListings.length > 0 && (
         <div>
           <div className="flex items-center justify-between mb-5">
@@ -94,9 +105,9 @@ export const CategoryEventsShowcase: React.FC<CategoryEventsShowcaseProps> = ({
               </div>
               <div>
                 <h3 className="text-lg sm:text-xl font-bold font-display text-white">
-                  Thể Thao & Trận Đấu Đỉnh Cao
+                  Sports &amp; Major Matches
                 </h3>
-                <p className="text-xs text-[#8B929C]">Vé các giải đấu bóng đá và sự kiện thể thao</p>
+                <p className="text-xs text-[#8B929C]">Tickets for football tournaments and athletic events</p>
               </div>
             </div>
 
@@ -105,7 +116,7 @@ export const CategoryEventsShowcase: React.FC<CategoryEventsShowcaseProps> = ({
               onClick={() => onViewCategory('SPORTS')}
               className="text-xs font-semibold text-emerald-400 hover:text-white flex items-center gap-1 transition-colors cursor-pointer"
             >
-              <span>Xem tất cả ({sportsListings.length})</span>
+              <span>View all ({sportsListings.length})</span>
               <ArrowRight className="w-3.5 h-3.5" />
             </button>
           </div>
@@ -118,7 +129,7 @@ export const CategoryEventsShowcase: React.FC<CategoryEventsShowcaseProps> = ({
         </div>
       )}
 
-      {/* 3. SÂN KHẤU & KỊCH NGHỆ */}
+      {/* 3. THEATER & SHOWS */}
       {theaterListings.length > 0 && (
         <div>
           <div className="flex items-center justify-between mb-5">
@@ -128,9 +139,9 @@ export const CategoryEventsShowcase: React.FC<CategoryEventsShowcaseProps> = ({
               </div>
               <div>
                 <h3 className="text-lg sm:text-xl font-bold font-display text-white">
-                  Sân Khấu & Kịch Nghệ
+                  Theater &amp; Performing Arts
                 </h3>
-                <p className="text-xs text-[#8B929C]">Nhạc kịch, kịch nói và chương trình thiếu nhi</p>
+                <p className="text-xs text-[#8B929C]">Musicals, dramatic plays, and family shows</p>
               </div>
             </div>
 
@@ -139,7 +150,7 @@ export const CategoryEventsShowcase: React.FC<CategoryEventsShowcaseProps> = ({
               onClick={() => onViewCategory('THEATER')}
               className="text-xs font-semibold text-cyan-400 hover:text-white flex items-center gap-1 transition-colors cursor-pointer"
             >
-              <span>Xem tất cả ({theaterListings.length})</span>
+              <span>View all ({theaterListings.length})</span>
               <ArrowRight className="w-3.5 h-3.5" />
             </button>
           </div>
@@ -152,7 +163,7 @@ export const CategoryEventsShowcase: React.FC<CategoryEventsShowcaseProps> = ({
         </div>
       )}
 
-      {/* 4. FESTIVAL & EDM */}
+      {/* 4. FESTIVALS & EDM */}
       {festivalListings.length > 0 && (
         <div>
           <div className="flex items-center justify-between mb-5">
@@ -162,9 +173,9 @@ export const CategoryEventsShowcase: React.FC<CategoryEventsShowcaseProps> = ({
               </div>
               <div>
                 <h3 className="text-lg sm:text-xl font-bold font-display text-white">
-                  Lễ Hội & Festival EDM
+                  Festivals &amp; Electronic Music
                 </h3>
-                <p className="text-xs text-[#8B929C]">Âm nhạc điện tử và lễ hội ngoài trời</p>
+                <p className="text-xs text-[#8B929C]">EDM beats, outdoor festivals, and multi-day stages</p>
               </div>
             </div>
 
@@ -173,7 +184,7 @@ export const CategoryEventsShowcase: React.FC<CategoryEventsShowcaseProps> = ({
               onClick={() => onViewCategory('FESTIVAL')}
               className="text-xs font-semibold text-purple-400 hover:text-white flex items-center gap-1 transition-colors cursor-pointer"
             >
-              <span>Xem tất cả ({festivalListings.length})</span>
+              <span>View all ({festivalListings.length})</span>
               <ArrowRight className="w-3.5 h-3.5" />
             </button>
           </div>

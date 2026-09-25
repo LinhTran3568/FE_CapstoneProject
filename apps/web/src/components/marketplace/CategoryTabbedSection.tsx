@@ -11,12 +11,12 @@ interface CategoryTabItem {
 }
 
 const CATEGORY_TABS: CategoryTabItem[] = [
-  { id: 'ALL', label: 'Tất cả', icon: LayoutGrid },
-  { id: 'CONCERT', label: 'Ca nhạc & Concert', icon: Music },
-  { id: 'FESTIVAL', label: 'Festival & EDM', icon: Zap },
-  { id: 'SPORTS', label: 'Thể thao & Derby', icon: Trophy },
-  { id: 'THEATER', label: 'Sân khấu & Kịch', icon: Theater },
-  { id: 'WORKSHOP', label: 'Hội thảo', icon: GraduationCap },
+  { id: 'ALL', label: 'All Events', icon: LayoutGrid },
+  { id: 'CONCERT', label: 'Concerts & Live', icon: Music },
+  { id: 'FESTIVAL', label: 'Festivals & EDM', icon: Zap },
+  { id: 'SPORTS', label: 'Sports & Tournaments', icon: Trophy },
+  { id: 'THEATER', label: 'Theater & Shows', icon: Theater },
+  { id: 'WORKSHOP', label: 'Workshops & Talks', icon: GraduationCap },
 ];
 
 interface CategoryTabbedSectionProps {
@@ -43,9 +43,8 @@ export const CategoryTabbedSection: React.FC<CategoryTabbedSectionProps> = ({
           title.includes('concert') ||
           title.includes('live') ||
           title.includes('show') ||
-          title.includes('âm nhạc') ||
-          title.includes('say hi') ||
-          title.includes('tri âm')
+          title.includes('tour') ||
+          title.includes('tournée')
         );
       }
       if (selectedCategory === 'FESTIVAL') {
@@ -53,15 +52,15 @@ export const CategoryTabbedSection: React.FC<CategoryTabbedSectionProps> = ({
       }
       if (selectedCategory === 'SPORTS') {
         return (
-          title.includes('bóng đá') ||
+          title.includes('football') ||
           title.includes('derby') ||
           title.includes('v-league') ||
           title.includes('fc') ||
-          title.includes('thể thao')
+          title.includes('sports')
         );
       }
       if (selectedCategory === 'THEATER') {
-        return title.includes('kịch') || title.includes('ngày xửa') || title.includes('vở kịch');
+        return title.includes('theater') || title.includes('play') || title.includes('drama') || title.includes('musical');
       }
       return false;
     });
@@ -79,14 +78,14 @@ export const CategoryTabbedSection: React.FC<CategoryTabbedSectionProps> = ({
       {/* Header & Category Count */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5">
         <div>
-          <h3 className="text-xl sm:text-2xl font-bold font-display text-white">Khám Phá Theo Thể Loại</h3>
+          <h3 className="text-xl sm:text-2xl font-bold font-display text-white">Explore by Category</h3>
           <p className="text-xs text-[#8B929C]">
-            Chọn danh mục để xem các sự kiện và tổng số lượng vé đang có trên hệ thống
+            Browse categories to view events and verified tickets available on the marketplace
           </p>
         </div>
 
         <span className="text-xs font-mono font-semibold text-[#CBD5E1]">
-          Có <strong className="text-[#FF5A36]">{filteredEvents.length}</strong> sự kiện phù hợp
+          <strong className="text-[#FF5A36]">{filteredEvents.length}</strong> matching events
         </span>
       </div>
 
@@ -126,7 +125,7 @@ export const CategoryTabbedSection: React.FC<CategoryTabbedSectionProps> = ({
               whileHover={{ scale: 1.15 }}
               whileTap={{ scale: 0.92 }}
               onClick={() => handleScroll('left')}
-              aria-label="Cuộn sang trái"
+              aria-label="Scroll left"
               className="w-11 h-11 rounded-full bg-[#0E131F]/90 hover:bg-[#FF5A36] border border-white/20 hover:border-[#FF5A36] text-white flex items-center justify-center transition-colors shadow-2xl cursor-pointer backdrop-blur-md"
             >
               <ChevronLeft className="w-5 h-5" />
@@ -142,7 +141,7 @@ export const CategoryTabbedSection: React.FC<CategoryTabbedSectionProps> = ({
               whileHover={{ scale: 1.15 }}
               whileTap={{ scale: 0.92 }}
               onClick={() => handleScroll('right')}
-              aria-label="Cuộn sang phải"
+              aria-label="Scroll right"
               className="w-11 h-11 rounded-full bg-[#0E131F]/90 hover:bg-[#FF5A36] border border-white/20 hover:border-[#FF5A36] text-white flex items-center justify-center transition-colors shadow-2xl cursor-pointer backdrop-blur-md"
             >
               <ChevronRight className="w-5 h-5" />
@@ -167,8 +166,8 @@ export const CategoryTabbedSection: React.FC<CategoryTabbedSectionProps> = ({
           </div>
         ) : (
           <div className="py-16 bg-[#090C12]/70 border border-white/10 rounded-2xl text-center space-y-2">
-            <p className="text-sm font-semibold text-white">Chưa có sự kiện nào thuộc thể loại này</p>
-            <p className="text-xs text-[#8B929C]">Vui lòng chọn "Tất cả" hoặc thể loại khác để khám phá</p>
+            <p className="text-sm font-semibold text-white">No events found in this category</p>
+            <p className="text-xs text-[#8B929C]">Please choose "All Events" or select another category to explore</p>
           </div>
         )}
       </div>

@@ -213,16 +213,16 @@ export const MarketplacePage: React.FC = () => {
   const handleBuy = (listing: MarketplaceListingDto) => {
     const rawStatus = (listing.listingStatus || '').toLowerCase();
     if (rawStatus === 'transacting') {
-      showToast('Vé này hiện đang có người khác thực hiện giao dịch (giữ chỗ thanh toán). Vui lòng chọn vé khác hoặc quay lại sau!', 'warning');
+      showToast('This ticket is currently in a checkout session. Please choose another ticket or check back later!', 'warning');
       return;
     }
     if (rawStatus === 'sold') {
-      showToast('Vé này đã được bán thành công. Vui lòng chọn vé khác!', 'warning');
+      showToast('This ticket has already been sold. Please choose another ticket!', 'warning');
       return;
     }
 
     if (!isAuthenticated) {
-      showToast('Vui lòng đăng nhập để tiến hành đặt mua vé.', 'warning');
+      showToast('Please sign in to proceed with purchasing tickets.', 'warning');
       navigate('/login', {
         state: {
           from: `/marketplace?buy=${listing.listingId}`,
@@ -241,11 +241,11 @@ export const MarketplacePage: React.FC = () => {
     filters.sortBy !== 'newest';
 
   const CATEGORY_TABS = [
-    { id: 'ALL', label: 'Tất cả vé' },
-    { id: 'CONCERT', label: 'Ca nhạc & Concert' },
-    { id: 'FESTIVAL', label: 'Lễ hội & EDM' },
-    { id: 'SPORTS', label: 'Thể thao' },
-    { id: 'THEATER', label: 'Sân khấu kịch' },
+    { id: 'ALL', label: 'All Tickets' },
+    { id: 'CONCERT', label: 'Concerts & Live' },
+    { id: 'FESTIVAL', label: 'Festivals & EDM' },
+    { id: 'SPORTS', label: 'Sports' },
+    { id: 'THEATER', label: 'Theater & Arts' },
   ];
 
   return (
@@ -265,7 +265,7 @@ export const MarketplacePage: React.FC = () => {
             className="inline-flex items-center gap-2 text-xs font-semibold text-[#CBD5E1] hover:text-[#FF5A36] bg-[#090C12] hover:bg-[#121622] border border-white/10 hover:border-[#FF5A36]/40 px-4 py-2 rounded-xl transition-all cursor-pointer shadow-sm group"
           >
             <ArrowLeft className="w-4 h-4 text-[#8B929C] group-hover:-translate-x-1 group-hover:text-[#FF5A36] transition-all" />
-            <span>Quay lại Trang chủ</span>
+            <span>Back to Home</span>
           </button>
 
           {hasActiveFilters && (
@@ -274,7 +274,7 @@ export const MarketplacePage: React.FC = () => {
               onClick={handleResetFilters}
               className="text-xs text-[#8B929C] hover:text-[#FF5A36] transition-colors cursor-pointer"
             >
-              Xóa tất cả bộ lọc
+              Clear all filters
             </button>
           )}
         </div>
@@ -283,14 +283,14 @@ export const MarketplacePage: React.FC = () => {
         <div className="mb-6">
           <div className="flex items-center gap-3 mb-1.5">
             <h1 className="text-2xl sm:text-3xl font-extrabold font-display text-white tracking-tight">
-              Sàn Giao Dịch Vé
+              Ticket Marketplace
             </h1>
             <span className="px-3 py-1 rounded-full bg-[#FF5A36]/10 border border-[#FF5A36]/30 text-xs font-mono font-bold text-[#FF5A36]">
-              {filteredListings.length} vé khả dụng
+              {filteredListings.length} tickets available
             </span>
           </div>
           <p className="text-xs sm:text-sm text-[#8B929C]">
-            Khám phá và đặt mua vé sang tên chính chủ được bảo vệ bởi quỹ ký quỹ an toàn 24h
+            Discover and purchase verified tickets directly reissued by official organizers, protected by our 24-hour buyer funds guarantee
           </p>
         </div>
 
@@ -320,7 +320,7 @@ export const MarketplacePage: React.FC = () => {
             className="px-4 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all cursor-pointer bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/40 inline-flex items-center gap-1.5 shrink-0 ml-auto"
           >
             <MapPin className="w-3.5 h-3.5" />
-            <span>Sơ đồ sân khấu</span>
+            <span>Venue Seating Map</span>
           </button>
         </div>
 
@@ -335,7 +335,7 @@ export const MarketplacePage: React.FC = () => {
         {isLoading && (
           <div className="py-24 flex flex-col items-center justify-center gap-3 text-center">
             <Loader2 className="w-8 h-8 text-[#FF5A36] animate-spin" />
-            <p className="text-xs text-[#8B929C] font-mono">Đang tải danh sách vé...</p>
+            <p className="text-xs text-[#8B929C] font-mono">Loading tickets...</p>
           </div>
         )}
 
@@ -344,9 +344,9 @@ export const MarketplacePage: React.FC = () => {
             <div className="w-12 h-12 mx-auto rounded-full bg-rose-500/10 text-rose-400 flex items-center justify-center">
               <AlertCircle className="w-6 h-6" />
             </div>
-            <h3 className="text-base font-bold text-white">Không thể kết nối đến máy chủ</h3>
+            <h3 className="text-base font-bold text-white">Unable to connect to server</h3>
             <p className="text-xs text-[#8B929C] max-w-md mx-auto">
-              {error instanceof Error ? error.message : 'Vui lòng thử lại sau.'}
+              {error instanceof Error ? error.message : 'Please try again later.'}
             </p>
             <button
               onClick={() => refetch()}
@@ -354,7 +354,7 @@ export const MarketplacePage: React.FC = () => {
               className="px-4 py-2 bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 rounded-xl text-xs font-semibold inline-flex items-center gap-2 cursor-pointer transition-colors"
             >
               <RefreshCw className={`w-3.5 h-3.5 ${isFetching ? 'animate-spin' : ''}`} />
-              <span>Tải lại dữ liệu</span>
+              <span>Reload Data</span>
             </button>
           </div>
         )}
@@ -366,9 +366,9 @@ export const MarketplacePage: React.FC = () => {
               <Ticket className="w-7 h-7" />
             </div>
             <div className="space-y-1">
-              <h3 className="text-lg font-bold text-white">Không tìm thấy vé phù hợp</h3>
+              <h3 className="text-lg font-bold text-white">No matching tickets found</h3>
               <p className="text-xs text-[#8B929C] max-w-md mx-auto">
-                Hiện tại chưa có vé nào phù hợp với các tiêu chí tìm kiếm của bạn. Bạn có thể thử tìm kiếm từ khóa khác hoặc xóa bớt tiêu chí lọc.
+                Currently there are no tickets matching your search criteria. Try a different keyword or reset filters.
               </p>
             </div>
             {hasActiveFilters && (
@@ -377,7 +377,7 @@ export const MarketplacePage: React.FC = () => {
                 onClick={handleResetFilters}
                 className="px-5 py-2.5 bg-white/10 hover:bg-white/15 text-white rounded-xl text-xs font-semibold transition-colors cursor-pointer"
               >
-                Xóa tất cả tiêu chí lọc
+                Clear all filters
               </button>
             )}
           </div>
@@ -402,10 +402,10 @@ export const MarketplacePage: React.FC = () => {
                   className="px-3.5 py-2 rounded-xl bg-[#090C12] border border-white/10 text-xs font-semibold text-white disabled:opacity-30 disabled:cursor-not-allowed hover:bg-white/10 transition-colors inline-flex items-center gap-1 cursor-pointer"
                 >
                   <ChevronLeft className="w-4 h-4" />
-                  <span>Trang trước</span>
+                  <span>Previous</span>
                 </button>
                 <span className="text-xs font-mono text-[#8B929C]">
-                  Trang <strong className="text-white">{currentPage}</strong> /{' '}
+                  Page <strong className="text-white">{currentPage}</strong> /{' '}
                   {paginatedData.totalPages}
                 </span>
                 <button
@@ -416,7 +416,7 @@ export const MarketplacePage: React.FC = () => {
                   disabled={currentPage >= paginatedData.totalPages}
                   className="px-3.5 py-2 rounded-xl bg-[#090C12] border border-white/10 text-xs font-semibold text-white disabled:opacity-30 disabled:cursor-not-allowed hover:bg-white/10 transition-colors inline-flex items-center gap-1 cursor-pointer"
                 >
-                  <span>Trang sau</span>
+                  <span>Next</span>
                   <ChevronRight className="w-4 h-4" />
                 </button>
               </div>
@@ -435,7 +435,7 @@ export const MarketplacePage: React.FC = () => {
           queryClient.invalidateQueries({ queryKey: ['resale-listings'] });
           refetch();
           showToast(
-            `Đặt vé thành công! Mã đơn: ${orderData.orderId}. Vui lòng kiểm tra email và danh sách Vé Của Tôi.`,
+            `Ticket purchased successfully! Order ID: ${orderData.orderId}. Please check your email and My Tickets.`,
             'success'
           );
           navigate('/my-tickets');
@@ -448,7 +448,7 @@ export const MarketplacePage: React.FC = () => {
         onSelectZone={(zone) => {
           setSelectedCategory('ALL');
           setFilters((prev) => ({ ...prev, keyword: zone }));
-          showToast(`Đã lọc danh sách vé theo khu vực: ${zone}`, 'info');
+          showToast(`Filtered tickets by zone: ${zone}`, 'info');
         }}
       />
     </div>

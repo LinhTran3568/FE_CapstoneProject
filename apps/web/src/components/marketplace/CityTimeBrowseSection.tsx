@@ -11,19 +11,19 @@ interface CityItem {
 const CITIES: CityItem[] = [
   {
     id: 'HCM',
-    name: 'TP. Hồ Chí Minh',
+    name: 'Ho Chi Minh City',
     count: 38,
     imageUrl: 'https://images.unsplash.com/photo-1583417319070-4a69db38a482?auto=format&fit=crop&w=600&q=80',
   },
   {
     id: 'HN',
-    name: 'Hà Nội',
+    name: 'Hanoi',
     count: 26,
     imageUrl: 'https://images.unsplash.com/photo-1509042239860-f550ce710b93?auto=format&fit=crop&w=600&q=80',
   },
   {
     id: 'DN',
-    name: 'Đà Nẵng',
+    name: 'Da Nang',
     count: 12,
     imageUrl: 'https://images.unsplash.com/photo-1559592413-7cec4d0cae2b?auto=format&fit=crop&w=600&q=80',
   },
@@ -40,15 +40,15 @@ export const CityTimeBrowseSection: React.FC<CityTimeBrowseSectionProps> = ({
 }) => {
   return (
     <div className="my-12 space-y-10">
-      {/* 1. KHÁM PHÁ THEO ĐỊA ĐIỂM */}
+      {/* 1. BROWSE BY CITY */}
       <div>
         <div className="mb-5 flex items-center justify-between">
           <div>
             <h3 className="text-lg sm:text-xl font-bold font-display text-white flex items-center gap-2">
               <MapPin className="w-5 h-5 text-cyan-400" />
-              <span>Sự Kiện Theo Thành Phố</span>
+              <span>Events by City</span>
             </h3>
-            <p className="text-xs text-[#8B929C]">Khám phá các sự kiện đang diễn ra gần bạn</p>
+            <p className="text-xs text-[#8B929C]">Explore popular events taking place near you</p>
           </div>
         </div>
 
@@ -72,7 +72,7 @@ export const CityTimeBrowseSection: React.FC<CityTimeBrowseSectionProps> = ({
                   {city.name}
                 </h4>
                 <p className="text-xs text-[#CBD5E1] font-mono mt-0.5">
-                  {city.count} sự kiện & vé khả dụng
+                  {city.count} events &amp; tickets available
                 </p>
               </div>
             </button>
@@ -80,14 +80,14 @@ export const CityTimeBrowseSection: React.FC<CityTimeBrowseSectionProps> = ({
         </div>
       </div>
 
-      {/* 2. KHÁM PHÁ THEO THỜI GIAN */}
+      {/* 2. BROWSE BY TIME */}
       <div>
         <div className="mb-5">
           <h3 className="text-lg sm:text-xl font-bold font-display text-white flex items-center gap-2">
             <Calendar className="w-5 h-5 text-[#FF5A36]" />
-            <span>Sắp Diễn Ra</span>
+            <span>Upcoming Schedule</span>
           </h3>
-          <p className="text-xs text-[#8B929C]">Chọn mốc thời gian để tìm vé phù hợp lịch trình</p>
+          <p className="text-xs text-[#8B929C]">Select a time frame to find events matching your calendar</p>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -102,10 +102,10 @@ export const CityTimeBrowseSection: React.FC<CityTimeBrowseSectionProps> = ({
               </div>
               <div>
                 <h4 className="text-base font-bold text-white group-hover:text-[#FF5A36] transition-colors">
-                  Trong 7 Ngày Tới
+                  Next 7 Days
                 </h4>
                 <p className="text-xs text-[#8B929C] mt-0.5">
-                  Các đêm diễn, show diễn ra trong tuần này
+                  Shows and concerts taking place this week
                 </p>
               </div>
             </div>
@@ -123,10 +123,10 @@ export const CityTimeBrowseSection: React.FC<CityTimeBrowseSectionProps> = ({
               </div>
               <div>
                 <h4 className="text-base font-bold text-white group-hover:text-emerald-400 transition-colors">
-                  Trong Tháng Này
+                  This Month
                 </h4>
                 <p className="text-xs text-[#8B929C] mt-0.5">
-                  Tất cả sự kiện và concert trong tháng hiện tại
+                  All events and live performances this month
                 </p>
               </div>
             </div>

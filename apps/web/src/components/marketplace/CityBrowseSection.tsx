@@ -11,19 +11,19 @@ interface CityItem {
 const CITIES: CityItem[] = [
   {
     id: 'HCM',
-    name: 'TP. Hồ Chí Minh',
+    name: 'Ho Chi Minh City',
     count: 38,
     imageUrl: 'https://images.unsplash.com/photo-1583417319070-4a69db38a482?auto=format&fit=crop&w=600&q=80',
   },
   {
     id: 'HN',
-    name: 'Hà Nội',
+    name: 'Hanoi',
     count: 26,
     imageUrl: 'https://images.unsplash.com/photo-1509042239860-f550ce710b93?auto=format&fit=crop&w=600&q=80',
   },
   {
     id: 'DN',
-    name: 'Đà Nẵng',
+    name: 'Da Nang',
     count: 12,
     imageUrl: 'https://images.unsplash.com/photo-1559592413-7cec4d0cae2b?auto=format&fit=crop&w=600&q=80',
   },
@@ -40,9 +40,9 @@ export const CityBrowseSection: React.FC<CityBrowseSectionProps> = ({ onSelectCi
         <div>
           <h3 className="text-lg sm:text-xl font-bold font-display text-white flex items-center gap-2">
             <MapPin className="w-5 h-5 text-cyan-400" />
-            <span>Sự Kiện Theo Thành Phố</span>
+            <span>Events by City</span>
           </h3>
-          <p className="text-xs text-[#8B929C]">Khám phá các sự kiện đang diễn ra tại các thành phố lớn</p>
+          <p className="text-xs text-[#8B929C]">Explore popular events taking place in major cities</p>
         </div>
       </div>
 
@@ -66,7 +66,7 @@ export const CityBrowseSection: React.FC<CityBrowseSectionProps> = ({ onSelectCi
                 {city.name}
               </h4>
               <p className="text-xs text-[#CBD5E1] font-mono mt-0.5">
-                {city.count} sự kiện & vé khả dụng
+                {city.count} events &amp; tickets available
               </p>
             </div>
           </button>

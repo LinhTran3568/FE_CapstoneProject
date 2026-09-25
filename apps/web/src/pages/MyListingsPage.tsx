@@ -38,7 +38,7 @@ interface FilterTabOption {
 const FILTER_TABS: FilterTabOption[] = [
   { key: 'all', label: 'ALL' },
   { key: 'Verified', label: 'ON SALE' },
-  { key: 'Transacting', label: 'IN ESCROW' },
+  { key: 'Transacting', label: '24H PROTECTION' },
   { key: 'Sold', label: 'SOLD' },
   { key: 'Cancelled', label: 'CANCELLED' },
   { key: 'Expired', label: 'EXPIRED' },
@@ -47,7 +47,7 @@ const FILTER_TABS: FilterTabOption[] = [
 const TOAST_CANCEL_SUCCESS = 'Listing cancelled successfully. The original ticket has been unlocked by the Organizer.';
 const TOAST_CANCEL_ERROR = 'Could not contact the organizer to unlock the ticket. Please try again later.';
 const ESCROW_LOCKED_NOTICE =
-  'Tiền đang được bảo vệ trong quỹ Escrow LOCKED - Sẽ giải ngân sau 24h';
+  'Funds held safely under 24-hour protection — Automatic payout upon completion';
 
 /** Only listings nobody has bought yet can be cancelled (backend rule). */
 const canCancel = (listing: SellerListingDto) => listing.listingStatus === 'Verified';
@@ -387,16 +387,16 @@ export const MyListingsPage: React.FC = () => {
                             <div className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center gap-2 text-xs text-amber-300">
                               <Clock className="w-4 h-4 text-amber-400 shrink-0 animate-pulse" />
                               <div className="leading-tight">
-                                <span className="font-bold text-amber-400">Đang giữ ký quỹ Escrow 2 phút: </span>
-                                <span>Tiền bán vé ({formatVND(listing.netSellerPayout || listing.resalePrice)}) sẽ tự động giải ngân về tài khoản ngân hàng sau 2 phút.</span>
+                                <span className="font-bold text-amber-400">Under 24-Hour Protection: </span>
+                                <span>Ticket sale payout ({formatVND(listing.netSellerPayout || listing.resalePrice)}) will be automatically disbursed to your bank account after 2 minutes.</span>
                               </div>
                             </div>
                           ) : (
                             <div className="p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center gap-2 text-xs text-emerald-300">
                               <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
                               <div className="leading-tight">
-                                <span className="font-bold text-emerald-400">Đã giải ngân thành công: </span>
-                                <span>Đã chuyển {formatVND(listing.netSellerPayout || listing.resalePrice)} về tài khoản ngân hàng {listing.payoutBankInfo || 'liên kết'}.</span>
+                                <span className="font-bold text-emerald-400">Successfully Disbursed: </span>
+                                <span>Transferred {formatVND(listing.netSellerPayout || listing.resalePrice)} to linked bank account ({listing.payoutBankInfo || 'linked'}).</span>
                               </div>
                             </div>
                           )}
@@ -429,7 +429,7 @@ export const MyListingsPage: React.FC = () => {
                           type="button"
                           onClick={() => handleCopyLink(listing)}
                           className="px-3.5 py-2 bg-white/[0.05] hover:bg-white/[0.1] border border-white/10 hover:border-[#FF5A36]/50 text-[#F5F5F5] rounded-xl transition-all flex items-center gap-1.5 text-xs font-bold font-mono tracking-wider cursor-pointer active:scale-95 shadow-sm"
-                          title="Sao chép link riêng tư gửi cho người mua"
+                          title="Copy private link to send to buyer"
                         >
                           {copiedListingId === listing.listingId ? (
                             <>
@@ -588,7 +588,7 @@ const ListingStatusPill: React.FC<{ status: ListingStatus }> = ({ status }) => {
       return (
         <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold uppercase tracking-wider bg-amber-500/10 border border-amber-500/30 text-amber-400">
           <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
-          <span>IN ESCROW</span>
+          <span>24H PROTECTION</span>
         </span>
       );
     case 'Sold':
@@ -626,7 +626,7 @@ const EmptyState: React.FC<{ filter: StatusFilter; onReset: () => void }> = ({ f
   const meta: Record<StatusFilter, { title: string; desc: string; showCta: boolean }> = {
     all: {
       title: 'No tickets listed yet',
-      desc: 'Verify and list your official concert tickets to start selling with 100% Escrow Protection.',
+      desc: 'Verify and list your official tickets with 100% funds protection.',
       showCta: true,
     },
     Verified: {
@@ -635,8 +635,8 @@ const EmptyState: React.FC<{ filter: StatusFilter; onReset: () => void }> = ({ f
       showCta: true,
     },
     Transacting: {
-      title: 'No transactions in escrow',
-      desc: 'Tickets currently in progress with buyer payments held in Escrow will appear here.',
+      title: 'No listings currently under protection',
+      desc: 'Tickets currently undergoing 24-hour buyer funds protection will appear here.',
       showCta: false,
     },
     Sold: {

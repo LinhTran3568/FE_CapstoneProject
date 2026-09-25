@@ -14,14 +14,14 @@ export const UpcomingTimeSection: React.FC<UpcomingTimeSectionProps> = ({ onSele
             <Calendar className="w-4 h-4" />
           </div>
           <div>
-            <h3 className="text-lg sm:text-xl font-bold font-display text-white">Sự Kiện Sắp Diễn Ra</h3>
-            <p className="text-xs text-[#8B929C]">Chọn mốc thời gian để tìm vé phù hợp lịch trình của bạn</p>
+            <h3 className="text-lg sm:text-xl font-bold font-display text-white">Upcoming Events</h3>
+            <p className="text-xs text-[#8B929C]">Select a time frame to find tickets that fit your schedule</p>
           </div>
         </div>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        {/* 7 ngày tới */}
+        {/* Next 7 Days */}
         <button
           type="button"
           onClick={() => onSelectTimeRange('upcoming')}
@@ -34,21 +34,21 @@ export const UpcomingTimeSection: React.FC<UpcomingTimeSectionProps> = ({ onSele
             <div>
               <div className="flex items-center gap-2">
                 <h4 className="text-sm sm:text-base font-bold text-white group-hover:text-[#FF5A36] transition-colors">
-                  Trong 7 Ngày Tới
+                  Next 7 Days
                 </h4>
                 <span className="px-2 py-0.5 rounded-full bg-[#FF5A36]/20 text-[#FF5A36] text-[10px] font-mono font-bold">
                   HOT
                 </span>
               </div>
               <p className="text-xs text-[#8B929C] mt-0.5">
-                Các đêm diễn và show sắp bắt đầu trong tuần này
+                Concerts and live shows taking place this week
               </p>
             </div>
           </div>
           <ChevronRight className="w-5 h-5 text-[#8B929C] group-hover:text-white group-hover:translate-x-1 transition-all shrink-0" />
         </button>
 
-        {/* Trong tháng này */}
+        {/* This Month */}
         <button
           type="button"
           onClick={() => onSelectTimeRange('this-month')}
@@ -60,10 +60,10 @@ export const UpcomingTimeSection: React.FC<UpcomingTimeSectionProps> = ({ onSele
             </div>
             <div>
               <h4 className="text-sm sm:text-base font-bold text-white group-hover:text-emerald-400 transition-colors">
-                Trong Tháng Này
+                This Month
               </h4>
               <p className="text-xs text-[#8B929C] mt-0.5">
-                Tất cả các concert và giải đấu trong tháng
+                All upcoming concerts and tournaments this month
               </p>
             </div>
           </div>

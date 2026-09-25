@@ -160,13 +160,13 @@ export const TrendingBannerSlider: React.FC<TrendingBannerSliderProps> = ({ onSe
               <div className="flex items-center gap-2 mb-3">
                 <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#FF5A36]/90 backdrop-blur-md text-white font-mono text-[11px] font-bold uppercase tracking-wider shadow-lg">
                   <Sparkles className="w-3 h-3" />
-                  Sự kiện nổi bật
+                  Featured Event
                 </span>
 
                 {currentSlide.totalAvailableListings > 0 && (
                   <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-black/60 backdrop-blur-md border border-white/20 text-emerald-400 font-mono text-[11px] font-semibold">
                     <Tag className="w-3 h-3" />
-                    {currentSlide.totalAvailableListings} vé đang bán
+                    {currentSlide.totalAvailableListings} tickets available
                   </span>
                 )}
               </div>
@@ -199,7 +199,7 @@ export const TrendingBannerSlider: React.FC<TrendingBannerSliderProps> = ({ onSe
 
                 {currentSlide.minResalePrice && (
                   <div className="flex items-center gap-1.5">
-                    <span className="text-[#94A3B8]">Vé từ:</span>
+                    <span className="text-[#94A3B8]">Tickets from:</span>
                     <span className="text-base sm:text-lg font-black text-[#20C997] font-display">
                       {formatVND(currentSlide.minResalePrice)}
                     </span>
@@ -214,7 +214,7 @@ export const TrendingBannerSlider: React.FC<TrendingBannerSliderProps> = ({ onSe
                   onClick={handleCtaClick}
                   className="h-11 px-6 bg-gradient-to-r from-[#FF5A36] to-[#FF7252] hover:brightness-110 active:scale-95 text-white font-bold font-display text-xs uppercase tracking-wider rounded-xl shadow-[0_4px_20px_rgba(255,90,54,0.4)] transition-all flex items-center gap-2 cursor-pointer"
                 >
-                  <span>Xem vé sự kiện</span>
+                  <span>View Event Tickets</span>
                   <ArrowRight className="w-4 h-4" />
                 </button>
               </div>

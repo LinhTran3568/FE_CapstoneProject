@@ -47,10 +47,10 @@ export const TicketShieldTrustBadge: React.FC<TicketShieldTrustBadgeProps> = ({
           className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-950/60 border border-emerald-500/40 text-emerald-400 hover:bg-emerald-900/80 hover:border-emerald-400 transition-all duration-200 shadow-[0_0_12px_rgba(16,185,129,0.15)] cursor-pointer group"
         >
           <ShieldCheck className="w-3.5 h-3.5 text-emerald-400 group-hover:scale-110 transition-transform duration-200" />
-          <span>TicketShield Bảo Chứng</span>
+          <span>TicketShield Verified</span>
           {isPrivate && (
             <span className="ml-0.5 px-1.5 py-0.2 bg-purple-950/80 text-purple-300 border border-purple-500/30 rounded text-[10px] uppercase font-mono">
-              Private P2P
+              Private Sale
             </span>
           )}
           <Info className="w-3 h-3 text-emerald-500/70 group-hover:text-emerald-300 ml-0.5" />
@@ -62,7 +62,7 @@ export const TicketShieldTrustBadge: React.FC<TicketShieldTrustBadgeProps> = ({
             <div className="flex items-center justify-between pb-2 border-b border-emerald-500/20">
               <div className="flex items-center gap-1.5 font-bold text-emerald-400">
                 <ShieldCheck className="w-4 h-4 text-emerald-400" />
-                <span>Bảo Chứng Kép TicketShield</span>
+                <span>TicketShield Dual Guarantee</span>
               </div>
               <span className="text-[10px] font-mono bg-emerald-500/20 text-emerald-300 px-1.5 py-0.5 rounded border border-emerald-500/30">100% Safe</span>
             </div>
@@ -73,9 +73,9 @@ export const TicketShieldTrustBadge: React.FC<TicketShieldTrustBadgeProps> = ({
                   <Lock className="w-3 h-3" />
                 </div>
                 <div>
-                  <div className="font-semibold text-white">Ký Quỹ Tài Chính Escrow</div>
+                  <div className="font-semibold text-white">24-Hour Funds Protection</div>
                   <div className="text-gray-300 text-[11px] leading-tight mt-0.5">
-                    Tiền thanh toán đóng băng an toàn. Chỉ giải ngân khi vé được chuyển giao chính chủ.
+                    Your payment is safely held. The seller only receives payout after your new official ticket is confirmed.
                   </div>
                 </div>
               </div>
@@ -85,9 +85,9 @@ export const TicketShieldTrustBadge: React.FC<TicketShieldTrustBadgeProps> = ({
                   <RefreshCw className="w-3 h-3" />
                 </div>
                 <div>
-                  <div className="font-semibold text-white">Sang Tên gRPC Trực Tiếp BTC</div>
+                  <div className="font-semibold text-white">Official Organizer Re-issuance</div>
                   <div className="text-gray-300 text-[11px] leading-tight mt-0.5">
-                    Hủy mã vé cũ của người bán, Ban Tổ Chức phát hành VÉ MỚI 100% đứng tên người mua.
+                    The seller's old ticket is invalidated, and the organizer issues a brand new official ticket in your name.
                   </div>
                 </div>
               </div>
@@ -109,7 +109,7 @@ export const TicketShieldTrustBadge: React.FC<TicketShieldTrustBadgeProps> = ({
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <span className="font-bold text-white tracking-wide text-sm sm:text-base">Giao Dịch Bảo Chứng TicketShield</span>
+                <span className="font-bold text-white tracking-wide text-sm sm:text-base">TicketShield Verified Transaction</span>
                 {isPrivate && (
                   <span className="px-2 py-0.5 bg-purple-500/20 text-purple-300 border border-purple-500/40 rounded-full text-xs font-mono font-semibold">
                     Private Resale
@@ -117,7 +117,7 @@ export const TicketShieldTrustBadge: React.FC<TicketShieldTrustBadgeProps> = ({
                 )}
               </div>
               <p className="text-xs text-emerald-300/80 mt-0.5">
-                Ký quỹ Escrow bảo hiểm tiền 100% &amp; Sang tên chính chủ trực tiếp qua Ban Tổ Chức.
+                100% 24-hour buyer protection &amp; direct organizer re-issuance.
               </p>
             </div>
           </div>
@@ -127,7 +127,7 @@ export const TicketShieldTrustBadge: React.FC<TicketShieldTrustBadgeProps> = ({
             onClick={togglePopover}
             className="self-end sm:self-auto inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 hover:bg-emerald-500/30 transition-all duration-200"
           >
-            <span>Chi tiết bảo chứng</span>
+            <span>Guarantee Details</span>
             <ChevronRight className="w-3.5 h-3.5" />
           </button>
         </div>
@@ -148,16 +148,16 @@ export const TicketShieldTrustBadge: React.FC<TicketShieldTrustBadgeProps> = ({
               <ShieldCheck className="w-4 h-4" />
             </div>
             <span className="font-bold text-sm text-white group-hover:text-emerald-300 transition-colors">
-              Vé Bảo Chứng TicketShield
+              TicketShield Verified Ticket
             </span>
           </div>
           {isPrivate ? (
             <span className="px-2 py-0.5 bg-purple-500/20 text-purple-300 border border-purple-500/40 rounded-md text-[11px] font-mono">
-              Giao dịch Riêng tư
+              Private Resale
             </span>
           ) : (
             <span className="px-2 py-0.5 bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 rounded-md text-[11px] font-mono">
-              Công Khai Chợ Vé
+              Public Marketplace
             </span>
           )}
         </div>
@@ -165,11 +165,11 @@ export const TicketShieldTrustBadge: React.FC<TicketShieldTrustBadgeProps> = ({
         <div className="grid grid-cols-2 gap-2 text-xs text-gray-300 mt-2 pt-2 border-t border-gray-800">
           <div className="flex items-center gap-1.5 text-emerald-400/90 font-medium">
             <Lock className="w-3.5 h-3.5 flex-shrink-0" />
-            <span>Ký Quỹ Escrow An Toàn</span>
+            <span>24-Hour Protection</span>
           </div>
           <div className="flex items-center gap-1.5 text-cyan-400/90 font-medium">
             <Zap className="w-3.5 h-3.5 flex-shrink-0" />
-            <span>Sang Tên gRPC BTC 100%</span>
+            <span>Direct Re-issuance 100%</span>
           </div>
         </div>
       </div>
@@ -180,7 +180,7 @@ export const TicketShieldTrustBadge: React.FC<TicketShieldTrustBadgeProps> = ({
           <div className="flex items-center justify-between pb-2 border-b border-gray-800">
             <div className="font-bold text-sm text-emerald-400 flex items-center gap-1.5">
               <ShieldCheck className="w-4 h-4" />
-              <span>Quy Trình Bảo Chứng Độc Quyền</span>
+              <span>Exclusive Fan Guarantee</span>
             </div>
             <button
               onClick={() => setIsOpen(false)}
@@ -194,20 +194,20 @@ export const TicketShieldTrustBadge: React.FC<TicketShieldTrustBadgeProps> = ({
             <div className="p-2.5 bg-emerald-950/40 border border-emerald-500/30 rounded-lg">
               <div className="flex items-center gap-1.5 font-semibold text-emerald-300 mb-1">
                 <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-                <span>1. Bảo hiểm Tài chính Ký quỹ Escrow</span>
+                <span>1. 24-Hour Buyer Funds Protection</span>
               </div>
               <p className="text-gray-300 leading-relaxed text-[11px]">
-                Người mua thanh toán tiền vào tài khoản Escrow đóng băng. Người bán chỉ nhận được tiền giải ngân sau khi Ban Tổ Chức xác nhận sang tên vé thành công.
+                Your payment is held safely for 24 hours. The seller only receives payout after event organizers confirm your new ticket.
               </p>
             </div>
 
             <div className="p-2.5 bg-cyan-950/40 border border-cyan-500/30 rounded-lg">
               <div className="flex items-center gap-1.5 font-semibold text-cyan-300 mb-1">
                 <RefreshCw className="w-3.5 h-3.5 text-cyan-400" />
-                <span>2. gRPC Sang tên Vé Chính chủ 100%</span>
+                <span>2. Official Organizer Direct Re-issuance</span>
               </div>
               <p className="text-gray-300 leading-relaxed text-[11px]">
-                TicketShield kết nối gRPC trực tiếp với dữ liệu Ban Tổ Chức. Mã vé cũ của người bán bị hủy hoàn toàn, người mua nhận vé MỚI 100% mang thông tin chính chủ.
+                TicketShield connects directly with event organizers. The seller's previous barcode is canceled, and you receive a fresh official ticket under your name.
               </p>
             </div>
           </div>
