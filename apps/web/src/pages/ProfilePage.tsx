@@ -37,7 +37,7 @@ export const ProfilePage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'profile' | 'listings' | 'tickets' | 'wallet'>('profile');
 
   const [fullName, setFullName] = useState(user?.fullName || '');
-  const [phoneNumber, setPhoneNumber] = useState(user?.phoneNumber || '0901234567');
+  const [phoneNumber, setPhoneNumber] = useState(user?.phoneNumber || '');
   const [isSaving, setIsSaving] = useState(false);
 
   // Bank Accounts Management State (FE-3.1.2)
@@ -49,12 +49,14 @@ export const ProfilePage: React.FC = () => {
     user?.role === 'RESELLER' || 
     (user?.role as string) === 'SELLER';
 
-  // Fetch Linked Seller Bank Accounts from Backend API
+  // Fetch Linked Seller Bank Accounts & Sync profile data from Backend API
   useEffect(() => {
     if (user) {
+      setFullName(user.fullName || '');
+      setPhoneNumber(user.phoneNumber || '');
       fetchBankAccounts();
     }
-  }, [user]);
+  }, [user?.id, user?.fullName, user?.phoneNumber]);
 
   const fetchBankAccounts = async () => {
     try {
@@ -168,7 +170,7 @@ export const ProfilePage: React.FC = () => {
                   <Mail className="w-3.5 h-3.5 text-[#FF5A36]" /> {user.email}
                 </span>
                 <span className="flex items-center gap-1.5">
-                  <Phone className="w-3.5 h-3.5 text-cyan-400" /> {user.phoneNumber || '0901234567'}
+                  <Phone className="w-3.5 h-3.5 text-cyan-400" /> {user.phoneNumber || 'Chưa cập nhật'}
                 </span>
                 <span className="flex items-center gap-1.5 text-emerald-400">
                   <ShieldCheck className="w-3.5 h-3.5" /> Định Danh KYC Cấp 2
@@ -326,7 +328,8 @@ export const ProfilePage: React.FC = () => {
                     type="text"
                     value={phoneNumber}
                     onChange={(e) => setPhoneNumber(e.target.value)}
-                    className="w-full bg-[#05070A] border border-white/15 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-[#FF5A36]"
+                    placeholder="VD: 0912345678"
+                    className="w-full bg-[#05070A] border border-white/15 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-[#FF5A36] placeholder:text-gray-600"
                   />
                 </div>
 
