@@ -33,7 +33,7 @@ export interface AuthResponse {
 
 const mapBackendUserToFE = (dto: BackendAuthResult | BackendUserProfile): User => {
   const profile = (dto as BackendAuthResult).user || (dto as BackendUserProfile);
-  const userId = profile.userId || (dto as BackendAuthResult).userId || '';
+  const userId = profile.userId || profile.id || (dto as BackendAuthResult).userId || '';
   const email = profile.email || (dto as BackendAuthResult).email || '';
   const fullName = profile.fullName || (dto as BackendAuthResult).fullName || '';
   const role = profile.role || (dto as BackendAuthResult).role || 'BUYER';
