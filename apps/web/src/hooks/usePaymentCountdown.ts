@@ -5,6 +5,7 @@ export interface UsePaymentCountdownOptions {
   durationSeconds?: number;
   onExpire?: () => void;
   enabled?: boolean;
+  listingId?: string;
 }
 
 export interface UsePaymentCountdownResult {
@@ -22,6 +23,7 @@ export const usePaymentCountdown = ({
   durationSeconds = 600,
   onExpire,
   enabled = true,
+  listingId,
 }: UsePaymentCountdownOptions): UsePaymentCountdownResult => {
   const totalDurationMsRef = useRef(durationSeconds * 1000);
   const targetTimeRef = useRef<number | null>(null);
@@ -35,14 +37,36 @@ export const usePaymentCountdown = ({
   // Initialize or re-anchor the target timestamp
   const calculateTargetTime = useCallback(() => {
     totalDurationMsRef.current = (durationSeconds || 600) * 1000;
+    
+    // 1. Prioritize explicit unlockAt timestamp from backend
     if (unlockAt) {
       const parsed = new Date(unlockAt).getTime();
       if (!Number.isNaN(parsed) && parsed > 0) {
+        if (listingId && typeof window !== 'undefined') {
+          sessionStorage.setItem(`ticket_hold_target_${listingId}`, parsed.toString());
+        }
         return parsed;
       }
     }
-    return Date.now() + totalDurationMsRef.current;
-  }, [unlockAt, durationSeconds]);
+
+    // 2. Fallback to sessionStorage persisted timestamp to prevent reset on page navigation
+    if (listingId && typeof window !== 'undefined') {
+      const saved = sessionStorage.getItem(`ticket_hold_target_${listingId}`);
+      if (saved) {
+        const parsedSaved = parseInt(saved, 10);
+        if (!Number.isNaN(parsedSaved) && parsedSaved > Date.now() - 60000) {
+          return parsedSaved;
+        }
+      }
+    }
+
+    // 3. Generate new target time and persist if listingId is available
+    const target = Date.now() + totalDurationMsRef.current;
+    if (listingId && typeof window !== 'undefined') {
+      sessionStorage.setItem(`ticket_hold_target_${listingId}`, target.toString());
+    }
+    return target;
+  }, [unlockAt, durationSeconds, listingId]);
 
   const resetTimer = useCallback(() => {
     targetTimeRef.current = calculateTargetTime();

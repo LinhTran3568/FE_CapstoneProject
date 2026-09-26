@@ -28,8 +28,10 @@ export const TicketCard: React.FC<TicketCardProps> = ({
 
   // Realtime countdown hook for transacting listings (10-min hold duration)
   const countdown = usePaymentCountdown({
+    unlockAt: listing.unlockAt,
     durationSeconds: 600,
     enabled: isTransacting,
+    listingId: listing.listingId,
   });
 
   // Dynamic Zone styling inherited from user design

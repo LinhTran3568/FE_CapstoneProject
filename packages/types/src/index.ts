@@ -275,6 +275,7 @@ export interface ResaleListingDetailDto {
   listingStatus: ListingStatus;
   sellerId: string;
   sellerFullName: string;
+  unlockAt?: string | null;
   createdAt: string;
 }
 

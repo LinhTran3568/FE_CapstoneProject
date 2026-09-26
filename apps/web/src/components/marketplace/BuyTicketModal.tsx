@@ -80,6 +80,7 @@ export const BuyTicketModal: React.FC<BuyTicketModalProps> = ({
     durationSeconds: initialDuration,
     enabled: Boolean(holdData) && !paidHandledRef.current,
     onExpire: handleTimerExpire,
+    listingId: listing?.listingId,
   });
 
   // SignalR Realtime Payment Notification Handler
