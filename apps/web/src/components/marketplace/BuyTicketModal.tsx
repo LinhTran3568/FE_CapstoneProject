@@ -1,18 +1,18 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
   X,
-  Clock,
-  QrCode,
   ShieldCheck,
   Check,
-  Sparkles,
-  Copy,
-  CheckCircle2,
   AlertTriangle,
-  RefreshCw,
-  ExternalLink,
+  RotateCw,
   Info,
   Lock,
+  ArrowRight,
+  Shield,
+  Tag,
+  CreditCard,
+  User,
 } from 'lucide-react';
 import { MarketplaceListingDto, HoldListingForPurchaseResponse } from '@ticketshield/types';
 import { resaleListingsApi } from '@ticketshield/api-client';
@@ -21,6 +21,13 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '../../stores/authStore';
 import { useUIStore } from '../../stores/uiStore';
 import { usePaymentStatus } from '../../hooks/usePaymentStatus';
+import { usePaymentCountdown } from '../../hooks/usePaymentCountdown';
+
+import { PaymentCountdownBar } from './checkout/PaymentCountdownBar';
+import { VietQrPanel } from './checkout/VietQrPanel';
+import { BankTransferDetails } from './checkout/BankTransferDetails';
+import { CheckoutSkeleton } from './checkout/CheckoutSkeleton';
+import { PaymentStatusView } from './checkout/PaymentStatusView';
 
 interface BuyTicketModalProps {
   listing: MarketplaceListingDto | null;
@@ -39,7 +46,7 @@ export const BuyTicketModal: React.FC<BuyTicketModalProps> = ({
   const { user } = useAuthStore();
   const { showToast } = useUIStore();
 
-  // Buyer Info Form State
+  // Step 1: Buyer Info Form State
   const [fullName, setFullName] = useState(user?.fullName || '');
   const [phone, setPhone] = useState(user?.phoneNumber || '');
   const [email, setEmail] = useState(user?.email || '');
@@ -48,77 +55,68 @@ export const BuyTicketModal: React.FC<BuyTicketModalProps> = ({
   const [discountAmount, setDiscountAmount] = useState(0);
   const [couponApplied, setCouponApplied] = useState(false);
 
-  // Hold API & VietQR State
+  // Step 2: Hold Transaction State
   const [isHolding, setIsHolding] = useState(false);
   const [holdData, setHoldData] = useState<HoldListingForPurchaseResponse | null>(null);
+  const [holdError, setHoldError] = useState<string | null>(null);
 
-  // Countdown & Timer State
-  const [timeLeft, setTimeLeft] = useState(600); // Default 600s (10 mins)
-  const [isExpired, setIsExpired] = useState(false);
+  // Verification & Status Handlers
+  const [isVerifyingManual, setIsVerifyingManual] = useState(false);
   const [pollStopped, setPollStopped] = useState(false);
   const paidHandledRef = useRef(false);
   const pollErrorToastedRef = useRef(false);
 
-  // Copy Feedback Indicators
-  const [copiedType, setCopiedType] = useState<'amount' | 'reference' | 'account' | null>(null);
+  // Countdown timer hook
+  const targetUnlockTime = holdData?.unlockAt || null;
+  const initialDuration = holdData?.holdDurationSeconds || 600;
 
-  const pollEnabled = isOpen && Boolean(holdData) && !isExpired && !pollStopped;
-  const { data: paymentStatus, isError, error } = usePaymentStatus(listing?.listingId, pollEnabled);
+  const handleTimerExpire = useCallback(() => {
+    showToast('Thời gian giữ vé ký quỹ (10 phút) đã hết hạn. Vui lòng thử lại!', 'warning');
+  }, [showToast]);
 
-  // Sync user profile when available
+  const countdown = usePaymentCountdown({
+    unlockAt: targetUnlockTime,
+    durationSeconds: initialDuration,
+    enabled: Boolean(holdData) && !paidHandledRef.current,
+    onExpire: handleTimerExpire,
+  });
+
+  // Backend Payment Status Polling
+  const pollEnabled = isOpen && Boolean(holdData) && !countdown.isExpired && !pollStopped;
+  const { data: paymentStatus, isError: isPollError, error: pollError } = usePaymentStatus(
+    listing?.listingId,
+    pollEnabled
+  );
+
+  // Sync user profile data when auth changes
   useEffect(() => {
     if (user) {
-      if (user.fullName) setFullName(user.fullName);
-      if (user.phoneNumber) setPhone(user.phoneNumber);
-      if (user.email) setEmail(user.email);
+      if (user.fullName && !fullName) setFullName(user.fullName);
+      if (user.phoneNumber && !phone) setPhone(user.phoneNumber);
+      if (user.email && !email) setEmail(user.email);
     }
-  }, [user]);
+  }, [user, fullName, phone, email]);
 
   // Reset modal state on open/close
   useEffect(() => {
     if (isOpen) {
       setHoldData(null);
-      setIsExpired(false);
-      setTimeLeft(600);
+      setHoldError(null);
       setPollStopped(false);
+      setIsVerifyingManual(false);
       paidHandledRef.current = false;
       pollErrorToastedRef.current = false;
     }
   }, [isOpen, listing]);
 
-  // 10-Minute Countdown Timer Handler based on target unlockAt timestamp
-  useEffect(() => {
-    if (!holdData) return;
-
-    const targetTime = holdData.unlockAt
-      ? new Date(holdData.unlockAt).getTime()
-      : Date.now() + (holdData.holdDurationSeconds || 600) * 1000;
-
-    const checkTimer = () => {
-      const remaining = Math.max(0, Math.floor((targetTime - Date.now()) / 1000));
-      setTimeLeft(remaining);
-      if (remaining <= 0) {
-        setIsExpired(true);
-        showToast('The 10-minute hold window has expired. Please try again!', 'warning');
-      }
-    };
-
-    checkTimer();
-    const timer = setInterval(checkTimer, 1000);
-
-    return () => clearInterval(timer);
-  }, [holdData, showToast]);
-
-  const [isCheckingPayment, setIsCheckingPayment] = useState(false);
-
+  // Handle Backend Polling Result
   useEffect(() => {
     if (!paymentStatus || paidHandledRef.current) return;
 
     if (paymentStatus.escrowStatus === 'RefundQueued') {
       paidHandledRef.current = true;
       setPollStopped(true);
-      setIsExpired(true);
-      showToast('Payment was not accepted. Funds will be refunded to your account.', 'error');
+      showToast('Giao dịch không được chấp nhận. Khoản tiền sẽ được tự động hoàn lại cho bạn.', 'error');
       return;
     }
 
@@ -126,7 +124,7 @@ export const BuyTicketModal: React.FC<BuyTicketModalProps> = ({
       if (!listing) return;
       paidHandledRef.current = true;
       setPollStopped(true);
-      showToast('Payment confirmed! Funds are secured under 24-hour protection.', 'success');
+      showToast('Thanh toán thành công! Tiền ký quỹ được bảo vệ theo cơ chế Escrow 24 giờ.', 'success');
       onSuccess({
         orderId: paymentStatus.paymentReference || holdData?.paymentReference || `TS-${listing.listingId.substring(0, 8)}`,
         listing,
@@ -140,38 +138,58 @@ export const BuyTicketModal: React.FC<BuyTicketModalProps> = ({
     }
   }, [paymentStatus, listing, holdData, fullName, phone, email, onSuccess, showToast]);
 
+  // Handle Poll Error
   useEffect(() => {
-    if (!isError || !pollEnabled || pollErrorToastedRef.current) return;
+    if (!isPollError || !pollEnabled || pollErrorToastedRef.current) return;
     pollErrorToastedRef.current = true;
     setPollStopped(true);
-    const msg = error instanceof Error ? error.message : 'Unable to check payment status.';
+    const msg = pollError instanceof Error ? pollError.message : 'Không thể tự động kiểm tra trạng thái thanh toán.';
     showToast(msg, 'error');
-  }, [isError, error, pollEnabled, showToast]);
+  }, [isPollError, pollError, pollEnabled, showToast]);
+
+  // Keyboard shortcut: Escape to close
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isOpen) {
+        handleCancelAndClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, holdData, countdown.isExpired]);
 
   if (!isOpen || !listing) return null;
 
-  const formatTimer = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-  };
+  // Fee Calculation: 5% Buyer Fee (Min 10,000 VND)
+  const buyerFeeRate = 0.05;
+  const minBuyerFee = 10000;
+  const estimatedBuyerFee = Math.max(Math.round(listing.resalePrice * buyerFeeRate), minBuyerFee);
+  const totalBuyerPaidEstimated = Math.max(0, listing.resalePrice + estimatedBuyerFee - discountAmount);
+
+  // Dynamic QR Code fallback URL
+  const displayQrUrl =
+    holdData?.qrImageUrl ||
+    (holdData
+      ? `https://img.vietqr.io/image/${holdData.bankBin || '970422'}-${holdData.accountNumber || '0938434102'}-compact2.png?amount=${holdData.totalBuyerPaid}&addInfo=${encodeURIComponent(holdData.paymentReference)}&accountName=${encodeURIComponent(holdData.accountName || 'TICKETSHIELD ESCROW')}`
+      : '');
 
   const handleApplyCoupon = () => {
-    if (coupon.trim().toUpperCase() === 'SAYHI' || coupon.trim().toUpperCase() === 'TICKETSHIELD') {
+    const code = coupon.trim().toUpperCase();
+    if (code === 'SAYHI' || code === 'TICKETSHIELD' || code === 'VIP100K') {
       setDiscountAmount(100000);
       setCouponApplied(true);
-      showToast('Applied 100,000 VND discount code!', 'success');
+      showToast('Áp dụng mã giảm giá 100.000 VND thành công!', 'success');
     } else {
-      showToast('Invalid promo code. Hint: SAYHI or TICKETSHIELD', 'warning');
+      showToast('Mã khuyến mãi không hợp lệ. Thử: SAYHI hoặc TICKETSHIELD', 'warning');
     }
   };
 
   const handleCancelAndClose = async () => {
-    if (holdData && !isExpired && !paidHandledRef.current && listing) {
+    if (holdData && !countdown.isExpired && !paidHandledRef.current && listing) {
       try {
         await resaleListingsApi.releaseHold(listing.listingId);
         queryClient.invalidateQueries({ queryKey: ['resale-listings'] });
-        showToast('Reservation cancelled. Ticket is now available on the marketplace.', 'info');
+        showToast('Đã hủy giữ chỗ. Vé được mở khóa lại trên sàn giao dịch.', 'info');
       } catch {
         // Silently ignore if already released or expired
       }
@@ -179,28 +197,21 @@ export const BuyTicketModal: React.FC<BuyTicketModalProps> = ({
     onClose();
   };
 
-  const handleCopy = (text: string, type: 'amount' | 'reference' | 'account') => {
-    navigator.clipboard.writeText(text);
-    setCopiedType(type);
-    showToast(`Copied to clipboard!`, 'success');
-    setTimeout(() => setCopiedType(null), 2000);
-  };
-
-  // Step 1: Submit Form -> Call POST /resale-listings/{id}/hold
+  // Step 1: Submit Form -> Create 10-Minute Hold & VietQR
   const handleHoldListing = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) {
-      showToast('Please sign in to purchase tickets!', 'error');
+      showToast('Vui lòng đăng nhập để tiến hành mua vé an toàn!', 'error');
       return;
     }
     if (!fullName || !phone || !email) {
-      showToast('Please provide all required recipient contact details!', 'warning');
+      showToast('Vui lòng điền đầy đủ thông tin người nhận vé chính thức!', 'warning');
       return;
     }
 
     try {
       setIsHolding(true);
-      showToast('Initializing 10-minute hold and generating dynamic VietQR...', 'info');
+      setHoldError(null);
 
       const response = await resaleListingsApi.holdListing(listing.listingId, {
         recipientName: fullName,
@@ -210,31 +221,32 @@ export const BuyTicketModal: React.FC<BuyTicketModalProps> = ({
       });
 
       setHoldData(response);
-      setTimeLeft(response.holdDurationSeconds || 600);
-      setIsExpired(false);
-      showToast('Ticket reserved for 10 minutes! Please scan the VietQR code to pay.', 'success');
+      showToast('Đã giữ vé thành công trong 10 phút! Vui lòng quét mã VietQR để thanh toán.', 'success');
     } catch (err: any) {
-      const msg = err?.message || 'Unable to reserve this ticket at the moment.';
+      const msg = err?.message || 'Không thể giữ chỗ vé vào lúc này. Vui lòng thử lại sau.';
+      setHoldError(msg);
       showToast(msg, 'error');
     } finally {
       setIsHolding(false);
     }
   };
 
-  // Step 2: Confirm Payment Completion
-  const handleConfirmPaid = async () => {
-    if (isExpired) {
-      showToast('Reservation expired. Please close this window and try again.', 'error');
+  // Step 2: "I Have Paid" Manual Verification Button
+  const handleManualCheckPayment = async () => {
+    if (countdown.isExpired) {
+      showToast('Phiên giao dịch đã hết hạn. Vui lòng đóng cửa sổ và thử lại.', 'error');
       return;
     }
 
     if (!holdData) return;
 
     try {
-      setIsCheckingPayment(true);
+      setIsVerifyingManual(true);
       const res = await resaleListingsApi.getPaymentStatus(listing.listingId);
       if (res.escrowStatus === 'Locked' || res.listingStatus === 'Sold') {
-        showToast('Payment confirmed! Funds are secured under 24-hour protection.', 'success');
+        showToast('Thanh toán thành công! Tiền ký quỹ đã được xác nhận an toàn.', 'success');
+        paidHandledRef.current = true;
+        setPollStopped(true);
         onSuccess({
           orderId: holdData.paymentReference || `TS-${listing.listingId.substring(0, 8)}`,
           listing,
@@ -246,488 +258,433 @@ export const BuyTicketModal: React.FC<BuyTicketModalProps> = ({
           buyerEmail: email,
         });
       } else {
-        showToast('Checking VietQR transfer status. Please wait a moment...', 'info');
+        showToast('Hệ thống đang kiểm tra giao dịch VietQR từ ngân hàng. Vui lòng đợi trong giây lát...', 'info');
       }
     } catch (err: any) {
-      showToast(err?.message || 'Checking transaction status...', 'info');
+      showToast(err?.message || 'Đang kiểm tra dữ liệu từ ngân hàng...', 'info');
     } finally {
-      setIsCheckingPayment(false);
+      setIsVerifyingManual(false);
     }
   };
 
-  // Uniform Fee Model for Buyer: 5% (Min 10,000 VND)
-  const buyerFeeRate = 0.05;
-  const minBuyerFee = 10000;
-  const estimatedBuyerFee = Math.max(Math.round(listing.resalePrice * buyerFeeRate), minBuyerFee);
-  const totalBuyerPaidEstimated = Math.max(0, listing.resalePrice + estimatedBuyerFee - discountAmount);
+  // Status Badge in Header
+  const renderHeaderBadge = () => {
+    if (!holdData) {
+      return (
+        <span className="hidden sm:inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/25 text-emerald-400 text-xs font-semibold">
+          <Shield className="w-3.5 h-3.5" />
+          <span>Bước 1: Thông tin người nhận</span>
+        </span>
+      );
+    }
 
-  // Dynamic QR Code URL fallback if API does not return a direct image
-  const displayQrUrl =
-    holdData?.qrImageUrl ||
-    (holdData
-      ? `https://img.vietqr.io/image/${holdData.bankBin || '970422'}-${holdData.accountNumber || '0938434102'}-compact2.png?amount=${holdData.totalBuyerPaid}&addInfo=${encodeURIComponent(holdData.paymentReference)}&accountName=${encodeURIComponent(holdData.accountName || 'NGUYEN HUNG THINH')}`
-      : '');
+    if (countdown.isExpired) {
+      return (
+        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-red-500/15 border border-red-500/30 text-red-400 text-xs font-bold uppercase tracking-wider">
+          <AlertTriangle className="w-3.5 h-3.5" />
+          <span>Đã hết hạn</span>
+        </span>
+      );
+    }
+
+    if (isVerifyingManual || paymentStatus?.listingStatus === 'Transacting') {
+      return (
+        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-cyan-500/15 border border-cyan-500/30 text-cyan-300 text-xs font-semibold animate-pulse">
+          <span className="w-2 h-2 rounded-full bg-cyan-400" />
+          <span>Đang chờ thanh toán</span>
+        </span>
+      );
+    }
+
+    return (
+      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/25 text-emerald-400 text-xs font-semibold">
+        <span className="w-2 h-2 rounded-full bg-emerald-400" />
+        <span>Đang giữ chỗ 10 phút</span>
+      </span>
+    );
+  };
 
   return (
-    <div
-      id="buy-ticket-modal-backdrop"
-      className="fixed inset-0 z-50 bg-black/90 backdrop-blur-md flex items-center justify-center p-3 sm:p-4 overflow-y-auto"
-    >
+    <AnimatePresence>
       <div
-        id="buy-ticket-modal-content"
-        className="relative w-full max-w-3xl bg-[#0b0e17] border border-[#232738] rounded-3xl shadow-[0_0_50px_rgba(0,0,0,0.8)] overflow-hidden my-4 text-white"
+        id="buy-ticket-modal-backdrop"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="checkout-modal-title"
+        className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 md:p-6 overflow-y-auto"
+        onClick={(e) => {
+          if (e.target === e.currentTarget) {
+            handleCancelAndClose();
+          }
+        }}
       >
-        {/* Modal Header */}
-        <div className="flex items-center justify-between px-5 sm:px-6 py-4 border-b border-[#1d2232] bg-[#111422]">
-          <div className="flex items-center gap-3">
-            <span className="relative flex h-3 w-3">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#FF5A36] opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-3 w-3 bg-[#FF5A36]"></span>
-            </span>
-            <div>
-              <h2 className="text-sm sm:text-base font-bold text-white font-display uppercase tracking-wide">
-                {holdData ? 'Automated VietQR Payment' : 'Secure Ticket Reservation & Purchase'}
-              </h2>
-              <p className="text-[11px] text-zinc-400">
-                {listing.eventName} • Direct Re-issuance from Event Organizer
-              </p>
-            </div>
-          </div>
+        <motion.div
+          id="buy-ticket-modal-content"
+          initial={{ opacity: 0, scale: 0.98 }}
+          animate={{ opacity: 1, scale: 1 }}
+          exit={{ opacity: 0, scale: 0.98 }}
+          transition={{ duration: 0.18, ease: 'easeOut' }}
+          className="relative w-full max-w-3xl bg-[#0B0F19] border border-[#293548] rounded-2xl shadow-2xl shadow-black/80 overflow-hidden my-auto text-zinc-100 flex flex-col"
+        >
+          {/* Top Subtle Brand Bar */}
+          <div className="h-1 w-full bg-gradient-to-r from-emerald-500 via-teal-400 to-emerald-500 shrink-0" />
 
-          <div className="flex items-center gap-2.5">
-            {holdData && (
-              <div
-                className={`flex items-center gap-1.5 px-3 py-1 rounded-full border text-xs font-mono font-bold transition-all ${
-                  isExpired
-                    ? 'bg-red-500/20 border-red-500/50 text-red-400'
-                    : timeLeft < 120
-                    ? 'bg-amber-500/20 border-amber-500/50 text-amber-300 animate-pulse'
-                    : 'bg-[#FF5A36]/15 border-[#FF5A36]/30 text-[#FF5A36]'
-                }`}
-              >
-                <Clock className="w-3.5 h-3.5" />
-                <span>{isExpired ? 'EXPIRED' : formatTimer(timeLeft)}</span>
+          {/* MODAL HEADER */}
+          <div className="flex items-center justify-between px-4 sm:px-5 py-3 border-b border-[#293548] bg-[#111827] shrink-0">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className="w-8 h-8 rounded-lg bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-400 shrink-0 shadow-sm">
+                <ShieldCheck className="w-4 h-4" />
               </div>
-            )}
-            {holdData && !isExpired && (
-              <span className="hidden sm:inline text-[11px] text-cyan-300/90 font-medium">
-                Awaiting payment confirmation...
-              </span>
-            )}
-            <button
-              onClick={handleCancelAndClose}
-              className="p-1.5 text-zinc-400 hover:text-white rounded-xl hover:bg-zinc-800 transition-colors cursor-pointer"
-            >
-              <X className="w-5 h-5" />
-            </button>
-          </div>
-        </div>
-
-        {/* Dynamic Content: Step 1 (Form) or Step 2 (VietQR Checkout) */}
-        {!holdData ? (
-          /* STEP 1: Buyer Information & Initial Hold Request */
-          <form onSubmit={handleHoldListing} className="p-5 sm:p-6 space-y-5">
-            {/* Warning if listing is already transacting */}
-            {((listing.listingStatus || '').toLowerCase() === 'transacting') && (
-              <div className="p-4 rounded-2xl bg-amber-950/60 border border-amber-500/50 flex items-center gap-3 text-amber-200 text-xs">
-                <Lock className="w-5 h-5 text-amber-400 shrink-0" />
-                <div>
-                  <div className="font-bold text-amber-300">Ticket Currently in a Checkout Session</div>
-                  <div className="text-amber-200/80 mt-0.5">This ticket is reserved by another user. Please check back shortly or choose another verified ticket on the marketplace.</div>
-                </div>
-              </div>
-            )}
-
-            {/* Ticket Summary Card */}
-            <div className="p-4 rounded-2xl bg-[#141826] border border-[#262c40] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-              <div className="space-y-1">
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-mono font-bold text-amber-400 uppercase tracking-wider px-2 py-0.5 rounded bg-amber-500/10 border border-amber-500/30">
-                    {listing.tierName || 'VIP ZONE A'}
-                  </span>
-                  <span className="text-xs font-mono text-zinc-400">
-                    • {listing.maskedTicketCode || 'AT*********88'}
-                  </span>
-                </div>
-                <h3 className="text-sm sm:text-base font-bold text-white">{listing.eventName}</h3>
-                <p className="text-xs text-zinc-400">{listing.eventVenue}</p>
-              </div>
-
-              <div className="text-left sm:text-right shrink-0">
-                <div className="text-xs text-zinc-400">Listed Price</div>
-                <div className="text-lg sm:text-xl font-extrabold text-white font-display">
-                  {formatVND(listing.resalePrice)}
-                </div>
+              <div className="min-w-0">
+                <h2
+                  id="checkout-modal-title"
+                  className="text-xs sm:text-sm font-bold text-white tracking-wide uppercase truncate"
+                >
+                  {holdData ? 'Thanh toán VietQR Ký quỹ' : 'Mua vé an toàn & Nhận vé chính thức'}
+                </h2>
+                <p className="text-[10px] text-zinc-400 truncate">
+                  {listing.eventName} • {listing.eventVenue || 'Vé chuyển nhượng đã xác thực'}
+                </p>
               </div>
             </div>
 
-            {/* Protection Guarantee Banner */}
-            <div className="p-3.5 rounded-2xl bg-emerald-950/40 border border-emerald-500/30 flex items-start gap-3">
-              <ShieldCheck className="w-5 h-5 text-emerald-400 shrink-0 mt-0.5" />
-              <div className="text-xs space-y-0.5">
-                <div className="font-bold text-emerald-300">
-                  24-Hour Funds Protection &amp; Direct Organizer Re-issuance
-                </div>
-                <div className="text-zinc-300 text-[11px] leading-relaxed">
-                  Your funds are safeguarded under TicketShield's 24-hour guarantee. The event organizer invalidates the previous ticket and issues a brand-new official ticket directly to your email.
-                </div>
-              </div>
-            </div>
-
-            {/* Buyer Contact Form */}
-            <div className="space-y-3">
-              <label className="block text-xs font-bold uppercase tracking-wider text-zinc-400">
-                Official Ticket Recipient Information
-              </label>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <div>
-                  <span className="text-[11px] text-zinc-400 block mb-1">Full Name *</span>
-                  <input
-                    type="text"
-                    required
-                    value={fullName}
-                    onChange={(e) => setFullName(e.target.value)}
-                    placeholder="John Doe"
-                    className="w-full h-10 px-3 rounded-xl bg-[#141826] border border-[#262c40] text-xs text-white focus:outline-none focus:border-[#FF5A36]"
-                  />
-                </div>
-                <div>
-                  <span className="text-[11px] text-zinc-400 block mb-1">Phone Number *</span>
-                  <input
-                    type="tel"
-                    required
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                    placeholder="0901234567"
-                    className="w-full h-10 px-3 rounded-xl bg-[#141826] border border-[#262c40] text-xs text-white focus:outline-none focus:border-[#FF5A36]"
-                  />
-                </div>
-                <div>
-                  <span className="text-[11px] text-zinc-400 block mb-1">Ticket Delivery Email *</span>
-                  <input
-                    type="email"
-                    required
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="name@example.com"
-                    className="w-full h-10 px-3 rounded-xl bg-[#141826] border border-[#262c40] text-xs text-white focus:outline-none focus:border-[#FF5A36]"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <span className="text-[11px] text-zinc-400 block mb-1">
-                  National ID / Passport (For venue entry verification)
-                </span>
-                <input
-                  type="text"
-                  value={idCard}
-                  onChange={(e) => setIdCard(e.target.value)}
-                  placeholder="Enter ID number (Optional)"
-                  className="w-full h-10 px-3 rounded-xl bg-[#141826] border border-[#262c40] text-xs text-white focus:outline-none focus:border-[#FF5A36]"
-                />
-              </div>
-            </div>
-
-            {/* Coupon Code Section */}
-            <div className="flex gap-2">
-              <input
-                type="text"
-                placeholder="Enter promo code (e.g. SAYHI)"
-                value={coupon}
-                onChange={(e) => setCoupon(e.target.value)}
-                disabled={couponApplied}
-                className="flex-1 h-10 px-3.5 rounded-xl bg-[#141826] border border-[#262c40] text-xs text-white uppercase placeholder-zinc-500 focus:outline-none focus:border-[#FF5A36]"
-              />
+            <div className="flex items-center gap-2 shrink-0">
+              {renderHeaderBadge()}
               <button
                 type="button"
-                onClick={handleApplyCoupon}
-                disabled={couponApplied}
-                className="h-10 px-4 bg-white/10 hover:bg-white/15 disabled:opacity-50 text-xs font-bold rounded-xl text-white transition-colors cursor-pointer"
+                onClick={handleCancelAndClose}
+                aria-label="Đóng cửa sổ thanh toán"
+                className="p-1.5 text-zinc-400 hover:text-white rounded-lg hover:bg-white/10 transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-emerald-500/40"
               >
-                {couponApplied ? 'Applied' : 'Apply'}
+                <X className="w-4 h-4" />
               </button>
             </div>
+          </div>
 
-            {/* Payment & Fee Breakdown Box */}
-            <div className="p-4 sm:p-4.5 bg-[#080B11]/90 border border-emerald-500/25 rounded-2xl space-y-2.5 text-xs shadow-lg">
-              <div className="flex items-center justify-between pb-2 border-b border-white/10">
-                <div className="flex items-center gap-2 font-semibold text-zinc-200">
-                  <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />
-                  <span>Payment Summary</span>
-                </div>
-                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-500/10 text-emerald-300 border border-emerald-500/30">
-                  5% Buyer Protection Fee
-                </span>
-              </div>
-
-              <div className="space-y-1.5 text-xs">
-                <div className="flex justify-between items-center text-zinc-400">
-                  <span>Listed Price:</span>
-                  <span className="font-semibold text-zinc-200 tabular-nums">
-                    {formatVND(listing.resalePrice)}
-                  </span>
-                </div>
-
-                <div className="flex justify-between items-center text-zinc-400">
-                  <div className="flex items-center gap-1">
-                    <span>Service Fee &amp; 24h Buyer Protection (5%):</span>
-                    <span className="text-[10px] text-zinc-500">(Min. 10,000 VND)</span>
+          {/* MODAL BODY */}
+          <div className="p-4 sm:p-4.5 space-y-3 flex-1">
+            {/* Loading Skeleton during Hold Creation */}
+            {isHolding ? (
+              <CheckoutSkeleton />
+            ) : holdError && !holdData ? (
+              /* Hold Error View */
+              <PaymentStatusView
+                status="ERROR"
+                errorMessage={holdError}
+                onRetry={() => setHoldError(null)}
+                onClose={handleCancelAndClose}
+              />
+            ) : !holdData ? (
+              /* ================= STEP 1: BUYER INFORMATION & SUMMARY ================= */
+              <form onSubmit={handleHoldListing} className="space-y-4">
+                {/* Warning if listing is locked by another buyer */}
+                {((listing.listingStatus || '').toLowerCase() === 'transacting') && (
+                  <div className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center gap-3 text-amber-200 text-xs">
+                    <Lock className="w-4 h-4 text-amber-400 shrink-0" />
+                    <div>
+                      <div className="font-bold text-amber-300">Vé đang trong phiên giao dịch khác</div>
+                      <div className="text-amber-200/80 mt-0.5">
+                        Vé này hiện đang được giữ chỗ trong 10 phút bởi một người mua khác. Vui lòng quay lại sau ít phút hoặc chọn vé khác.
+                      </div>
+                    </div>
                   </div>
-                  <span className="font-medium text-amber-400 tabular-nums">
-                    + {formatVND(estimatedBuyerFee)}
-                  </span>
+                )}
+
+                {/* Ticket Details Summary Card */}
+                <div className="p-3.5 rounded-xl bg-[#111827] border border-[#293548] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                  <div className="space-y-0.5 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-[10px] font-mono font-bold text-amber-400 uppercase tracking-wider px-2 py-0.5 rounded bg-amber-500/10 border border-amber-500/30">
+                        {listing.tierName || 'HẠNG VÉ TIÊU CHUẨN'}
+                      </span>
+                      <span className="text-[11px] font-mono text-zinc-400">
+                        Mã vé: {listing.maskedTicketCode || 'AT*********88'}
+                      </span>
+                    </div>
+                    <h3 className="text-sm font-bold text-white truncate">{listing.eventName}</h3>
+                    <p className="text-xs text-zinc-400">{listing.eventVenue || 'Địa điểm tổ chức'}</p>
+                  </div>
+
+                  <div className="text-left sm:text-right shrink-0">
+                    <div className="text-[10px] text-zinc-400 uppercase tracking-wider">Giá niêm yết</div>
+                    <div className="text-lg font-extrabold text-white font-mono tabular-nums">
+                      {formatVND(listing.resalePrice)}
+                    </div>
+                  </div>
                 </div>
 
-                {discountAmount > 0 && (
-                  <div className="flex justify-between items-center text-emerald-400">
-                    <span>Promo Discount ({coupon}):</span>
-                    <span className="font-medium tabular-nums">
-                      - {formatVND(discountAmount)}
+                {/* 24-Hour Guarantee Trust Banner */}
+                <div className="p-3 rounded-xl bg-emerald-500/[0.07] border border-emerald-500/30 flex items-start gap-2.5">
+                  <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+                  <div className="text-xs space-y-0.5">
+                    <div className="font-semibold text-emerald-300">
+                      Bảo hiểm thanh toán Ký quỹ Escrow 24 Giờ & Cấp mới vé từ BTC
+                    </div>
+                    <div className="text-zinc-300 text-[11px] leading-relaxed">
+                      Tiền của bạn được giữ an toàn trong tài khoản Ký quỹ TicketShield. Ban tổ chức sẽ hủy mã vé cũ của người bán và phát hành mã vé QR hoàn toàn mới gửi trực tiếp về email của bạn.
+                    </div>
+                  </div>
+                </div>
+
+                {/* Recipient Form Fields */}
+                <div className="space-y-2.5">
+                  <div className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-zinc-300">
+                    <User className="w-3.5 h-3.5 text-emerald-400" />
+                    <span>Thông tin người nhận vé chính thức</span>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                    <div>
+                      <label className="text-[11px] text-zinc-400 block mb-1 font-medium">
+                        Họ và tên người nhận *
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        value={fullName}
+                        onChange={(e) => setFullName(e.target.value)}
+                        placeholder="Nguyễn Văn A"
+                        className="w-full h-9 px-3 rounded-xl bg-[#151C2B] border border-[#293548] text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-emerald-500 transition-all"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-[11px] text-zinc-400 block mb-1 font-medium">
+                        Số điện thoại *
+                      </label>
+                      <input
+                        type="tel"
+                        required
+                        value={phone}
+                        onChange={(e) => setPhone(e.target.value)}
+                        placeholder="0901234567"
+                        className="w-full h-9 px-3 rounded-xl bg-[#151C2B] border border-[#293548] text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-emerald-500 transition-all"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-[11px] text-zinc-400 block mb-1 font-medium">
+                        Email nhận vé điện tử *
+                      </label>
+                      <input
+                        type="email"
+                        required
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        placeholder="email@domain.com"
+                        className="w-full h-9 px-3 rounded-xl bg-[#151C2B] border border-[#293548] text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-emerald-500 transition-all"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-[11px] text-zinc-400 block mb-1 font-medium">
+                      Số CCCD / Hộ chiếu (Dùng đối chiếu vé tại cổng sự kiện nếu cần)
+                    </label>
+                    <input
+                      type="text"
+                      value={idCard}
+                      onChange={(e) => setIdCard(e.target.value)}
+                      placeholder="00120000xxxx (Tùy chọn)"
+                      className="w-full h-9 px-3 rounded-xl bg-[#151C2B] border border-[#293548] text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-emerald-500 transition-all"
+                    />
+                  </div>
+                </div>
+
+                {/* Promo Code Section */}
+                <div className="flex gap-2">
+                  <div className="relative flex-1">
+                    <Tag className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-500" />
+                    <input
+                      type="text"
+                      placeholder="Nhập mã ưu đãi (Ví dụ: SAYHI)"
+                      value={coupon}
+                      onChange={(e) => setCoupon(e.target.value)}
+                      disabled={couponApplied}
+                      className="w-full h-9 pl-8 pr-3 rounded-xl bg-[#151C2B] border border-[#293548] text-xs text-white uppercase placeholder-zinc-500 focus:outline-none focus:border-emerald-500 transition-all"
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleApplyCoupon}
+                    disabled={couponApplied || !coupon.trim()}
+                    className="h-9 px-3.5 bg-white/10 hover:bg-white/15 disabled:opacity-40 text-xs font-semibold rounded-xl text-white transition-colors cursor-pointer border border-white/10 shrink-0"
+                  >
+                    {couponApplied ? 'Đã áp dụng' : 'Áp dụng'}
+                  </button>
+                </div>
+
+                {/* Price & Fee Breakdown Box */}
+                <div className="p-3 bg-[#111827] border border-[#293548] rounded-xl space-y-2 text-xs">
+                  <div className="flex items-center justify-between pb-1.5 border-b border-[#293548]">
+                    <div className="flex items-center gap-1.5 font-semibold text-zinc-200">
+                      <CreditCard className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                      <span>Chi tiết thanh toán</span>
+                    </div>
+                    <span className="inline-flex items-center px-2 py-0.2 rounded text-[10px] font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/25">
+                      Phí bảo hiểm Escrow 5%
                     </span>
                   </div>
-                )}
-              </div>
 
-              <div className="flex justify-between items-baseline pt-2.5 border-t border-white/10">
-                <div>
-                  <span className="text-xs font-bold text-white block">
-                    Total VietQR Payment
-                  </span>
-                  <span className="text-[10px] text-zinc-400">
-                    (Includes ticket price + 24-hour protection fee)
-                  </span>
+                  <div className="space-y-1 text-xs">
+                    <div className="flex justify-between items-center text-zinc-400">
+                      <span>Giá vé gốc:</span>
+                      <span className="font-semibold text-zinc-200 font-mono tabular-nums">
+                        {formatVND(listing.resalePrice)}
+                      </span>
+                    </div>
+
+                    <div className="flex justify-between items-center text-zinc-400">
+                      <div className="flex items-center gap-1">
+                        <span>Phí bảo vệ người mua (5%):</span>
+                        <span className="text-[10px] text-zinc-500">(Tối thiểu 10.000 đ)</span>
+                      </div>
+                      <span className="font-medium text-amber-400 font-mono tabular-nums">
+                        + {formatVND(estimatedBuyerFee)}
+                      </span>
+                    </div>
+
+                    {discountAmount > 0 && (
+                      <div className="flex justify-between items-center text-emerald-400">
+                        <span>Giảm giá khuyến mãi ({coupon}):</span>
+                        <span className="font-medium font-mono tabular-nums">
+                          - {formatVND(discountAmount)}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="flex justify-between items-baseline pt-2 border-t border-[#293548]">
+                    <div>
+                      <span className="text-xs font-bold text-white block">
+                        Tổng tiền thanh toán VietQR
+                      </span>
+                      <span className="text-[10px] text-zinc-400">
+                        (Bao gồm vé + bảo hiểm ký quỹ 24h)
+                      </span>
+                    </div>
+                    <div className="text-right">
+                      <span className="text-lg sm:text-xl font-extrabold text-emerald-400 font-mono tabular-nums">
+                        {formatVND(totalBuyerPaidEstimated)}
+                      </span>
+                    </div>
+                  </div>
                 </div>
-                <div className="text-right">
-                  <span className="text-xl sm:text-2xl font-black text-[#FF5A36] font-display tabular-nums tracking-tight">
-                    {formatVND(totalBuyerPaidEstimated)}
-                  </span>
+
+                {/* Step 1 Submit Button */}
+                <div className="pt-1 flex items-center justify-between gap-3">
+                  <button
+                    type="button"
+                    onClick={handleCancelAndClose}
+                    className="h-10 px-4 rounded-xl bg-transparent hover:bg-white/5 border border-zinc-700 text-xs font-semibold text-zinc-300 transition-colors cursor-pointer"
+                  >
+                    Hủy bỏ
+                  </button>
+
+                  <button
+                    type="submit"
+                    disabled={isHolding || ((listing.listingStatus || '').toLowerCase() === 'transacting')}
+                    className="h-10 px-5 bg-emerald-500 hover:bg-emerald-400 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed text-zinc-950 font-bold text-xs uppercase tracking-wider rounded-xl shadow-md transition-all flex items-center gap-2 cursor-pointer ml-auto"
+                  >
+                    <span>Giữ vé 10 phút & Tạo mã VietQR</span>
+                    <ArrowRight className="w-4 h-4" />
+                  </button>
                 </div>
-              </div>
-            </div>
+              </form>
+            ) : (
+              /* ================= STEP 2: ACTIVE 10-MIN COUNTDOWN & VIETQR CHECKOUT ================= */
+              <div className="space-y-3">
+                {/* 1. Payment Countdown Bar */}
+                <PaymentCountdownBar
+                  formattedTime={countdown.formattedTime}
+                  progressPercentage={countdown.progressPercentage}
+                  isUrgent={countdown.isUrgent}
+                  isExpired={countdown.isExpired}
+                  statusColor={countdown.statusColor}
+                />
 
-            {/* Submit Action */}
-            <div className="pt-3 border-t border-[#1d2232] flex items-center justify-between gap-4">
-              <div>
-                <span className="text-xs text-zinc-400 block">Total Amount:</span>
-                <span className="text-2xl font-black font-display text-[#FF5A36]">
-                  {formatVND(totalBuyerPaidEstimated)}
-                </span>
-              </div>
-
-              <button
-                type="submit"
-                disabled={isHolding || ((listing.listingStatus || '').toLowerCase() === 'transacting')}
-                className="h-12 px-7 bg-gradient-to-r from-[#FF5A36] to-[#FF7252] hover:brightness-110 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold font-display text-xs uppercase tracking-wider rounded-xl shadow-[0_4px_20px_rgba(255,90,54,0.4)] transition-all flex items-center gap-2 cursor-pointer"
-              >
-                {isHolding ? (
-                  <>
-                    <RefreshCw className="w-4 h-4 animate-spin" />
-                    <span>Holding for 10 minutes...</span>
-                  </>
-                ) : ((listing.listingStatus || '').toLowerCase() === 'transacting') ? (
-                  <>
-                    <Lock className="w-4 h-4 text-amber-300" />
-                    <span>Ticket Currently Reserved</span>
-                  </>
-                ) : (
-                  <>
-                    <span>Hold for 10 Mins &amp; Pay with VietQR</span>
-                    <Check className="w-4 h-4 stroke-[3]" />
-                  </>
+                {/* 2. Expired Notice Banner if expired */}
+                {countdown.isExpired && (
+                  <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/30 flex items-center gap-2.5 text-red-200 text-xs animate-in fade-in">
+                    <AlertTriangle className="w-4 h-4 text-red-400 shrink-0" />
+                    <div className="flex-1">
+                      <div className="font-bold text-red-300">Phiên giữ chỗ ký quỹ đã hết hạn (10 phút)</div>
+                      <div className="text-zinc-300 text-[11px] mt-0.5">
+                        Vé đã được tự động mở lại trên sàn để người khác có thể mua. Vui lòng đóng cửa sổ hoặc tạo lại giao dịch mới.
+                      </div>
+                    </div>
+                  </div>
                 )}
-              </button>
-            </div>
-          </form>
-        ) : (
-          /* STEP 2: Active 10-Minute Countdown & Dynamic VietQR Checkout */
-          <div className="p-5 sm:p-6 space-y-5">
-            {/* Top Expired Alert if timer run out */}
-            {isExpired && (
-              <div className="p-4 rounded-2xl bg-red-950/60 border border-red-500/50 flex items-center gap-3 text-red-200 text-xs">
-                <AlertTriangle className="w-5 h-5 text-red-400 shrink-0" />
-                <div className="flex-1">
-                  <div className="font-bold">Reservation window expired (10 minutes)</div>
-                  <div>The ticket has been automatically released back to the marketplace. Please close this window and try again.</div>
+
+                {/* 3. Main 2-Column Responsive Layout */}
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 items-stretch">
+                  {/* Left Column (5/12): VietQR Panel */}
+                  <VietQrPanel
+                    qrImageUrl={displayQrUrl}
+                    quickLinkUrl={holdData.quickLinkUrl}
+                    isExpired={countdown.isExpired}
+                    amount={holdData.totalBuyerPaid}
+                    className="lg:col-span-5 h-full"
+                  />
+
+                  {/* Right Column (7/12): Bank Account & Exact Transfer Reference */}
+                  <div className="lg:col-span-7 h-full flex flex-col justify-between">
+                    <BankTransferDetails
+                      bankBin={holdData.bankBin || '970422'}
+                      bankName="MB Bank (Ngân hàng Quân Đội)"
+                      accountNumber={holdData.accountNumber || '0938434102'}
+                      accountName={holdData.accountName || 'TICKETSHIELD ESCROW'}
+                      amount={holdData.totalBuyerPaid}
+                      paymentReference={holdData.paymentReference}
+                    />
+                  </div>
                 </div>
               </div>
             )}
+          </div>
 
-            {/* VietQR & Transfer Info Layout Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-12 gap-5 items-center">
-              {/* Left Column: VietQR Code Canvas */}
-              <div className="md:col-span-5 flex flex-col items-center justify-center p-4 bg-[#070910] border border-[#232738] rounded-2xl relative overflow-hidden group">
-                <div className="text-[11px] font-mono text-zinc-400 mb-2 flex items-center gap-1.5">
-                  <QrCode className="w-3.5 h-3.5 text-[#FF5A36]" />
-                  <span>Scan with any Banking App</span>
-                </div>
-
-                {/* QR Code Container */}
-                <div className="relative w-48 h-48 sm:w-52 sm:h-52 rounded-xl overflow-hidden bg-white p-2.5 shadow-[0_0_25px_rgba(255,90,54,0.2)] border-2 border-[#FF5A36]/40">
-                  <img
-                    src={displayQrUrl}
-                    alt="Dynamic VietQR Code"
-                    className={`w-full h-full object-contain transition-all duration-300 ${
-                      isExpired ? 'filter grayscale blur-[3px] opacity-40' : ''
-                    }`}
-                  />
-                  {isExpired && (
-                    <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/75 p-2 text-center">
-                      <Lock className="w-8 h-8 text-red-400 mb-1" />
-                      <span className="text-xs font-bold text-red-400 uppercase">QR Expired</span>
-                    </div>
-                  )}
-                </div>
-
-                <div className="mt-3 text-center">
-                  <div className="text-xs font-bold text-white flex items-center justify-center gap-1">
-                    <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-                    <span>Napas 247 QuickLink VietQR</span>
-                  </div>
-                  <div className="text-[10px] text-zinc-400 mt-0.5">
-                    Automatically fills exact amount and payment reference
-                  </div>
-                </div>
-              </div>
-
-              {/* Right Column: Dynamic Transfer Details Table with Quick Copy Buttons */}
-              <div className="md:col-span-7 space-y-3">
-                <div className="p-4 rounded-2xl bg-[#0e121d] border border-[#232738] space-y-3">
-                  <div className="text-xs font-bold uppercase tracking-wider text-zinc-400 pb-2 border-b border-white/10 flex items-center justify-between">
-                    <span>Beneficiary Account Information</span>
-                    <span className="text-[11px] font-normal text-emerald-400 flex items-center gap-1">
-                      <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
-                      Awaiting payment receipt
-                    </span>
-                  </div>
-
-                  {/* Account Name */}
-                  <div className="flex items-center justify-between text-xs">
-                    <span className="text-zinc-400">Account Name:</span>
-                    <span className="font-bold text-white uppercase">{holdData.accountName || 'NGUYEN HUNG THINH'}</span>
-                  </div>
-
-                  {/* Bank Name */}
-                  <div className="flex items-center justify-between text-xs">
-                    <span className="text-zinc-400">Bank:</span>
-                    <span className="font-bold text-white">MBBank (Military Commercial Joint Stock Bank)</span>
-                  </div>
-
-                  {/* Account Number with Quick Copy */}
-                  <div className="flex items-center justify-between text-xs py-1.5 px-2.5 rounded-xl bg-black/40 border border-white/5">
-                    <div>
-                      <span className="text-zinc-400 block text-[10px]">Account Number:</span>
-                      <span className="font-mono font-bold text-white text-sm">
-                        {holdData.accountNumber || '0938434102'}
-                      </span>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => handleCopy(holdData.accountNumber || '0938434102', 'account')}
-                      className="px-2.5 py-1 bg-white/10 hover:bg-white/20 text-[#FF5A36] rounded-lg text-[11px] font-bold flex items-center gap-1 transition-colors cursor-pointer"
-                    >
-                      {copiedType === 'account' ? (
-                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-                      ) : (
-                        <Copy className="w-3.5 h-3.5" />
-                      )}
-                      <span>{copiedType === 'account' ? 'Copied' : 'Copy'}</span>
-                    </button>
-                  </div>
-
-                  {/* Transfer Amount with Quick Copy */}
-                  <div className="flex items-center justify-between text-xs py-1.5 px-2.5 rounded-xl bg-black/40 border border-white/5">
-                    <div>
-                      <span className="text-zinc-400 block text-[10px]">Amount to Transfer:</span>
-                      <span className="font-mono font-black text-[#FF5A36] text-base">
-                        {formatVND(holdData.totalBuyerPaid)}
-                      </span>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => handleCopy(holdData.totalBuyerPaid.toString(), 'amount')}
-                      className="px-2.5 py-1 bg-white/10 hover:bg-white/20 text-[#FF5A36] rounded-lg text-[11px] font-bold flex items-center gap-1 transition-colors cursor-pointer"
-                    >
-                      {copiedType === 'amount' ? (
-                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-                      ) : (
-                        <Copy className="w-3.5 h-3.5" />
-                      )}
-                      <span>{copiedType === 'amount' ? 'Copied' : 'Copy'}</span>
-                    </button>
-                  </div>
-
-                  {/* Transfer Content / Reference with Quick Copy */}
-                  <div className="p-3 rounded-xl bg-[#171408] border border-amber-500/40 space-y-1">
-                    <div className="flex items-center justify-between text-[11px]">
-                      <span className="font-bold text-amber-400 uppercase tracking-wider flex items-center gap-1">
-                        <AlertTriangle className="w-3.5 h-3.5 text-amber-400" />
-                        Exact Transfer Reference:
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => handleCopy(holdData.paymentReference, 'reference')}
-                        className="px-2.5 py-1 bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 rounded-lg text-[11px] font-bold flex items-center gap-1 transition-colors cursor-pointer"
-                      >
-                        {copiedType === 'reference' ? (
-                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-                        ) : (
-                          <Copy className="w-3.5 h-3.5" />
-                        )}
-                        <span>{copiedType === 'reference' ? 'Copied' : 'Copy Reference'}</span>
-                      </button>
-                    </div>
-                    <div className="p-2 rounded-lg bg-black/60 font-mono text-center text-amber-300 font-extrabold text-base tracking-widest">
-                      {holdData.paymentReference}
-                    </div>
-                    <p className="text-[10px] text-amber-200/80 text-center">
-                      *Please keep this reference exact so our automated system can instantly match your payment!
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Bottom Actions */}
-            <div className="pt-3 border-t border-[#1d2232] flex flex-col sm:flex-row items-center justify-between gap-3">
-              <div className="text-xs text-zinc-400 flex items-center gap-1.5 flex-1 min-w-0 pr-2">
-                <Info className="w-4 h-4 text-cyan-400 shrink-0" />
-                <span className="truncate sm:whitespace-normal">
-                  {isExpired ? (
-                    <>
-                      Your new ticket will be delivered to <strong className="text-white">{email}</strong> upon payment confirmation.
-                    </>
-                  ) : (
-                    <>
-                      Awaiting payment confirmation... Your official ticket will be delivered to{' '}
-                      <strong className="text-white">{email}</strong> immediately.
-                    </>
-                  )}
+          {/* STEP 2 MODAL FOOTER */}
+          {holdData && (
+            <div className="px-4 sm:px-5 py-3 border-t border-[#293548] bg-[#111827] flex flex-col sm:flex-row items-center justify-between gap-3 shrink-0">
+              <div className="text-xs text-zinc-400 flex items-center gap-1.5 min-w-0 w-full sm:w-auto flex-1">
+                <Info className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                <span className="text-[11px] text-zinc-400 truncate sm:whitespace-normal">
+                  Vé chính thức sẽ gửi về email <strong className="text-zinc-200 font-medium">{email}</strong> sau khi thanh toán.
                 </span>
               </div>
 
-              <div className="flex items-center gap-2.5 w-full sm:w-auto shrink-0 flex-wrap justify-end">
+              <div className="flex items-center gap-2 w-full sm:w-auto shrink-0 justify-end">
                 <button
                   type="button"
                   onClick={handleCancelAndClose}
-                  className="px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/15 text-xs font-bold text-white transition-colors cursor-pointer shrink-0"
+                  className="w-full sm:w-auto px-4 py-2 rounded-xl bg-[#151C2B] hover:bg-[#1E293B] border border-[#293548] text-xs font-semibold text-zinc-300 transition-colors cursor-pointer text-center"
                 >
-                  Cancel / Later
+                  Hủy / Để sau
                 </button>
+
                 <button
                   type="button"
-                  onClick={handleConfirmPaid}
-                  disabled={isExpired || isCheckingPayment}
-                  className="px-5 py-2.5 bg-gradient-to-r from-emerald-500 to-teal-600 hover:brightness-110 disabled:opacity-40 text-white font-bold text-xs uppercase tracking-wider rounded-xl shadow-[0_4px_15px_rgba(16,185,129,0.3)] transition-all flex items-center justify-center gap-1.5 cursor-pointer shrink-0"
+                  onClick={handleManualCheckPayment}
+                  disabled={countdown.isExpired || isVerifyingManual}
+                  className="w-full sm:w-auto px-5 py-2 bg-emerald-500 hover:bg-emerald-400 active:scale-[0.98] disabled:opacity-40 text-zinc-950 font-bold text-xs uppercase tracking-wider rounded-xl shadow-md transition-all flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap"
                 >
-                  <CheckCircle2 className={`w-4 h-4 shrink-0 ${isCheckingPayment ? 'animate-spin' : ''}`} />
-                  <span>{isCheckingPayment ? 'Verifying...' : 'I Have Paid'}</span>
+                  {isVerifyingManual ? (
+                    <>
+                      <RotateCw className="w-3.5 h-3.5 animate-spin text-zinc-950 shrink-0" />
+                      <span>Đang kiểm tra...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Check className="w-3.5 h-3.5 stroke-[3] shrink-0" />
+                      <span>TÔI ĐÃ CHUYỂN TIỀN</span>
+                    </>
+                  )}
                 </button>
               </div>
             </div>
-          </div>
-        )}
+          )}
+        </motion.div>
       </div>
-    </div>
+    </AnimatePresence>
   );
 };

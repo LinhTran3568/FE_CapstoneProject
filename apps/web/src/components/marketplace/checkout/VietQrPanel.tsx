@@ -1,0 +1,104 @@
+import React, { useState } from 'react';
+import { QrCode, ShieldCheck, AlertTriangle } from 'lucide-react';
+
+export interface VietQrPanelProps {
+  qrImageUrl?: string | null;
+  quickLinkUrl?: string | null;
+  isExpired?: boolean;
+  amount?: number;
+  currency?: string;
+  className?: string;
+}
+
+export const VietQrPanel: React.FC<VietQrPanelProps> = ({
+  qrImageUrl,
+  isExpired = false,
+  className = '',
+}) => {
+  const [imageLoaded, setImageLoaded] = useState(false);
+  const [imageError, setImageError] = useState(false);
+
+  return (
+    <div
+      className={`flex flex-col items-center justify-between p-4 rounded-2xl bg-[#111827] border border-[#293548] relative overflow-hidden transition-all duration-200 ${className}`}
+    >
+      {/* Header */}
+      <div className="w-full flex items-center justify-between mb-2.5 z-10 shrink-0">
+        <div className="flex items-center gap-2">
+          <div className="w-6 h-6 rounded-lg bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-400 shadow-sm">
+            <QrCode className="w-3.5 h-3.5" />
+          </div>
+          <div>
+            <h4 className="text-[11px] font-bold tracking-wider uppercase text-zinc-200">
+              VietQR Napas 247
+            </h4>
+            <p className="text-[10px] text-zinc-400">Quét mã để tự động điền</p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[10px] font-semibold tracking-wide">
+          <ShieldCheck className="w-3 h-3" />
+          <span>Auto-fill</span>
+        </div>
+      </div>
+
+      {/* QR Code Container with High-Contrast White Background & 10-15% Larger Size */}
+      <div className="relative w-full aspect-square max-w-[230px] sm:max-w-[245px] p-2.5 rounded-2xl bg-white shadow-xl shadow-black/50 flex items-center justify-center border border-zinc-200 my-auto shrink-0 transition-transform duration-200">
+        {/* Shimmer skeleton while image is loading */}
+        {!imageLoaded && !imageError && (
+          <div className="absolute inset-2.5 rounded-xl bg-zinc-100 flex flex-col items-center justify-center animate-pulse overflow-hidden">
+            <div className="w-8 h-8 rounded-lg bg-zinc-200 mb-1.5 flex items-center justify-center text-zinc-400">
+              <QrCode className="w-5 h-5 animate-pulse" />
+            </div>
+            <div className="h-2 w-20 bg-zinc-200 rounded mb-1" />
+            <div className="h-1.5 w-12 bg-zinc-200 rounded" />
+          </div>
+        )}
+
+        {/* Real Dynamic VietQR Image */}
+        {qrImageUrl && !imageError ? (
+          <img
+            src={qrImageUrl}
+            alt="Mã VietQR thanh toán"
+            onLoad={() => setImageLoaded(true)}
+            onError={() => {
+              setImageError(true);
+              setImageLoaded(true);
+            }}
+            className={`w-full h-full object-contain rounded-lg transition-opacity duration-200 ${
+              imageLoaded ? 'opacity-100' : 'opacity-0'
+            } ${isExpired ? 'filter grayscale blur-[2px] opacity-40' : ''}`}
+          />
+        ) : (
+          <div className="text-center p-3 text-zinc-400 flex flex-col items-center justify-center">
+            <AlertTriangle className="w-6 h-6 text-amber-500 mb-1" />
+            <p className="text-[11px] font-medium text-zinc-600">Không thể tải QR</p>
+            <p className="text-[9px] text-zinc-400">Vui lòng dùng thông tin bên cạnh</p>
+          </div>
+        )}
+
+        {/* Expired Overlay */}
+        {isExpired && (
+          <div className="absolute inset-0 rounded-2xl bg-black/80 backdrop-blur-[2px] flex flex-col items-center justify-center p-3 text-center z-20 animate-in fade-in duration-200">
+            <div className="w-8 h-8 rounded-full bg-red-500/20 border border-red-500/40 flex items-center justify-center text-red-400 mb-1">
+              <AlertTriangle className="w-4 h-4" />
+            </div>
+            <span className="text-[11px] font-bold uppercase tracking-wider text-red-400">
+              Mã QR hết hạn
+            </span>
+            <p className="text-[10px] text-zinc-300 mt-0.5">
+              Thời gian giữ vé đã hết
+            </p>
+          </div>
+        )}
+      </div>
+
+      {/* Short, clear instruction text below QR */}
+      <div className="w-full mt-2.5 pt-2 border-t border-[#293548]/60 text-center shrink-0">
+        <p className="text-[11px] text-zinc-300 font-medium">
+          Mở ứng dụng ngân hàng và quét mã để thanh toán
+        </p>
+      </div>
+    </div>
+  );
+};

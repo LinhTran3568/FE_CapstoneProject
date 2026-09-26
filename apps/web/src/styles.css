@@ -7,6 +7,20 @@
     --glass-border: rgba(255, 255, 255, 0.1);
     --text: #f8fafc;
     --text-muted: #94a3b8;
+
+    /* FE-4.5.3: Premium Fintech Checkout Tokens */
+    --checkout-bg: #0B0F19;
+    --checkout-surface: #111827;
+    --checkout-card: #151C2B;
+    --checkout-border: #293548;
+    --checkout-text: #F8FAFC;
+    --checkout-muted: #94A3B8;
+    --checkout-primary: #10B981;
+    --checkout-primary-hover: #059669;
+    --checkout-cyan: #22D3EE;
+    --checkout-warning: #F59E0B;
+    --checkout-danger: #EF4444;
+    --checkout-qr-bg: #FFFFFF;
 }
 
 * {
