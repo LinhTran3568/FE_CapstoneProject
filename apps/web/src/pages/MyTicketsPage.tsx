@@ -487,9 +487,8 @@ const OfficialTicketPassCard: React.FC<OfficialTicketPassCardProps> = ({ ticket,
       <div className="w-full md:w-56 lg:w-60 bg-[#121620] p-5 sm:p-6 flex flex-col justify-between space-y-4 shrink-0 border-t md:border-t-0 md:border-l border-white/10">
         {/* Ticket Code Box */}
         <div className="space-y-2">
-          <div className="flex items-center justify-between text-[10px] font-mono text-[#94A3B8] uppercase tracking-wider">
+          <div className="text-[10px] font-mono text-[#94A3B8] uppercase tracking-wider">
             <span>Pass Code</span>
-            <span className="text-emerald-400 font-bold">100% Genuine</span>
           </div>
 
           <div className="p-2.5 rounded-xl bg-[#090C12] border border-white/10 flex items-center justify-between gap-2 group/code">
