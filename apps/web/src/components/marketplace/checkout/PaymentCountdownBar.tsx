@@ -49,7 +49,7 @@ export const PaymentCountdownBar: React.FC<PaymentCountdownBarProps> = ({
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <span className="text-[10px] font-mono font-semibold uppercase tracking-wider text-zinc-400">
-            Escrow Hold Duration
+            Time Remaining
           </span>
           {isUrgent && !isExpired && (
             <span className="inline-flex items-center gap-1 text-[9px] font-semibold text-amber-300 bg-amber-500/15 px-1.5 py-0.5 rounded border border-amber-500/30">

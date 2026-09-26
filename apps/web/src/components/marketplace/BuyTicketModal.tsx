@@ -298,31 +298,28 @@ export const BuyTicketModal: React.FC<BuyTicketModalProps> = ({
           animate={{ opacity: 1, scale: 1 }}
           exit={{ opacity: 0, scale: 0.98 }}
           transition={{ duration: 0.16, ease: 'easeOut' }}
-          className="relative w-full max-w-[780px] bg-[#0B0F19] border border-[#293548] rounded-2xl shadow-2xl shadow-black/90 overflow-hidden my-auto text-zinc-100 flex flex-col max-h-[calc(100dvh-48px)] sm:max-h-[calc(100dvh-48px)]"
+          className="relative w-full max-w-[620px] bg-[#0B0F19] border border-[#293548] rounded-2xl shadow-2xl shadow-black/90 overflow-hidden my-auto text-zinc-100 flex flex-col max-h-[calc(100dvh-48px)]"
         >
           {/* Top Brand Accent */}
           <div className="h-1 w-full bg-gradient-to-r from-emerald-500 via-teal-400 to-emerald-500 shrink-0" />
 
-          {/* FIXED MODAL HEADER (Height ~64px) */}
+          {/* FIXED MODAL HEADER */}
           <div className="flex items-center justify-between px-5 py-3.5 border-b border-[#293548] bg-[#111827] shrink-0">
-            <div className="flex items-center gap-3 min-w-0">
-              <div className="w-8 h-8 rounded-lg bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-400 shrink-0">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className="w-7 h-7 rounded-lg bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-400 shrink-0">
                 <ShieldCheck className="w-4 h-4" />
               </div>
               <div className="min-w-0">
                 <h2
                   id="checkout-modal-title"
-                  className="text-base sm:text-lg font-bold text-white tracking-wide truncate"
+                  className="text-base font-bold text-white tracking-wide truncate"
                 >
                   {holdData ? 'VietQR Escrow Payment' : 'Ticket Reservation'}
                 </h2>
-                <p className="text-xs text-zinc-400 truncate">
-                  {listing.eventName} • {listing.eventVenue || 'Official Transfer Ticket'}
-                </p>
               </div>
             </div>
 
-            <div className="flex items-center gap-2.5 shrink-0">
+            <div className="flex items-center gap-2 shrink-0">
               <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[11px] font-semibold">
                 {holdData ? 'Step 2/2' : 'Step 1/2'}
               </span>
@@ -339,7 +336,7 @@ export const BuyTicketModal: React.FC<BuyTicketModalProps> = ({
           </div>
 
           {/* SCROLLABLE MODAL BODY */}
-          <div className="px-5 py-4 space-y-4 overflow-y-auto flex-1 min-h-0 custom-scrollbar">
+          <div className="px-5 py-4 space-y-3.5 overflow-y-auto flex-1 min-h-0 custom-scrollbar">
             {/* Loading Skeleton during Hold Creation */}
             {isHolding ? (
               <CheckoutSkeleton />
@@ -352,72 +349,56 @@ export const BuyTicketModal: React.FC<BuyTicketModalProps> = ({
                 onClose={handleCancelAndClose}
               />
             ) : !holdData ? (
-              /* ================= STEP 1: BALANCED TICKET INFORMATION FORM ================= */
-              <form id="buyer-info-form" onSubmit={handleHoldListing} className="space-y-4">
+              /* ================= STEP 1: COMPACT TICKET INFORMATION FORM ================= */
+              <form id="buyer-info-form" onSubmit={handleHoldListing} className="space-y-3.5">
                 {/* Warning if listing is locked by another buyer */}
                 {((listing.listingStatus || '').toLowerCase() === 'transacting') && (
                   <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center gap-2.5 text-amber-200 text-xs">
                     <Lock className="w-4 h-4 text-amber-400 shrink-0" />
-                    <div>
-                      <div className="font-semibold text-amber-300">Ticket in active checkout session</div>
-                      <div className="text-amber-200/80 text-[11px] mt-0.5">
-                        This ticket is currently held for 10 minutes by another buyer. Please check back shortly.
-                      </div>
+                    <div className="text-amber-200/90 text-xs">
+                      This ticket is currently in an active checkout session by another buyer.
                     </div>
                   </div>
                 )}
 
-                {/* 1. Ticket Summary Card (Balanced proportions) */}
-                <div className="p-3.5 sm:p-4 rounded-xl bg-[#111827] border border-[#293548] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-                  <div className="min-w-0 flex-1 space-y-0.5">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="text-[11px] font-mono font-bold text-amber-400 uppercase tracking-wider px-2 py-0.5 rounded bg-amber-500/10 border border-amber-500/30">
-                        {listing.tierName || 'STANDARD TIER'}
+                {/* 1. Ticket Summary Strip */}
+                <div className="p-3.5 rounded-xl bg-[#111827] border border-[#293548] flex items-center justify-between gap-3">
+                  <div className="min-w-0 flex-1 space-y-1">
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] font-mono font-bold text-amber-400 uppercase tracking-wider px-2 py-0.5 rounded bg-amber-500/10 border border-amber-500/30">
+                        {listing.tierName || 'STANDARD'}
                       </span>
-                      <span className="text-xs font-mono text-zinc-400">
-                        Code: {listing.maskedTicketCode || 'AT*********88'}
+                      <span className="text-[11px] font-mono text-zinc-400 truncate">
+                        {listing.maskedTicketCode || 'AT*********88'}
                       </span>
                     </div>
-                    <div className="text-base font-bold text-white truncate mt-0.5">
+                    <div className="text-sm sm:text-base font-bold text-white truncate">
                       {listing.eventName}
                     </div>
                     <div className="text-xs text-zinc-400 truncate">
-                      {listing.eventVenue || 'Event Venue'}
+                      {listing.eventVenue || 'Official Venue'}
                     </div>
                   </div>
 
-                  <div className="text-left sm:text-right shrink-0">
-                    <div className="text-[11px] text-zinc-400 uppercase tracking-wider font-medium">Ticket Price</div>
-                    <div className="text-lg sm:text-xl font-bold text-white font-mono tabular-nums">
+                  <div className="text-right shrink-0 pl-3 border-l border-[#293548]">
+                    <div className="text-[10px] text-zinc-400 uppercase tracking-wider font-medium">Price</div>
+                    <div className="text-base sm:text-lg font-bold text-white font-mono tabular-nums">
                       {formatVND(listing.resalePrice)}
                     </div>
                   </div>
                 </div>
 
-                {/* 2. Insurance Trust Banner (Balanced 2-lines) */}
-                <div className="p-3 sm:p-3.5 rounded-xl bg-emerald-500/[0.08] border border-emerald-500/30 flex items-start gap-2.5">
-                  <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
-                  <div className="space-y-0.5 text-xs">
-                    <div className="font-semibold text-emerald-300 text-sm">
-                      24-Hour Funds Protection
-                    </div>
-                    <p className="text-zinc-300 leading-relaxed text-xs">
-                      Payment is securely held in TicketShield Escrow. The organizer voids the seller's ticket and issues a brand-new QR code directly to your email.
-                    </p>
-                  </div>
-                </div>
-
-                {/* 3. Customer Information Form Fields */}
-                <div className="space-y-3">
-                  <div className="flex items-center gap-1.5 text-sm font-semibold text-zinc-200">
-                    <User className="w-4 h-4 text-emerald-400" />
+                {/* 2. Customer Information Form Fields */}
+                <div className="space-y-2.5">
+                  <div className="flex items-center gap-1.5 text-xs font-semibold text-zinc-300 uppercase tracking-wider">
+                    <User className="w-3.5 h-3.5 text-emerald-400" />
                     <span>Recipient Information</span>
                   </div>
 
-                  {/* Row 1: Full Name & Phone Number (2 Columns on Desktop) */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {/* Row 1: Full Name & Phone Number */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                     <div>
-                      <label className="text-xs font-medium text-zinc-300 block mb-1.5">
+                      <label className="text-xs font-medium text-zinc-300 block mb-1">
                         Full Name <span className="text-red-400">*</span>
                       </label>
                       <input
@@ -426,12 +407,12 @@ export const BuyTicketModal: React.FC<BuyTicketModalProps> = ({
                         value={fullName}
                         onChange={(e) => setFullName(e.target.value)}
                         placeholder="John Doe"
-                        className="w-full h-[42px] sm:h-[44px] px-3.5 rounded-lg bg-[#151C2B] border border-[#293548] text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/40 transition-all"
+                        className="w-full h-10 px-3 rounded-lg bg-[#151C2B] border border-[#293548] text-xs sm:text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/40 transition-all"
                       />
                     </div>
 
                     <div>
-                      <label className="text-xs font-medium text-zinc-300 block mb-1.5">
+                      <label className="text-xs font-medium text-zinc-300 block mb-1">
                         Phone Number <span className="text-red-400">*</span>
                       </label>
                       <input
@@ -440,15 +421,15 @@ export const BuyTicketModal: React.FC<BuyTicketModalProps> = ({
                         value={phone}
                         onChange={(e) => setPhone(e.target.value)}
                         placeholder="0901234567"
-                        className="w-full h-[42px] sm:h-[44px] px-3.5 rounded-lg bg-[#151C2B] border border-[#293548] text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/40 transition-all"
+                        className="w-full h-10 px-3 rounded-lg bg-[#151C2B] border border-[#293548] text-xs sm:text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/40 transition-all"
                       />
                     </div>
                   </div>
 
-                  {/* Row 2: Delivery Email (Full Width) */}
+                  {/* Row 2: Delivery Email */}
                   <div>
-                    <label className="text-xs font-medium text-zinc-300 block mb-1.5">
-                      Delivery Email <span className="text-red-400">*</span>
+                    <label className="text-xs font-medium text-zinc-300 block mb-1">
+                      Email <span className="text-red-400">*</span>
                     </label>
                     <input
                       type="email"
@@ -456,11 +437,11 @@ export const BuyTicketModal: React.FC<BuyTicketModalProps> = ({
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       placeholder="email@example.com"
-                      className="w-full h-[42px] sm:h-[44px] px-3.5 rounded-lg bg-[#151C2B] border border-[#293548] text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/40 transition-all"
+                      className="w-full h-10 px-3 rounded-lg bg-[#151C2B] border border-[#293548] text-xs sm:text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/40 transition-all"
                     />
                   </div>
 
-                  {/* Row 3: Optional National ID (Collapsible / Expandable) */}
+                  {/* Row 3: Optional National ID */}
                   {showIdCardInput || idCard ? (
                     <div className="animate-in fade-in duration-150 space-y-1">
                       <div className="flex items-center justify-between">
@@ -471,7 +452,7 @@ export const BuyTicketModal: React.FC<BuyTicketModalProps> = ({
                           <button
                             type="button"
                             onClick={() => setShowIdCardInput(false)}
-                            className="text-xs text-zinc-400 hover:text-zinc-200 transition-colors"
+                            className="text-[11px] text-zinc-400 hover:text-zinc-200 transition-colors"
                           >
                             Collapse
                           </button>
@@ -481,8 +462,8 @@ export const BuyTicketModal: React.FC<BuyTicketModalProps> = ({
                         type="text"
                         value={idCard}
                         onChange={(e) => setIdCard(e.target.value)}
-                        placeholder="00120000xxxx (Used for gate identity check if required)"
-                        className="w-full h-[42px] sm:h-[44px] px-3.5 rounded-lg bg-[#151C2B] border border-[#293548] text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/40 transition-all"
+                        placeholder="ID number for check-in verification"
+                        className="w-full h-10 px-3 rounded-lg bg-[#151C2B] border border-[#293548] text-xs sm:text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/40 transition-all"
                       />
                     </div>
                   ) : (
@@ -499,27 +480,27 @@ export const BuyTicketModal: React.FC<BuyTicketModalProps> = ({
                   )}
 
                   {/* Row 4: Promo Code */}
-                  <div className="space-y-1.5">
+                  <div className="space-y-1">
                     <label className="text-xs font-medium text-zinc-300 block">
-                      Promo / Discount Voucher
+                      Promo Code
                     </label>
                     <div className="flex gap-2">
                       <div className="relative flex-1">
                         <Tag className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-500" />
                         <input
                           type="text"
-                          placeholder="Enter voucher code (e.g. SAYHI)"
+                          placeholder="Enter code (e.g. SAYHI)"
                           value={coupon}
                           onChange={(e) => setCoupon(e.target.value)}
                           disabled={couponApplied}
-                          className="w-full h-[42px] sm:h-[44px] pl-9 pr-3.5 rounded-lg bg-[#151C2B] border border-[#293548] text-sm text-white uppercase placeholder-zinc-500 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/40 transition-all"
+                          className="w-full h-10 pl-9 pr-3 rounded-lg bg-[#151C2B] border border-[#293548] text-xs sm:text-sm text-white uppercase placeholder-zinc-500 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/40 transition-all"
                         />
                       </div>
                       <button
                         type="button"
                         onClick={handleApplyCoupon}
                         disabled={couponApplied || !coupon.trim()}
-                        className="h-[42px] sm:h-[44px] px-4 bg-white/10 hover:bg-white/15 disabled:opacity-40 text-xs sm:text-sm font-semibold rounded-lg text-white transition-colors cursor-pointer border border-white/10 shrink-0 active:scale-95"
+                        className="h-10 px-3.5 bg-white/10 hover:bg-white/15 disabled:opacity-40 text-xs font-semibold rounded-lg text-white transition-colors cursor-pointer border border-white/10 shrink-0 active:scale-95"
                       >
                         {couponApplied ? 'Applied' : 'Apply'}
                       </button>
@@ -527,54 +508,38 @@ export const BuyTicketModal: React.FC<BuyTicketModalProps> = ({
                   </div>
                 </div>
 
-                {/* 4. Payment Price Breakdown (Clean & Compact) */}
-                <div className="p-3.5 sm:p-4 bg-[#111827] border border-[#293548] rounded-xl space-y-2">
-                  <div className="flex items-center justify-between pb-2 border-b border-[#293548]">
-                    <div className="flex items-center gap-1.5 font-semibold text-zinc-200 text-xs sm:text-sm">
-                      <CreditCard className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                      <span>Payment Summary</span>
-                    </div>
-                    <span className="text-[11px] text-zinc-400 font-mono">
-                      5% Escrow Insurance Fee
+                {/* 3. Compact Price Receipt Summary */}
+                <div className="p-3 bg-[#111827] border border-[#293548] rounded-xl space-y-1.5">
+                  <div className="flex justify-between items-center text-xs text-zinc-400">
+                    <span>Ticket Price:</span>
+                    <span className="font-semibold text-zinc-200 font-mono tabular-nums">
+                      {formatVND(listing.resalePrice)}
                     </span>
                   </div>
 
-                  <div className="space-y-1.5 text-xs sm:text-sm">
-                    <div className="flex justify-between items-center text-zinc-400">
-                      <span>Ticket Price:</span>
-                      <span className="font-semibold text-zinc-200 font-mono tabular-nums">
-                        {formatVND(listing.resalePrice)}
-                      </span>
-                    </div>
-
-                    <div className="flex justify-between items-center text-zinc-400">
-                      <span>Buyer Protection &amp; Escrow Fee (5%):</span>
-                      <span className="font-medium text-amber-400 font-mono tabular-nums">
-                        + {formatVND(estimatedBuyerFee)}
-                      </span>
-                    </div>
-
-                    {discountAmount > 0 && (
-                      <div className="flex justify-between items-center text-emerald-400">
-                        <span>Voucher Discount ({coupon}):</span>
-                        <span className="font-medium font-mono tabular-nums">
-                          - {formatVND(discountAmount)}
-                        </span>
-                      </div>
-                    )}
+                  <div className="flex justify-between items-center text-xs text-zinc-400">
+                    <span>Escrow Fee (5%):</span>
+                    <span className="font-medium text-amber-400 font-mono tabular-nums">
+                      + {formatVND(estimatedBuyerFee)}
+                    </span>
                   </div>
 
-                  <div className="flex justify-between items-baseline pt-2.5 border-t border-[#293548]">
-                    <div>
-                      <span className="text-xs sm:text-sm font-bold text-white block">
-                        Total Amount
+                  {discountAmount > 0 && (
+                    <div className="flex justify-between items-center text-xs text-emerald-400">
+                      <span>Discount ({coupon}):</span>
+                      <span className="font-medium font-mono tabular-nums">
+                        - {formatVND(discountAmount)}
                       </span>
                     </div>
-                    <div className="text-right">
-                      <span className="text-lg sm:text-xl font-extrabold text-emerald-400 font-mono tabular-nums">
-                        {formatVND(totalBuyerPaidEstimated)}
-                      </span>
-                    </div>
+                  )}
+
+                  <div className="flex justify-between items-baseline pt-2 border-t border-[#293548]">
+                    <span className="text-xs font-bold text-white">
+                      Total
+                    </span>
+                    <span className="text-base sm:text-lg font-extrabold text-emerald-400 font-mono tabular-nums">
+                      {formatVND(totalBuyerPaidEstimated)}
+                    </span>
                   </div>
                 </div>
               </form>
@@ -632,19 +597,36 @@ export const BuyTicketModal: React.FC<BuyTicketModalProps> = ({
 
           {/* FIXED MODAL FOOTER (Height ~64px) */}
           <div className="px-5 py-3 border-t border-[#293548] bg-[#111827] flex flex-col sm:flex-row items-center justify-between gap-3 shrink-0">
-            <div className="text-xs text-zinc-400 flex items-center gap-1.5 min-w-0 w-full sm:w-auto flex-1">
-              <Info className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-              <span className="truncate sm:whitespace-normal">
-                {holdData ? (
-                  <>
-                    Official digital pass will be sent to <strong className="text-zinc-200 font-medium">{email}</strong> upon confirmation.
-                  </>
-                ) : (
-                  <>
-                    Digital pass and secure QR will be delivered to the recipient email immediately after payment.
-                  </>
-                )}
-              </span>
+            {/* Info Icon with Hover Tooltip */}
+            <div className="relative group/info flex items-center shrink-0">
+              <div
+                tabIndex={0}
+                role="button"
+                aria-label="Delivery information"
+                className="w-8 h-8 rounded-lg bg-[#151C2B] hover:bg-[#1E293B] border border-[#293548] flex items-center justify-center text-zinc-400 hover:text-emerald-400 cursor-pointer transition-colors"
+              >
+                <Info className="w-4 h-4" />
+              </div>
+
+              {/* Tooltip on Hover / Focus */}
+              <div className="absolute left-0 bottom-full mb-2 hidden group-hover/info:block group-focus-within/info:block z-50 w-64 p-2.5 rounded-xl bg-[#090C12] border border-[#293548] text-xs text-zinc-300 shadow-xl shadow-black/80 animate-in fade-in zoom-in-95 pointer-events-none">
+                <div className="flex items-start gap-1.5">
+                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-400 shrink-0 mt-0.5" />
+                  <span>
+                    {holdData ? (
+                      <>
+                        Pass will be sent to <strong className="text-white font-medium">{email}</strong> upon payment.
+                      </>
+                    ) : (
+                      <>
+                        Pass and QR code will be delivered to your email instantly upon payment.
+                      </>
+                    )}
+                  </span>
+                </div>
+                {/* Tooltip arrow */}
+                <div className="absolute -bottom-1 left-3.5 w-2 h-2 bg-[#090C12] border-r border-b border-[#293548] transform rotate-45" />
+              </div>
             </div>
 
             <div className="flex items-center gap-2.5 w-full sm:w-auto shrink-0 justify-end">
@@ -653,7 +635,7 @@ export const BuyTicketModal: React.FC<BuyTicketModalProps> = ({
                 onClick={handleCancelAndClose}
                 className="w-full sm:w-auto h-11 px-4 rounded-xl bg-[#151C2B] hover:bg-[#1E293B] border border-[#293548] text-xs sm:text-sm font-semibold text-zinc-300 transition-colors cursor-pointer text-center"
               >
-                {holdData ? 'Cancel / Later' : 'Cancel'}
+                Cancel
               </button>
 
               {holdData ? (
@@ -682,7 +664,7 @@ export const BuyTicketModal: React.FC<BuyTicketModalProps> = ({
                   disabled={isHolding || ((listing.listingStatus || '').toLowerCase() === 'transacting')}
                   className="w-full sm:w-auto h-11 px-5 bg-emerald-500 hover:bg-emerald-400 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed text-zinc-950 font-bold text-xs sm:text-sm uppercase tracking-wider rounded-xl shadow-md transition-all flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap"
                 >
-                  <span>Hold for 10 Min & Generate VietQR</span>
+                  <span>Reserve & Pay</span>
                   <ArrowRight className="w-3.5 h-3.5" />
                 </button>
               )}

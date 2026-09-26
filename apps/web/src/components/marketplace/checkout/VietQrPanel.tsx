@@ -23,22 +23,14 @@ export const VietQrPanel: React.FC<VietQrPanelProps> = ({
       className={`flex flex-col items-center justify-between p-4 rounded-2xl bg-[#111827] border border-[#293548] relative overflow-hidden transition-all duration-200 ${className}`}
     >
       {/* Header */}
-      <div className="w-full flex items-center justify-between mb-2.5 z-10 shrink-0">
+      <div className="w-full flex items-center justify-between mb-2 z-10 shrink-0">
         <div className="flex items-center gap-2">
           <div className="w-6 h-6 rounded-lg bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-400 shadow-sm">
             <QrCode className="w-3.5 h-3.5" />
           </div>
-          <div>
-            <h4 className="text-[11px] font-bold tracking-wider uppercase text-zinc-200">
-              VietQR Napas 247
-            </h4>
-            <p className="text-[10px] text-zinc-400">Scan QR to auto-fill details</p>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[10px] font-semibold tracking-wide">
-          <ShieldCheck className="w-3 h-3" />
-          <span>Auto-fill</span>
+          <h4 className="text-xs font-bold tracking-wider uppercase text-zinc-200">
+            VietQR 247
+          </h4>
         </div>
       </div>
 
@@ -93,10 +85,10 @@ export const VietQrPanel: React.FC<VietQrPanelProps> = ({
         )}
       </div>
 
-      {/* Short, clear instruction text below QR */}
-      <div className="w-full mt-2.5 pt-2 border-t border-[#293548]/60 text-center shrink-0">
-        <p className="text-[11px] text-zinc-300 font-medium">
-          Open your banking app and scan to pay
+      {/* Short instruction text below QR */}
+      <div className="w-full mt-2 pt-1.5 border-t border-[#293548]/60 text-center shrink-0">
+        <p className="text-[11px] text-zinc-400 font-medium">
+          Scan to pay with Banking App
         </p>
       </div>
     </div>
