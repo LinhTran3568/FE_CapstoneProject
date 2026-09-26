@@ -374,10 +374,61 @@ export const MyTicketsPage: React.FC = () => {
     </div>
   );
 };
+const getZoneStyle = (tierName: string) => {
+  const lower = (tierName || '').toLowerCase();
+  if (lower.includes('svip')) {
+    return {
+      badge: 'bg-amber-400/15 border-amber-400/50 text-amber-200',
+      dot: 'bg-amber-300 shadow-[0_0_8px_#fcd34d]',
+    };
+  }
+  if (lower.includes('vip b') || lower.includes('vip-b')) {
+    return {
+      badge: 'bg-orange-500/10 border-orange-500/40 text-orange-300',
+      dot: 'bg-orange-400 shadow-[0_0_8px_#fb923c]',
+    };
+  }
+  if (lower.includes('fanzone') || lower.includes('fan zone')) {
+    return {
+      badge: 'bg-rose-500/10 border-rose-500/40 text-rose-300',
+      dot: 'bg-rose-400 shadow-[0_0_8px_#fb7185]',
+    };
+  }
+  if (lower.includes('ga') || lower.includes('standard')) {
+    return {
+      badge: 'bg-blue-500/10 border-blue-500/40 text-blue-300',
+      dot: 'bg-blue-400 shadow-[0_0_8px_#60a5fa]',
+    };
+  }
+  return {
+    badge: 'bg-amber-500/10 border-amber-500/40 text-amber-300',
+    dot: 'bg-amber-400 shadow-[0_0_8px_#fbbf24]',
+  };
+};
+
+const getEventBackdrop = (name: string): string => {
+  const lower = (name || '').toLowerCase();
+  if (lower.includes('say hi') || lower.includes('anh trai')) {
+    return 'https://images.unsplash.com/photo-1540039155733-5bb30b53aa14?auto=format&fit=crop&w=1200&q=80';
+  }
+  if (lower.includes('mỹ tâm') || lower.includes('tri âm')) {
+    return 'https://images.unsplash.com/photo-1501386761578-eac5c94b800a?auto=format&fit=crop&w=1200&q=80';
+  }
+  if (lower.includes('rave') || lower.includes('festival') || lower.includes('edm')) {
+    return 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?auto=format&fit=crop&w=1200&q=80';
+  }
+  if (lower.includes('derby') || lower.includes('league') || lower.includes('viettel')) {
+    return 'https://images.unsplash.com/photo-1508098682722-e99c43a406b2?auto=format&fit=crop&w=1200&q=80';
+  }
+  if (lower.includes('kịch') || lower.includes('ngày xửa')) {
+    return 'https://images.unsplash.com/photo-1507676184212-d03ab07a01bf?auto=format&fit=crop&w=1200&q=80';
+  }
+  return '/images/landing/concert.jpg';
+};
 
 /**
  * Official Digital Pass Card Component
- * Styled with realistic ticket aesthetics (event info on left, ticket stub with perforated divider on right)
+ * Styled with exact Marketplace TicketCard aesthetics: 65% event body + 35% paper stub with perforated tear line
  */
 interface OfficialTicketPassCardProps {
   ticket: PurchasedTicketDto;
@@ -388,8 +439,11 @@ const OfficialTicketPassCard: React.FC<OfficialTicketPassCardProps> = ({ ticket,
   const showToast = useUIStore((state) => state.showToast);
   const [copied, setCopied] = useState(false);
   const badge = getStatusBadge(ticket);
+  const zoneStyle = getZoneStyle(ticket.seatZone || ticket.tierName || '');
   const hasQr = canShowEntryQr(ticket);
   const code = ticket.ticketPassCode || (hasQr ? entryPayload(ticket) : '');
+  const backdropUrl = getEventBackdrop(ticket.eventName);
+  const formattedDate = ticket.eventStartAt ? formatEventDateTime(ticket.eventStartAt) : 'Date & Time Announced by Organizer';
 
   const handleCopyCode = useCallback(
     (e: React.MouseEvent) => {
@@ -404,154 +458,203 @@ const OfficialTicketPassCard: React.FC<OfficialTicketPassCardProps> = ({ ticket,
   );
 
   return (
-    <div className="group relative bg-[#0E121A]/95 backdrop-blur-md border border-white/10 hover:border-[#FF573D]/40 rounded-3xl overflow-hidden transition-all duration-300 hover:shadow-[0_12px_35px_rgba(255,87,61,0.12)] flex flex-col md:flex-row">
-      {/* LEFT SECTION: Event Main Details */}
-      <div className="relative flex-1 p-5 sm:p-6 flex flex-col justify-between space-y-4 overflow-hidden">
-        {/* Content Container */}
-        <div className="relative z-10 space-y-3.5">
-          {/* Top Status & Zone Header */}
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#FF573D]/15 border border-[#FF573D]/30 text-[11px] font-mono font-bold text-[#FF573D] uppercase tracking-wider shadow-sm">
-              <span className="w-1.5 h-1.5 rounded-full bg-[#FF573D]" />
-              <span>{ticket.seatZone || ticket.tierName || 'GENERAL ADMISSION'}</span>
-            </span>
+    <div
+      id={`my-ticket-card-${ticket.escrowId || ticket.listingId}`}
+      className="group relative isolate w-full h-[224px] sm:h-[230px] flex rounded-2xl bg-[#0a0c10] border border-white/10 hover:border-[#FF5A36] shadow-[0_10px_30px_rgba(0,0,0,0.85)] hover:shadow-[0_12px_40px_rgba(255,90,54,0.22)] hover:-translate-y-1 transition-[border-color,box-shadow,transform] duration-200 ease-out select-none cursor-pointer"
+      onClick={() => {
+        if (hasQr) onViewQr();
+      }}
+    >
+      {/* ================= LEFT SECTION: MAIN BODY (65% width) ================= */}
+      <div className="relative w-[65%] h-full rounded-l-2xl overflow-hidden flex flex-col justify-between p-5 sm:p-6 bg-[#0a0c10]">
+        {/* Live Concert Photo Backdrop */}
+        <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none">
+          <img
+            src={backdropUrl}
+            alt={ticket.eventName}
+            className="w-full h-full object-cover object-center contrast-125 saturate-110 transition-transform duration-300 ease-out group-hover:scale-105 opacity-70"
+            loading="lazy"
+          />
+          {/* Multi-layer gradient overlays for high text contrast */}
+          <div className="absolute inset-0 bg-gradient-to-r from-[#07080b]/95 via-[#0a0c10]/85 to-[#0b0d13]/95" />
+          <div className="absolute inset-0 bg-gradient-to-t from-[#07080b] via-transparent to-black/50" />
+          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_left,_var(--tw-gradient-stops))] from-amber-500/15 via-transparent to-transparent" />
+        </div>
 
-            <span
-              className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full border text-[10px] font-mono font-bold tracking-wider uppercase ${badge.classes}`}
-            >
-              <span className={`w-1.5 h-1.5 rounded-full ${badge.dotClass}`} />
-              <span>{badge.label}</span>
+        {/* Top Badges */}
+        <div className="relative z-10 flex items-center justify-between gap-2">
+          <div
+            className={`inline-flex items-center gap-2 px-3 py-1 rounded-full border backdrop-blur-md shadow-[0_0_12px_rgba(245,158,11,0.15)] ${zoneStyle.badge}`}
+          >
+            <span className={`w-2 h-2 rounded-full animate-pulse ${zoneStyle.dot}`} />
+            <span className="text-[11px] font-bold tracking-wider uppercase">
+              {ticket.seatZone || ticket.tierName || 'VIP ZONE A'}
             </span>
           </div>
 
-          {/* Event Title */}
-          <h3 className="text-lg sm:text-xl font-bold font-display text-white group-hover:text-[#FF573D] transition-colors leading-snug line-clamp-2">
-            {ticket.eventName}
-          </h3>
+          <div
+            className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[10px] sm:text-[11px] font-bold tracking-wider uppercase backdrop-blur-md shadow-sm ${badge.classes}`}
+          >
+            <span className={`w-2 h-2 rounded-full ${badge.dotClass}`} />
+            <span>{badge.label}</span>
+          </div>
+        </div>
 
-          {/* Date, Location & Holder Metadata */}
-          <div className="space-y-2 text-xs text-[#94A3B8] font-sans">
-            <div className="flex items-center gap-2">
-              <Calendar className="w-3.5 h-3.5 text-[#FF573D] shrink-0" />
-              <span className="text-white font-medium truncate">
-                {ticket.eventStartAt ? formatEventDateTime(ticket.eventStartAt) : 'Date & Time Announced by Organizer'}
-              </span>
+        {/* Middle & Bottom Content */}
+        <div className="relative z-10 space-y-2.5">
+          <h2 className="text-[19px] sm:text-[21px] font-extrabold tracking-tight leading-tight text-white group-hover:text-[#FF5A36] drop-shadow-sm transition-colors duration-200 ease-out line-clamp-2">
+            {ticket.eventName}
+          </h2>
+
+          <div className="flex flex-wrap items-center gap-x-5 gap-y-1.5 text-xs text-zinc-300">
+            <div className="flex items-center gap-1.5 shrink-0">
+              <Calendar className="w-3.5 h-3.5 text-zinc-400 shrink-0" />
+              <span className="font-medium text-zinc-300">{formattedDate}</span>
             </div>
 
-            <div className="flex items-center gap-2">
-              <MapPin className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
-              <span className="text-[#CBD5E1] truncate">
-                {ticket.eventVenue || 'Official Venue Stated on Ticket'}
+            <div className="flex items-center gap-1.5 min-w-0">
+              <MapPin className="w-3.5 h-3.5 text-zinc-400 shrink-0" />
+              <span className="font-medium text-zinc-300 truncate max-w-[170px] sm:max-w-[200px]">
+                {ticket.eventVenue || 'Official Venue'}
               </span>
             </div>
 
             {ticket.recipientName && (
-              <div className="flex items-center gap-2 text-[11px] text-[#94A3B8]">
-                <User className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-                <span>
-                  Pass Holder: <strong className="text-white font-medium">{ticket.recipientName}</strong>
+              <div className="flex items-center gap-1.5 shrink-0">
+                <User className="w-3.5 h-3.5 text-[#10b981] shrink-0" />
+                <span className="font-medium text-zinc-300">
+                  Pass Holder: <span className="text-[#10b981] font-semibold">{ticket.recipientName}</span>
                 </span>
               </div>
             )}
           </div>
         </div>
-
-        {/* Bottom Left: Protection Guarantee */}
-        <div className="relative z-10 pt-3 border-t border-white/10 flex items-center justify-between text-[11px] text-[#94A3B8] font-mono">
-          <div className="inline-flex items-center gap-1.5 text-emerald-400">
-            <ShieldCheck className="w-3.5 h-3.5" />
-            <span>24h Escrow Protection Active</span>
-          </div>
-          <span className="text-white font-bold">{formatVND(ticket.totalAmountPaid)}</span>
-        </div>
       </div>
 
-      {/* PERFORATED NOTCH DIVIDER (Ticket Tear-line) */}
-      <div className="relative hidden md:flex flex-col items-center justify-between w-0 shrink-0 z-20">
-        {/* Top semi-circle cutout */}
-        <div className="w-5 h-5 rounded-full bg-[#07090E] border-b border-white/10 -mt-2.5" />
-        {/* Dashed vertical separator */}
-        <div className="w-[1px] h-full border-r border-dashed border-white/15 my-1" />
-        {/* Bottom semi-circle cutout */}
-        <div className="w-5 h-5 rounded-full bg-[#07090E] border-t border-white/10 -mb-2.5" />
+      {/* ================= PERFORATION JUNCTION, NOTCHES & VERTICAL TEAR LINE ================= */}
+      {/* Top Notch Cutout with contour border */}
+      <div className="absolute left-[65%] -top-[1px] -translate-x-1/2 w-7 h-[15px] z-30 pointer-events-none">
+        <svg viewBox="0 0 28 15" className="w-full h-full block overflow-visible" fill="none">
+          <path d="M 0,-1 L 28,-1 L 28,0 A 14,14 0 0,1 0,0 Z" fill="#07090E" />
+          <path
+            d="M 0,0.5 A 14,14 0 0,0 28,0.5"
+            fill="none"
+            className="stroke-white/10 group-hover:stroke-[#FF5A36] transition-colors duration-200 ease-out"
+            strokeWidth="1.5"
+          />
+        </svg>
       </div>
 
-      {/* Mobile Horizontal Divider */}
-      <div className="md:hidden relative flex items-center justify-between h-0 w-full z-20">
-        <div className="w-5 h-5 rounded-full bg-[#07090E] border-r border-white/10 -ml-2.5" />
-        <div className="w-full border-t border-dashed border-white/15 mx-1" />
-        <div className="w-5 h-5 rounded-full bg-[#07090E] border-l border-white/10 -mr-2.5" />
+      {/* Vertical Perforated Tear Line */}
+      <div className="absolute left-[65%] -ml-[2px] top-[14px] bottom-[14px] -translate-x-1/2 w-[2px] z-20 pointer-events-none flex flex-col items-center justify-center">
+        <svg className="h-full w-[2px] overflow-visible" preserveAspectRatio="none" viewBox="0 0 2 202">
+          <line
+            x1="1"
+            y1="0"
+            x2="1"
+            y2="202"
+            className="stroke-[#FF5A36]/45 group-hover:stroke-[#FF5A36] group-hover:drop-shadow-[0_0_6px_rgba(255,90,54,0.75)] transition-all duration-200 ease-out"
+            strokeWidth="2"
+            strokeDasharray="9 5"
+            strokeLinecap="round"
+          />
+        </svg>
       </div>
 
-      {/* RIGHT SECTION: Pass Stub & Entry Actions */}
-      <div className="w-full md:w-56 lg:w-60 bg-[#121620] p-5 sm:p-6 flex flex-col justify-between space-y-4 shrink-0 border-t md:border-t-0 md:border-l border-white/10">
-        {/* Ticket Code Box */}
-        <div className="space-y-2">
-          <div className="text-[10px] font-mono text-[#94A3B8] uppercase tracking-wider">
-            <span>Pass Code</span>
-          </div>
+      {/* Bottom Notch Cutout with contour border */}
+      <div className="absolute left-[65%] -bottom-[1px] -translate-x-1/2 w-7 h-[15px] z-30 pointer-events-none">
+        <svg viewBox="0 0 28 15" className="w-full h-full block overflow-visible" fill="none">
+          <path d="M 0,14.5 A 14,14 0 0,1 28,14.5 L 28,15.5 L 0,15.5 Z" fill="#07090E" />
+          <path
+            d="M 0,14.5 A 14,14 0 0,1 28,14.5"
+            fill="none"
+            className="stroke-white/10 group-hover:stroke-[#FF5A36] transition-colors duration-200 ease-out"
+            strokeWidth="1.5"
+          />
+        </svg>
+      </div>
 
-          <div className="p-2.5 rounded-xl bg-[#090C12] border border-white/10 flex items-center justify-between gap-2 group/code">
-            <span className="text-xs font-mono font-bold text-white tracking-wider truncate">
+      {/* ================= RIGHT SECTION: TICKET STUB (35% width) ================= */}
+      <div className="relative w-[35%] h-full bg-[#e2e8f0] rounded-r-2xl overflow-hidden flex flex-col justify-between p-4 sm:p-5 paper-texture shadow-inner">
+        <div className="absolute top-0 bottom-0 left-0 w-3 bg-gradient-to-r from-black/10 to-transparent pointer-events-none" />
+
+        {/* Stub Top: Monospace code pill and barcode */}
+        <div className="flex items-center justify-between pt-0.5">
+          <div
+            onClick={handleCopyCode}
+            title="Click to copy pass code"
+            className="px-2 py-0.5 rounded bg-slate-300/80 border border-slate-400/50 flex items-center gap-1 cursor-pointer hover:bg-slate-300 transition-colors"
+          >
+            <span className="font-mono-code text-[11px] font-bold tracking-wider text-slate-800 truncate max-w-[110px]">
               {code || 'ISSUING...'}
             </span>
             {code ? (
-              <button
-                type="button"
-                onClick={handleCopyCode}
-                title="Copy Ticket Code"
-                className="p-1 rounded-md text-[#94A3B8] hover:text-white hover:bg-white/10 transition-colors shrink-0"
-              >
-                {copied ? (
-                  <Check className="w-3.5 h-3.5 text-emerald-400" />
-                ) : (
-                  <Copy className="w-3.5 h-3.5" />
-                )}
-              </button>
+              copied ? (
+                <Check className="w-3 h-3 text-emerald-600 shrink-0" />
+              ) : (
+                <Copy className="w-3 h-3 text-slate-600 shrink-0" />
+              )
             ) : null}
           </div>
-        </div>
 
-        {/* Decorative Mini Barcode / Security Strip */}
-        <div className="space-y-1.5 text-center">
-          <div className="h-6 flex items-center justify-center gap-[3px] opacity-40">
-            <span className="w-0.5 h-full bg-white" />
-            <span className="w-1.5 h-full bg-white" />
-            <span className="w-0.5 h-full bg-white" />
-            <span className="w-1 h-full bg-white" />
-            <span className="w-0.5 h-full bg-white" />
-            <span className="w-2 h-full bg-white" />
-            <span className="w-0.5 h-full bg-white" />
-            <span className="w-1 h-full bg-white" />
-            <span className="w-1.5 h-full bg-white" />
-            <span className="w-0.5 h-full bg-white" />
+          {/* Realistic Barcode Graphic */}
+          <div className="flex items-center gap-[2px] h-5 opacity-80" title="Ticket barcode">
+            <span className="w-[2.5px] h-full bg-slate-900" />
+            <span className="w-[1px] h-full bg-slate-900" />
+            <span className="w-[3px] h-full bg-slate-900" />
+            <span className="w-[1px] h-full bg-slate-900" />
+            <span className="w-[2px] h-full bg-slate-900" />
+            <span className="w-[4px] h-full bg-slate-900" />
+            <span className="w-[1.5px] h-full bg-slate-900" />
+            <span className="w-[1px] h-full bg-slate-900" />
+            <span className="w-[2.5px] h-full bg-slate-900" />
+            <span className="w-[1px] h-full bg-slate-900" />
+            <span className="w-[3px] h-full bg-slate-900" />
+            <span className="w-[2px] h-full bg-slate-900" />
           </div>
-          <p className="text-[10px] font-mono text-[#94A3B8] tracking-widest uppercase">
-            Official TicketShield Pass
-          </p>
         </div>
 
-        {/* Action Button */}
+        {/* Stub Middle: Amount Paid & Official Pass Note */}
+        <div className="my-auto py-1">
+          <div className="text-[10px] font-bold tracking-wider text-slate-500 uppercase mb-0.5">
+            AMOUNT PAID
+          </div>
+          <div className="flex items-baseline">
+            <span className="text-[21px] sm:text-[23px] font-extrabold tracking-tight text-slate-900 leading-none">
+              {new Intl.NumberFormat('vi-VN').format(ticket.totalAmountPaid)}
+            </span>
+            <span className="ml-1 text-xs font-bold text-slate-700">VND</span>
+          </div>
+          <div className="text-[10px] font-mono-code text-emerald-700 font-semibold mt-0.5 flex items-center gap-1">
+            <ShieldCheck className="w-3 h-3 text-emerald-600 shrink-0" />
+            <span>Official Digital Pass</span>
+          </div>
+        </div>
+
+        {/* Stub Bottom: Action Button (View Entry QR) */}
         <div>
           {hasQr ? (
             <button
               type="button"
-              onClick={onViewQr}
-              className="w-full py-2.5 px-4 min-h-11 bg-[#FF573D] hover:bg-[#FF7252] text-white font-bold font-display text-xs uppercase tracking-wider rounded-xl shadow-lg shadow-[#FF573D]/25 flex items-center justify-center gap-2 transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
+              onClick={(e) => {
+                e.stopPropagation();
+                onViewQr();
+              }}
+              className="w-full py-2.5 px-3 bg-[#ff5722] hover:bg-[#f4511e] active:scale-[0.98] transition-all duration-150 rounded-xl font-bold text-xs text-white tracking-wide shadow-[0_4px_14px_rgba(255,87,34,0.35)] flex items-center justify-center gap-1.5 cursor-pointer group/btn"
             >
-              <QrCode className="w-4 h-4 shrink-0" />
-              <span>View Entry QR</span>
+              <QrCode className="w-3.5 h-3.5 shrink-0" />
+              <span>VIEW ENTRY QR</span>
+              <span className="transition-transform duration-150 group-hover/btn:translate-x-1">→</span>
             </button>
           ) : (
-            <div className="w-full py-2.5 px-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-center space-y-1">
-              <p className="text-[11px] font-mono font-semibold text-amber-400 flex items-center justify-center gap-1.5">
-                <Loader2 className="w-3 h-3 animate-spin" />
-                <span>Issuing Pass...</span>
-              </p>
-              <p className="text-[10px] text-[#94A3B8] leading-tight">
-                Organizer is generating your official entry QR.
-              </p>
-            </div>
+            <button
+              type="button"
+              disabled
+              className="w-full py-2.5 px-2 bg-slate-300 border border-slate-400 text-slate-600 rounded-xl font-bold text-xs tracking-wide flex items-center justify-center gap-1.5 cursor-not-allowed select-none"
+            >
+              <Loader2 className="w-3.5 h-3.5 animate-spin shrink-0" />
+              <span className="text-[11px]">ISSUING PASS...</span>
+            </button>
           )}
         </div>
       </div>
@@ -766,26 +869,28 @@ const EntryQrModal: React.FC<EntryQrModalProps> = ({ ticket, onClose }) => {
  */
 const TicketCardSkeleton: React.FC = () => {
   return (
-    <div className="bg-[#0E121A] border border-white/10 rounded-3xl p-6 flex flex-col md:flex-row gap-6 animate-pulse">
-      <div className="flex-1 space-y-4">
+    <div className="w-full h-[224px] sm:h-[230px] flex rounded-2xl bg-[#0a0c10] border border-white/10 overflow-hidden animate-pulse">
+      {/* 65% Left Body */}
+      <div className="w-[65%] h-full p-5 sm:p-6 flex flex-col justify-between bg-[#0e121a]">
         <div className="flex justify-between items-center">
-          <div className="w-28 h-5 bg-white/10 rounded-full" />
           <div className="w-24 h-5 bg-white/10 rounded-full" />
+          <div className="w-28 h-5 bg-white/10 rounded-full" />
         </div>
-        <div className="w-3/4 h-7 bg-white/10 rounded-lg" />
+        <div className="w-3/4 h-6 bg-white/10 rounded-lg" />
         <div className="space-y-2">
-          <div className="w-1/2 h-4 bg-white/10 rounded" />
-          <div className="w-2/3 h-4 bg-white/10 rounded" />
-        </div>
-        <div className="pt-3 border-t border-white/10 flex justify-between">
-          <div className="w-32 h-4 bg-white/10 rounded" />
-          <div className="w-20 h-4 bg-white/10 rounded" />
+          <div className="w-1/2 h-3.5 bg-white/10 rounded" />
+          <div className="w-2/3 h-3.5 bg-white/10 rounded" />
         </div>
       </div>
-      <div className="w-full md:w-52 bg-[#121620] p-4 rounded-2xl flex flex-col justify-between space-y-3">
-        <div className="w-full h-8 bg-white/10 rounded-lg" />
+
+      {/* 35% Right Stub */}
+      <div className="w-[35%] h-full bg-[#181f2c] p-4 sm:p-5 flex flex-col justify-between border-l border-white/10">
         <div className="w-full h-6 bg-white/10 rounded" />
-        <div className="w-full h-10 bg-white/10 rounded-xl" />
+        <div className="space-y-1 my-auto">
+          <div className="w-12 h-2.5 bg-white/10 rounded" />
+          <div className="w-24 h-6 bg-white/10 rounded" />
+        </div>
+        <div className="w-full h-9 bg-white/10 rounded-xl" />
       </div>
     </div>
   );
