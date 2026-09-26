@@ -13,6 +13,7 @@ import {
   Tag,
   CreditCard,
   User,
+  Plus,
 } from 'lucide-react';
 import { MarketplaceListingDto, HoldListingForPurchaseResponse } from '@ticketshield/types';
 import { resaleListingsApi } from '@ticketshield/api-client';
@@ -51,6 +52,7 @@ export const BuyTicketModal: React.FC<BuyTicketModalProps> = ({
   const [phone, setPhone] = useState(user?.phoneNumber || '');
   const [email, setEmail] = useState(user?.email || '');
   const [idCard, setIdCard] = useState('');
+  const [showIdCardInput, setShowIdCardInput] = useState(false);
   const [coupon, setCoupon] = useState('');
   const [discountAmount, setDiscountAmount] = useState(0);
   const [couponApplied, setCouponApplied] = useState(false);
@@ -87,6 +89,18 @@ export const BuyTicketModal: React.FC<BuyTicketModalProps> = ({
     listing?.listingId,
     pollEnabled
   );
+
+  // Lock background body scroll while modal is open
+  useEffect(() => {
+    if (isOpen) {
+      const originalOverflow = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
+      return () => {
+        document.body.style.overflow = originalOverflow;
+      };
+    }
+    return undefined;
+  }, [isOpen]);
 
   // Sync user profile data when auth changes
   useEffect(() => {
@@ -267,43 +281,6 @@ export const BuyTicketModal: React.FC<BuyTicketModalProps> = ({
     }
   };
 
-  // Status Badge in Header
-  const renderHeaderBadge = () => {
-    if (!holdData) {
-      return (
-        <span className="hidden sm:inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/25 text-emerald-400 text-xs font-semibold">
-          <Shield className="w-3.5 h-3.5" />
-          <span>Bước 1: Thông tin người nhận</span>
-        </span>
-      );
-    }
-
-    if (countdown.isExpired) {
-      return (
-        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-red-500/15 border border-red-500/30 text-red-400 text-xs font-bold uppercase tracking-wider">
-          <AlertTriangle className="w-3.5 h-3.5" />
-          <span>Đã hết hạn</span>
-        </span>
-      );
-    }
-
-    if (isVerifyingManual || paymentStatus?.listingStatus === 'Transacting') {
-      return (
-        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-cyan-500/15 border border-cyan-500/30 text-cyan-300 text-xs font-semibold animate-pulse">
-          <span className="w-2 h-2 rounded-full bg-cyan-400" />
-          <span>Đang chờ thanh toán</span>
-        </span>
-      );
-    }
-
-    return (
-      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/25 text-emerald-400 text-xs font-semibold">
-        <span className="w-2 h-2 rounded-full bg-emerald-400" />
-        <span>Đang giữ chỗ 10 phút</span>
-      </span>
-    );
-  };
-
   return (
     <AnimatePresence>
       <div
@@ -311,7 +288,7 @@ export const BuyTicketModal: React.FC<BuyTicketModalProps> = ({
         role="dialog"
         aria-modal="true"
         aria-labelledby="checkout-modal-title"
-        className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 md:p-6 overflow-y-auto"
+        className="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-center justify-center p-3 sm:p-5 md:p-6 overflow-y-auto"
         onClick={(e) => {
           if (e.target === e.currentTarget) {
             handleCancelAndClose();
@@ -323,46 +300,49 @@ export const BuyTicketModal: React.FC<BuyTicketModalProps> = ({
           initial={{ opacity: 0, scale: 0.98 }}
           animate={{ opacity: 1, scale: 1 }}
           exit={{ opacity: 0, scale: 0.98 }}
-          transition={{ duration: 0.18, ease: 'easeOut' }}
-          className="relative w-full max-w-3xl bg-[#0B0F19] border border-[#293548] rounded-2xl shadow-2xl shadow-black/80 overflow-hidden my-auto text-zinc-100 flex flex-col"
+          transition={{ duration: 0.16, ease: 'easeOut' }}
+          className="relative w-full max-w-[780px] bg-[#0B0F19] border border-[#293548] rounded-2xl shadow-2xl shadow-black/90 overflow-hidden my-auto text-zinc-100 flex flex-col max-h-[calc(100dvh-48px)] sm:max-h-[calc(100dvh-48px)]"
         >
-          {/* Top Subtle Brand Bar */}
+          {/* Top Brand Accent */}
           <div className="h-1 w-full bg-gradient-to-r from-emerald-500 via-teal-400 to-emerald-500 shrink-0" />
 
-          {/* MODAL HEADER */}
-          <div className="flex items-center justify-between px-4 sm:px-5 py-3 border-b border-[#293548] bg-[#111827] shrink-0">
-            <div className="flex items-center gap-2.5 min-w-0">
-              <div className="w-8 h-8 rounded-lg bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-400 shrink-0 shadow-sm">
+          {/* FIXED MODAL HEADER (Height ~64px) */}
+          <div className="flex items-center justify-between px-5 py-3.5 border-b border-[#293548] bg-[#111827] shrink-0">
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="w-8 h-8 rounded-lg bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-400 shrink-0">
                 <ShieldCheck className="w-4 h-4" />
               </div>
               <div className="min-w-0">
                 <h2
                   id="checkout-modal-title"
-                  className="text-xs sm:text-sm font-bold text-white tracking-wide uppercase truncate"
+                  className="text-base sm:text-lg font-bold text-white tracking-wide truncate"
                 >
-                  {holdData ? 'Thanh toán VietQR Ký quỹ' : 'Mua vé an toàn & Nhận vé chính thức'}
+                  {holdData ? 'Thanh toán VietQR Ký quỹ' : 'Thông tin đặt vé'}
                 </h2>
-                <p className="text-[10px] text-zinc-400 truncate">
-                  {listing.eventName} • {listing.eventVenue || 'Vé chuyển nhượng đã xác thực'}
+                <p className="text-xs text-zinc-400 truncate">
+                  {listing.eventName} • {listing.eventVenue || 'Vé chuyển nhượng chính thức'}
                 </p>
               </div>
             </div>
 
-            <div className="flex items-center gap-2 shrink-0">
-              {renderHeaderBadge()}
+            <div className="flex items-center gap-2.5 shrink-0">
+              <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[11px] font-semibold">
+                {holdData ? 'Bước 2/2' : 'Bước 1/2'}
+              </span>
+
               <button
                 type="button"
                 onClick={handleCancelAndClose}
-                aria-label="Đóng cửa sổ thanh toán"
-                className="p-1.5 text-zinc-400 hover:text-white rounded-lg hover:bg-white/10 transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-emerald-500/40"
+                aria-label="Đóng cửa sổ"
+                className="p-1 text-zinc-400 hover:text-white rounded-lg hover:bg-white/10 transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-emerald-500/40"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
           </div>
 
-          {/* MODAL BODY */}
-          <div className="p-4 sm:p-4.5 space-y-3 flex-1">
+          {/* SCROLLABLE MODAL BODY */}
+          <div className="px-5 py-4 space-y-4 overflow-y-auto flex-1 min-h-0 custom-scrollbar">
             {/* Loading Skeleton during Hold Creation */}
             {isHolding ? (
               <CheckoutSkeleton />
@@ -375,68 +355,73 @@ export const BuyTicketModal: React.FC<BuyTicketModalProps> = ({
                 onClose={handleCancelAndClose}
               />
             ) : !holdData ? (
-              /* ================= STEP 1: BUYER INFORMATION & SUMMARY ================= */
-              <form onSubmit={handleHoldListing} className="space-y-4">
+              /* ================= STEP 1: BALANCED TICKET INFORMATION FORM ================= */
+              <form id="buyer-info-form" onSubmit={handleHoldListing} className="space-y-4">
                 {/* Warning if listing is locked by another buyer */}
                 {((listing.listingStatus || '').toLowerCase() === 'transacting') && (
-                  <div className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center gap-3 text-amber-200 text-xs">
+                  <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center gap-2.5 text-amber-200 text-xs">
                     <Lock className="w-4 h-4 text-amber-400 shrink-0" />
                     <div>
-                      <div className="font-bold text-amber-300">Vé đang trong phiên giao dịch khác</div>
-                      <div className="text-amber-200/80 mt-0.5">
-                        Vé này hiện đang được giữ chỗ trong 10 phút bởi một người mua khác. Vui lòng quay lại sau ít phút hoặc chọn vé khác.
+                      <div className="font-semibold text-amber-300">Vé đang trong phiên giao dịch khác</div>
+                      <div className="text-amber-200/80 text-[11px] mt-0.5">
+                        Vé này hiện đang được giữ chỗ trong 10 phút bởi một người mua khác. Vui lòng quay lại sau ít phút.
                       </div>
                     </div>
                   </div>
                 )}
 
-                {/* Ticket Details Summary Card */}
-                <div className="p-3.5 rounded-xl bg-[#111827] border border-[#293548] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-                  <div className="space-y-0.5 min-w-0">
+                {/* 1. Ticket Summary Card (Balanced proportions) */}
+                <div className="p-3.5 sm:p-4 rounded-xl bg-[#111827] border border-[#293548] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                  <div className="min-w-0 flex-1 space-y-0.5">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <span className="text-[10px] font-mono font-bold text-amber-400 uppercase tracking-wider px-2 py-0.5 rounded bg-amber-500/10 border border-amber-500/30">
+                      <span className="text-[11px] font-mono font-bold text-amber-400 uppercase tracking-wider px-2 py-0.5 rounded bg-amber-500/10 border border-amber-500/30">
                         {listing.tierName || 'HẠNG VÉ TIÊU CHUẨN'}
                       </span>
-                      <span className="text-[11px] font-mono text-zinc-400">
+                      <span className="text-xs font-mono text-zinc-400">
                         Mã vé: {listing.maskedTicketCode || 'AT*********88'}
                       </span>
                     </div>
-                    <h3 className="text-sm font-bold text-white truncate">{listing.eventName}</h3>
-                    <p className="text-xs text-zinc-400">{listing.eventVenue || 'Địa điểm tổ chức'}</p>
+                    <div className="text-base font-bold text-white truncate mt-0.5">
+                      {listing.eventName}
+                    </div>
+                    <div className="text-xs text-zinc-400 truncate">
+                      {listing.eventVenue || 'Địa điểm sự kiện'}
+                    </div>
                   </div>
 
                   <div className="text-left sm:text-right shrink-0">
-                    <div className="text-[10px] text-zinc-400 uppercase tracking-wider">Giá niêm yết</div>
-                    <div className="text-lg font-extrabold text-white font-mono tabular-nums">
+                    <div className="text-[11px] text-zinc-400 uppercase tracking-wider font-medium">Giá vé gốc</div>
+                    <div className="text-lg sm:text-xl font-bold text-white font-mono tabular-nums">
                       {formatVND(listing.resalePrice)}
                     </div>
                   </div>
                 </div>
 
-                {/* 24-Hour Guarantee Trust Banner */}
-                <div className="p-3 rounded-xl bg-emerald-500/[0.07] border border-emerald-500/30 flex items-start gap-2.5">
+                {/* 2. Insurance Trust Banner (Balanced 2-lines) */}
+                <div className="p-3 sm:p-3.5 rounded-xl bg-emerald-500/[0.08] border border-emerald-500/30 flex items-start gap-2.5">
                   <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
-                  <div className="text-xs space-y-0.5">
-                    <div className="font-semibold text-emerald-300">
-                      Bảo hiểm thanh toán Ký quỹ Escrow 24 Giờ & Cấp mới vé từ BTC
+                  <div className="space-y-0.5 text-xs">
+                    <div className="font-semibold text-emerald-300 text-sm">
+                      Bảo vệ giao dịch 24 giờ
                     </div>
-                    <div className="text-zinc-300 text-[11px] leading-relaxed">
-                      Tiền của bạn được giữ an toàn trong tài khoản Ký quỹ TicketShield. Ban tổ chức sẽ hủy mã vé cũ của người bán và phát hành mã vé QR hoàn toàn mới gửi trực tiếp về email của bạn.
-                    </div>
+                    <p className="text-zinc-300 leading-relaxed text-xs">
+                      Tiền được giữ tại TicketShield. BTC hủy vé cũ của người bán và phát hành mã QR mới trực tiếp đến email của bạn.
+                    </p>
                   </div>
                 </div>
 
-                {/* Recipient Form Fields */}
-                <div className="space-y-2.5">
-                  <div className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-zinc-300">
-                    <User className="w-3.5 h-3.5 text-emerald-400" />
-                    <span>Thông tin người nhận vé chính thức</span>
+                {/* 3. Customer Information Form Fields */}
+                <div className="space-y-3">
+                  <div className="flex items-center gap-1.5 text-sm font-semibold text-zinc-200">
+                    <User className="w-4 h-4 text-emerald-400" />
+                    <span>Thông tin người nhận vé</span>
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                  {/* Row 1: Full Name & Phone Number (2 Columns on Desktop) */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
-                      <label className="text-[11px] text-zinc-400 block mb-1 font-medium">
-                        Họ và tên người nhận *
+                      <label className="text-xs font-medium text-zinc-300 block mb-1.5">
+                        Họ và tên người nhận <span className="text-red-400">*</span>
                       </label>
                       <input
                         type="text"
@@ -444,13 +429,13 @@ export const BuyTicketModal: React.FC<BuyTicketModalProps> = ({
                         value={fullName}
                         onChange={(e) => setFullName(e.target.value)}
                         placeholder="Nguyễn Văn A"
-                        className="w-full h-9 px-3 rounded-xl bg-[#151C2B] border border-[#293548] text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-emerald-500 transition-all"
+                        className="w-full h-[42px] sm:h-[44px] px-3.5 rounded-lg bg-[#151C2B] border border-[#293548] text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/40 transition-all"
                       />
                     </div>
 
                     <div>
-                      <label className="text-[11px] text-zinc-400 block mb-1 font-medium">
-                        Số điện thoại *
+                      <label className="text-xs font-medium text-zinc-300 block mb-1.5">
+                        Số điện thoại <span className="text-red-400">*</span>
                       </label>
                       <input
                         type="tel"
@@ -458,75 +443,106 @@ export const BuyTicketModal: React.FC<BuyTicketModalProps> = ({
                         value={phone}
                         onChange={(e) => setPhone(e.target.value)}
                         placeholder="0901234567"
-                        className="w-full h-9 px-3 rounded-xl bg-[#151C2B] border border-[#293548] text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-emerald-500 transition-all"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="text-[11px] text-zinc-400 block mb-1 font-medium">
-                        Email nhận vé điện tử *
-                      </label>
-                      <input
-                        type="email"
-                        required
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        placeholder="email@domain.com"
-                        className="w-full h-9 px-3 rounded-xl bg-[#151C2B] border border-[#293548] text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-emerald-500 transition-all"
+                        className="w-full h-[42px] sm:h-[44px] px-3.5 rounded-lg bg-[#151C2B] border border-[#293548] text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/40 transition-all"
                       />
                     </div>
                   </div>
 
+                  {/* Row 2: Delivery Email (Full Width) */}
                   <div>
-                    <label className="text-[11px] text-zinc-400 block mb-1 font-medium">
-                      Số CCCD / Hộ chiếu (Dùng đối chiếu vé tại cổng sự kiện nếu cần)
+                    <label className="text-xs font-medium text-zinc-300 block mb-1.5">
+                      Email nhận vé điện tử <span className="text-red-400">*</span>
                     </label>
                     <input
-                      type="text"
-                      value={idCard}
-                      onChange={(e) => setIdCard(e.target.value)}
-                      placeholder="00120000xxxx (Tùy chọn)"
-                      className="w-full h-9 px-3 rounded-xl bg-[#151C2B] border border-[#293548] text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-emerald-500 transition-all"
+                      type="email"
+                      required
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder="email@example.com"
+                      className="w-full h-[42px] sm:h-[44px] px-3.5 rounded-lg bg-[#151C2B] border border-[#293548] text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/40 transition-all"
                     />
+                  </div>
+
+                  {/* Row 3: Optional National ID (Collapsible / Expandable) */}
+                  {showIdCardInput || idCard ? (
+                    <div className="animate-in fade-in duration-150 space-y-1">
+                      <div className="flex items-center justify-between">
+                        <label className="text-xs font-medium text-zinc-300">
+                          Số CCCD / Hộ chiếu (Tùy chọn)
+                        </label>
+                        {!idCard && (
+                          <button
+                            type="button"
+                            onClick={() => setShowIdCardInput(false)}
+                            className="text-xs text-zinc-400 hover:text-zinc-200 transition-colors"
+                          >
+                            Thu gọn
+                          </button>
+                        )}
+                      </div>
+                      <input
+                        type="text"
+                        value={idCard}
+                        onChange={(e) => setIdCard(e.target.value)}
+                        placeholder="00120000xxxx (Dùng đối chiếu cổng soát vé nếu cần)"
+                        className="w-full h-[42px] sm:h-[44px] px-3.5 rounded-lg bg-[#151C2B] border border-[#293548] text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/40 transition-all"
+                      />
+                    </div>
+                  ) : (
+                    <div>
+                      <button
+                        type="button"
+                        onClick={() => setShowIdCardInput(true)}
+                        className="text-xs text-emerald-400 hover:text-emerald-300 font-medium inline-flex items-center gap-1 transition-colors cursor-pointer py-0.5"
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                        <span>Thêm số CCCD / Hộ chiếu (tùy chọn)</span>
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Row 4: Promo Code */}
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-medium text-zinc-300 block">
+                      Mã giảm giá / Ưu đãi
+                    </label>
+                    <div className="flex gap-2">
+                      <div className="relative flex-1">
+                        <Tag className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-500" />
+                        <input
+                          type="text"
+                          placeholder="Nhập mã ưu đãi (Ví dụ: SAYHI)"
+                          value={coupon}
+                          onChange={(e) => setCoupon(e.target.value)}
+                          disabled={couponApplied}
+                          className="w-full h-[42px] sm:h-[44px] pl-9 pr-3.5 rounded-lg bg-[#151C2B] border border-[#293548] text-sm text-white uppercase placeholder-zinc-500 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/40 transition-all"
+                        />
+                      </div>
+                      <button
+                        type="button"
+                        onClick={handleApplyCoupon}
+                        disabled={couponApplied || !coupon.trim()}
+                        className="h-[42px] sm:h-[44px] px-4 bg-white/10 hover:bg-white/15 disabled:opacity-40 text-xs sm:text-sm font-semibold rounded-lg text-white transition-colors cursor-pointer border border-white/10 shrink-0 active:scale-95"
+                      >
+                        {couponApplied ? 'Đã áp dụng' : 'Áp dụng'}
+                      </button>
+                    </div>
                   </div>
                 </div>
 
-                {/* Promo Code Section */}
-                <div className="flex gap-2">
-                  <div className="relative flex-1">
-                    <Tag className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-500" />
-                    <input
-                      type="text"
-                      placeholder="Nhập mã ưu đãi (Ví dụ: SAYHI)"
-                      value={coupon}
-                      onChange={(e) => setCoupon(e.target.value)}
-                      disabled={couponApplied}
-                      className="w-full h-9 pl-8 pr-3 rounded-xl bg-[#151C2B] border border-[#293548] text-xs text-white uppercase placeholder-zinc-500 focus:outline-none focus:border-emerald-500 transition-all"
-                    />
-                  </div>
-                  <button
-                    type="button"
-                    onClick={handleApplyCoupon}
-                    disabled={couponApplied || !coupon.trim()}
-                    className="h-9 px-3.5 bg-white/10 hover:bg-white/15 disabled:opacity-40 text-xs font-semibold rounded-xl text-white transition-colors cursor-pointer border border-white/10 shrink-0"
-                  >
-                    {couponApplied ? 'Đã áp dụng' : 'Áp dụng'}
-                  </button>
-                </div>
-
-                {/* Price & Fee Breakdown Box */}
-                <div className="p-3 bg-[#111827] border border-[#293548] rounded-xl space-y-2 text-xs">
-                  <div className="flex items-center justify-between pb-1.5 border-b border-[#293548]">
-                    <div className="flex items-center gap-1.5 font-semibold text-zinc-200">
+                {/* 4. Payment Price Breakdown (Clean & Compact) */}
+                <div className="p-3.5 sm:p-4 bg-[#111827] border border-[#293548] rounded-xl space-y-2">
+                  <div className="flex items-center justify-between pb-2 border-b border-[#293548]">
+                    <div className="flex items-center gap-1.5 font-semibold text-zinc-200 text-xs sm:text-sm">
                       <CreditCard className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
                       <span>Chi tiết thanh toán</span>
                     </div>
-                    <span className="inline-flex items-center px-2 py-0.2 rounded text-[10px] font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/25">
+                    <span className="text-[11px] text-zinc-400 font-mono">
                       Phí bảo hiểm Escrow 5%
                     </span>
                   </div>
 
-                  <div className="space-y-1 text-xs">
+                  <div className="space-y-1.5 text-xs sm:text-sm">
                     <div className="flex justify-between items-center text-zinc-400">
                       <span>Giá vé gốc:</span>
                       <span className="font-semibold text-zinc-200 font-mono tabular-nums">
@@ -535,10 +551,7 @@ export const BuyTicketModal: React.FC<BuyTicketModalProps> = ({
                     </div>
 
                     <div className="flex justify-between items-center text-zinc-400">
-                      <div className="flex items-center gap-1">
-                        <span>Phí bảo vệ người mua (5%):</span>
-                        <span className="text-[10px] text-zinc-500">(Tối thiểu 10.000 đ)</span>
-                      </div>
+                      <span>Bảo vệ người mua &amp; Dịch vụ (5%):</span>
                       <span className="font-medium text-amber-400 font-mono tabular-nums">
                         + {formatVND(estimatedBuyerFee)}
                       </span>
@@ -554,13 +567,10 @@ export const BuyTicketModal: React.FC<BuyTicketModalProps> = ({
                     )}
                   </div>
 
-                  <div className="flex justify-between items-baseline pt-2 border-t border-[#293548]">
+                  <div className="flex justify-between items-baseline pt-2.5 border-t border-[#293548]">
                     <div>
-                      <span className="text-xs font-bold text-white block">
-                        Tổng tiền thanh toán VietQR
-                      </span>
-                      <span className="text-[10px] text-zinc-400">
-                        (Bao gồm vé + bảo hiểm ký quỹ 24h)
+                      <span className="text-xs sm:text-sm font-bold text-white block">
+                        Tổng thanh toán
                       </span>
                     </div>
                     <div className="text-right">
@@ -570,30 +580,10 @@ export const BuyTicketModal: React.FC<BuyTicketModalProps> = ({
                     </div>
                   </div>
                 </div>
-
-                {/* Step 1 Submit Button */}
-                <div className="pt-1 flex items-center justify-between gap-3">
-                  <button
-                    type="button"
-                    onClick={handleCancelAndClose}
-                    className="h-10 px-4 rounded-xl bg-transparent hover:bg-white/5 border border-zinc-700 text-xs font-semibold text-zinc-300 transition-colors cursor-pointer"
-                  >
-                    Hủy bỏ
-                  </button>
-
-                  <button
-                    type="submit"
-                    disabled={isHolding || ((listing.listingStatus || '').toLowerCase() === 'transacting')}
-                    className="h-10 px-5 bg-emerald-500 hover:bg-emerald-400 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed text-zinc-950 font-bold text-xs uppercase tracking-wider rounded-xl shadow-md transition-all flex items-center gap-2 cursor-pointer ml-auto"
-                  >
-                    <span>Giữ vé 10 phút & Tạo mã VietQR</span>
-                    <ArrowRight className="w-4 h-4" />
-                  </button>
-                </div>
               </form>
             ) : (
               /* ================= STEP 2: ACTIVE 10-MIN COUNTDOWN & VIETQR CHECKOUT ================= */
-              <div className="space-y-3">
+              <div className="space-y-3.5">
                 {/* 1. Payment Countdown Bar */}
                 <PaymentCountdownBar
                   formattedTime={countdown.formattedTime}
@@ -608,7 +598,7 @@ export const BuyTicketModal: React.FC<BuyTicketModalProps> = ({
                   <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/30 flex items-center gap-2.5 text-red-200 text-xs animate-in fade-in">
                     <AlertTriangle className="w-4 h-4 text-red-400 shrink-0" />
                     <div className="flex-1">
-                      <div className="font-bold text-red-300">Phiên giữ chỗ ký quỹ đã hết hạn (10 phút)</div>
+                      <div className="font-semibold text-red-300">Phiên giữ chỗ ký quỹ đã hết hạn (10 phút)</div>
                       <div className="text-zinc-300 text-[11px] mt-0.5">
                         Vé đã được tự động mở lại trên sàn để người khác có thể mua. Vui lòng đóng cửa sổ hoặc tạo lại giao dịch mới.
                       </div>
@@ -617,7 +607,7 @@ export const BuyTicketModal: React.FC<BuyTicketModalProps> = ({
                 )}
 
                 {/* 3. Main 2-Column Responsive Layout */}
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 items-stretch">
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-3.5 items-stretch">
                   {/* Left Column (5/12): VietQR Panel */}
                   <VietQrPanel
                     qrImageUrl={displayQrUrl}
@@ -643,30 +633,38 @@ export const BuyTicketModal: React.FC<BuyTicketModalProps> = ({
             )}
           </div>
 
-          {/* STEP 2 MODAL FOOTER */}
-          {holdData && (
-            <div className="px-4 sm:px-5 py-3 border-t border-[#293548] bg-[#111827] flex flex-col sm:flex-row items-center justify-between gap-3 shrink-0">
-              <div className="text-xs text-zinc-400 flex items-center gap-1.5 min-w-0 w-full sm:w-auto flex-1">
-                <Info className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                <span className="text-[11px] text-zinc-400 truncate sm:whitespace-normal">
-                  Vé chính thức sẽ gửi về email <strong className="text-zinc-200 font-medium">{email}</strong> sau khi thanh toán.
-                </span>
-              </div>
+          {/* FIXED MODAL FOOTER (Height ~64px) */}
+          <div className="px-5 py-3 border-t border-[#293548] bg-[#111827] flex flex-col sm:flex-row items-center justify-between gap-3 shrink-0">
+            <div className="text-xs text-zinc-400 flex items-center gap-1.5 min-w-0 w-full sm:w-auto flex-1">
+              <Info className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+              <span className="truncate sm:whitespace-normal">
+                {holdData ? (
+                  <>
+                    Vé chính thức sẽ gửi về email <strong className="text-zinc-200 font-medium">{email}</strong> sau khi xác nhận.
+                  </>
+                ) : (
+                  <>
+                    Vé điện tử sẽ gửi về email người nhận ngay sau khi thanh toán.
+                  </>
+                )}
+              </span>
+            </div>
 
-              <div className="flex items-center gap-2 w-full sm:w-auto shrink-0 justify-end">
-                <button
-                  type="button"
-                  onClick={handleCancelAndClose}
-                  className="w-full sm:w-auto px-4 py-2 rounded-xl bg-[#151C2B] hover:bg-[#1E293B] border border-[#293548] text-xs font-semibold text-zinc-300 transition-colors cursor-pointer text-center"
-                >
-                  Hủy / Để sau
-                </button>
+            <div className="flex items-center gap-2.5 w-full sm:w-auto shrink-0 justify-end">
+              <button
+                type="button"
+                onClick={handleCancelAndClose}
+                className="w-full sm:w-auto h-11 px-4 rounded-xl bg-[#151C2B] hover:bg-[#1E293B] border border-[#293548] text-xs sm:text-sm font-semibold text-zinc-300 transition-colors cursor-pointer text-center"
+              >
+                {holdData ? 'Hủy / Để sau' : 'Hủy bỏ'}
+              </button>
 
+              {holdData ? (
                 <button
                   type="button"
                   onClick={handleManualCheckPayment}
                   disabled={countdown.isExpired || isVerifyingManual}
-                  className="w-full sm:w-auto px-5 py-2 bg-emerald-500 hover:bg-emerald-400 active:scale-[0.98] disabled:opacity-40 text-zinc-950 font-bold text-xs uppercase tracking-wider rounded-xl shadow-md transition-all flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap"
+                  className="w-full sm:w-auto h-11 px-5 bg-emerald-500 hover:bg-emerald-400 active:scale-[0.98] disabled:opacity-40 text-zinc-950 font-bold text-xs sm:text-sm uppercase tracking-wider rounded-xl shadow-md transition-all flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap"
                 >
                   {isVerifyingManual ? (
                     <>
@@ -680,9 +678,19 @@ export const BuyTicketModal: React.FC<BuyTicketModalProps> = ({
                     </>
                   )}
                 </button>
-              </div>
+              ) : (
+                <button
+                  type="submit"
+                  form="buyer-info-form"
+                  disabled={isHolding || ((listing.listingStatus || '').toLowerCase() === 'transacting')}
+                  className="w-full sm:w-auto h-11 px-5 bg-emerald-500 hover:bg-emerald-400 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed text-zinc-950 font-bold text-xs sm:text-sm uppercase tracking-wider rounded-xl shadow-md transition-all flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap"
+                >
+                  <span>Giữ vé 10 phút & Tạo mã VietQR</span>
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </button>
+              )}
             </div>
-          )}
+          </div>
         </motion.div>
       </div>
     </AnimatePresence>
