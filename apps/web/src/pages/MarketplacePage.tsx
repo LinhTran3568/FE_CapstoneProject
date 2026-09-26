@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useSearchParams, useNavigate, Link } from 'react-router-dom';
+import { motion } from 'framer-motion';
 import {
   ArrowLeft,
   Loader2,
@@ -249,11 +250,232 @@ export const MarketplacePage: React.FC = () => {
   ];
 
   return (
-    <div className="relative min-h-screen bg-[#05070A] text-[#F5F5F5] font-sans antialiased selection:bg-[#FF5A36] selection:text-white pt-24 sm:pt-28 pb-16">
-      {/* Ambient background light */}
+    <div className="relative min-h-screen bg-[#05070A] text-[#F5F5F5] font-sans antialiased selection:bg-[#FF5A36] selection:text-white pt-24 sm:pt-28 pb-16 overflow-hidden">
+      {/* ================= DYNAMIC BACKGROUND ATMOSPHERE WITH EFFECTS ================= */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden z-0 select-none">
-        <div className="absolute top-1/4 -right-24 w-[450px] h-[450px] bg-[#FF5A36]/10 rounded-full blur-[130px]" />
-        <div className="absolute top-1/3 -left-24 w-[450px] h-[450px] bg-cyan-500/10 rounded-full blur-[130px]" />
+        {/* Real High-Res Concert Laser Arena Photo with Slow Breathing Zoom Animation */}
+        <motion.div
+          animate={{
+            scale: [1, 1.05, 1],
+            opacity: [0.65, 0.76, 0.65],
+          }}
+          transition={{
+            duration: 18,
+            repeat: Infinity,
+            ease: 'easeInOut',
+          }}
+          className="absolute inset-0 bg-cover bg-center bg-no-repeat filter contrast-125 saturate-125"
+          style={{
+            backgroundImage: `url('/images/landing/marketplace-hero.jpg')`,
+          }}
+        />
+
+        {/* Dynamic Sweeping Cyber Laser Light Beam 1 (Neon Coral) */}
+        <motion.div
+          animate={{
+            x: ['-100%', '200%'],
+            opacity: [0, 0.35, 0],
+          }}
+          transition={{
+            duration: 8,
+            repeat: Infinity,
+            ease: 'easeInOut',
+            repeatDelay: 1.5,
+          }}
+          className="absolute inset-y-0 w-1/3 bg-gradient-to-r from-transparent via-[#FF5A36]/40 to-transparent transform -skew-x-12 blur-2xl pointer-events-none"
+        />
+
+        {/* Dynamic Sweeping Cyber Laser Light Beam 2 (Electric Cyan) */}
+        <motion.div
+          animate={{
+            x: ['200%', '-100%'],
+            opacity: [0, 0.25, 0],
+          }}
+          transition={{
+            duration: 11,
+            repeat: Infinity,
+            ease: 'easeInOut',
+            repeatDelay: 3,
+          }}
+          className="absolute inset-y-0 w-1/4 bg-gradient-to-r from-transparent via-cyan-400/35 to-transparent transform skew-x-12 blur-2xl pointer-events-none"
+        />
+
+        {/* Layered Gradient Masks for Perfect Content Contrast */}
+        <div className="absolute inset-0 bg-gradient-to-b from-[#05070A]/35 via-[#05070A]/60 to-[#05070A]/95" />
+        <div className="absolute inset-0 bg-gradient-to-r from-[#05070A]/75 via-transparent to-[#05070A]/75" />
+
+        {/* Floating Cyber Light Particles */}
+        {[
+          { top: '15%', left: '12%', size: 4, color: 'bg-orange-400 shadow-[0_0_10px_#fb923c]', duration: 7, delay: 0 },
+          { top: '25%', left: '85%', size: 5, color: 'bg-cyan-400 shadow-[0_0_12px_#22d3ee]', duration: 9, delay: 1 },
+          { top: '45%', left: '22%', size: 3, color: 'bg-amber-300 shadow-[0_0_8px_#fcd34d]', duration: 8, delay: 2 },
+          { top: '65%', left: '78%', size: 4, color: 'bg-orange-500 shadow-[0_0_10px_#f97316]', duration: 11, delay: 0.5 },
+          { top: '35%', left: '50%', size: 5, color: 'bg-cyan-300 shadow-[0_0_12px_#67e8f9]', duration: 10, delay: 3 },
+          { top: '75%', left: '15%', size: 3, color: 'bg-purple-400 shadow-[0_0_8px_#c084fc]', duration: 8.5, delay: 1.5 },
+          { top: '80%', left: '60%', size: 4, color: 'bg-amber-400 shadow-[0_0_10px_#fbbf24]', duration: 9.5, delay: 2.5 },
+          { top: '18%', left: '42%', size: 3, color: 'bg-rose-400 shadow-[0_0_8px_#fb7185]', duration: 12, delay: 4 },
+        ].map((particle, idx) => (
+          <motion.div
+            key={idx}
+            animate={{
+              y: [-15, 15, -15],
+              x: [-10, 10, -10],
+              opacity: [0.2, 0.8, 0.2],
+              scale: [0.8, 1.3, 0.8],
+            }}
+            transition={{
+              duration: particle.duration,
+              delay: particle.delay,
+              repeat: Infinity,
+              ease: 'easeInOut',
+            }}
+            className={`absolute rounded-full pointer-events-none ${particle.color}`}
+            style={{
+              top: particle.top,
+              left: particle.left,
+              width: `${particle.size}px`,
+              height: `${particle.size}px`,
+            }}
+          />
+        ))}
+
+        {/* Dynamic Floating Coral/Amber Glow Orb */}
+        <motion.div
+          animate={{
+            x: [-40, 50, -40],
+            y: [-30, 40, -30],
+            scale: [1, 1.2, 1],
+            opacity: [0.3, 0.5, 0.3],
+          }}
+          transition={{
+            duration: 14,
+            repeat: Infinity,
+            ease: 'easeInOut',
+          }}
+          className="absolute -top-20 left-1/2 -translate-x-1/2 w-[1100px] h-[500px] bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-[#FF5A36]/40 via-[#FF5A36]/12 to-transparent blur-3xl"
+        />
+
+        {/* Dynamic Floating Cyan Laser Beam Orb */}
+        <motion.div
+          animate={{
+            x: [40, -50, 40],
+            y: [30, -30, 30],
+            scale: [1, 1.25, 1],
+            opacity: [0.2, 0.4, 0.2],
+          }}
+          transition={{
+            duration: 16,
+            repeat: Infinity,
+            ease: 'easeInOut',
+          }}
+          className="absolute top-1/3 -left-20 w-[600px] h-[450px] bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-cyan-400/30 via-cyan-500/8 to-transparent blur-3xl"
+        />
+
+        {/* Dynamic Floating Violet / Purple Accent Orb */}
+        <motion.div
+          animate={{
+            x: [-30, 30, -30],
+            y: [20, -20, 20],
+            scale: [1, 1.15, 1],
+            opacity: [0.15, 0.32, 0.15],
+          }}
+          transition={{
+            duration: 18,
+            repeat: Infinity,
+            ease: 'easeInOut',
+          }}
+          className="absolute top-1/2 -right-24 w-[550px] h-[450px] bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-purple-500/25 via-purple-600/8 to-transparent blur-3xl"
+        />
+
+        {/* Dynamic Concert Moving Searchlight Beams */}
+        <motion.div
+          animate={{
+            rotate: [-20, 25, -20],
+            opacity: [0.18, 0.4, 0.18],
+          }}
+          transition={{
+            duration: 12,
+            repeat: Infinity,
+            ease: 'easeInOut',
+          }}
+          style={{ transformOrigin: 'bottom left' }}
+          className="absolute -bottom-20 -left-10 w-[450px] h-[850px] bg-gradient-to-t from-[#FF5A36]/30 via-[#FF5A36]/10 to-transparent blur-3xl pointer-events-none"
+        />
+
+        <motion.div
+          animate={{
+            rotate: [25, -20, 25],
+            opacity: [0.18, 0.4, 0.18],
+          }}
+          transition={{
+            duration: 14,
+            repeat: Infinity,
+            ease: 'easeInOut',
+          }}
+          style={{ transformOrigin: 'bottom right' }}
+          className="absolute -bottom-20 -right-10 w-[450px] h-[850px] bg-gradient-to-t from-cyan-400/30 via-cyan-400/10 to-transparent blur-3xl pointer-events-none"
+        />
+
+        {/* Shooting Cyber Laser Streak 1 */}
+        <motion.div
+          animate={{
+            x: ['-200%', '300%'],
+            y: ['-50%', '250%'],
+            opacity: [0, 0.8, 0],
+          }}
+          transition={{
+            duration: 3.5,
+            repeat: Infinity,
+            repeatDelay: 5,
+            ease: 'easeOut',
+          }}
+          className="absolute top-10 -left-40 w-72 h-[2px] bg-gradient-to-r from-transparent via-[#FF5A36] to-transparent transform -rotate-12 blur-[1px] pointer-events-none"
+        />
+
+        {/* Shooting Cyber Laser Streak 2 */}
+        <motion.div
+          animate={{
+            x: ['300%', '-200%'],
+            y: ['0%', '300%'],
+            opacity: [0, 0.7, 0],
+          }}
+          transition={{
+            duration: 4,
+            repeat: Infinity,
+            repeatDelay: 7,
+            delay: 2.5,
+            ease: 'easeOut',
+          }}
+          className="absolute top-28 -right-40 w-80 h-[2px] bg-gradient-to-r from-transparent via-cyan-400 to-transparent transform rotate-12 blur-[1px] pointer-events-none"
+        />
+
+        {/* Subtle Ambient Equalizer Wave Bars at the bottom */}
+        <div className="absolute bottom-0 inset-x-0 h-16 flex items-end justify-center gap-1.5 opacity-25 pointer-events-none overflow-hidden px-8">
+          {[24, 45, 30, 60, 80, 50, 95, 40, 70, 35, 85, 65, 30, 55, 75, 40, 90, 60, 35, 70, 45, 80, 50, 30].map((height, i) => (
+            <motion.div
+              key={i}
+              animate={{
+                height: [`${height * 0.3}%`, `${height}%`, `${height * 0.4}%`],
+              }}
+              transition={{
+                duration: 1.2 + (i % 5) * 0.2,
+                repeat: Infinity,
+                ease: 'easeInOut',
+                repeatType: 'reverse',
+              }}
+              className="w-1.5 rounded-t-full bg-gradient-to-t from-[#FF5A36] via-amber-400 to-cyan-400 shadow-[0_0_8px_rgba(255,90,54,0.4)]"
+            />
+          ))}
+        </div>
+
+        {/* High-tech Micro Dot Matrix Overlay */}
+        <div
+          className="absolute inset-0 opacity-[0.06]"
+          style={{
+            backgroundImage: `radial-gradient(rgba(255, 255, 255, 0.45) 1px, transparent 1px)`,
+            backgroundSize: '24px 24px',
+          }}
+        />
       </div>
 
       <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 md:px-12">
@@ -282,14 +504,15 @@ export const MarketplacePage: React.FC = () => {
         {/* Page Header */}
         <div className="mb-6">
           <div className="flex items-center gap-3 mb-1.5">
-            <h1 className="text-2xl sm:text-3xl font-extrabold font-display text-white tracking-tight">
-              Ticket Marketplace
+            <h1 className="text-2xl sm:text-3xl font-black font-display text-white tracking-tight flex items-center gap-2.5">
+              <span>Ticket Marketplace</span>
+              <Sparkles className="w-5 h-5 text-[#FF5A36] animate-pulse" />
             </h1>
-            <span className="px-3 py-1 rounded-full bg-[#FF5A36]/10 border border-[#FF5A36]/30 text-xs font-mono font-bold text-[#FF5A36]">
+            <span className="px-3 py-1 rounded-full bg-[#FF5A36]/15 border border-[#FF5A36]/40 text-xs font-mono font-bold text-[#FF5A36] shadow-[0_0_12px_rgba(255,90,54,0.25)]">
               {filteredListings.length} tickets available
             </span>
           </div>
-          <p className="text-xs sm:text-sm text-[#8B929C]">
+          <p className="text-xs sm:text-sm text-[#94A3B8]">
             Discover and purchase verified tickets directly reissued by official organizers, protected by our 24-hour buyer funds guarantee
           </p>
         </div>
