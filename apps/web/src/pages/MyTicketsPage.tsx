@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useId, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { motion } from 'framer-motion';
 import {
   AlertCircle,
   Calendar,
@@ -101,12 +102,83 @@ export const MyTicketsPage: React.FC = () => {
 
   return (
     <div className="relative min-h-screen bg-[#07090E] text-[#F8FAFC] pt-28 pb-24 px-4 sm:px-6 md:px-10 lg:px-12 font-sans antialiased overflow-hidden selection:bg-[#FF573D]/30 selection:text-white">
-      {/* Background Ambience */}
-      <div className="fixed inset-0 z-0 pointer-events-none">
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[400px] bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-[#FF573D]/12 via-transparent to-transparent blur-3xl opacity-70" />
-        <div className="absolute inset-0 bg-gradient-to-b from-[#07090E]/95 via-[#07090E] to-[#07090E]" />
+      {/* Rich Dynamic Atmospheric Background with Motion Effects */}
+      <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden">
+        {/* Breathing Slow Zoom on Hero Image */}
+        <motion.div
+          animate={{
+            scale: [1, 1.06, 1],
+            x: [0, -8, 0],
+            y: [0, -6, 0],
+          }}
+          transition={{
+            duration: 20,
+            repeat: Infinity,
+            ease: 'easeInOut',
+          }}
+          className="absolute inset-0 w-full h-full"
+        >
+          <img
+            src="/images/landing/my-tickets-hero.jpg"
+            alt=""
+            className="w-full h-full object-cover object-center opacity-75 filter brightness-105 contrast-120 saturate-120"
+          />
+        </motion.div>
+
+        {/* Diagonal Laser Light Sweep Effect */}
+        <motion.div
+          animate={{
+            x: ['-100%', '200%'],
+            opacity: [0, 0.25, 0],
+          }}
+          transition={{
+            duration: 8,
+            repeat: Infinity,
+            ease: 'easeInOut',
+            repeatDelay: 3,
+          }}
+          className="absolute inset-y-0 w-1/3 bg-gradient-to-r from-transparent via-[#FF573D]/30 to-transparent transform -skew-x-12 blur-2xl pointer-events-none"
+        />
+
+        {/* Layered Gradient Masks for Perfect Content Contrast */}
+        <div className="absolute inset-0 bg-gradient-to-b from-[#07090E]/50 via-[#07090E]/75 to-[#07090E]" />
+        <div className="absolute inset-0 bg-gradient-to-r from-[#07090E]/70 via-transparent to-[#07090E]/70" />
+
+        {/* Dynamic Floating Coral Glow Orb */}
+        <motion.div
+          animate={{
+            x: [-30, 40, -30],
+            y: [-20, 30, -20],
+            scale: [1, 1.15, 1],
+            opacity: [0.25, 0.45, 0.25],
+          }}
+          transition={{
+            duration: 12,
+            repeat: Infinity,
+            ease: 'easeInOut',
+          }}
+          className="absolute -top-24 left-1/2 -translate-x-1/2 w-[1200px] h-[550px] bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-[#FF573D]/40 via-[#FF573D]/12 to-transparent blur-3xl"
+        />
+
+        {/* Dynamic Floating Cyan Light Orb */}
+        <motion.div
+          animate={{
+            x: [40, -40, 40],
+            y: [20, -30, 20],
+            scale: [1, 1.2, 1],
+            opacity: [0.2, 0.4, 0.2],
+          }}
+          transition={{
+            duration: 15,
+            repeat: Infinity,
+            ease: 'easeInOut',
+          }}
+          className="absolute top-1/2 -right-20 w-[650px] h-[450px] bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-cyan-400/25 via-cyan-500/5 to-transparent blur-3xl"
+        />
+
+        {/* High-tech Micro Dot Matrix Overlay */}
         <div
-          className="absolute inset-0 opacity-[0.03]"
+          className="absolute inset-0 opacity-[0.05]"
           style={{
             backgroundImage: `radial-gradient(rgba(255, 255, 255, 0.4) 1px, transparent 1px)`,
             backgroundSize: '24px 24px',
@@ -332,19 +404,9 @@ const OfficialTicketPassCard: React.FC<OfficialTicketPassCardProps> = ({ ticket,
   );
 
   return (
-    <div className="group relative bg-[#0E121A] border border-white/10 hover:border-[#FF573D]/40 rounded-3xl overflow-hidden transition-all duration-300 hover:shadow-[0_12px_35px_rgba(255,87,61,0.12)] flex flex-col md:flex-row">
+    <div className="group relative bg-[#0E121A]/95 backdrop-blur-md border border-white/10 hover:border-[#FF573D]/40 rounded-3xl overflow-hidden transition-all duration-300 hover:shadow-[0_12px_35px_rgba(255,87,61,0.12)] flex flex-col md:flex-row">
       {/* LEFT SECTION: Event Main Details */}
       <div className="relative flex-1 p-5 sm:p-6 flex flex-col justify-between space-y-4 overflow-hidden">
-        {/* Background Image / Gradient Fallback */}
-        <div className="absolute inset-0 z-0 pointer-events-none">
-          <img
-            src="https://images.unsplash.com/photo-1540039155733-5bb30b53aa14?auto=format&fit=crop&w=800&q=80"
-            alt=""
-            className="w-full h-full object-cover opacity-15 filter brightness-50 group-hover:scale-105 transition-transform duration-700"
-          />
-          <div className="absolute inset-0 bg-gradient-to-r from-[#0E121A] via-[#0E121A]/90 to-[#0E121A]" />
-        </div>
-
         {/* Content Container */}
         <div className="relative z-10 space-y-3.5">
           {/* Top Status & Zone Header */}
