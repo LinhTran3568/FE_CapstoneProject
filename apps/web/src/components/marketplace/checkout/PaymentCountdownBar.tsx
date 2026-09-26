@@ -21,30 +21,30 @@ export const PaymentCountdownBar: React.FC<PaymentCountdownBarProps> = ({
   const getProgressColor = () => {
     switch (statusColor) {
       case 'red':
-        return 'bg-gradient-to-r from-red-600 to-rose-500';
+        return 'bg-red-500';
       case 'amber':
-        return 'bg-gradient-to-r from-amber-500 to-amber-400';
+        return 'bg-amber-400';
       case 'emerald':
       default:
-        return 'bg-gradient-to-r from-emerald-500 to-teal-400';
+        return 'bg-[#ff5722]';
     }
   };
 
   const getBadgeStyle = () => {
     switch (statusColor) {
       case 'red':
-        return 'bg-red-500/15 border-red-500/40 text-red-400';
+        return 'bg-red-500/20 border-red-500/40 text-red-300';
       case 'amber':
-        return 'bg-amber-500/15 border-amber-500/40 text-amber-300';
+        return 'bg-amber-500/20 border-amber-500/40 text-amber-200';
       case 'emerald':
       default:
-        return 'bg-emerald-500/15 border-emerald-500/30 text-emerald-400';
+        return 'bg-[#ff5722]/20 border-[#ff5722]/40 text-[#ff5722]';
     }
   };
 
   return (
     <div
-      className={`px-3.5 py-2 rounded-xl bg-[#0E1422] border border-[#232F45] relative overflow-hidden flex flex-col justify-center gap-1.5 ${className}`}
+      className={`px-3.5 py-2 rounded-xl bg-[#1A2335] border border-[#28354D] relative overflow-hidden flex flex-col justify-center gap-1.5 ${className}`}
     >
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
@@ -52,7 +52,7 @@ export const PaymentCountdownBar: React.FC<PaymentCountdownBarProps> = ({
             Time Remaining
           </span>
           {isUrgent && !isExpired && (
-            <span className="inline-flex items-center gap-1 text-[9px] font-semibold text-amber-300 bg-amber-500/15 px-1.5 py-0.5 rounded border border-amber-500/30">
+            <span className="inline-flex items-center gap-1 text-[9px] font-semibold text-amber-300 bg-amber-500/20 px-1.5 py-0.5 rounded border border-amber-500/40">
               <AlertTriangle className="w-2.5 h-2.5 text-amber-400 shrink-0" />
               Expiring Soon
             </span>
@@ -78,7 +78,7 @@ export const PaymentCountdownBar: React.FC<PaymentCountdownBarProps> = ({
       </div>
 
       {/* Real-time Progress Bar */}
-      <div className="w-full h-1 bg-[#172033] rounded-full overflow-hidden relative">
+      <div className="w-full h-1 bg-zinc-800 rounded-full overflow-hidden relative">
         <div
           className={`h-full rounded-full transition-all duration-300 ease-out ${getProgressColor()}`}
           style={{ width: `${Math.max(0, Math.min(100, progressPercentage))}%` }}

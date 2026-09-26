@@ -23,15 +23,15 @@ export const PaymentStatusView: React.FC<PaymentStatusViewProps> = ({
     return (
       <div className="flex flex-col items-center justify-center p-6 sm:p-8 text-center animate-in fade-in zoom-in-95 duration-300">
         <div className="relative mb-5">
-          <div className="w-20 h-20 rounded-full bg-emerald-500/20 border-2 border-emerald-500 flex items-center justify-center shadow-lg shadow-emerald-500/30">
-            <CheckCircle2 className="w-10 h-10 text-emerald-400" />
+          <div className="w-20 h-20 rounded-full bg-[#ff5722]/20 border-2 border-[#ff5722] flex items-center justify-center shadow-lg shadow-[#ff5722]/30">
+            <CheckCircle2 className="w-10 h-10 text-[#ff5722]" />
           </div>
-          <div className="absolute -bottom-1 -right-1 p-1 rounded-full bg-[#111827] border border-emerald-500/40">
-            <ShieldCheck className="w-4 h-4 text-emerald-400" />
+          <div className="absolute -bottom-1 -right-1 p-1 rounded-full bg-[#121824] border border-[#ff5722]/40">
+            <ShieldCheck className="w-4 h-4 text-[#ff5722]" />
           </div>
         </div>
 
-        <span className="px-3 py-1 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-xs font-bold uppercase tracking-wider mb-2">
+        <span className="px-3 py-1 rounded-full bg-[#ff5722]/15 border border-[#ff5722]/30 text-[#ff5722] text-xs font-bold uppercase tracking-wider mb-2">
           Payment Verified & Escrow Released
         </span>
 
@@ -39,28 +39,28 @@ export const PaymentStatusView: React.FC<PaymentStatusViewProps> = ({
           Payment Successful!
         </h3>
 
-        <p className="text-sm text-zinc-300 max-w-md mb-6 leading-relaxed">
+        <p className="text-sm text-zinc-400 max-w-md mb-6 leading-relaxed">
           Your escrow transaction has been verified successfully. Your new digital ticket with secure QR code has been issued directly to your wallet.
         </p>
 
         {(ticketTitle || orderNumber) && (
-          <div className="w-full max-w-md p-4 rounded-xl bg-[#111827] border border-[#293548] text-left mb-6 space-y-2">
+          <div className="w-full max-w-md p-4 rounded-xl bg-[#1A2335] border border-[#28354D] text-left mb-6 space-y-2">
             {ticketTitle && (
               <div className="flex justify-between items-center text-xs">
                 <span className="text-zinc-400">Event Ticket:</span>
-                <span className="font-semibold text-zinc-200">{ticketTitle}</span>
+                <span className="font-semibold text-white">{ticketTitle}</span>
               </div>
             )}
             {orderNumber && (
               <div className="flex justify-between items-center text-xs">
                 <span className="text-zinc-400">Order / Transaction Code:</span>
-                <span className="font-mono font-bold text-emerald-400">{orderNumber}</span>
+                <span className="font-mono font-bold text-[#ff5722]">{orderNumber}</span>
               </div>
             )}
-            <div className="flex justify-between items-center text-xs pt-2 border-t border-[#293548]/60">
+            <div className="flex justify-between items-center text-xs pt-2 border-t border-[#28354D]">
               <span className="text-zinc-400">Ticket Status:</span>
-              <span className="text-emerald-400 font-semibold flex items-center gap-1">
-                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+              <span className="text-[#ff5722] font-semibold flex items-center gap-1">
+                <span className="w-2 h-2 rounded-full bg-[#ff5722] animate-pulse" />
                 Active & Ready to Use
               </span>
             </div>
@@ -71,7 +71,7 @@ export const PaymentStatusView: React.FC<PaymentStatusViewProps> = ({
           <Link
             to="/my-tickets"
             onClick={onClose}
-            className="w-full inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-bold text-sm shadow-lg shadow-emerald-500/25 transition-all duration-200 active:scale-[0.98]"
+            className="w-full inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-[#ff5722] hover:bg-[#f4511e] text-white font-extrabold text-sm shadow-[0_4px_14px_rgba(255,87,34,0.35)] transition-all duration-200 active:scale-[0.98]"
           >
             <span>View My Tickets</span>
             <ArrowRight className="w-4 h-4" />
@@ -79,7 +79,7 @@ export const PaymentStatusView: React.FC<PaymentStatusViewProps> = ({
           <button
             type="button"
             onClick={onClose}
-            className="w-full sm:w-auto px-5 py-3 rounded-xl bg-[#151C2B] hover:bg-[#1E293B] border border-[#293548] text-zinc-300 font-semibold text-sm transition-all duration-200"
+            className="w-full sm:w-auto px-5 py-3 rounded-xl bg-transparent hover:bg-white/10 border border-[#28354D] text-zinc-300 font-semibold text-sm transition-all duration-200"
           >
             Close
           </button>
@@ -112,7 +112,7 @@ export const PaymentStatusView: React.FC<PaymentStatusViewProps> = ({
             <button
               type="button"
               onClick={onRetry}
-              className="w-full inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-bold text-sm shadow-md transition-all active:scale-[0.98]"
+              className="w-full inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-[#ff5722] hover:bg-[#f4511e] text-white font-extrabold text-sm shadow-[0_4px_14px_rgba(255,87,34,0.35)] transition-all active:scale-[0.98]"
             >
               <RotateCw className="w-4 h-4" />
               <span>Hold Ticket & Pay Again</span>
@@ -121,7 +121,7 @@ export const PaymentStatusView: React.FC<PaymentStatusViewProps> = ({
           <button
             type="button"
             onClick={onClose}
-            className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-[#151C2B] hover:bg-[#1E293B] border border-[#293548] text-zinc-300 font-semibold text-sm transition-all"
+            className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-transparent hover:bg-white/10 border border-[#28354D] text-zinc-300 font-semibold text-sm transition-all"
           >
             Close
           </button>
@@ -154,7 +154,7 @@ export const PaymentStatusView: React.FC<PaymentStatusViewProps> = ({
           <button
             type="button"
             onClick={onRetry}
-            className="w-full inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-bold text-sm shadow-md transition-all active:scale-[0.98]"
+            className="w-full inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-[#ff5722] hover:bg-[#f4511e] text-white font-extrabold text-sm shadow-[0_4px_14px_rgba(255,87,34,0.35)] transition-all active:scale-[0.98]"
           >
             <RotateCw className="w-4 h-4" />
             <span>Retry</span>
@@ -163,7 +163,7 @@ export const PaymentStatusView: React.FC<PaymentStatusViewProps> = ({
         <button
           type="button"
           onClick={onClose}
-          className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-[#151C2B] hover:bg-[#1E293B] border border-[#293548] text-zinc-300 font-semibold text-sm transition-all"
+          className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-transparent hover:bg-white/10 border border-[#28354D] text-zinc-300 font-semibold text-sm transition-all"
         >
           Close
         </button>

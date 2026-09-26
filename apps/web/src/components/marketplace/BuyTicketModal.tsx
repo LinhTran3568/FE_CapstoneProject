@@ -285,7 +285,7 @@ export const BuyTicketModal: React.FC<BuyTicketModalProps> = ({
         role="dialog"
         aria-modal="true"
         aria-labelledby="checkout-modal-title"
-        className="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-center justify-center p-3 sm:p-5 md:p-6 overflow-y-auto"
+        className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-3 sm:p-5 md:p-6 overflow-y-auto"
         onClick={(e) => {
           if (e.target === e.currentTarget) {
             handleCancelAndClose();
@@ -298,254 +298,244 @@ export const BuyTicketModal: React.FC<BuyTicketModalProps> = ({
           animate={{ opacity: 1, scale: 1 }}
           exit={{ opacity: 0, scale: 0.98 }}
           transition={{ duration: 0.16, ease: 'easeOut' }}
-          className="relative w-full max-w-[620px] bg-[#0B0F19] border border-[#293548] rounded-2xl shadow-2xl shadow-black/90 overflow-hidden my-auto text-zinc-100 flex flex-col max-h-[calc(100dvh-48px)]"
+          className="relative w-full max-w-[840px] bg-[#121824] border border-[#28354D] rounded-2xl shadow-2xl shadow-black/80 overflow-hidden my-auto text-zinc-100 flex flex-col max-h-[90vh]"
         >
-          {/* Top Brand Accent */}
-          <div className="h-1 w-full bg-gradient-to-r from-emerald-500 via-teal-400 to-emerald-500 shrink-0" />
-
-          {/* FIXED MODAL HEADER */}
-          <div className="flex items-center justify-between px-5 py-3.5 border-b border-[#293548] bg-[#111827] shrink-0">
-            <div className="flex items-center gap-2.5 min-w-0">
-              <div className="w-7 h-7 rounded-lg bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-400 shrink-0">
-                <ShieldCheck className="w-4 h-4" />
-              </div>
-              <div className="min-w-0">
-                <h2
-                  id="checkout-modal-title"
-                  className="text-base font-bold text-white tracking-wide truncate"
-                >
-                  {holdData ? 'VietQR Escrow Payment' : 'Ticket Reservation'}
-                </h2>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2 shrink-0">
-              <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[11px] font-semibold">
-                {holdData ? 'Step 2/2' : 'Step 1/2'}
-              </span>
-
-              <button
-                type="button"
-                onClick={handleCancelAndClose}
-                aria-label="Close modal"
-                className="p-1 text-zinc-400 hover:text-white rounded-lg hover:bg-white/10 transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-emerald-500/40"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
+          {/* 1. MINIMAL REFINED HEADER */}
+          <div className="flex items-center justify-between px-6 py-2.5 border-b border-[#28354D] bg-[#121824] shrink-0 h-11">
+            <div />
+            <button
+              type="button"
+              onClick={handleCancelAndClose}
+              aria-label="Close modal"
+              className="p-1 text-zinc-400 hover:text-white rounded-md hover:bg-white/10 transition-colors cursor-pointer focus:outline-none focus:ring-1 focus:ring-[#ff5722]/40"
+            >
+              <X className="w-4 h-4" />
+            </button>
           </div>
 
-          {/* SCROLLABLE MODAL BODY */}
-          <div className="px-5 py-4 space-y-3.5 overflow-y-auto flex-1 min-h-0 custom-scrollbar">
+          {/* 2. SCROLLABLE MODAL BODY */}
+          <div className="overflow-y-auto flex-1 min-h-0 custom-scrollbar">
             {/* Loading Skeleton during Hold Creation */}
             {isHolding ? (
-              <CheckoutSkeleton />
+              <div className="p-6">
+                <CheckoutSkeleton />
+              </div>
             ) : holdError && !holdData ? (
               /* Hold Error View */
-              <PaymentStatusView
-                status="ERROR"
-                errorMessage={holdError}
-                onRetry={() => setHoldError(null)}
-                onClose={handleCancelAndClose}
-              />
+              <div className="p-6">
+                <PaymentStatusView
+                  status="ERROR"
+                  errorMessage={holdError}
+                  onRetry={() => setHoldError(null)}
+                  onClose={handleCancelAndClose}
+                />
+              </div>
             ) : !holdData ? (
-              /* ================= STEP 1: COMPACT TICKET INFORMATION FORM ================= */
-              <form id="buyer-info-form" onSubmit={handleHoldListing} className="space-y-3.5">
-                {/* Warning if listing is locked by another buyer */}
-                {((listing.listingStatus || '').toLowerCase() === 'transacting') && (
-                  <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center gap-2.5 text-amber-200 text-xs">
-                    <Lock className="w-4 h-4 text-amber-400 shrink-0" />
-                    <div className="text-amber-200/90 text-xs">
-                      This ticket is currently in an active checkout session by another buyer.
-                    </div>
-                  </div>
-                )}
-
-                {/* 1. Ticket Summary Strip */}
-                <div className="p-3.5 rounded-xl bg-[#111827] border border-[#293548] flex items-center justify-between gap-3">
-                  <div className="min-w-0 flex-1 space-y-1">
-                    <div className="flex items-center gap-2">
-                      <span className="text-[10px] font-mono font-bold text-amber-400 uppercase tracking-wider px-2 py-0.5 rounded bg-amber-500/10 border border-amber-500/30">
-                        {listing.tierName || 'STANDARD'}
-                      </span>
-                      <span className="text-[11px] font-mono text-zinc-400 truncate">
-                        {listing.maskedTicketCode || 'AT*********88'}
-                      </span>
-                    </div>
-                    <div className="text-sm sm:text-base font-bold text-white truncate">
-                      {listing.eventName}
-                    </div>
-                    <div className="text-xs text-zinc-400 truncate">
-                      {listing.eventVenue || 'Official Venue'}
-                    </div>
-                  </div>
-
-                  <div className="text-right shrink-0 pl-3 border-l border-[#293548]">
-                    <div className="text-[10px] text-zinc-400 uppercase tracking-wider font-medium">Price</div>
-                    <div className="text-base sm:text-lg font-bold text-white font-mono tabular-nums">
-                      {formatVND(listing.resalePrice)}
-                    </div>
-                  </div>
-                </div>
-
-                {/* 2. Customer Information Form Fields */}
-                <div className="space-y-2.5">
-                  <div className="flex items-center gap-1.5 text-xs font-semibold text-zinc-300 uppercase tracking-wider">
-                    <User className="w-3.5 h-3.5 text-emerald-400" />
-                    <span>Recipient Information</span>
-                  </div>
-
-                  {/* Row 1: Full Name & Phone Number */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                    <div>
-                      <label className="text-xs font-medium text-zinc-300 block mb-1">
-                        Full Name <span className="text-red-400">*</span>
-                      </label>
-                      <input
-                        type="text"
-                        required
-                        value={fullName}
-                        onChange={(e) => setFullName(e.target.value)}
-                        placeholder="John Doe"
-                        className="w-full h-10 px-3 rounded-lg bg-[#151C2B] border border-[#293548] text-xs sm:text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/40 transition-all"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="text-xs font-medium text-zinc-300 block mb-1">
-                        Phone Number <span className="text-red-400">*</span>
-                      </label>
-                      <input
-                        type="tel"
-                        required
-                        value={phone}
-                        onChange={(e) => setPhone(e.target.value)}
-                        placeholder="0901234567"
-                        className="w-full h-10 px-3 rounded-lg bg-[#151C2B] border border-[#293548] text-xs sm:text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/40 transition-all"
-                      />
-                    </div>
-                  </div>
-
-                  {/* Row 2: Delivery Email */}
-                  <div>
-                    <label className="text-xs font-medium text-zinc-300 block mb-1">
-                      Email <span className="text-red-400">*</span>
-                    </label>
-                    <input
-                      type="email"
-                      required
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      placeholder="email@example.com"
-                      className="w-full h-10 px-3 rounded-lg bg-[#151C2B] border border-[#293548] text-xs sm:text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/40 transition-all"
-                    />
-                  </div>
-
-                  {/* Row 3: Optional National ID */}
-                  {showIdCardInput || idCard ? (
-                    <div className="animate-in fade-in duration-150 space-y-1">
-                      <div className="flex items-center justify-between">
-                        <label className="text-xs font-medium text-zinc-300">
-                          National ID / Passport (Optional)
-                        </label>
-                        {!idCard && (
-                          <button
-                            type="button"
-                            onClick={() => setShowIdCardInput(false)}
-                            className="text-[11px] text-zinc-400 hover:text-zinc-200 transition-colors"
-                          >
-                            Collapse
-                          </button>
-                        )}
+              /* ================= STEP 1: ULTRA-COMPACT 2-COLUMN CHECKOUT ================= */
+              <div className="grid grid-cols-1 lg:grid-cols-12 items-start">
+                {/* LEFT COLUMN (~64%): Event Details & Recipient Form */}
+                <div className="lg:col-span-7 p-6 space-y-4">
+                  {/* Warning if listing is locked by another buyer */}
+                  {((listing.listingStatus || '').toLowerCase() === 'transacting') && (
+                    <div className="p-2.5 rounded-lg bg-amber-500/15 border border-amber-500/30 flex items-center gap-2 text-amber-200 text-xs font-medium">
+                      <Lock className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                      <div>
+                        This ticket is currently in an active checkout session by another buyer.
                       </div>
-                      <input
-                        type="text"
-                        value={idCard}
-                        onChange={(e) => setIdCard(e.target.value)}
-                        placeholder="ID number for check-in verification"
-                        className="w-full h-10 px-3 rounded-lg bg-[#151C2B] border border-[#293548] text-xs sm:text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/40 transition-all"
-                      />
-                    </div>
-                  ) : (
-                    <div>
-                      <button
-                        type="button"
-                        onClick={() => setShowIdCardInput(true)}
-                        className="text-xs text-emerald-400 hover:text-emerald-300 font-medium inline-flex items-center gap-1 transition-colors cursor-pointer py-0.5"
-                      >
-                        <Plus className="w-3.5 h-3.5" />
-                        <span>Add National ID / Passport (Optional)</span>
-                      </button>
                     </div>
                   )}
 
-                  {/* Row 4: Promo Code */}
-                  <div className="space-y-1">
-                    <label className="text-xs font-medium text-zinc-300 block">
-                      Promo Code
-                    </label>
-                    <div className="flex gap-2">
-                      <div className="relative flex-1">
-                        <Tag className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-500" />
+                  {/* A. COMPACT EVENT DETAILS PANEL */}
+                  <div className="p-4 rounded-xl bg-[#1A2335] border border-[#28354D] space-y-1.5">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-[11px] font-mono font-bold text-[#ff5722] px-2.5 py-0.5 rounded bg-[#ff5722]/15 border border-[#ff5722]/30 uppercase tracking-wide">
+                        {listing.tierName || 'STANDARD'}
+                      </span>
+                      <span className="text-xs font-mono text-zinc-400">
+                        {listing.maskedTicketCode || 'AT*********88'}
+                      </span>
+                    </div>
+
+                    <h3 className="text-lg sm:text-[20px] font-bold text-white tracking-tight leading-snug pt-0.5">
+                      {listing.eventName}
+                    </h3>
+
+                    <p className="text-xs sm:text-sm text-zinc-400">
+                      {listing.eventVenue || 'Official Venue'}
+                    </p>
+                  </div>
+
+                  {/* B. RECIPIENT INFORMATION FORM */}
+                  <form id="buyer-info-form" onSubmit={handleHoldListing} className="space-y-3 pt-1">
+                    <div className="text-xs font-semibold text-zinc-300 uppercase tracking-wider">
+                      Recipient information
+                    </div>
+
+                    {/* Row 1: Full Name & Phone Number */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div>
+                        <label className="text-xs font-medium text-zinc-300 block mb-1">
+                          Full Name <span className="text-red-400">*</span>
+                        </label>
+                        <input
+                          type="text"
+                          required
+                          value={fullName}
+                          onChange={(e) => setFullName(e.target.value)}
+                          placeholder="John Doe"
+                          className="w-full h-10 px-3 rounded-lg bg-[#1A2335] border border-[#28354D] text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-[#ff5722] focus:ring-1 focus:ring-[#ff5722]/30 transition-all"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="text-xs font-medium text-zinc-300 block mb-1">
+                          Phone Number <span className="text-red-400">*</span>
+                        </label>
+                        <input
+                          type="tel"
+                          required
+                          value={phone}
+                          onChange={(e) => setPhone(e.target.value)}
+                          placeholder="0901234567"
+                          className="w-full h-10 px-3 rounded-lg bg-[#1A2335] border border-[#28354D] text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-[#ff5722] focus:ring-1 focus:ring-[#ff5722]/30 transition-all"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Row 2: Delivery Email */}
+                    <div>
+                      <label className="text-xs font-medium text-zinc-300 block mb-1">
+                        Email Address <span className="text-red-400">*</span>
+                      </label>
+                      <input
+                        type="email"
+                        required
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        placeholder="email@example.com"
+                        className="w-full h-10 px-3 rounded-lg bg-[#1A2335] border border-[#28354D] text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-[#ff5722] focus:ring-1 focus:ring-[#ff5722]/30 transition-all"
+                      />
+                    </div>
+
+                    {/* Row 3: Optional National ID */}
+                    {showIdCardInput || idCard ? (
+                      <div className="space-y-1">
+                        <div className="flex items-center justify-between">
+                          <label className="text-xs font-medium text-zinc-300">
+                            National ID / Passport (Optional)
+                          </label>
+                          {!idCard && (
+                            <button
+                              type="button"
+                              onClick={() => setShowIdCardInput(false)}
+                              className="text-[11px] text-zinc-400 hover:text-white transition-colors cursor-pointer"
+                            >
+                              Collapse
+                            </button>
+                          )}
+                        </div>
+                        <input
+                          type="text"
+                          value={idCard}
+                          onChange={(e) => setIdCard(e.target.value)}
+                          placeholder="ID / Passport for venue check-in"
+                          className="w-full h-10 px-3 rounded-lg bg-[#1A2335] border border-[#28354D] text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-[#ff5722] focus:ring-1 focus:ring-[#ff5722]/30 transition-all"
+                        />
+                      </div>
+                    ) : (
+                      <div className="pt-0.5">
+                        <button
+                          type="button"
+                          onClick={() => setShowIdCardInput(true)}
+                          className="text-xs text-[#ff5722] hover:text-[#f4511e] font-medium inline-flex items-center gap-1 transition-colors cursor-pointer py-0.5"
+                        >
+                          <Plus className="w-3.5 h-3.5" />
+                          <span>Add National ID / Passport (Optional)</span>
+                        </button>
+                      </div>
+                    )}
+
+                    {/* Row 4: Compact Promo Code */}
+                    <div className="pt-1">
+                      <label className="text-xs font-medium text-zinc-300 block mb-1">
+                        Promo Code
+                      </label>
+                      <div className="flex gap-2">
                         <input
                           type="text"
                           placeholder="Enter code (e.g. SAYHI)"
                           value={coupon}
                           onChange={(e) => setCoupon(e.target.value)}
                           disabled={couponApplied}
-                          className="w-full h-10 pl-9 pr-3 rounded-lg bg-[#151C2B] border border-[#293548] text-xs sm:text-sm text-white uppercase placeholder-zinc-500 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/40 transition-all"
+                          className="flex-1 h-10 px-3 rounded-lg bg-[#1A2335] border border-[#28354D] text-sm text-white uppercase placeholder-zinc-500 focus:outline-none focus:border-[#ff5722] focus:ring-1 focus:ring-[#ff5722]/30 transition-all"
                         />
+                        <button
+                          type="button"
+                          onClick={handleApplyCoupon}
+                          disabled={couponApplied || !coupon.trim()}
+                          className="h-10 px-4 bg-[#ff5722] hover:bg-[#f4511e] disabled:opacity-40 text-xs font-bold rounded-lg text-white transition-colors cursor-pointer shrink-0 active:scale-95"
+                        >
+                          {couponApplied ? 'Applied' : 'Apply'}
+                        </button>
                       </div>
-                      <button
-                        type="button"
-                        onClick={handleApplyCoupon}
-                        disabled={couponApplied || !coupon.trim()}
-                        className="h-10 px-3.5 bg-white/10 hover:bg-white/15 disabled:opacity-40 text-xs font-semibold rounded-lg text-white transition-colors cursor-pointer border border-white/10 shrink-0 active:scale-95"
-                      >
-                        {couponApplied ? 'Applied' : 'Apply'}
-                      </button>
+                      {couponApplied && (
+                        <p className="text-xs text-[#ff5722] mt-1 flex items-center gap-1 font-medium">
+                          <Check className="w-3.5 h-3.5 text-[#ff5722]" />
+                          <span>100,000 VND discount voucher applied!</span>
+                        </p>
+                      )}
                     </div>
-                  </div>
+                  </form>
                 </div>
 
-                {/* 3. Compact Price Receipt Summary */}
-                <div className="p-3 bg-[#111827] border border-[#293548] rounded-xl space-y-1.5">
-                  <div className="flex justify-between items-center text-xs text-zinc-400">
-                    <span>Ticket Price:</span>
-                    <span className="font-semibold text-zinc-200 font-mono tabular-nums">
-                      {formatVND(listing.resalePrice)}
-                    </span>
-                  </div>
+                {/* RIGHT COLUMN (~36%): COMPACT ORDER SUMMARY */}
+                <div className="lg:col-span-5 bg-[#0C101A] lg:border-l border-[#28354D] p-6 space-y-4 h-full">
+                  <h4 className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">
+                    Order summary
+                  </h4>
 
-                  <div className="flex justify-between items-center text-xs text-zinc-400">
-                    <span>Escrow Fee (5%):</span>
-                    <span className="font-medium text-amber-400 font-mono tabular-nums">
-                      + {formatVND(estimatedBuyerFee)}
-                    </span>
-                  </div>
-
-                  {discountAmount > 0 && (
-                    <div className="flex justify-between items-center text-xs text-emerald-400">
-                      <span>Discount ({coupon}):</span>
-                      <span className="font-medium font-mono tabular-nums">
-                        - {formatVND(discountAmount)}
+                  {/* Price Breakdown */}
+                  <div className="space-y-2.5 text-sm">
+                    <div className="flex justify-between items-center text-zinc-400">
+                      <span>Ticket Price</span>
+                      <span className="font-semibold text-white font-mono tabular-nums">
+                        {formatVND(listing.resalePrice)}
                       </span>
                     </div>
-                  )}
 
-                  <div className="flex justify-between items-baseline pt-2 border-t border-[#293548]">
-                    <span className="text-xs font-bold text-white">
-                      Total
-                    </span>
-                    <span className="text-base sm:text-lg font-extrabold text-emerald-400 font-mono tabular-nums">
+                    <div className="flex justify-between items-center text-zinc-400">
+                      <span className="flex items-center gap-1">
+                        <span>Escrow & Service Fee</span>
+                        <span className="text-xs text-zinc-500">(5%)</span>
+                      </span>
+                      <span className="font-medium text-amber-400 font-mono tabular-nums">
+                        + {formatVND(estimatedBuyerFee)}
+                      </span>
+                    </div>
+
+                    {discountAmount > 0 && (
+                      <div className="flex justify-between items-center text-[#ff5722]">
+                        <span>Voucher Discount</span>
+                        <span className="font-medium font-mono tabular-nums">
+                          - {formatVND(discountAmount)}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="pt-3.5 border-t border-[#28354D] space-y-1">
+                    <div className="text-xs text-zinc-400 font-medium uppercase tracking-wider">
+                      Total to Pay
+                    </div>
+                    <div className="text-2xl sm:text-[26px] font-extrabold text-[#ff5722] font-mono tracking-tight tabular-nums">
                       {formatVND(totalBuyerPaidEstimated)}
-                    </span>
+                    </div>
                   </div>
                 </div>
-              </form>
+              </div>
             ) : (
               /* ================= STEP 2: ACTIVE 10-MIN COUNTDOWN & VIETQR CHECKOUT ================= */
-              <div className="space-y-3.5">
+              <div className="p-6 space-y-5 bg-[#121824]">
                 {/* 1. Payment Countdown Bar */}
                 <PaymentCountdownBar
                   formattedTime={countdown.formattedTime}
@@ -557,30 +547,30 @@ export const BuyTicketModal: React.FC<BuyTicketModalProps> = ({
 
                 {/* 2. Expired Notice Banner if expired */}
                 {countdown.isExpired && (
-                  <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/30 flex items-center gap-2.5 text-red-200 text-xs animate-in fade-in">
+                  <div className="p-3 rounded-xl bg-red-500/15 border border-red-500/30 flex items-center gap-2 text-red-200 text-xs">
                     <AlertTriangle className="w-4 h-4 text-red-400 shrink-0" />
                     <div className="flex-1">
                       <div className="font-semibold text-red-300">Escrow hold session expired (10 minutes)</div>
-                      <div className="text-zinc-300 text-[11px] mt-0.5">
+                      <div className="text-zinc-400 text-xs mt-0.5">
                         This ticket has been released back to the marketplace. Please close this window or initiate a new checkout session.
                       </div>
                     </div>
                   </div>
                 )}
 
-                {/* 3. Main 2-Column Responsive Layout */}
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-3.5 items-stretch">
-                  {/* Left Column (5/12): VietQR Panel */}
+                {/* 3. Main 2-Column Responsive Layout for Step 2 */}
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-stretch">
+                  {/* Left Column (6/12): VietQR Panel */}
                   <VietQrPanel
                     qrImageUrl={displayQrUrl}
                     quickLinkUrl={holdData.quickLinkUrl}
                     isExpired={countdown.isExpired}
                     amount={holdData.totalBuyerPaid}
-                    className="lg:col-span-5 h-full"
+                    className="lg:col-span-6 h-full"
                   />
 
-                  {/* Right Column (7/12): Bank Account & Exact Transfer Reference */}
-                  <div className="lg:col-span-7 h-full flex flex-col justify-between">
+                  {/* Right Column (6/12): Bank Account & Exact Transfer Reference */}
+                  <div className="lg:col-span-6 h-full flex flex-col justify-between">
                     <BankTransferDetails
                       bankBin={holdData.bankBin || '970422'}
                       bankName="MB Bank (Ngân hàng Quân Đội)"
@@ -595,80 +585,46 @@ export const BuyTicketModal: React.FC<BuyTicketModalProps> = ({
             )}
           </div>
 
-          {/* FIXED MODAL FOOTER (Height ~64px) */}
-          <div className="px-5 py-3 border-t border-[#293548] bg-[#111827] flex flex-col sm:flex-row items-center justify-between gap-3 shrink-0">
-            {/* Info Icon with Hover Tooltip */}
-            <div className="relative group/info flex items-center shrink-0">
-              <div
-                tabIndex={0}
-                role="button"
-                aria-label="Delivery information"
-                className="w-8 h-8 rounded-lg bg-[#151C2B] hover:bg-[#1E293B] border border-[#293548] flex items-center justify-center text-zinc-400 hover:text-emerald-400 cursor-pointer transition-colors"
-              >
-                <Info className="w-4 h-4" />
-              </div>
+          {/* 3. COMPACT MODAL FOOTER */}
+          <div className="px-6 py-3.5 border-t border-[#28354D] bg-[#0C101A] flex items-center justify-end gap-3 shrink-0 h-16">
+            <button
+              type="button"
+              onClick={handleCancelAndClose}
+              className="h-11 px-5 rounded-lg bg-transparent hover:bg-white/10 border border-[#28354D] text-sm font-medium text-zinc-300 hover:text-white transition-colors cursor-pointer text-center"
+            >
+              Cancel
+            </button>
 
-              {/* Tooltip on Hover / Focus */}
-              <div className="absolute left-0 bottom-full mb-2 hidden group-hover/info:block group-focus-within/info:block z-50 w-64 p-2.5 rounded-xl bg-[#090C12] border border-[#293548] text-xs text-zinc-300 shadow-xl shadow-black/80 animate-in fade-in zoom-in-95 pointer-events-none">
-                <div className="flex items-start gap-1.5">
-                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-400 shrink-0 mt-0.5" />
-                  <span>
-                    {holdData ? (
-                      <>
-                        Pass will be sent to <strong className="text-white font-medium">{email}</strong> upon payment.
-                      </>
-                    ) : (
-                      <>
-                        Pass and QR code will be delivered to your email instantly upon payment.
-                      </>
-                    )}
-                  </span>
-                </div>
-                {/* Tooltip arrow */}
-                <div className="absolute -bottom-1 left-3.5 w-2 h-2 bg-[#090C12] border-r border-b border-[#293548] transform rotate-45" />
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2.5 w-full sm:w-auto shrink-0 justify-end">
+            {holdData ? (
               <button
                 type="button"
-                onClick={handleCancelAndClose}
-                className="w-full sm:w-auto h-11 px-4 rounded-xl bg-[#151C2B] hover:bg-[#1E293B] border border-[#293548] text-xs sm:text-sm font-semibold text-zinc-300 transition-colors cursor-pointer text-center"
+                onClick={handleManualCheckPayment}
+                disabled={countdown.isExpired || isVerifyingManual}
+                className="h-11 px-6 bg-[#ff5722] hover:bg-[#f4511e] active:scale-[0.98] disabled:opacity-40 text-white font-extrabold text-xs sm:text-sm uppercase tracking-wider rounded-lg shadow-[0_4px_14px_rgba(255,87,34,0.35)] transition-all flex items-center justify-center gap-2 cursor-pointer whitespace-nowrap"
               >
-                Cancel
+                {isVerifyingManual ? (
+                  <>
+                    <RotateCw className="w-4 h-4 animate-spin text-white shrink-0" />
+                    <span>Checking...</span>
+                  </>
+                ) : (
+                  <>
+                    <Check className="w-4 h-4 stroke-[3] shrink-0" />
+                    <span>I HAVE TRANSFERRED</span>
+                  </>
+                )}
               </button>
-
-              {holdData ? (
-                <button
-                  type="button"
-                  onClick={handleManualCheckPayment}
-                  disabled={countdown.isExpired || isVerifyingManual}
-                  className="w-full sm:w-auto h-11 px-5 bg-emerald-500 hover:bg-emerald-400 active:scale-[0.98] disabled:opacity-40 text-zinc-950 font-bold text-xs sm:text-sm uppercase tracking-wider rounded-xl shadow-md transition-all flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap"
-                >
-                  {isVerifyingManual ? (
-                    <>
-                      <RotateCw className="w-3.5 h-3.5 animate-spin text-zinc-950 shrink-0" />
-                      <span>Checking...</span>
-                    </>
-                  ) : (
-                    <>
-                      <Check className="w-3.5 h-3.5 stroke-[3] shrink-0" />
-                      <span>I HAVE TRANSFERRED</span>
-                    </>
-                  )}
-                </button>
-              ) : (
-                <button
-                  type="submit"
-                  form="buyer-info-form"
-                  disabled={isHolding || ((listing.listingStatus || '').toLowerCase() === 'transacting')}
-                  className="w-full sm:w-auto h-11 px-5 bg-emerald-500 hover:bg-emerald-400 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed text-zinc-950 font-bold text-xs sm:text-sm uppercase tracking-wider rounded-xl shadow-md transition-all flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap"
-                >
-                  <span>Reserve & Pay</span>
-                  <ArrowRight className="w-3.5 h-3.5" />
-                </button>
-              )}
-            </div>
+            ) : (
+              <button
+                type="submit"
+                form="buyer-info-form"
+                disabled={isHolding || ((listing.listingStatus || '').toLowerCase() === 'transacting')}
+                className="h-11 px-6 bg-[#ff5722] hover:bg-[#f4511e] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed text-white font-extrabold text-xs sm:text-sm uppercase tracking-wider rounded-lg shadow-[0_4px_14px_rgba(255,87,34,0.35)] transition-all flex items-center justify-center gap-2 cursor-pointer whitespace-nowrap"
+              >
+                <span>Reserve & Pay</span>
+                <ArrowRight className="w-4 h-4" />
+              </button>
+            )}
           </div>
         </motion.div>
       </div>
