@@ -32,7 +32,7 @@ export const VietQrPanel: React.FC<VietQrPanelProps> = ({
             <h4 className="text-[11px] font-bold tracking-wider uppercase text-zinc-200">
               VietQR Napas 247
             </h4>
-            <p className="text-[10px] text-zinc-400">Quét mã để tự động điền</p>
+            <p className="text-[10px] text-zinc-400">Scan QR to auto-fill details</p>
           </div>
         </div>
 
@@ -59,7 +59,7 @@ export const VietQrPanel: React.FC<VietQrPanelProps> = ({
         {qrImageUrl && !imageError ? (
           <img
             src={qrImageUrl}
-            alt="Mã VietQR thanh toán"
+            alt="VietQR Payment Code"
             onLoad={() => setImageLoaded(true)}
             onError={() => {
               setImageError(true);
@@ -72,8 +72,8 @@ export const VietQrPanel: React.FC<VietQrPanelProps> = ({
         ) : (
           <div className="text-center p-3 text-zinc-400 flex flex-col items-center justify-center">
             <AlertTriangle className="w-6 h-6 text-amber-500 mb-1" />
-            <p className="text-[11px] font-medium text-zinc-600">Không thể tải QR</p>
-            <p className="text-[9px] text-zinc-400">Vui lòng dùng thông tin bên cạnh</p>
+            <p className="text-[11px] font-medium text-zinc-600">Unable to load QR</p>
+            <p className="text-[9px] text-zinc-400">Please use the account details beside</p>
           </div>
         )}
 
@@ -84,10 +84,10 @@ export const VietQrPanel: React.FC<VietQrPanelProps> = ({
               <AlertTriangle className="w-4 h-4" />
             </div>
             <span className="text-[11px] font-bold uppercase tracking-wider text-red-400">
-              Mã QR hết hạn
+              QR Code Expired
             </span>
             <p className="text-[10px] text-zinc-300 mt-0.5">
-              Thời gian giữ vé đã hết
+              Hold session has ended
             </p>
           </div>
         )}
@@ -96,7 +96,7 @@ export const VietQrPanel: React.FC<VietQrPanelProps> = ({
       {/* Short, clear instruction text below QR */}
       <div className="w-full mt-2.5 pt-2 border-t border-[#293548]/60 text-center shrink-0">
         <p className="text-[11px] text-zinc-300 font-medium">
-          Mở ứng dụng ngân hàng và quét mã để thanh toán
+          Open your banking app and scan to pay
         </p>
       </div>
     </div>

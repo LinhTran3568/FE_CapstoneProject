@@ -102,7 +102,7 @@ export const usePaymentSignalR = ({
       } catch (err: any) {
         if (isSubscribed) {
           setIsConnected(false);
-          setConnectionError(err?.message || 'Không thể kết nối tới máy chủ thanh toán thời gian thực');
+          setConnectionError(err?.message || 'Unable to connect to realtime payment notification server');
         }
       }
     }

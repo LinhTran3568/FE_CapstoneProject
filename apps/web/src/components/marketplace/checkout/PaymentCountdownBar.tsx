@@ -49,12 +49,12 @@ export const PaymentCountdownBar: React.FC<PaymentCountdownBarProps> = ({
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <span className="text-[10px] font-mono font-semibold uppercase tracking-wider text-zinc-400">
-            Thời gian giữ vé Ký quỹ
+            Escrow Hold Duration
           </span>
           {isUrgent && !isExpired && (
             <span className="inline-flex items-center gap-1 text-[9px] font-semibold text-amber-300 bg-amber-500/15 px-1.5 py-0.5 rounded border border-amber-500/30">
               <AlertTriangle className="w-2.5 h-2.5 text-amber-400 shrink-0" />
-              Sắp hết hạn
+              Expiring Soon
             </span>
           )}
         </div>
@@ -66,7 +66,7 @@ export const PaymentCountdownBar: React.FC<PaymentCountdownBarProps> = ({
           {isExpired ? (
             <>
               <ShieldAlert className="w-3.5 h-3.5 text-red-400 shrink-0" />
-              <span>00:00 (HẾT HẠN)</span>
+              <span>00:00 (EXPIRED)</span>
             </>
           ) : (
             <>

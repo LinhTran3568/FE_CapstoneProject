@@ -120,7 +120,7 @@ export const TicketCard: React.FC<TicketCardProps> = ({
           {/* Subtle Radial Glow */}
           <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-amber-500/10 via-transparent to-transparent pointer-events-none rounded-2xl" />
 
-          {/* Badge: Đang có người giữ chỗ */}
+          {/* Badge: Reserved */}
           <div className="relative inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-gradient-to-r from-amber-500/25 to-orange-500/25 border border-amber-400/60 shadow-[0_0_15px_rgba(245,158,11,0.3)]">
             <span className="relative flex h-2 w-2">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
@@ -128,14 +128,14 @@ export const TicketCard: React.FC<TicketCardProps> = ({
             </span>
             <Lock className="w-3.5 h-3.5 text-amber-300" />
             <span className="text-[11px] sm:text-xs font-black text-amber-200 tracking-wider uppercase drop-shadow-sm">
-              Đang có người giữ chỗ
+              RESERVED BY BUYER
             </span>
           </div>
 
           {/* Realtime Countdown Timer */}
           <div className="relative mt-3 flex items-center gap-2.5 px-4 py-2 rounded-xl bg-black/75 border border-amber-500/40 shadow-inner backdrop-blur-md">
             <Timer className="w-4 h-4 text-amber-400 animate-pulse shrink-0" />
-            <span className="text-xs text-zinc-300 font-medium">Mở lại sau:</span>
+            <span className="text-xs text-zinc-300 font-medium">Reopens in:</span>
             <span className="font-mono text-base sm:text-lg font-black text-amber-400 tracking-wider">
               {countdown.formattedTime}
             </span>
@@ -143,7 +143,7 @@ export const TicketCard: React.FC<TicketCardProps> = ({
 
           {/* Helper note */}
           <p className="relative mt-2 text-[11px] text-zinc-300 font-normal max-w-[320px] leading-tight text-center">
-            Vé sẽ tự động mở bán lại nếu người mua không hoàn tất thanh toán.
+            This ticket is currently in a checkout session. It will automatically reopen if payment is not completed.
           </p>
         </div>
       )}
@@ -183,7 +183,7 @@ export const TicketCard: React.FC<TicketCardProps> = ({
           {isTransacting && (
             <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-amber-400/50 bg-amber-500/20 text-amber-200 text-[10px] sm:text-[11px] font-bold tracking-wider uppercase backdrop-blur-md shadow-[0_0_12px_rgba(245,158,11,0.25)]">
               <Lock className="w-3.5 h-3.5 text-amber-300 animate-pulse" />
-              <span>Đang giữ chỗ</span>
+              <span>Reserved</span>
             </div>
           )}
 
@@ -366,13 +366,13 @@ export const TicketCard: React.FC<TicketCardProps> = ({
                 type="button"
                 disabled
                 className="w-full py-2.5 px-2.5 bg-amber-100 hover:bg-amber-100 border border-amber-300 text-amber-900 rounded-xl font-bold text-xs tracking-wide flex items-center justify-center gap-1.5 cursor-not-allowed select-none shadow-sm"
-                title="Vé đang trong phiên giao dịch thanh toán"
+                title="This ticket is currently in a checkout session"
               >
                 <Lock className="w-3.5 h-3.5 text-amber-700 shrink-0" />
-                <span className="font-extrabold text-[11px]">GIỮ CHỖ</span>
+                <span className="font-extrabold text-[11px]">RESERVED</span>
               </button>
               <div className="text-[10px] text-center font-medium text-amber-800 leading-none">
-                Đang thanh toán
+                Checkout in progress
               </div>
             </div>
           ) : isSold ? (

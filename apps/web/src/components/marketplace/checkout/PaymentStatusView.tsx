@@ -36,29 +36,29 @@ export const PaymentStatusView: React.FC<PaymentStatusViewProps> = ({
         </span>
 
         <h3 className="text-xl sm:text-2xl font-bold text-white mb-2">
-          Thanh toán thành công!
+          Payment Successful!
         </h3>
 
         <p className="text-sm text-zinc-300 max-w-md mb-6 leading-relaxed">
-          Giao dịch ký quỹ của bạn đã được xác thực thành công. Vé mới với mã QR bảo mật đã được phát hành và chuyển trực tiếp vào ví của bạn.
+          Your escrow transaction has been verified successfully. Your new digital ticket with secure QR code has been issued directly to your wallet.
         </p>
 
         {(ticketTitle || orderNumber) && (
           <div className="w-full max-w-md p-4 rounded-xl bg-[#111827] border border-[#293548] text-left mb-6 space-y-2">
             {ticketTitle && (
               <div className="flex justify-between items-center text-xs">
-                <span className="text-zinc-400">Vé sự kiện:</span>
+                <span className="text-zinc-400">Event Ticket:</span>
                 <span className="font-semibold text-zinc-200">{ticketTitle}</span>
               </div>
             )}
             {orderNumber && (
               <div className="flex justify-between items-center text-xs">
-                <span className="text-zinc-400">Mã đơn / Mã giao dịch:</span>
+                <span className="text-zinc-400">Order / Transaction Code:</span>
                 <span className="font-mono font-bold text-emerald-400">{orderNumber}</span>
               </div>
             )}
             <div className="flex justify-between items-center text-xs pt-2 border-t border-[#293548]/60">
-              <span className="text-zinc-400">Trạng thái vé:</span>
+              <span className="text-zinc-400">Ticket Status:</span>
               <span className="text-emerald-400 font-semibold flex items-center gap-1">
                 <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
                 Active & Ready to Use
@@ -73,7 +73,7 @@ export const PaymentStatusView: React.FC<PaymentStatusViewProps> = ({
             onClick={onClose}
             className="w-full inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-bold text-sm shadow-lg shadow-emerald-500/25 transition-all duration-200 active:scale-[0.98]"
           >
-            <span>Xem vé của tôi</span>
+            <span>View My Tickets</span>
             <ArrowRight className="w-4 h-4" />
           </Link>
           <button
@@ -81,7 +81,7 @@ export const PaymentStatusView: React.FC<PaymentStatusViewProps> = ({
             onClick={onClose}
             className="w-full sm:w-auto px-5 py-3 rounded-xl bg-[#151C2B] hover:bg-[#1E293B] border border-[#293548] text-zinc-300 font-semibold text-sm transition-all duration-200"
           >
-            Đóng
+            Close
           </button>
         </div>
       </div>
@@ -96,15 +96,15 @@ export const PaymentStatusView: React.FC<PaymentStatusViewProps> = ({
         </div>
 
         <span className="px-3 py-1 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-300 text-xs font-bold uppercase tracking-wider mb-2">
-          Giao dịch đã hết hạn
+          Transaction Expired
         </span>
 
         <h3 className="text-lg sm:text-xl font-bold text-white mb-2">
-          Thời gian giữ vé (10 phút) đã kết thúc
+          Escrow Hold Period (10 Minutes) Has Ended
         </h3>
 
         <p className="text-xs sm:text-sm text-zinc-400 max-w-md mb-6 leading-relaxed">
-          Thời hạn giữ chỗ cho giao dịch ký quỹ này đã hết để đảm bảo tính công bằng cho người mua khác. Vui lòng tạo lại yêu cầu mua vé nếu vé vẫn còn trên sàn.
+          The hold duration for this escrow transaction has expired to ensure fair access for other buyers. Please initiate a new order if the ticket is still available.
         </p>
 
         <div className="flex flex-col sm:flex-row items-center gap-3 w-full max-w-sm">
@@ -115,7 +115,7 @@ export const PaymentStatusView: React.FC<PaymentStatusViewProps> = ({
               className="w-full inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-bold text-sm shadow-md transition-all active:scale-[0.98]"
             >
               <RotateCw className="w-4 h-4" />
-              <span>Giữ vé & Thanh toán lại</span>
+              <span>Hold Ticket & Pay Again</span>
             </button>
           )}
           <button
@@ -123,7 +123,7 @@ export const PaymentStatusView: React.FC<PaymentStatusViewProps> = ({
             onClick={onClose}
             className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-[#151C2B] hover:bg-[#1E293B] border border-[#293548] text-zinc-300 font-semibold text-sm transition-all"
           >
-            Đóng
+            Close
           </button>
         </div>
       </div>
@@ -138,15 +138,15 @@ export const PaymentStatusView: React.FC<PaymentStatusViewProps> = ({
       </div>
 
       <span className="px-3 py-1 rounded-full bg-red-500/15 border border-red-500/30 text-red-300 text-xs font-bold uppercase tracking-wider mb-2">
-        Lỗi xử lý giao dịch
+        Transaction Error
       </span>
 
       <h3 className="text-lg sm:text-xl font-bold text-white mb-2">
-        Không thể hoàn tất giao dịch
+        Unable to Complete Transaction
       </h3>
 
       <p className="text-xs sm:text-sm text-zinc-400 max-w-md mb-6 leading-relaxed">
-        {errorMessage || 'Đã có lỗi xảy ra khi kết nối tới cổng thanh toán Escrow. Vui lòng thử lại.'}
+        {errorMessage || 'An error occurred while connecting to the Escrow payment gateway. Please try again.'}
       </p>
 
       <div className="flex flex-col sm:flex-row items-center gap-3 w-full max-w-sm">
@@ -157,7 +157,7 @@ export const PaymentStatusView: React.FC<PaymentStatusViewProps> = ({
             className="w-full inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-bold text-sm shadow-md transition-all active:scale-[0.98]"
           >
             <RotateCw className="w-4 h-4" />
-            <span>Thử lại</span>
+            <span>Retry</span>
           </button>
         )}
         <button
@@ -165,7 +165,7 @@ export const PaymentStatusView: React.FC<PaymentStatusViewProps> = ({
           onClick={onClose}
           className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-[#151C2B] hover:bg-[#1E293B] border border-[#293548] text-zinc-300 font-semibold text-sm transition-all"
         >
-          Đóng
+          Close
         </button>
       </div>
     </div>
