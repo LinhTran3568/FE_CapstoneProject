@@ -508,9 +508,17 @@ export const MarketplacePage: React.FC = () => {
               <span>Ticket Marketplace</span>
               <Sparkles className="w-5 h-5 text-[#FF5A36] animate-pulse" />
             </h1>
-            <span className="px-3 py-1 rounded-full bg-[#FF5A36]/15 border border-[#FF5A36]/40 text-xs font-mono font-bold text-[#FF5A36] shadow-[0_0_12px_rgba(255,90,54,0.25)]">
-              {filteredListings.length} tickets available
-            </span>
+            {filteredListings.length > 0 ? (
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-black/80 backdrop-blur-md border border-white/20 text-xs font-mono font-bold text-white shadow-md">
+                <span className="w-2 h-2 rounded-full bg-[#FF5A36] animate-pulse" />
+                <span>{filteredListings.length} tickets available</span>
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-black/75 backdrop-blur-md border border-white/10 text-xs font-mono font-medium text-zinc-400 shadow-md">
+                <span className="w-2 h-2 rounded-full bg-zinc-600" />
+                <span>0 tickets available</span>
+              </span>
+            )}
           </div>
           <p className="text-xs sm:text-sm text-[#94A3B8]">
             Discover and purchase verified tickets directly reissued by official organizers, protected by our 24-hour buyer funds guarantee
@@ -540,9 +548,9 @@ export const MarketplacePage: React.FC = () => {
           <button
             type="button"
             onClick={() => setIsStageMapOpen(true)}
-            className="px-4 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all cursor-pointer bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/40 inline-flex items-center gap-1.5 shrink-0 ml-auto"
+            className="px-4 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all cursor-pointer bg-black/75 hover:bg-black/90 text-white hover:text-amber-300 border border-amber-400/50 backdrop-blur-md inline-flex items-center gap-1.5 shrink-0 ml-auto shadow-sm"
           >
-            <MapPin className="w-3.5 h-3.5" />
+            <MapPin className="w-3.5 h-3.5 text-amber-400" />
             <span>Venue Seating Map</span>
           </button>
         </div>

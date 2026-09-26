@@ -13,12 +13,12 @@ import type { LucideIcon } from 'lucide-react';
 export type BadgeTone = 'success' | 'brand' | 'info' | 'warning' | 'danger' | 'neutral';
 
 const toneClasses: Record<BadgeTone, string> = {
-  success: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30',
-  brand: 'bg-[#FF5A36]/15 text-[#FF5A36] border-[#FF5A36]/30',
-  info: 'bg-cyan-500/15 text-cyan-300 border-cyan-500/30',
-  warning: 'bg-amber-500/15 text-amber-300 border-amber-500/30',
-  danger: 'bg-rose-500/15 text-rose-400 border-rose-500/30',
-  neutral: 'bg-white/5 text-[#A3A8B3] border-white/10',
+  success: 'bg-black/80 backdrop-blur-md text-emerald-300 border-emerald-500/50 shadow-sm',
+  brand: 'bg-black/80 backdrop-blur-md text-[#FF7252] border-[#FF5A36]/50 shadow-sm',
+  info: 'bg-black/80 backdrop-blur-md text-cyan-200 border-cyan-500/50 shadow-sm',
+  warning: 'bg-black/80 backdrop-blur-md text-amber-200 border-amber-500/50 shadow-sm',
+  danger: 'bg-black/80 backdrop-blur-md text-rose-300 border-rose-500/50 shadow-sm',
+  neutral: 'bg-black/80 backdrop-blur-md text-zinc-300 border-white/15 shadow-sm',
 };
 
 interface StatusBadgeProps {

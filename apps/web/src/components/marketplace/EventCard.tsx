@@ -60,10 +60,17 @@ export const EventCard: React.FC<EventCardProps> = ({ event, onSelectEvent }) =>
 
         {/* Top-Right: Available Tickets Badge */}
         <div className="absolute top-3 right-3">
-          <span className="px-2.5 py-1 rounded-full bg-black/85 backdrop-blur-md border border-emerald-500/40 text-[11px] font-mono font-bold text-emerald-400 flex items-center gap-1 shadow-md">
-            <Tag className="w-3 h-3" />
-            <span>{event.totalAvailableListings} available</span>
-          </span>
+          {event.totalAvailableListings > 0 ? (
+            <span className="px-2.5 py-1 rounded-full bg-black/80 backdrop-blur-md border border-white/20 text-[11px] font-mono font-bold text-white flex items-center gap-1.5 shadow-md">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse shrink-0" />
+              <span>{event.totalAvailableListings} available</span>
+            </span>
+          ) : (
+            <span className="px-2.5 py-1 rounded-full bg-black/75 backdrop-blur-md border border-white/10 text-[11px] font-mono font-medium text-zinc-400 flex items-center gap-1.5 shadow-md">
+              <span className="w-1.5 h-1.5 rounded-full bg-zinc-600 shrink-0" />
+              <span>0 available</span>
+            </span>
+          )}
         </div>
       </div>
 

@@ -50,8 +50,8 @@ export const ResellerConsole: React.FC = () => {
           
           <div className="space-y-2 relative z-10">
             <div className="flex items-center gap-3">
-              <span className="px-3 py-1 bg-[#FF5A36]/20 border border-[#FF5A36]/50 text-[#FF5A36] text-xs font-bold font-display uppercase tracking-widest rounded-full flex items-center gap-1.5">
-                <Sparkles className="w-3.5 h-3.5" />
+              <span className="px-3 py-1 bg-black/80 backdrop-blur-md border border-white/20 text-white text-xs font-bold font-display uppercase tracking-widest rounded-full flex items-center gap-1.5 shadow-md">
+                <Sparkles className="w-3.5 h-3.5 text-[#FF5A36]" />
                 Reseller Portal Active
               </span>
             </div>

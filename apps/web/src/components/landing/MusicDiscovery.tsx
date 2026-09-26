@@ -75,7 +75,8 @@ export const MusicDiscovery: React.FC = () => {
             <div className="absolute inset-0 bg-gradient-to-t from-[#05070A] via-[#05070A]/30 to-transparent" />
 
             <div className="relative z-10 space-y-4">
-              <span className="px-3 py-1 bg-[#FF5A36]/20 border border-[#FF5A36]/40 text-[#FF5A36] text-xs font-semibold uppercase tracking-widest rounded-full font-display">
+              <span className="px-3 py-1 bg-black/80 backdrop-blur-md border border-white/20 text-white text-xs font-semibold uppercase tracking-widest rounded-full font-display inline-flex items-center gap-1.5 shadow-md">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#FF5A36]" />
                 Headliner Event
               </span>
               <h3 className="font-display text-4xl sm:text-5xl font-extrabold text-[#F5F5F2] uppercase tracking-tight">

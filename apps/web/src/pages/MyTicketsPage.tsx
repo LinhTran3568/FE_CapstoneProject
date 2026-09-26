@@ -12,7 +12,6 @@ import {
   QrCode,
   RefreshCw,
   Search,
-  ShieldCheck,
   Ticket,
   User,
   X,
@@ -37,57 +36,29 @@ const canShowEntryQr = (ticket: PurchasedTicketDto) => {
   return entryPayload(ticket).length > 0;
 };
 
-const getStatusBadge = (ticket: PurchasedTicketDto) => {
+const getDisputedBadge = (ticket: PurchasedTicketDto) => {
   const status = (ticket.status || '').trim().toUpperCase();
-  if (status === 'VALID') {
-    return {
-      label: 'VALID • READY FOR ENTRY',
-      classes: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30',
-      dotClass: 'bg-emerald-400',
-    };
-  }
-  if (status === 'IN_ESCROW') {
-    return {
-      label: 'UNDER 24H PROTECTION',
-      classes: 'bg-cyan-500/10 text-cyan-400 border-cyan-500/30',
-      dotClass: 'bg-cyan-400',
-    };
-  }
   if (status === 'DISPUTED') {
     return {
       label: 'DISPUTED',
-      classes: 'bg-rose-500/10 text-rose-400 border-rose-500/30',
+      classes: 'bg-black/80 text-rose-300 border border-rose-500/50 backdrop-blur-md shadow-sm',
       dotClass: 'bg-rose-400',
     };
   }
-  if (status === 'PENDING_PAYMENT') {
-    return {
-      label: 'PENDING PAYMENT',
-      classes: 'bg-amber-500/10 text-amber-400 border-amber-500/30',
-      dotClass: 'bg-amber-400',
-    };
-  }
-  return {
-    label: ticket.status || 'OFFICIAL PASS',
-    classes: 'bg-white/10 text-white/80 border-white/20',
-    dotClass: 'bg-white/60',
-  };
+  return null;
 };
 
 export const MyTicketsPage: React.FC = () => {
   const { data: tickets = [], isPending, isError, error, refetch, isFetching } = useMyTickets();
   const [qrTicket, setQrTicket] = useState<PurchasedTicketDto | null>(null);
-  const [filter, setFilter] = useState<'all' | 'valid' | 'escrow'>('all');
+  const [filter, setFilter] = useState<'all' | 'ready'>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const showToast = useUIStore((state) => state.showToast);
 
-  const validCount = tickets.filter((t) => (t.status || '').toUpperCase() === 'VALID').length;
-  const escrowCount = tickets.filter((t) => (t.status || '').toUpperCase() === 'IN_ESCROW').length;
+  const readyCount = tickets.filter(canShowEntryQr).length;
 
   const filteredTickets = tickets.filter((ticket) => {
-    const status = (ticket.status || '').toUpperCase();
-    if (filter === 'valid' && status !== 'VALID') return false;
-    if (filter === 'escrow' && status !== 'IN_ESCROW') return false;
+    if (filter === 'ready' && !canShowEntryQr(ticket)) return false;
 
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase().trim();
@@ -234,25 +205,14 @@ export const MyTicketsPage: React.FC = () => {
               </button>
               <button
                 type="button"
-                onClick={() => setFilter('valid')}
+                onClick={() => setFilter('ready')}
                 className={`px-3.5 py-1.5 rounded-lg transition-all font-semibold cursor-pointer ${
-                  filter === 'valid'
+                  filter === 'ready'
                     ? 'bg-emerald-500 text-white shadow-md shadow-emerald-500/25'
                     : 'text-[#94A3B8] hover:text-white hover:bg-white/5'
                 }`}
               >
-                Ready for Entry ({validCount})
-              </button>
-              <button
-                type="button"
-                onClick={() => setFilter('escrow')}
-                className={`px-3.5 py-1.5 rounded-lg transition-all font-semibold cursor-pointer ${
-                  filter === 'escrow'
-                    ? 'bg-cyan-500 text-white shadow-md shadow-cyan-500/25'
-                    : 'text-[#94A3B8] hover:text-white hover:bg-white/5'
-                }`}
-              >
-                24h Protected ({escrowCount})
+                Ready for Entry ({readyCount})
               </button>
             </div>
 
@@ -281,7 +241,7 @@ export const MyTicketsPage: React.FC = () => {
 
         {/* Loading State: Skeleton Cards */}
         {isPending && (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             <TicketCardSkeleton />
             <TicketCardSkeleton />
           </div>
@@ -349,13 +309,9 @@ export const MyTicketsPage: React.FC = () => {
           </div>
         )}
 
-        {/* Tickets Grid: Balanced 1 column if 1 item, 2 columns if multiple */}
+        {/* Tickets Grid: Always 2 columns on tablet/desktop, cleanly holding at least 2 tickets */}
         {!isPending && !isError && filteredTickets.length > 0 && (
-          <div
-            className={`grid gap-6 ${
-              filteredTickets.length === 1 ? 'grid-cols-1 max-w-3xl mx-auto' : 'grid-cols-1 lg:grid-cols-2'
-            }`}
-          >
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5 items-start">
             {filteredTickets.map((ticket) => (
               <OfficialTicketPassCard
                 key={ticket.escrowId || ticket.listingId}
@@ -374,35 +330,39 @@ export const MyTicketsPage: React.FC = () => {
     </div>
   );
 };
+
+const cleanTierName = (raw: string) =>
+  raw.replace(/•\s*chính chủ/i, '').trim() || 'VIP ZONE A';
+
 const getZoneStyle = (tierName: string) => {
   const lower = (tierName || '').toLowerCase();
   if (lower.includes('svip')) {
     return {
-      badge: 'bg-amber-400/15 border-amber-400/50 text-amber-200',
-      dot: 'bg-amber-300 shadow-[0_0_8px_#fcd34d]',
+      badge: 'bg-black/75 border border-amber-400/50 text-white backdrop-blur-md shadow-sm',
+      dot: 'bg-amber-400 shadow-[0_0_8px_#fbbf24]',
     };
   }
   if (lower.includes('vip b') || lower.includes('vip-b')) {
     return {
-      badge: 'bg-orange-500/10 border-orange-500/40 text-orange-300',
+      badge: 'bg-black/75 border border-orange-400/50 text-white backdrop-blur-md shadow-sm',
       dot: 'bg-orange-400 shadow-[0_0_8px_#fb923c]',
     };
   }
   if (lower.includes('fanzone') || lower.includes('fan zone')) {
     return {
-      badge: 'bg-rose-500/10 border-rose-500/40 text-rose-300',
+      badge: 'bg-black/75 border border-rose-400/50 text-white backdrop-blur-md shadow-sm',
       dot: 'bg-rose-400 shadow-[0_0_8px_#fb7185]',
     };
   }
   if (lower.includes('ga') || lower.includes('standard')) {
     return {
-      badge: 'bg-blue-500/10 border-blue-500/40 text-blue-300',
-      dot: 'bg-blue-400 shadow-[0_0_8px_#60a5fa]',
+      badge: 'bg-black/75 border border-sky-400/50 text-white backdrop-blur-md shadow-sm',
+      dot: 'bg-sky-400 shadow-[0_0_8px_#38bdf8]',
     };
   }
   return {
-    badge: 'bg-amber-500/10 border-amber-500/40 text-amber-300',
-    dot: 'bg-amber-400 shadow-[0_0_8px_#fbbf24]',
+    badge: 'bg-black/75 border border-white/20 text-white backdrop-blur-md shadow-sm',
+    dot: 'bg-[#FF5A36] shadow-[0_0_8px_#FF5A36]',
   };
 };
 
@@ -438,7 +398,7 @@ interface OfficialTicketPassCardProps {
 const OfficialTicketPassCard: React.FC<OfficialTicketPassCardProps> = ({ ticket, onViewQr }) => {
   const showToast = useUIStore((state) => state.showToast);
   const [copied, setCopied] = useState(false);
-  const badge = getStatusBadge(ticket);
+  const disputeBadge = getDisputedBadge(ticket);
   const zoneStyle = getZoneStyle(ticket.seatZone || ticket.tierName || '');
   const hasQr = canShowEntryQr(ticket);
   const code = ticket.ticketPassCode || (hasQr ? entryPayload(ticket) : '');
@@ -460,13 +420,13 @@ const OfficialTicketPassCard: React.FC<OfficialTicketPassCardProps> = ({ ticket,
   return (
     <div
       id={`my-ticket-card-${ticket.escrowId || ticket.listingId}`}
-      className="group relative isolate w-full h-[224px] sm:h-[230px] flex rounded-2xl bg-[#0a0c10] border border-white/10 hover:border-[#FF5A36] shadow-[0_10px_30px_rgba(0,0,0,0.85)] hover:shadow-[0_12px_40px_rgba(255,90,54,0.22)] hover:-translate-y-1 transition-[border-color,box-shadow,transform] duration-200 ease-out select-none cursor-pointer"
+      className="group relative isolate w-full h-[195px] sm:h-[200px] flex rounded-2xl bg-[#0a0c10] border border-white/10 hover:border-[#FF5A36] shadow-[0_8px_24px_rgba(0,0,0,0.7)] hover:shadow-[0_12px_36px_rgba(255,90,54,0.2)] hover:-translate-y-1 transition-[border-color,box-shadow,transform] duration-200 ease-out select-none cursor-pointer"
       onClick={() => {
         if (hasQr) onViewQr();
       }}
     >
       {/* ================= LEFT SECTION: MAIN BODY (65% width) ================= */}
-      <div className="relative w-[65%] h-full rounded-l-2xl overflow-hidden flex flex-col justify-between p-5 sm:p-6 bg-[#0a0c10]">
+      <div className="relative w-[65%] h-full rounded-l-2xl overflow-hidden flex flex-col justify-between p-4 sm:p-5 bg-[#0a0c10]">
         {/* Live Concert Photo Backdrop */}
         <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none">
           <img
@@ -484,29 +444,31 @@ const OfficialTicketPassCard: React.FC<OfficialTicketPassCardProps> = ({ ticket,
         {/* Top Badges */}
         <div className="relative z-10 flex items-center justify-between gap-2">
           <div
-            className={`inline-flex items-center gap-2 px-3 py-1 rounded-full border backdrop-blur-md shadow-[0_0_12px_rgba(245,158,11,0.15)] ${zoneStyle.badge}`}
+            className={`inline-flex items-center gap-2 px-3 py-1 rounded-full border backdrop-blur-md ${zoneStyle.badge}`}
           >
             <span className={`w-2 h-2 rounded-full animate-pulse ${zoneStyle.dot}`} />
-            <span className="text-[11px] font-bold tracking-wider uppercase">
-              {ticket.seatZone || ticket.tierName || 'VIP ZONE A'}
+            <span className="text-[11px] font-bold tracking-wider uppercase text-white">
+              {cleanTierName(ticket.tierName || ticket.seatZone || '')}
             </span>
           </div>
 
-          <div
-            className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[10px] sm:text-[11px] font-bold tracking-wider uppercase backdrop-blur-md shadow-sm ${badge.classes}`}
-          >
-            <span className={`w-2 h-2 rounded-full ${badge.dotClass}`} />
-            <span>{badge.label}</span>
-          </div>
+          {disputeBadge && (
+            <div
+              className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[10px] sm:text-[11px] font-bold tracking-wider uppercase backdrop-blur-md shadow-sm ${disputeBadge.classes}`}
+            >
+              <span className={`w-2 h-2 rounded-full ${disputeBadge.dotClass}`} />
+              <span>{disputeBadge.label}</span>
+            </div>
+          )}
         </div>
 
         {/* Middle & Bottom Content */}
-        <div className="relative z-10 space-y-2.5">
-          <h2 className="text-[19px] sm:text-[21px] font-extrabold tracking-tight leading-tight text-white group-hover:text-[#FF5A36] drop-shadow-sm transition-colors duration-200 ease-out line-clamp-2">
+        <div className="relative z-10 space-y-2">
+          <h2 className="text-[17px] sm:text-[19px] font-extrabold tracking-tight leading-snug text-white group-hover:text-[#FF5A36] drop-shadow-sm transition-colors duration-200 ease-out line-clamp-2">
             {ticket.eventName}
           </h2>
 
-          <div className="flex flex-wrap items-center gap-x-5 gap-y-1.5 text-xs text-zinc-300">
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] sm:text-xs text-zinc-300">
             <div className="flex items-center gap-1.5 shrink-0">
               <Calendar className="w-3.5 h-3.5 text-zinc-400 shrink-0" />
               <span className="font-medium text-zinc-300">{formattedDate}</span>
@@ -514,7 +476,7 @@ const OfficialTicketPassCard: React.FC<OfficialTicketPassCardProps> = ({ ticket,
 
             <div className="flex items-center gap-1.5 min-w-0">
               <MapPin className="w-3.5 h-3.5 text-zinc-400 shrink-0" />
-              <span className="font-medium text-zinc-300 truncate max-w-[170px] sm:max-w-[200px]">
+              <span className="font-medium text-zinc-300 truncate max-w-[150px] sm:max-w-[190px]">
                 {ticket.eventVenue || 'Official Venue'}
               </span>
             </div>
@@ -575,7 +537,7 @@ const OfficialTicketPassCard: React.FC<OfficialTicketPassCardProps> = ({ ticket,
       </div>
 
       {/* ================= RIGHT SECTION: TICKET STUB (35% width) ================= */}
-      <div className="relative w-[35%] h-full bg-[#e2e8f0] rounded-r-2xl overflow-hidden flex flex-col justify-between p-4 sm:p-5 paper-texture shadow-inner">
+      <div className="relative w-[35%] h-full bg-[#e2e8f0] rounded-r-2xl overflow-hidden flex flex-col justify-between p-3.5 sm:p-4 paper-texture shadow-inner">
         <div className="absolute top-0 bottom-0 left-0 w-3 bg-gradient-to-r from-black/10 to-transparent pointer-events-none" />
 
         {/* Stub Top: Monospace code pill and barcode */}
@@ -583,9 +545,9 @@ const OfficialTicketPassCard: React.FC<OfficialTicketPassCardProps> = ({ ticket,
           <div
             onClick={handleCopyCode}
             title="Click to copy pass code"
-            className="px-2 py-0.5 rounded bg-slate-300/80 border border-slate-400/50 flex items-center gap-1 cursor-pointer hover:bg-slate-300 transition-colors"
+            className="px-1.5 py-0.5 rounded bg-slate-300/80 border border-slate-400/50 flex items-center gap-1 cursor-pointer hover:bg-slate-300 transition-colors"
           >
-            <span className="font-mono-code text-[11px] font-bold tracking-wider text-slate-800 truncate max-w-[110px]">
+            <span className="font-mono-code text-[10px] sm:text-[11px] font-bold tracking-wider text-slate-800 truncate max-w-[100px]">
               {code || 'ISSUING...'}
             </span>
             {code ? (
@@ -598,7 +560,7 @@ const OfficialTicketPassCard: React.FC<OfficialTicketPassCardProps> = ({ ticket,
           </div>
 
           {/* Realistic Barcode Graphic */}
-          <div className="flex items-center gap-[2px] h-5 opacity-80" title="Ticket barcode">
+          <div className="flex items-center gap-[2px] h-4.5 opacity-80" title="Ticket barcode">
             <span className="w-[2.5px] h-full bg-slate-900" />
             <span className="w-[1px] h-full bg-slate-900" />
             <span className="w-[3px] h-full bg-slate-900" />
@@ -614,20 +576,16 @@ const OfficialTicketPassCard: React.FC<OfficialTicketPassCardProps> = ({ ticket,
           </div>
         </div>
 
-        {/* Stub Middle: Amount Paid & Official Pass Note */}
-        <div className="my-auto py-1">
-          <div className="text-[10px] font-bold tracking-wider text-slate-500 uppercase mb-0.5">
+        {/* Stub Middle: Amount Paid */}
+        <div className="my-auto py-0.5">
+          <div className="text-[9px] font-bold tracking-wider text-slate-500 uppercase mb-0.5">
             AMOUNT PAID
           </div>
           <div className="flex items-baseline">
-            <span className="text-[21px] sm:text-[23px] font-extrabold tracking-tight text-slate-900 leading-none">
+            <span className="text-[19px] sm:text-[21px] font-extrabold tracking-tight text-slate-900 leading-none">
               {new Intl.NumberFormat('vi-VN').format(ticket.totalAmountPaid)}
             </span>
-            <span className="ml-1 text-xs font-bold text-slate-700">VND</span>
-          </div>
-          <div className="text-[10px] font-mono-code text-emerald-700 font-semibold mt-0.5 flex items-center gap-1">
-            <ShieldCheck className="w-3 h-3 text-emerald-600 shrink-0" />
-            <span>Official Digital Pass</span>
+            <span className="ml-1 text-[11px] font-bold text-slate-700">VND</span>
           </div>
         </div>
 
@@ -640,7 +598,7 @@ const OfficialTicketPassCard: React.FC<OfficialTicketPassCardProps> = ({ ticket,
                 e.stopPropagation();
                 onViewQr();
               }}
-              className="w-full py-2.5 px-3 bg-[#ff5722] hover:bg-[#f4511e] active:scale-[0.98] transition-all duration-150 rounded-xl font-bold text-xs text-white tracking-wide shadow-[0_4px_14px_rgba(255,87,34,0.35)] flex items-center justify-center gap-1.5 cursor-pointer group/btn"
+              className="w-full py-2 px-2 sm:px-3 bg-[#ff5722] hover:bg-[#f4511e] active:scale-[0.98] transition-all duration-150 rounded-xl font-bold text-[11px] sm:text-xs text-white tracking-wide shadow-[0_4px_14px_rgba(255,87,34,0.35)] flex items-center justify-center gap-1.5 cursor-pointer group/btn"
             >
               <QrCode className="w-3.5 h-3.5 shrink-0" />
               <span>VIEW ENTRY QR</span>
@@ -650,10 +608,10 @@ const OfficialTicketPassCard: React.FC<OfficialTicketPassCardProps> = ({ ticket,
             <button
               type="button"
               disabled
-              className="w-full py-2.5 px-2 bg-slate-300 border border-slate-400 text-slate-600 rounded-xl font-bold text-xs tracking-wide flex items-center justify-center gap-1.5 cursor-not-allowed select-none"
+              className="w-full py-2 px-2 bg-slate-300 border border-slate-400 text-slate-600 rounded-xl font-bold text-[11px] tracking-wide flex items-center justify-center gap-1.5 cursor-not-allowed select-none"
             >
               <Loader2 className="w-3.5 h-3.5 animate-spin shrink-0" />
-              <span className="text-[11px]">ISSUING PASS...</span>
+              <span className="text-[10px]">ISSUING PASS...</span>
             </button>
           )}
         </div>
@@ -869,22 +827,22 @@ const EntryQrModal: React.FC<EntryQrModalProps> = ({ ticket, onClose }) => {
  */
 const TicketCardSkeleton: React.FC = () => {
   return (
-    <div className="w-full h-[224px] sm:h-[230px] flex rounded-2xl bg-[#0a0c10] border border-white/10 overflow-hidden animate-pulse">
+    <div className="w-full h-[195px] sm:h-[200px] flex rounded-2xl bg-[#0a0c10] border border-white/10 overflow-hidden animate-pulse">
       {/* 65% Left Body */}
-      <div className="w-[65%] h-full p-5 sm:p-6 flex flex-col justify-between bg-[#0e121a]">
+      <div className="w-[65%] h-full p-4 sm:p-5 flex flex-col justify-between bg-[#0e121a]">
         <div className="flex justify-between items-center">
           <div className="w-24 h-5 bg-white/10 rounded-full" />
-          <div className="w-28 h-5 bg-white/10 rounded-full" />
+          <div className="w-20 h-5 bg-white/10 rounded-full" />
         </div>
-        <div className="w-3/4 h-6 bg-white/10 rounded-lg" />
-        <div className="space-y-2">
-          <div className="w-1/2 h-3.5 bg-white/10 rounded" />
-          <div className="w-2/3 h-3.5 bg-white/10 rounded" />
+        <div className="w-3/4 h-5 bg-white/10 rounded-lg" />
+        <div className="space-y-1.5">
+          <div className="w-1/2 h-3 bg-white/10 rounded" />
+          <div className="w-2/3 h-3 bg-white/10 rounded" />
         </div>
       </div>
 
       {/* 35% Right Stub */}
-      <div className="w-[35%] h-full bg-[#181f2c] p-4 sm:p-5 flex flex-col justify-between border-l border-white/10">
+      <div className="w-[35%] h-full bg-[#181f2c] p-3.5 sm:p-4 flex flex-col justify-between border-l border-white/10">
         <div className="w-full h-6 bg-white/10 rounded" />
         <div className="space-y-1 my-auto">
           <div className="w-12 h-2.5 bg-white/10 rounded" />

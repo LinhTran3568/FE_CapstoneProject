@@ -34,37 +34,37 @@ export const TicketCard: React.FC<TicketCardProps> = ({
     listingId: listing.listingId,
   });
 
-  // Dynamic Zone styling inherited from user design
+  // Dynamic Zone styling with high contrast dark glass and vibrant accents
   const getZoneStyle = (tierName: string) => {
     const lower = (tierName || '').toLowerCase();
     if (lower.includes('svip')) {
       return {
-        badge: 'bg-amber-400/15 border-amber-400/50 text-amber-200',
-        dot: 'bg-amber-300 shadow-[0_0_8px_#fcd34d]',
+        badge: 'bg-black/75 border border-amber-400/50 text-white backdrop-blur-md shadow-sm',
+        dot: 'bg-amber-400 shadow-[0_0_8px_#fbbf24]',
       };
     }
     if (lower.includes('vip b') || lower.includes('vip-b')) {
       return {
-        badge: 'bg-orange-500/10 border-orange-500/40 text-orange-300',
+        badge: 'bg-black/75 border border-orange-400/50 text-white backdrop-blur-md shadow-sm',
         dot: 'bg-orange-400 shadow-[0_0_8px_#fb923c]',
       };
     }
     if (lower.includes('fanzone') || lower.includes('fan zone')) {
       return {
-        badge: 'bg-rose-500/10 border-rose-500/40 text-rose-300',
+        badge: 'bg-black/75 border border-rose-400/50 text-white backdrop-blur-md shadow-sm',
         dot: 'bg-rose-400 shadow-[0_0_8px_#fb7185]',
       };
     }
     if (lower.includes('ga') || lower.includes('standard')) {
       return {
-        badge: 'bg-blue-500/10 border-blue-500/40 text-blue-300',
-        dot: 'bg-blue-400 shadow-[0_0_8px_#60a5fa]',
+        badge: 'bg-black/75 border border-sky-400/50 text-white backdrop-blur-md shadow-sm',
+        dot: 'bg-sky-400 shadow-[0_0_8px_#38bdf8]',
       };
     }
     // Default VIP ZONE A
     return {
-      badge: 'bg-amber-500/10 border-amber-500/40 text-amber-300',
-      dot: 'bg-amber-400 shadow-[0_0_8px_#fbbf24]',
+      badge: 'bg-black/75 border border-white/20 text-white backdrop-blur-md shadow-sm',
+      dot: 'bg-[#FF5A36] shadow-[0_0_8px_#FF5A36]',
     };
   };
 
@@ -97,12 +97,12 @@ export const TicketCard: React.FC<TicketCardProps> = ({
   return (
     <div
       id={`ticket-card-${listing.listingId}`}
-      className={`group relative isolate w-full h-[224px] sm:h-[230px] flex rounded-2xl bg-[#0a0c10] border shadow-[0_10px_30px_rgba(0,0,0,0.85)] transition-[border-color,box-shadow,transform] duration-200 ease-out select-none cursor-pointer ${
+      className={`group relative isolate w-full h-[195px] sm:h-[200px] flex rounded-2xl bg-[#0a0c10] border shadow-[0_8px_24px_rgba(0,0,0,0.7)] transition-[border-color,box-shadow,transform] duration-200 ease-out select-none cursor-pointer ${
         isTransacting
           ? 'border-amber-500/40 shadow-[0_8px_30px_rgba(245,158,11,0.15)]'
           : isSold
           ? 'border-zinc-700/50 opacity-75'
-          : 'border-white/10 hover:border-[#FF5A36] hover:shadow-[0_12px_40px_rgba(255,90,54,0.22)] hover:-translate-y-1'
+          : 'border-white/10 hover:border-[#FF5A36] hover:shadow-[0_12px_36px_rgba(255,90,54,0.2)] hover:-translate-y-1'
       }`}
       onClick={() => {
         if (!isTransacting && onViewDetails) {
@@ -153,7 +153,7 @@ export const TicketCard: React.FC<TicketCardProps> = ({
       {/* ================= LEFT SECTION: MAIN BODY (65% width) ================= */}
       <div
         id={`ticket-body-${listing.listingId}`}
-        className="relative w-[65%] h-full rounded-l-2xl overflow-hidden flex flex-col justify-between p-5 sm:p-6 bg-[#0a0c10]"
+        className="relative w-[65%] h-full rounded-l-2xl overflow-hidden flex flex-col justify-between p-4 sm:p-5 bg-[#0a0c10]"
       >
         {/* Live Concert Stage Photo Background with fast hardware-accelerated subtle zoom */}
         <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none">
@@ -174,39 +174,39 @@ export const TicketCard: React.FC<TicketCardProps> = ({
         {/* Left Top Content: VIP Badge & Status Badges */}
         <div className="relative z-10 flex items-center justify-between gap-2">
           <div
-            className={`inline-flex items-center gap-2 px-3 py-1 rounded-full border backdrop-blur-md shadow-[0_0_12px_rgba(245,158,11,0.15)] ${zoneStyle.badge}`}
+            className={`inline-flex items-center gap-2 px-3 py-1 rounded-full border backdrop-blur-md ${zoneStyle.badge}`}
           >
             <span className={`w-2 h-2 rounded-full animate-pulse ${zoneStyle.dot}`}></span>
-            <span className="text-[11px] font-bold tracking-wider uppercase">
+            <span className="text-[11px] font-bold tracking-wider uppercase text-white">
               {listing.tierName || 'VIP ZONE A'}
             </span>
           </div>
 
           {isTransacting && (
-            <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-amber-400/50 bg-amber-500/20 text-amber-200 text-[10px] sm:text-[11px] font-bold tracking-wider uppercase backdrop-blur-md shadow-[0_0_12px_rgba(245,158,11,0.25)]">
+            <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-amber-400/50 bg-black/75 text-white text-[10px] sm:text-[11px] font-bold tracking-wider uppercase backdrop-blur-md shadow-sm">
               <Lock className="w-3.5 h-3.5 text-amber-300 animate-pulse" />
               <span>Reserved</span>
             </div>
           )}
 
           {isSold && (
-            <div className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full border border-zinc-500/50 bg-zinc-800/90 text-zinc-300 text-[10px] sm:text-[11px] font-bold tracking-wider uppercase backdrop-blur-md">
+            <div className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full border border-zinc-600/50 bg-black/75 text-zinc-200 text-[10px] sm:text-[11px] font-bold tracking-wider uppercase backdrop-blur-md shadow-sm">
               <span>Sold</span>
             </div>
           )}
         </div>
 
         {/* Left Middle & Bottom Content */}
-        <div className="relative z-10 space-y-2.5">
+        <div className="relative z-10 space-y-2">
           {/* Event Heading - instant smooth color transition on card hover */}
-          <h2 className={`text-[19px] sm:text-[21px] font-extrabold tracking-tight leading-tight drop-shadow-sm transition-colors duration-200 ease-out line-clamp-2 ${
+          <h2 className={`text-[17px] sm:text-[19px] font-extrabold tracking-tight leading-snug drop-shadow-sm transition-colors duration-200 ease-out line-clamp-2 ${
             isSold ? 'text-zinc-400' : 'text-white group-hover:text-[#FF5A36]'
           }`}>
             {listing.eventName}
           </h2>
 
           {/* Metadata with subtle icons */}
-          <div className="flex flex-wrap items-center gap-x-5 gap-y-1.5 text-xs text-zinc-300">
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] sm:text-xs text-zinc-300">
             {/* Date & Time */}
             <div className="flex items-center gap-1.5 shrink-0">
               <Calendar className="w-3.5 h-3.5 text-zinc-400 shrink-0" />
@@ -216,7 +216,7 @@ export const TicketCard: React.FC<TicketCardProps> = ({
             {/* Venue Location */}
             <div className="flex items-center gap-1.5 min-w-0">
               <MapPin className="w-3.5 h-3.5 text-zinc-400 shrink-0" />
-              <span className="font-medium text-zinc-300 truncate max-w-[170px] sm:max-w-[200px]">
+              <span className="font-medium text-zinc-300 truncate max-w-[150px] sm:max-w-[190px]">
                 {listing.eventVenue}
               </span>
             </div>
@@ -302,20 +302,20 @@ export const TicketCard: React.FC<TicketCardProps> = ({
       {/* ================= RIGHT SECTION: TICKET STUB (35% width) ================= */}
       <div
         id={`ticket-stub-${listing.listingId}`}
-        className="relative w-[35%] h-full bg-[#e2e8f0] rounded-r-2xl overflow-hidden flex flex-col justify-between p-4 sm:p-5 paper-texture shadow-inner"
+        className="relative w-[35%] h-full bg-[#e2e8f0] rounded-r-2xl overflow-hidden flex flex-col justify-between p-3.5 sm:p-4 paper-texture shadow-inner"
       >
         <div className="absolute top-0 bottom-0 left-0 w-3 bg-gradient-to-r from-black/10 to-transparent pointer-events-none"></div>
 
         {/* Stub Top: Monospace code pill and barcode */}
         <div className="flex items-center justify-between pt-0.5">
-          <div className="px-2 py-0.5 rounded bg-slate-300/80 border border-slate-400/50">
-            <span className="font-mono-code text-[11px] font-bold tracking-wider text-slate-800">
+          <div className="px-1.5 py-0.5 rounded bg-slate-300/80 border border-slate-400/50">
+            <span className="font-mono-code text-[10px] sm:text-[11px] font-bold tracking-wider text-slate-800">
               {passCode}
             </span>
           </div>
 
           {/* Realistic Barcode Graphic */}
-          <div className="flex items-center gap-[2px] h-5 opacity-80" title="Ticket barcode">
+          <div className="flex items-center gap-[2px] h-4.5 opacity-80" title="Ticket barcode">
             <span className="w-[2.5px] h-full bg-slate-900"></span>
             <span className="w-[1px] h-full bg-slate-900"></span>
             <span className="w-[3px] h-full bg-slate-900"></span>
@@ -332,28 +332,28 @@ export const TicketCard: React.FC<TicketCardProps> = ({
         </div>
 
         {/* Stub Middle: Pricing Block */}
-        <div className="my-auto py-1">
-          <div className="text-[10px] font-bold tracking-wider text-slate-500 uppercase mb-0.5">
+        <div className="my-auto py-0.5">
+          <div className="text-[9px] font-bold tracking-wider text-slate-500 uppercase mb-0.5">
             PRICE
           </div>
           <div className="flex items-baseline">
-            <span className="text-[23px] sm:text-[25px] font-extrabold tracking-tight text-slate-900 leading-none">
+            <span className="text-[20px] sm:text-[22px] font-extrabold tracking-tight text-slate-900 leading-none">
               {formattedPrice}
             </span>
-            <span className="ml-1 text-sm font-bold text-slate-700">VND</span>
+            <span className="ml-1 text-xs font-bold text-slate-700">VND</span>
           </div>
 
           {listing.discountPercentage > 0 ? (
-            <div className="flex items-center gap-1.5 mt-1">
-              <span className="text-xs text-slate-400 line-through font-medium">
+            <div className="flex items-center gap-1.5 mt-0.5">
+              <span className="text-[11px] text-slate-400 line-through font-medium">
                 {formattedOriginalPrice} VND
               </span>
-              <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
+              <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
                 -{listing.discountPercentage}%
               </span>
             </div>
           ) : (
-            <div className="text-[11px] font-mono-code text-slate-500 mt-1">
+            <div className="text-[10px] font-mono-code text-slate-500 mt-0.5">
               Organizer Verified Price
             </div>
           )}
@@ -367,13 +367,13 @@ export const TicketCard: React.FC<TicketCardProps> = ({
                 id={`btn-buy-${listing.listingId}`}
                 type="button"
                 disabled
-                className="w-full py-2.5 px-2.5 bg-amber-100 hover:bg-amber-100 border border-amber-300 text-amber-900 rounded-xl font-bold text-xs tracking-wide flex items-center justify-center gap-1.5 cursor-not-allowed select-none shadow-sm"
+                className="w-full py-2 px-2 bg-amber-100 hover:bg-amber-100 border border-amber-300 text-amber-900 rounded-xl font-bold text-[11px] tracking-wide flex items-center justify-center gap-1.5 cursor-not-allowed select-none shadow-sm"
                 title="This ticket is currently in a checkout session"
               >
                 <Lock className="w-3.5 h-3.5 text-amber-700 shrink-0" />
-                <span className="font-extrabold text-[11px]">RESERVED</span>
+                <span className="font-extrabold text-[10px]">RESERVED</span>
               </button>
-              <div className="text-[10px] text-center font-medium text-amber-800 leading-none">
+              <div className="text-[9px] text-center font-medium text-amber-800 leading-none">
                 Checkout in progress
               </div>
             </div>
@@ -382,7 +382,7 @@ export const TicketCard: React.FC<TicketCardProps> = ({
               id={`btn-buy-${listing.listingId}`}
               type="button"
               disabled
-              className="w-full py-2.5 px-3 bg-slate-300 border border-slate-400 text-slate-600 rounded-xl font-bold text-xs tracking-wide flex items-center justify-center gap-1.5 cursor-not-allowed select-none"
+              className="w-full py-2 px-2.5 bg-slate-300 border border-slate-400 text-slate-600 rounded-xl font-bold text-[11px] tracking-wide flex items-center justify-center gap-1.5 cursor-not-allowed select-none"
               title="This ticket has been sold"
             >
               <span>SOLD OUT</span>
@@ -395,7 +395,7 @@ export const TicketCard: React.FC<TicketCardProps> = ({
                 e.stopPropagation();
                 onBuy(listing);
               }}
-              className="w-full py-2.5 px-4 bg-[#ff5722] hover:bg-[#f4511e] active:scale-[0.98] transition-all duration-150 rounded-xl font-bold text-xs text-white tracking-wide shadow-[0_4px_14px_rgba(255,87,34,0.35)] flex items-center justify-center gap-1.5 cursor-pointer group/btn"
+              className="w-full py-2 px-3 bg-[#ff5722] hover:bg-[#f4511e] active:scale-[0.98] transition-all duration-150 rounded-xl font-bold text-[11px] sm:text-xs text-white tracking-wide shadow-[0_4px_14px_rgba(255,87,34,0.35)] flex items-center justify-center gap-1.5 cursor-pointer group/btn"
             >
               <span>BUY TICKET</span>
               <span className="transition-transform duration-150 group-hover/btn:translate-x-1">→</span>

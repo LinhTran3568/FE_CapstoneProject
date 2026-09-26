@@ -29,7 +29,8 @@ import {
   Globe,
   Share2,
   Sparkles,
-  Building2
+  Building2,
+  Tag
 } from 'lucide-react';
 import { TicketShieldTrustBadge } from '../components/ui/TicketShieldTrustBadge';
 import { PrivateResaleScenarioModal } from '../components/ui/PrivateResaleScenarioModal';
@@ -992,76 +993,88 @@ export const SellTicketPage: React.FC = () => {
 
             <form onSubmit={handleNextStep1} className="space-y-6 text-left bg-[#0A0D12]/90 backdrop-blur-md border border-white/10 p-6 sm:p-8 rounded-3xl shadow-2xl hover:border-white/20 transition-all duration-300">
               <div className="space-y-2.5">
-                <label
-                  htmlFor="sell-ticket-from-purchases"
-                  className="text-xs sm:text-sm font-semibold uppercase tracking-wider text-[#A3A8B3] font-display block"
-                >
-                  Select from My Tickets
-                </label>
-                <div className="relative">
-                  <select
-                    id="sell-ticket-from-purchases"
-                    value={
-                      eligibleTickets.some((t) => purchasedPassCode(t).toUpperCase() === ticketCode)
-                        ? ticketCode
-                        : ''
-                    }
-                    onChange={(e) => setTicketCode(e.target.value.toUpperCase())}
-                    disabled={isLoadingPurchased || eligibleTickets.length === 0}
-                    className="w-full h-14 sm:h-16 appearance-none bg-[#05070A] border border-white/15 rounded-2xl pl-4 pr-12 text-sm font-mono font-semibold text-white focus:outline-none focus:border-[#FF5A36] focus:ring-4 focus:ring-[#FF5A36]/20 disabled:opacity-50 cursor-pointer"
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
+                  <label
+                    htmlFor="sell-ticket-input"
+                    className="text-xs sm:text-sm font-semibold uppercase tracking-wider text-[#A3A8B3] font-display block"
                   >
-                    <option value="">
-                      {isLoadingPurchased
-                        ? 'Loading purchased tickets...'
-                        : eligibleTickets.length === 0
-                          ? 'No eligible purchased tickets'
-                          : 'Select a purchased ticket'}
-                    </option>
-                    {eligibleTickets.map((t) => {
-                      const code = purchasedPassCode(t).toUpperCase();
-                      return (
-                        <option key={t.escrowId} value={code}>
-                          {t.eventName} — {code}
-                        </option>
-                      );
-                    })}
-                  </select>
-                  <ChevronDown className="w-5 h-5 text-[#A3A8B3] absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none" aria-hidden="true" />
+                    Original Ticket Code
+                  </label>
+                  <span className="text-[11px] font-mono text-[#8B929C]">
+                    Enter code manually or pick from purchases
+                  </span>
                 </div>
-                <p className="text-[11px] text-[#8B929C] leading-relaxed">
-                  Only tickets you purchased and have passed the 24-hour protection window are shown. Other ticket codes can be entered manually below.
-                </p>
-              </div>
 
-              <div className="space-y-2.5">
-                <label className="text-xs sm:text-sm font-semibold uppercase tracking-wider text-[#A3A8B3] font-display block">
-                  Original Ticket Code
-                </label>
+                {/* Unified Row: Ticket Code Input + Select from My Tickets Dropdown */}
+                <div className="flex flex-col sm:flex-row items-stretch gap-2.5">
+                  {/* Left: Prominent Code Input */}
+                  <div className="relative flex-1 group">
+                    <Ticket className="w-5 h-5 sm:w-6 sm:h-6 text-[#FF5A36] absolute left-4 sm:left-5 top-1/2 -translate-y-1/2 group-focus-within:scale-110 group-focus-within:text-[#FF7252] transition-all duration-200 pointer-events-none z-10" />
 
-                {/* Rescaled Prominent Input: Compact width, increased height */}
-                <div className="relative group">
-                  <Ticket className="w-5 h-5 sm:w-6 sm:h-6 text-[#FF5A36] absolute left-4 sm:left-5 top-1/2 -translate-y-1/2 group-focus-within:scale-110 group-focus-within:text-[#FF7252] transition-all duration-200 pointer-events-none z-10" />
-                  
-                  <input
-                    type="text"
-                    value={ticketCode}
-                    onChange={(e) => setTicketCode(e.target.value.toUpperCase())}
-                    placeholder="e.g. ATSH-VIP-888"
-                    className="w-full h-16 sm:h-[72px] bg-[#05070A] border border-white/15 rounded-2xl pl-14 sm:pl-16 pr-12 sm:pr-14 text-base sm:text-lg font-mono font-bold tracking-widest text-white placeholder-[#A3A8B3]/30 focus:outline-none focus:border-[#FF5A36] focus:ring-4 focus:ring-[#FF5A36]/20 transition-all duration-200"
-                    required
-                  />
+                    <input
+                      id="sell-ticket-input"
+                      type="text"
+                      value={ticketCode}
+                      onChange={(e) => setTicketCode(e.target.value.toUpperCase())}
+                      placeholder="e.g. ATSH-VIP-888"
+                      className="w-full h-14 sm:h-16 bg-[#05070A] border border-white/15 rounded-2xl pl-13 sm:pl-15 pr-11 text-base sm:text-lg font-mono font-bold tracking-widest text-white placeholder-[#A3A8B3]/30 focus:outline-none focus:border-[#FF5A36] focus:ring-4 focus:ring-[#FF5A36]/20 transition-all duration-200"
+                      required
+                    />
 
-                  {ticketCode && (
-                    <button
-                      type="button"
-                      onClick={() => setTicketCode('')}
-                      className="absolute right-3.5 sm:right-4 top-1/2 -translate-y-1/2 p-2 text-[#8F96A3] hover:text-white hover:bg-white/10 rounded-xl transition-all duration-150 cursor-pointer"
-                      title="Clear code"
+                    {ticketCode && (
+                      <button
+                        type="button"
+                        onClick={() => setTicketCode('')}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 p-2 text-[#8F96A3] hover:text-white hover:bg-white/10 rounded-xl transition-all duration-150 cursor-pointer"
+                        title="Clear code"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Right: Dropdown to pick from My Tickets */}
+                  <div className="relative sm:w-80 shrink-0">
+                    <Tag className="w-4 h-4 text-[#FF5A36] absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none z-10" />
+                    <select
+                      id="sell-ticket-from-purchases"
+                      value={
+                        eligibleTickets.some((t) => purchasedPassCode(t).toUpperCase() === ticketCode)
+                          ? ticketCode
+                          : ''
+                      }
+                      onChange={(e) => setTicketCode(e.target.value.toUpperCase())}
+                      disabled={isLoadingPurchased || eligibleTickets.length === 0}
+                      className="w-full h-14 sm:h-16 appearance-none bg-[#05070A] border border-white/15 rounded-2xl pl-10 pr-10 text-xs sm:text-sm font-mono font-semibold text-white focus:outline-none focus:border-[#FF5A36] focus:ring-4 focus:ring-[#FF5A36]/20 disabled:opacity-50 cursor-pointer transition-all shadow-inner"
+                      title={
+                        eligibleTickets.length === 0
+                          ? 'No eligible purchased tickets found'
+                          : 'Select an eligible ticket from your purchases'
+                      }
                     >
-                      <X className="w-5 h-5" />
-                    </button>
-                  )}
+                      <option value="" className="bg-[#0A0D12] text-zinc-400">
+                        {isLoadingPurchased
+                          ? 'Loading purchases...'
+                          : eligibleTickets.length === 0
+                            ? 'No eligible purchased tickets'
+                            : `Select from My Tickets (${eligibleTickets.length})`}
+                      </option>
+                      {eligibleTickets.map((t) => {
+                        const code = purchasedPassCode(t).toUpperCase();
+                        return (
+                          <option key={t.escrowId} value={code} className="bg-[#0A0D12] text-white">
+                            {code} — {t.eventName}
+                          </option>
+                        );
+                      })}
+                    </select>
+                    <ChevronDown className="w-4 h-4 text-[#A3A8B3] absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none" aria-hidden="true" />
+                  </div>
                 </div>
+
+                <p className="text-[11px] text-[#8B929C] leading-relaxed">
+                  Only tickets you purchased and have passed the safety verification window are listed in the dropdown. You can also paste or type any valid ticket code directly into the input.
+                </p>
               </div>
 
               <button
@@ -1796,7 +1809,7 @@ export const SellTicketPage: React.FC = () => {
             (l) => (publishedListingId && l.listingId === publishedListingId) || l.originalTicketCode === ticketCode
           );
           const isAtsh = ticketCode.startsWith('ATSH') || !ticketCode;
-          const resolvedEventName = matchedListing?.eventName || (isAtsh ? 'Anh Trai Say Hi Concert 2026' : 'Official Concert Digital Pass');
+          const resolvedEventName = matchedListing?.eventName || (isAtsh ? 'Anh Trai Say Hi Concert 2026' : 'Live Concert');
           const resolvedEventDate = matchedListing?.eventStartAt
             ? new Date(matchedListing.eventStartAt).toLocaleString('vi-VN', {
                 hour: '2-digit',

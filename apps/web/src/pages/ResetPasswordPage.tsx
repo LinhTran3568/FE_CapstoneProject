@@ -110,7 +110,8 @@ export const ResetPasswordPage: React.FC = () => {
         </div>
 
         <div className="relative z-10 space-y-6 max-w-xl my-auto">
-          <span className="px-3.5 py-1 bg-[#FF5A36]/20 border border-[#FF5A36]/40 text-[#FF5A36] text-xs font-bold uppercase tracking-widest rounded-full font-display inline-block">
+          <span className="px-3.5 py-1 bg-black/80 backdrop-blur-md border border-white/20 text-white text-xs font-bold uppercase tracking-widest rounded-full font-display inline-flex items-center gap-2 shadow-md">
+            <span className="w-1.5 h-1.5 rounded-full bg-[#FF5A36]" />
             Final Step
           </span>
           <h1 className="font-display text-5xl xl:text-6xl font-extrabold uppercase leading-[0.95] tracking-tight">

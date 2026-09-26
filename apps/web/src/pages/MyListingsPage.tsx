@@ -38,7 +38,7 @@ interface FilterTabOption {
 const FILTER_TABS: FilterTabOption[] = [
   { key: 'all', label: 'ALL' },
   { key: 'Verified', label: 'ON SALE' },
-  { key: 'Transacting', label: '24H PROTECTION' },
+  { key: 'Transacting', label: 'PROCESSING' },
   { key: 'Sold', label: 'SOLD' },
   { key: 'Cancelled', label: 'CANCELLED' },
   { key: 'Expired', label: 'EXPIRED' },
@@ -47,7 +47,7 @@ const FILTER_TABS: FilterTabOption[] = [
 const TOAST_CANCEL_SUCCESS = 'Listing cancelled successfully. The original ticket has been unlocked by the Organizer.';
 const TOAST_CANCEL_ERROR = 'Could not contact the organizer to unlock the ticket. Please try again later.';
 const ESCROW_LOCKED_NOTICE =
-  'Funds held safely under 24-hour protection — Automatic payout upon completion';
+  'Giao dịch đang được bảo vệ an toàn — Tự động chuyển tiền sau đối soát';
 
 /** Only listings nobody has bought yet can be cancelled (backend rule). */
 const canCancel = (listing: SellerListingDto) => listing.listingStatus === 'Verified';
@@ -579,36 +579,36 @@ const ListingStatusPill: React.FC<{ status: ListingStatus }> = ({ status }) => {
   switch (status) {
     case 'Verified':
       return (
-        <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold uppercase tracking-wider bg-[#FF5A36]/10 border border-[#FF5A36]/30 text-[#FF5A36]">
+        <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold uppercase tracking-wider bg-black/75 border border-[#FF5A36]/50 text-white backdrop-blur-md shadow-sm">
           <span className="w-1.5 h-1.5 rounded-full bg-[#FF5A36] animate-pulse" />
           <span>ON SALE</span>
         </span>
       );
     case 'Transacting':
       return (
-        <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold uppercase tracking-wider bg-amber-500/10 border border-amber-500/30 text-amber-400">
-          <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
-          <span>24H PROTECTION</span>
+        <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold uppercase tracking-wider bg-black/75 border border-amber-400/50 text-white backdrop-blur-md shadow-sm">
+          <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
+          <span>PROCESSING</span>
         </span>
       );
     case 'Sold':
       return (
-        <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold uppercase tracking-wider bg-[#20C997]/10 border border-[#20C997]/30 text-[#20C997]">
+        <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold uppercase tracking-wider bg-black/75 border border-[#20C997]/50 text-white backdrop-blur-md shadow-sm">
           <span className="w-1.5 h-1.5 rounded-full bg-[#20C997]" />
           <span>SOLD</span>
         </span>
       );
     case 'Cancelled':
       return (
-        <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold uppercase tracking-wider bg-white/[0.05] border border-white/[0.08] text-[#8B929C]">
-          <span className="w-1.5 h-1.5 rounded-full bg-[#8B929C]" />
+        <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold uppercase tracking-wider bg-black/75 border border-zinc-600/50 text-zinc-300 backdrop-blur-md shadow-sm">
+          <span className="w-1.5 h-1.5 rounded-full bg-zinc-400" />
           <span>CANCELLED</span>
         </span>
       );
     case 'Expired':
       return (
-        <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold uppercase tracking-wider bg-white/[0.05] border border-white/[0.08] text-[#8B929C]">
-          <span className="w-1.5 h-1.5 rounded-full bg-[#8B929C]" />
+        <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold uppercase tracking-wider bg-black/75 border border-zinc-600/50 text-zinc-300 backdrop-blur-md shadow-sm">
+          <span className="w-1.5 h-1.5 rounded-full bg-zinc-400" />
           <span>EXPIRED</span>
         </span>
       );

@@ -36,7 +36,7 @@ export const UpcomingTimeSection: React.FC<UpcomingTimeSectionProps> = ({ onSele
                 <h4 className="text-sm sm:text-base font-bold text-white group-hover:text-[#FF5A36] transition-colors">
                   Next 7 Days
                 </h4>
-                <span className="px-2 py-0.5 rounded-full bg-[#FF5A36]/20 text-[#FF5A36] text-[10px] font-mono font-bold">
+                <span className="px-2 py-0.5 rounded-full bg-black/80 border border-[#FF5A36]/40 text-white text-[10px] font-mono font-bold shadow-sm">
                   HOT
                 </span>
               </div>

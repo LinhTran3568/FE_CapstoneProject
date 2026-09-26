@@ -164,8 +164,8 @@ export const TrendingBannerSlider: React.FC<TrendingBannerSliderProps> = ({ onSe
                 </span>
 
                 {currentSlide.totalAvailableListings > 0 && (
-                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-black/60 backdrop-blur-md border border-white/20 text-emerald-400 font-mono text-[11px] font-semibold">
-                    <Tag className="w-3 h-3" />
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-black/75 backdrop-blur-md border border-white/20 text-white font-mono text-[11px] font-bold shadow-md">
+                    <Tag className="w-3 h-3 text-emerald-400" />
                     {currentSlide.totalAvailableListings} tickets available
                   </span>
                 )}

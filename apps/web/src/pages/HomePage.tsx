@@ -167,8 +167,8 @@ export const HomePage: React.FC = () => {
         <div className="mt-12 mb-6 p-8 sm:p-12 rounded-3xl bg-gradient-to-r from-[#0C1017] via-[#10141E] to-[#0C1017] border border-white/10 text-center relative overflow-hidden shadow-2xl">
           <div className="absolute -top-24 -right-24 w-60 h-60 bg-[#FF5A36]/10 rounded-full blur-3xl pointer-events-none" />
           <div className="relative z-10 max-w-2xl mx-auto space-y-4">
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#FF5A36]/15 border border-[#FF5A36]/30 text-xs font-mono font-bold text-[#FF5A36] uppercase tracking-wider">
-              <Sparkles className="w-3.5 h-3.5" />
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-black/80 backdrop-blur-md border border-white/20 text-xs font-mono font-bold text-white uppercase tracking-wider shadow-md">
+              <Sparkles className="w-3.5 h-3.5 text-[#FF5A36]" />
               Official Ticket Marketplace
             </span>
             <h2 className="text-2xl sm:text-3xl md:text-4xl font-black font-display text-white tracking-tight">
