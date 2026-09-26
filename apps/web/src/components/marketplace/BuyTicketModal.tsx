@@ -14,6 +14,7 @@ import {
   CreditCard,
   User,
   Plus,
+  Zap,
 } from 'lucide-react';
 import { MarketplaceListingDto, HoldListingForPurchaseResponse } from '@ticketshield/types';
 import { resaleListingsApi } from '@ticketshield/api-client';
@@ -64,8 +65,26 @@ export const BuyTicketModal: React.FC<BuyTicketModalProps> = ({
 
   // Verification & Status Handlers
   const [isVerifyingManual, setIsVerifyingManual] = useState(false);
+  const [isSimulatingPayment, setIsSimulatingPayment] = useState(false);
   const [pollStopped, setPollStopped] = useState(false);
   const paidHandledRef = useRef(false);
+
+  const handleSimulatePayment = async () => {
+    if (!holdData?.paymentReference) return;
+    try {
+      setIsSimulatingPayment(true);
+      showToast('Sending simulated SePay payment webhook...', 'info');
+      await resaleListingsApi.simulatePaymentWebhook(
+        holdData.paymentReference,
+        holdData.totalBuyerPaid
+      );
+      showToast('Simulated payment sent! Awaiting SignalR approval...', 'success');
+    } catch (err: any) {
+      showToast(err.message || 'Failed to simulate payment', 'error');
+    } finally {
+      setIsSimulatingPayment(false);
+    }
+  };
 
   // Countdown timer hook
   const targetUnlockTime = holdData?.unlockAt || null;
@@ -545,6 +564,43 @@ export const BuyTicketModal: React.FC<BuyTicketModalProps> = ({
                   isExpired={countdown.isExpired}
                   statusColor={countdown.statusColor}
                 />
+
+                {/* 1.5. Demo Quick Payment Simulation Shortcut */}
+                <div className="p-3.5 rounded-xl bg-gradient-to-r from-[#ff5722]/15 via-amber-500/10 to-transparent border border-[#ff5722]/40 flex flex-wrap items-center justify-between gap-3 shadow-sm">
+                  <div className="flex items-center gap-2.5">
+                    <div className="p-1.5 rounded-lg bg-[#ff5722]/20 border border-[#ff5722]/40 text-[#ff5722] shrink-0">
+                      <Zap className="w-4 h-4 animate-pulse" />
+                    </div>
+                    <div>
+                      <div className="text-xs font-extrabold text-white tracking-wide flex items-center gap-2">
+                        <span>DEMO SIMULATION TOOL</span>
+                        <span className="px-1.5 py-0.5 rounded text-[10px] bg-[#ff5722] text-white font-mono">FAST DEMO</span>
+                      </div>
+                      <div className="text-[11px] text-zinc-400 mt-0.5">
+                        Test bank transfer webhook without logging into banking app
+                      </div>
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={handleSimulatePayment}
+                    disabled={isSimulatingPayment || countdown.isExpired}
+                    className="px-4 py-2 rounded-xl bg-[#ff5722] hover:bg-[#f4511e] active:scale-95 text-white text-xs font-bold shadow-[0_4px_15px_rgba(255,87,34,0.35)] hover:shadow-orange-500/40 transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
+                  >
+                    {isSimulatingPayment ? (
+                      <>
+                        <RotateCw className="w-4 h-4 animate-spin" />
+                        <span>Sending Webhook...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Zap className="w-4 h-4 fill-white" />
+                        <span>⚡ Giả lập thanh toán ngay</span>
+                      </>
+                    )}
+                  </button>
+                </div>
 
                 {/* 2. Expired Notice Banner if expired */}
                 {countdown.isExpired && (
