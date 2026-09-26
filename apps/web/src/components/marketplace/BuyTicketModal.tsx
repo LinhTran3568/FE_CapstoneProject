@@ -21,8 +21,8 @@ import { formatVND } from '../../utils/formatters';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '../../stores/authStore';
 import { useUIStore } from '../../stores/uiStore';
-import { usePaymentStatus } from '../../hooks/usePaymentStatus';
 import { usePaymentCountdown } from '../../hooks/usePaymentCountdown';
+import { usePaymentSignalR, SignalRPaymentPayload } from '../../hooks/usePaymentSignalR';
 
 import { PaymentCountdownBar } from './checkout/PaymentCountdownBar';
 import { VietQrPanel } from './checkout/VietQrPanel';
@@ -66,7 +66,6 @@ export const BuyTicketModal: React.FC<BuyTicketModalProps> = ({
   const [isVerifyingManual, setIsVerifyingManual] = useState(false);
   const [pollStopped, setPollStopped] = useState(false);
   const paidHandledRef = useRef(false);
-  const pollErrorToastedRef = useRef(false);
 
   // Countdown timer hook
   const targetUnlockTime = holdData?.unlockAt || null;
@@ -83,12 +82,49 @@ export const BuyTicketModal: React.FC<BuyTicketModalProps> = ({
     onExpire: handleTimerExpire,
   });
 
-  // Backend Payment Status Polling
-  const pollEnabled = isOpen && Boolean(holdData) && !countdown.isExpired && !pollStopped;
-  const { data: paymentStatus, isError: isPollError, error: pollError } = usePaymentStatus(
-    listing?.listingId,
-    pollEnabled
+  // SignalR Realtime Payment Notification Handler
+  const isRealtimeActive = isOpen && Boolean(holdData) && !countdown.isExpired && !pollStopped && !paidHandledRef.current;
+
+  const handlePaymentSuccess = useCallback(
+    (payload: SignalRPaymentPayload) => {
+      if (paidHandledRef.current || !listing) return;
+      paidHandledRef.current = true;
+      setPollStopped(true);
+      showToast('Thanh toán thành công! Tiền ký quỹ được bảo vệ theo cơ chế Escrow 24 giờ.', 'success');
+      onSuccess({
+        orderId: payload.paymentReference || holdData?.paymentReference || `TS-${listing.listingId.substring(0, 8)}`,
+        listing,
+        escrowId: payload.escrowId || holdData?.escrowId,
+        paymentReference: payload.paymentReference || holdData?.paymentReference,
+        totalBuyerPaid: payload.totalBuyerPaid || holdData?.totalBuyerPaid || listing.resalePrice,
+        buyerName: fullName,
+        buyerPhone: phone,
+        buyerEmail: email,
+        newTicketCode: payload.newTicketCode,
+        qrCodeData: payload.qrCodeData,
+      });
+    },
+    [listing, holdData, fullName, phone, email, onSuccess, showToast]
   );
+
+  const handleHoldExpired = useCallback(
+    () => {
+      if (paidHandledRef.current) return;
+      paidHandledRef.current = true;
+      setPollStopped(true);
+      showToast('Giao dịch không được chấp nhận hoặc đã quá hạn giữ chỗ. Khoản tiền sẽ được tự động hoàn lại cho bạn.', 'error');
+    },
+    [showToast]
+  );
+
+  // Realtime SignalR Connection to /hubs/payment
+  usePaymentSignalR({
+    listingId: listing?.listingId,
+    paymentReference: holdData?.paymentReference,
+    enabled: isRealtimeActive,
+    onPaymentSuccess: handlePaymentSuccess,
+    onHoldExpired: handleHoldExpired,
+  });
 
   // Lock background body scroll while modal is open
   useEffect(() => {
@@ -119,47 +155,8 @@ export const BuyTicketModal: React.FC<BuyTicketModalProps> = ({
       setPollStopped(false);
       setIsVerifyingManual(false);
       paidHandledRef.current = false;
-      pollErrorToastedRef.current = false;
     }
   }, [isOpen, listing]);
-
-  // Handle Backend Polling Result
-  useEffect(() => {
-    if (!paymentStatus || paidHandledRef.current) return;
-
-    if (paymentStatus.escrowStatus === 'RefundQueued') {
-      paidHandledRef.current = true;
-      setPollStopped(true);
-      showToast('Giao dịch không được chấp nhận. Khoản tiền sẽ được tự động hoàn lại cho bạn.', 'error');
-      return;
-    }
-
-    if (paymentStatus.listingStatus === 'Sold' || paymentStatus.escrowStatus === 'Locked') {
-      if (!listing) return;
-      paidHandledRef.current = true;
-      setPollStopped(true);
-      showToast('Thanh toán thành công! Tiền ký quỹ được bảo vệ theo cơ chế Escrow 24 giờ.', 'success');
-      onSuccess({
-        orderId: paymentStatus.paymentReference || holdData?.paymentReference || `TS-${listing.listingId.substring(0, 8)}`,
-        listing,
-        escrowId: paymentStatus.escrowId || holdData?.escrowId,
-        paymentReference: paymentStatus.paymentReference || holdData?.paymentReference,
-        totalBuyerPaid: holdData?.totalBuyerPaid || listing.resalePrice,
-        buyerName: fullName,
-        buyerPhone: phone,
-        buyerEmail: email,
-      });
-    }
-  }, [paymentStatus, listing, holdData, fullName, phone, email, onSuccess, showToast]);
-
-  // Handle Poll Error
-  useEffect(() => {
-    if (!isPollError || !pollEnabled || pollErrorToastedRef.current) return;
-    pollErrorToastedRef.current = true;
-    setPollStopped(true);
-    const msg = pollError instanceof Error ? pollError.message : 'Không thể tự động kiểm tra trạng thái thanh toán.';
-    showToast(msg, 'error');
-  }, [isPollError, pollError, pollEnabled, showToast]);
 
   // Keyboard shortcut: Escape to close
   useEffect(() => {
