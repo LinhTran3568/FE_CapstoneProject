@@ -957,7 +957,7 @@ export const SellTicketPage: React.FC = () => {
 
         {/* STEP 1: ENTER TICKET CODE */}
         {currentStep === 1 && (
-          <div key={1} className="animate-fade-in-up max-w-lg mx-auto space-y-6 text-center pt-4">
+          <div key={1} className="animate-fade-in-up max-w-2xl mx-auto space-y-6 text-center pt-4">
             <div className="space-y-3">
               <h1 className="text-2xl sm:text-3xl font-extrabold font-display text-white tracking-tight">
                 Enter Original Ticket Code
@@ -1006,10 +1006,10 @@ export const SellTicketPage: React.FC = () => {
                 </div>
 
                 {/* Unified Row: Ticket Code Input + Select from My Tickets Dropdown */}
-                <div className="flex flex-col sm:flex-row items-stretch gap-2.5">
+                <div className="flex flex-col md:flex-row items-stretch gap-3">
                   {/* Left: Prominent Code Input */}
                   <div className="relative flex-1 group">
-                    <Ticket className="w-5 h-5 sm:w-6 sm:h-6 text-[#FF5A36] absolute left-4 sm:left-5 top-1/2 -translate-y-1/2 group-focus-within:scale-110 group-focus-within:text-[#FF7252] transition-all duration-200 pointer-events-none z-10" />
+                    <Ticket className="w-5 h-5 text-[#FF5A36] absolute left-4 top-1/2 -translate-y-1/2 group-focus-within:scale-110 group-focus-within:text-[#FF7252] transition-all duration-200 pointer-events-none z-10" />
 
                     <input
                       id="sell-ticket-input"
@@ -1017,7 +1017,7 @@ export const SellTicketPage: React.FC = () => {
                       value={ticketCode}
                       onChange={(e) => setTicketCode(e.target.value.toUpperCase())}
                       placeholder="e.g. ATSH-VIP-888"
-                      className="w-full h-14 sm:h-16 bg-[#05070A] border border-white/15 rounded-2xl pl-13 sm:pl-15 pr-11 text-base sm:text-lg font-mono font-bold tracking-widest text-white placeholder-[#A3A8B3]/30 focus:outline-none focus:border-[#FF5A36] focus:ring-4 focus:ring-[#FF5A36]/20 transition-all duration-200"
+                      className="w-full h-14 sm:h-16 bg-[#05070A] border border-white/15 rounded-2xl pl-12 pr-11 text-base sm:text-lg font-mono font-bold tracking-widest text-white placeholder-[#A3A8B3]/30 focus:outline-none focus:border-[#FF5A36] focus:ring-4 focus:ring-[#FF5A36]/20 transition-all duration-200"
                       required
                     />
 
@@ -1034,7 +1034,7 @@ export const SellTicketPage: React.FC = () => {
                   </div>
 
                   {/* Right: Dropdown to pick from My Tickets */}
-                  <div className="relative sm:w-80 shrink-0">
+                  <div className="relative md:w-72 shrink-0">
                     <Tag className="w-4 h-4 text-[#FF5A36] absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none z-10" />
                     <select
                       id="sell-ticket-from-purchases"
@@ -1045,7 +1045,7 @@ export const SellTicketPage: React.FC = () => {
                       }
                       onChange={(e) => setTicketCode(e.target.value.toUpperCase())}
                       disabled={isLoadingPurchased || eligibleTickets.length === 0}
-                      className="w-full h-14 sm:h-16 appearance-none bg-[#05070A] border border-white/15 rounded-2xl pl-10 pr-10 text-xs sm:text-sm font-mono font-semibold text-white focus:outline-none focus:border-[#FF5A36] focus:ring-4 focus:ring-[#FF5A36]/20 disabled:opacity-50 cursor-pointer transition-all shadow-inner"
+                      className="w-full h-14 sm:h-16 appearance-none bg-[#05070A] border border-white/15 rounded-2xl pl-10 pr-10 text-xs sm:text-sm font-mono font-semibold text-white focus:outline-none focus:border-[#FF5A36] focus:ring-4 focus:ring-[#FF5A36]/20 disabled:opacity-50 cursor-pointer transition-all shadow-inner truncate"
                       title={
                         eligibleTickets.length === 0
                           ? 'No eligible purchased tickets found'
