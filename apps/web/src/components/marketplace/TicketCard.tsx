@@ -173,13 +173,24 @@ export const TicketCard: React.FC<TicketCardProps> = ({
 
         {/* Left Top Content: VIP Badge & Status Badges */}
         <div className="relative z-10 flex items-center justify-between gap-2">
-          <div
-            className={`inline-flex items-center gap-2 px-3 py-1 rounded-full border backdrop-blur-md ${zoneStyle.badge}`}
-          >
-            <span className={`w-2 h-2 rounded-full animate-pulse ${zoneStyle.dot}`}></span>
-            <span className="text-[11px] font-bold tracking-wider uppercase text-white">
-              {listing.tierName || 'VIP ZONE A'}
-            </span>
+          <div className="flex items-center gap-2 min-w-0">
+            <div
+              className={`inline-flex items-center gap-2 px-3 py-1 rounded-full border backdrop-blur-md ${zoneStyle.badge}`}
+            >
+              <span className={`w-2 h-2 rounded-full animate-pulse ${zoneStyle.dot}`}></span>
+              <span className="text-[11px] font-bold tracking-wider uppercase text-white truncate max-w-[120px]">
+                {listing.tierName || 'VIP ZONE A'}
+              </span>
+            </div>
+
+            {listing.organizerName && (
+              <div
+                className="hidden sm:inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-[10px] font-bold uppercase tracking-wider backdrop-blur-md shadow-sm truncate max-w-[140px]"
+                title={`Ban tổ chức: ${listing.organizerName}`}
+              >
+                <span className="truncate">{listing.organizerName}</span>
+              </div>
+            )}
           </div>
 
           {isTransacting && (

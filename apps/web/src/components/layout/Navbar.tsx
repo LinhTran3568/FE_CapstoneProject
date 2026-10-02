@@ -15,7 +15,8 @@ import {
   X,
   Sparkles,
   ArrowRight,
-  Search
+  Search,
+  Building2
 } from 'lucide-react';
 
 export const Navbar: React.FC = () => {
@@ -239,6 +240,15 @@ export const Navbar: React.FC = () => {
                   </Link>
 
                   <Link
+                    to="/payout-accounts"
+                    onClick={() => setUserDropdownOpen(false)}
+                    className="w-full px-3 py-2.5 rounded-xl text-xs font-mono text-[#CBD5E1] hover:text-white hover:bg-white/10 flex items-center gap-2.5 transition-colors"
+                  >
+                    <Building2 className="w-4 h-4 text-emerald-400" />
+                    <span>Payout Accounts</span>
+                  </Link>
+
+                  <Link
                     to="/profile"
                     onClick={() => setUserDropdownOpen(false)}
                     className="w-full px-3 py-2.5 rounded-xl text-xs font-mono text-[#CBD5E1] hover:text-white hover:bg-white/10 flex items-center gap-2.5 transition-colors"
@@ -357,6 +367,14 @@ export const Navbar: React.FC = () => {
               >
                 <ListFilter className="w-4 h-4 text-[#FF5A36]" />
                 <span>My Listings</span>
+              </Link>
+              <Link
+                to="/payout-accounts"
+                onClick={() => setMobileMenuOpen(false)}
+                className="px-4 py-2.5 rounded-xl text-xs font-mono font-bold uppercase text-white hover:bg-white/10 flex items-center gap-2"
+              >
+                <Building2 className="w-4 h-4 text-emerald-400" />
+                <span>Payout Accounts</span>
               </Link>
               <Link
                 to="/organizer"

@@ -1,55 +1,80 @@
 import React, { useState, useEffect } from 'react';
 import { useAuthStore } from '../stores/authStore';
 import { useUIStore } from '../stores/uiStore';
-import { 
-  User as UserIcon, 
-  Mail, 
-  Phone, 
-  ShieldCheck, 
-  Key, 
-  Ticket, 
-  Wallet, 
-  CheckCircle2, 
-  PlusCircle, 
+import {
+  User as UserIcon,
+  Mail,
+  Phone,
+  CheckCircle2,
+  PlusCircle,
   LogOut,
   Edit3,
-  Award,
-  Sparkles,
-  Lock,
-  ArrowRight,
   Building2,
   CreditCard,
   Plus,
   RefreshCw,
-  Copy,
-  Check
+  Ticket,
+  ListFilter,
+  ArrowRight,
+  Calendar,
+  MapPin,
+  Loader2,
 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { authApi, bankAccountsApi, VIETNAM_BANKS } from '@ticketshield/api-client';
-import { UserBankAccountDto } from '@ticketshield/types';
+import type { UserBankAccountDto } from '@ticketshield/types';
 import { SellerBankAccountModal } from '../components/profile/SellerBankAccountModal';
+import { useMyListings } from '../hooks/useMyListings';
+import { useMyTickets } from '../hooks/useMyTickets';
+import { formatEventDateTime, formatVND } from '../utils/formatters';
+
+type TabId = 'account' | 'tickets' | 'listings';
+
+const STATUS_STYLES: Record<string, string> = {
+  Verified:    'bg-emerald-500/20 text-emerald-400',
+  Transacting: 'bg-amber-500/20 text-amber-400',
+  Sold:        'bg-cyan-500/20 text-cyan-400',
+  Cancelled:   'bg-white/10 text-zinc-400',
+  Expired:     'bg-white/10 text-zinc-400',
+};
 
 export const ProfilePage: React.FC = () => {
   const { user, logout, setUser } = useAuthStore();
   const { showToast } = useUIStore();
   const navigate = useNavigate();
 
-  const [activeTab, setActiveTab] = useState<'profile' | 'listings' | 'tickets' | 'wallet'>('profile');
-
+  const [activeTab, setActiveTab] = useState<TabId>('account');
   const [fullName, setFullName] = useState(user?.fullName || '');
   const [phoneNumber, setPhoneNumber] = useState(user?.phoneNumber || '');
   const [isSaving, setIsSaving] = useState(false);
 
-  // Bank Accounts Management State (FE-3.1.2)
   const [bankAccounts, setBankAccounts] = useState<UserBankAccountDto[]>([]);
   const [isLoadingAccounts, setIsLoadingAccounts] = useState(false);
   const [isBankModalOpen, setIsBankModalOpen] = useState(false);
 
-  const isReseller = 
-    user?.role === 'RESELLER' || 
+  const formatRoleLabel = (role: unknown): string => {
+    if (role === 1 || role === '1' || role === 'BUYER' || role === 'USER') return 'Member';
+    if (role === 2 || role === '2' || role === 'ORGANIZER') return 'Organizer';
+    if (role === 3 || role === '3' || role === 'ADMIN') return 'Admin';
+    if (role === 'RESELLER' || role === 'SELLER') return 'Seller';
+    if (typeof role === 'string' && role.trim()) return role;
+    return 'Member';
+  };
+
+  const roleLabel = formatRoleLabel(user?.role);
+  const isReseller =
+    roleLabel === 'Seller' ||
+    user?.role === 'RESELLER' ||
     (user?.role as string) === 'SELLER';
 
-  // Fetch Linked Seller Bank Accounts & Sync profile data from Backend API
+  // Real data hooks
+  const { data: myListings = [], isPending: listingsPending } = useMyListings();
+  const { data: myTickets = [], isPending: ticketsPending } = useMyTickets();
+
+  // Preview: 3 most recent items each
+  const recentListings = myListings.slice(0, 3);
+  const recentTickets  = myTickets.slice(0, 3);
+
   useEffect(() => {
     if (user) {
       setFullName(user.fullName || '');
@@ -63,8 +88,8 @@ export const ProfilePage: React.FC = () => {
       setIsLoadingAccounts(true);
       const list = await bankAccountsApi.getMyBankAccounts();
       setBankAccounts(list || []);
-    } catch (err: any) {
-      // Silently handle if network or fallback
+    } catch {
+      // silent
     } finally {
       setIsLoadingAccounts(false);
     }
@@ -76,7 +101,6 @@ export const ProfilePage: React.FC = () => {
       showToast('Full name cannot be empty.', 'error');
       return;
     }
-
     try {
       setIsSaving(true);
       const updatedUser = await authApi.updateProfile({
@@ -98,8 +122,8 @@ export const ProfilePage: React.FC = () => {
     navigate('/login');
   };
 
-  const getBankNameByCode = (code: string) => {
-    const bank = VIETNAM_BANKS.find((b) => b.code.toUpperCase() === code.toUpperCase());
+  const getBankName = (code: string) => {
+    const bank = VIETNAM_BANKS.find(b => b.code.toUpperCase() === code.toUpperCase());
     return bank ? bank.shortName : code;
   };
 
@@ -118,81 +142,80 @@ export const ProfilePage: React.FC = () => {
     );
   }
 
+  const tabs: { id: TabId; label: string; badge?: number }[] = [
+    { id: 'account',  label: 'Account Details' },
+    { id: 'tickets',  label: 'My Tickets',  badge: myTickets.length || undefined },
+    { id: 'listings', label: 'My Listings', badge: myListings.filter(l => l.listingStatus === 'Verified').length || undefined },
+  ];
+
   return (
-    <div className="relative min-h-screen bg-[#05070A] text-[#F5F5F2] pt-28 pb-20 px-6 md:px-12 selection:bg-[#FF5A36] selection:text-white font-sans antialiased overflow-hidden">
-      {/* Background Concert Image */}
+    <div className="relative min-h-screen bg-[#05070A] text-[#F5F5F2] pt-28 pb-20 px-6 md:px-12 font-sans antialiased overflow-hidden">
+      {/* Background */}
       <div className="fixed inset-0 z-0 pointer-events-none">
         <img
           src="/images/landing/hero-concert.jpg"
-          alt="Concert Background"
-          className="w-full h-full object-cover opacity-25 filter brightness-75 contrast-125 scale-105"
+          alt=""
+          className="w-full h-full object-cover opacity-20 filter brightness-75 scale-105"
         />
         <div className="absolute inset-0 bg-gradient-to-b from-[#05070A]/90 via-[#05070A]/85 to-[#05070A]" />
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-[#FF5A36]/15 via-transparent to-transparent" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-[#FF5A36]/10 via-transparent to-transparent" />
       </div>
 
-      <div className="relative z-10 max-w-6xl mx-auto space-y-8">
-        
-        {/* Profile Banner Card */}
-        <div className="bg-gradient-to-r from-[#0A0D12] via-[#0F141C] to-[#0A0D12] border border-white/10 p-6 md:p-8 rounded-3xl shadow-2xl relative overflow-hidden flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
-          <div className="absolute top-0 right-0 w-80 h-80 bg-[#FF5A36]/10 rounded-full blur-3xl pointer-events-none" />
+      <div className="relative z-10 max-w-5xl mx-auto space-y-7">
 
-          <div className="flex items-center gap-6 relative z-10">
-            {/* Avatar Circle */}
-            <div className="relative">
-              <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-[#FF5A36] to-amber-500 text-white font-extrabold font-display text-3xl flex items-center justify-center shadow-xl shadow-[#FF5A36]/20">
-                {user.fullName ? user.fullName[0].toUpperCase() : <UserIcon className="w-8 h-8" />}
+        {/* ── Banner ── */}
+        <div className="bg-gradient-to-r from-[#0A0D12] via-[#0F141C] to-[#0A0D12] border border-white/10 p-6 md:p-8 rounded-3xl shadow-2xl relative overflow-hidden flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+          <div className="absolute top-0 right-0 w-72 h-72 bg-[#FF5A36]/8 rounded-full blur-3xl pointer-events-none" />
+
+          <div className="flex items-center gap-5 relative z-10">
+            <div className="relative shrink-0">
+              <div className="w-18 h-18 w-[72px] h-[72px] rounded-2xl bg-gradient-to-br from-[#FF5A36] to-amber-500 text-white font-extrabold font-display text-2xl flex items-center justify-center shadow-xl shadow-[#FF5A36]/20">
+                {user.fullName ? user.fullName[0].toUpperCase() : <UserIcon className="w-7 h-7" />}
               </div>
-              <div className="absolute -bottom-1 -right-1 bg-emerald-500 border-2 border-[#0A0D12] p-1 rounded-full text-white" title="Verified Account">
-                <CheckCircle2 className="w-3.5 h-3.5" />
+              <div className="absolute -bottom-1 -right-1 bg-emerald-500 border-2 border-[#0A0D12] p-0.5 rounded-full text-white">
+                <CheckCircle2 className="w-3 h-3" />
               </div>
             </div>
 
-            {/* User Meta Info */}
             <div className="space-y-1.5">
-              <div className="flex items-center gap-3">
-                <h1 className="text-2xl md:text-3xl font-extrabold font-display text-white tracking-tight">
+              <div className="flex items-center gap-2.5 flex-wrap">
+                <h1 className="text-2xl font-extrabold font-display text-white tracking-tight">
                   {user.fullName || 'User Profile'}
                 </h1>
-                {isReseller ? (
-                  <span className="px-3 py-1 bg-gradient-to-r from-[#FF5A36] to-amber-500 text-white text-[11px] font-extrabold font-mono uppercase tracking-widest rounded-full shadow-lg shadow-[#FF5A36]/20 flex items-center gap-1">
-                    <Sparkles className="w-3 h-3" /> Verified Seller
-                  </span>
-                ) : (
-                  <span className="px-3 py-1 bg-white/10 text-[#A3A8B3] text-[11px] font-bold font-mono uppercase tracking-wider rounded-full">
-                    {user.role || 'Member'}
+                <span className={`px-2.5 py-0.5 text-[10px] font-extrabold font-mono uppercase tracking-wider rounded-full ${
+                  isReseller
+                    ? 'bg-gradient-to-r from-[#FF5A36] to-amber-500 text-white'
+                    : 'bg-white/10 text-[#CBD5E1]'
+                }`}>
+                  {roleLabel}
+                </span>
+              </div>
+              <div className="flex flex-wrap items-center gap-4 text-xs text-[#8B929C] font-mono">
+                <span className="flex items-center gap-1.5">
+                  <Mail className="w-3 h-3 text-[#FF5A36]" /> {user.email}
+                </span>
+                {user.phoneNumber && (
+                  <span className="flex items-center gap-1.5">
+                    <Phone className="w-3 h-3 text-cyan-400" /> {user.phoneNumber}
                   </span>
                 )}
-              </div>
-
-              <div className="flex flex-wrap items-center gap-4 text-xs text-[#A3A8B3] font-mono">
-                <span className="flex items-center gap-1.5">
-                  <Mail className="w-3.5 h-3.5 text-[#FF5A36]" /> {user.email}
-                </span>
-                <span className="flex items-center gap-1.5">
-                  <Phone className="w-3.5 h-3.5 text-cyan-400" /> {user.phoneNumber || 'Not provided'}
-                </span>
-                <span className="flex items-center gap-1.5 text-emerald-400">
-                  <ShieldCheck className="w-3.5 h-3.5" /> 100% Real Fan Verified
-                </span>
               </div>
             </div>
           </div>
 
-          {/* Action CTAs */}
-          <div className="relative z-10 flex items-center gap-3 w-full md:w-auto">
+          <div className="relative z-10 flex items-center gap-3 shrink-0">
             {isReseller && (
-              <a
-                href="/sell-ticket"
-                className="flex-1 md:flex-none px-5 py-2.5 bg-[#FF5A36] hover:bg-[#FF7252] text-white font-bold font-display text-xs uppercase tracking-wider rounded-xl shadow-lg shadow-[#FF5A36]/25 transition-all flex items-center justify-center gap-2"
+              <Link
+                to="/sell-ticket"
+                className="px-4 py-2.5 bg-[#FF5A36] hover:bg-[#FF7252] text-white font-bold font-display text-xs uppercase tracking-wider rounded-xl shadow-lg shadow-[#FF5A36]/25 transition-all flex items-center gap-2"
               >
                 <PlusCircle className="w-4 h-4" />
                 <span>Sell Ticket</span>
-              </a>
+              </Link>
             )}
             <button
               onClick={handleLogout}
-              className="px-4 py-2.5 bg-white/5 border border-white/10 hover:border-red-500/50 text-[#A3A8B3] hover:text-red-400 rounded-xl transition-all text-xs font-semibold flex items-center gap-2 cursor-pointer"
+              className="px-4 py-2.5 bg-white/5 border border-white/10 hover:border-red-500/40 text-[#A3A8B3] hover:text-red-400 rounded-xl transition-all text-xs font-semibold flex items-center gap-2 cursor-pointer"
             >
               <LogOut className="w-4 h-4" />
               <span>Sign Out</span>
@@ -200,119 +223,60 @@ export const ProfilePage: React.FC = () => {
           </div>
         </div>
 
-        {/* Reseller Stats Strip */}
-        {isReseller && (
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="bg-[#0A0D12] border border-white/10 p-5 rounded-2xl space-y-1">
-              <span className="text-[11px] text-[#A3A8B3] uppercase tracking-wider font-display">Active Listings</span>
-              <p className="text-2xl font-bold font-display text-white">8 <span className="text-xs font-normal text-[#A3A8B3]">Tickets</span></p>
-            </div>
-            <div className="bg-[#0A0D12] border border-[#FF5A36]/30 p-5 rounded-2xl space-y-1 bg-gradient-to-b from-[#FF5A36]/5 to-transparent">
-              <span className="text-[11px] text-amber-400 uppercase tracking-wider font-display">Payout Accounts</span>
-              <p className="text-2xl font-bold font-display text-white">{bankAccounts.length} <span className="text-xs font-normal text-[#A3A8B3]">Accounts</span></p>
-            </div>
-            <div className="bg-[#0A0D12] border border-white/10 p-5 rounded-2xl space-y-1">
-              <span className="text-[11px] text-[#A3A8B3] uppercase tracking-wider font-display">Completed Sales</span>
-              <p className="text-2xl font-bold font-display text-emerald-400">32,500,000 <span className="text-xs font-normal text-[#A3A8B3]">VND</span></p>
-            </div>
-            <div className="bg-[#0A0D12] border border-white/10 p-5 rounded-2xl space-y-1">
-              <span className="text-[11px] text-[#A3A8B3] uppercase tracking-wider font-display">Trust Score</span>
-              <p className="text-2xl font-bold font-display text-amber-400">99.8% <span className="text-xs font-normal text-[#A3A8B3]">Platinum</span></p>
-            </div>
-          </div>
-        )}
-
-        {/* Profile Navigation Tabs */}
-        <div className="flex border-b border-white/10 space-x-8 text-sm font-medium font-display">
-          <button
-            onClick={() => setActiveTab('profile')}
-            className={`pb-4 transition-colors relative cursor-pointer ${
-              activeTab === 'profile'
-                ? 'text-[#FF5A36] font-bold'
-                : 'text-[#A3A8B3] hover:text-white'
-            }`}
-          >
-            <span>Account Details</span>
-            {activeTab === 'profile' && (
-              <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#FF5A36] rounded-full" />
-            )}
-          </button>
-
-          <button
-            onClick={() => setActiveTab('listings')}
-            className={`pb-4 transition-colors relative flex items-center gap-1.5 cursor-pointer ${
-              activeTab === 'listings'
-                ? 'text-[#FF5A36] font-bold'
-                : 'text-[#A3A8B3] hover:text-white'
-            }`}
-          >
-            <span>My Listings</span>
-            <span className="px-2 py-0.5 bg-white/10 rounded-full text-[10px] text-white">8</span>
-            {activeTab === 'listings' && (
-              <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#FF5A36] rounded-full" />
-            )}
-          </button>
-
-          <button
-            onClick={() => setActiveTab('tickets')}
-            className={`pb-4 transition-colors relative flex items-center gap-1.5 cursor-pointer ${
-              activeTab === 'tickets'
-                ? 'text-[#FF5A36] font-bold'
-                : 'text-[#A3A8B3] hover:text-white'
-            }`}
-          >
-            <span>My Tickets</span>
-            <span className="px-2 py-0.5 bg-white/10 rounded-full text-[10px] text-white">3</span>
-            {activeTab === 'tickets' && (
-              <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#FF5A36] rounded-full" />
-            )}
-          </button>
-
-          <button
-            onClick={() => setActiveTab('wallet')}
-            className={`pb-4 transition-colors relative flex items-center gap-1.5 cursor-pointer ${
-              activeTab === 'wallet'
-                ? 'text-[#FF5A36] font-bold'
-                : 'text-[#A3A8B3] hover:text-white'
-            }`}
-          >
-            <span>Wallet &amp; Banks</span>
-            {bankAccounts.length > 0 && (
-              <span className="px-2 py-0.5 bg-emerald-500/20 text-emerald-400 rounded-full text-[10px] font-bold">
-                {bankAccounts.length} Banks
-              </span>
-            )}
-            {activeTab === 'wallet' && (
-              <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#FF5A36] rounded-full" />
-            )}
-          </button>
+        {/* ── Tab Navigation ── */}
+        <div className="flex border-b border-white/10 gap-8 text-sm font-medium font-display">
+          {tabs.map(tab => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`pb-3.5 transition-colors relative flex items-center gap-2 cursor-pointer whitespace-nowrap ${
+                activeTab === tab.id
+                  ? 'text-[#FF5A36] font-bold'
+                  : 'text-[#A3A8B3] hover:text-white'
+              }`}
+            >
+              <span>{tab.label}</span>
+              {tab.badge !== undefined && tab.badge > 0 && (
+                <span className="px-1.5 py-0.5 bg-[#FF5A36]/20 text-[#FF5A36] rounded-full text-[10px] font-bold font-mono">
+                  {tab.badge}
+                </span>
+              )}
+              {activeTab === tab.id && (
+                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#FF5A36] rounded-full" />
+              )}
+            </button>
+          ))}
         </div>
 
-        {/* Tab Content: Profile & Bank Accounts */}
-        {activeTab === 'profile' && (
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-            {/* Left: Edit Personal Details Form */}
+        {/* ── TAB: Account Details ── */}
+        {activeTab === 'account' && (
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            {/* Left: Edit Profile */}
             <div className="lg:col-span-7 bg-[#0A0D12] border border-white/10 rounded-3xl p-6 md:p-8 space-y-6">
-              <div className="space-y-1">
-                <h3 className="text-xl font-bold font-display text-white flex items-center gap-2">
-                  <Edit3 className="w-5 h-5 text-[#FF5A36]" /> Personal Profile
+              <div>
+                <h3 className="text-lg font-bold font-display text-white flex items-center gap-2">
+                  <Edit3 className="w-4.5 h-4.5 w-[18px] h-[18px] text-[#FF5A36]" /> Personal Profile
                 </h3>
-                <p className="text-xs text-[#A3A8B3]">Update your contact details and display name.</p>
+                <p className="text-xs text-[#A3A8B3] mt-0.5">Update your contact details and display name.</p>
               </div>
 
-              <form onSubmit={handleSaveProfile} className="space-y-5 text-xs">
+              <form onSubmit={handleSaveProfile} className="space-y-5">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-[#A3A8B3] font-semibold uppercase tracking-wider mb-2 font-display">Full Name</label>
+                    <label className="block text-[10px] text-[#A3A8B3] font-semibold uppercase tracking-wider mb-1.5 font-display">
+                      Full Name
+                    </label>
                     <input
                       type="text"
                       value={fullName}
-                      onChange={(e) => setFullName(e.target.value)}
-                      className="w-full bg-[#05070A] border border-white/15 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-[#FF5A36]"
+                      onChange={e => setFullName(e.target.value)}
+                      className="w-full bg-[#05070A] border border-white/15 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-[#FF5A36] transition-colors"
                     />
                   </div>
                   <div>
-                    <label className="block text-[#A3A8B3] font-semibold uppercase tracking-wider mb-2 font-display">Email Address</label>
+                    <label className="block text-[10px] text-[#A3A8B3] font-semibold uppercase tracking-wider mb-1.5 font-display">
+                      Email Address
+                    </label>
                     <input
                       type="email"
                       value={user.email}
@@ -323,110 +287,104 @@ export const ProfilePage: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="block text-[#A3A8B3] font-semibold uppercase tracking-wider mb-2 font-display">Contact Phone Number</label>
+                  <label className="block text-[10px] text-[#A3A8B3] font-semibold uppercase tracking-wider mb-1.5 font-display">
+                    Phone Number
+                  </label>
                   <input
                     type="text"
                     value={phoneNumber}
-                    onChange={(e) => setPhoneNumber(e.target.value)}
+                    onChange={e => setPhoneNumber(e.target.value)}
                     placeholder="e.g. 0912345678"
-                    className="w-full bg-[#05070A] border border-white/15 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-[#FF5A36] placeholder:text-gray-600"
+                    className="w-full bg-[#05070A] border border-white/15 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-[#FF5A36] placeholder:text-zinc-600 transition-colors"
                   />
                 </div>
 
-                <div className="pt-2 flex items-center gap-4">
-                  <button
-                    type="submit"
-                    disabled={isSaving}
-                    className="px-6 py-3 bg-[#FF5A36] hover:bg-[#FF7252] text-white font-bold font-display uppercase tracking-widest text-xs rounded-xl shadow-lg shadow-[#FF5A36]/30 transition-all cursor-pointer"
-                  >
-                    {isSaving ? 'Saving...' : 'Save Changes'}
-                  </button>
-                </div>
+                <button
+                  type="submit"
+                  disabled={isSaving}
+                  className="px-6 py-3 bg-[#FF5A36] hover:bg-[#FF7252] disabled:opacity-60 text-white font-bold font-display uppercase tracking-widest text-xs rounded-xl shadow-lg shadow-[#FF5A36]/30 transition-all cursor-pointer"
+                >
+                  {isSaving ? 'Saving...' : 'Save Changes'}
+                </button>
               </form>
             </div>
 
-            {/* Right: Seller Beneficiary Bank Accounts Card (FE-3.1.2) */}
-            <div className="lg:col-span-5 space-y-6">
-              <div className="bg-[#0A0D12] border border-white/10 rounded-3xl p-6 space-y-5 relative overflow-hidden">
+            {/* Right: Payout Accounts */}
+            <div className="lg:col-span-5">
+              <div className="bg-[#0A0D12] border border-white/10 rounded-3xl p-6 space-y-4 h-full">
                 <div className="flex items-center justify-between">
                   <div>
                     <h4 className="text-base font-bold font-display text-white flex items-center gap-2">
-                      <Building2 className="w-5 h-5 text-emerald-400" /> Payout Bank Account
+                      <Building2 className="w-4 h-4 text-emerald-400" /> Payout Accounts
                     </h4>
-                    <p className="text-[11px] text-[#A3A8B3]">Automatic payout account after 24h protection</p>
+                    <p className="text-[11px] text-[#8B929C] mt-0.5">Direct transfer for completed sales</p>
                   </div>
-                  <button
-                    onClick={() => setIsBankModalOpen(true)}
-                    className="p-2 bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/30 text-emerald-400 rounded-xl transition-all cursor-pointer"
-                    title="Add Bank Account"
-                  >
-                    <Plus className="w-4 h-4" />
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <Link
+                      to="/payout-accounts"
+                      className="px-3 py-1.5 bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-mono text-zinc-300 hover:text-white rounded-xl transition-all"
+                    >
+                      Manage
+                    </Link>
+                    <button
+                      onClick={() => setIsBankModalOpen(true)}
+                      className="p-2 bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/30 text-emerald-400 rounded-xl transition-all cursor-pointer"
+                      title="Add Bank Account"
+                    >
+                      <Plus className="w-4 h-4" />
+                    </button>
+                  </div>
                 </div>
 
-                {/* Bank Accounts List */}
                 {isLoadingAccounts ? (
-                  <div className="p-6 text-center text-xs text-zinc-400 space-y-2">
-                    <RefreshCw className="w-5 h-5 animate-spin mx-auto text-[#FF5A36]" />
-                    <span>Loading bank accounts...</span>
+                  <div className="flex items-center justify-center gap-2 py-8 text-xs text-zinc-400">
+                    <Loader2 className="w-4 h-4 animate-spin text-[#FF5A36]" />
+                    Loading accounts...
                   </div>
                 ) : bankAccounts.length === 0 ? (
                   <div className="p-6 text-center bg-[#05070A] border border-white/10 rounded-2xl space-y-3">
-                    <CreditCard className="w-8 h-8 text-zinc-500 mx-auto" />
-                    <div className="text-xs text-[#A3A8B3]">
-                      No payout bank account linked yet.
-                    </div>
+                    <CreditCard className="w-7 h-7 text-zinc-500 mx-auto" />
+                    <p className="text-xs text-[#8B929C]">No payout account linked yet.</p>
                     <button
                       onClick={() => setIsBankModalOpen(true)}
                       className="px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-black font-bold font-display text-xs uppercase tracking-wider rounded-xl transition-all cursor-pointer inline-flex items-center gap-1.5"
                     >
-                      <Plus className="w-4 h-4" />
-                      <span>Link Bank Account Now</span>
+                      <Plus className="w-3.5 h-3.5" />
+                      Link Bank Account
                     </button>
                   </div>
                 ) : (
-                  <div className="space-y-3">
-                    {bankAccounts.map((account) => (
+                  <div className="space-y-2.5">
+                    {bankAccounts.map(acc => (
                       <div
-                        key={account.id}
-                        className={`p-4 rounded-2xl border transition-all relative overflow-hidden ${
-                          account.isDefault
-                            ? 'bg-gradient-to-r from-emerald-950/40 via-[#05070A] to-[#05070A] border-emerald-500/40 shadow-lg shadow-emerald-500/5'
+                        key={acc.id}
+                        className={`p-4 rounded-2xl border ${
+                          acc.isDefault
+                            ? 'bg-gradient-to-r from-emerald-950/40 via-[#05070A] to-[#05070A] border-emerald-500/40'
                             : 'bg-[#05070A] border-white/10'
                         }`}
                       >
-                        <div className="flex items-start justify-between">
-                          <div className="space-y-1">
-                            <div className="flex items-center gap-2">
-                              <span className="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 font-mono font-bold text-xs">
-                                {account.bankCode}
-                              </span>
-                              <span className="text-xs font-bold text-white">
-                                {getBankNameByCode(account.bankCode)}
-                              </span>
-                              {account.isDefault && (
-                                <span className="px-2 py-0.5 rounded-full bg-emerald-500 text-black text-[9px] font-extrabold font-mono uppercase">
-                                  Default
-                                </span>
-                              )}
-                            </div>
-                            <div className="font-mono text-base font-extrabold text-white tracking-widest">
-                              {account.bankAccountNumber}
-                            </div>
-                            <div className="text-xs font-bold text-amber-400 uppercase">
-                              {account.accountHolderName}
-                            </div>
-                          </div>
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 font-mono font-bold text-[11px]">
+                            {acc.bankCode}
+                          </span>
+                          <span className="text-xs font-semibold text-white">{getBankName(acc.bankCode)}</span>
+                          {acc.isDefault && (
+                            <span className="ml-auto px-2 py-0.5 rounded-full bg-emerald-500 text-black text-[9px] font-extrabold font-mono uppercase">
+                              Default
+                            </span>
+                          )}
                         </div>
+                        <div className="font-mono text-sm font-bold text-white tracking-widest">{acc.bankAccountNumber}</div>
+                        <div className="text-[11px] text-amber-400 font-semibold uppercase mt-0.5">{acc.accountHolderName}</div>
                       </div>
                     ))}
-
                     <button
                       onClick={() => setIsBankModalOpen(true)}
-                      className="w-full py-2.5 bg-white/5 hover:bg-white/10 border border-dashed border-white/15 text-xs font-bold text-white rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                      className="w-full py-2.5 bg-white/5 hover:bg-white/10 border border-dashed border-white/15 text-xs font-semibold text-zinc-400 hover:text-white rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer"
                     >
-                      <Plus className="w-4 h-4 text-emerald-400" />
-                      <span>Add Another Bank Account</span>
+                      <Plus className="w-3.5 h-3.5 text-emerald-400" />
+                      Add Another Account
                     </button>
                   </div>
                 )}
@@ -435,161 +393,171 @@ export const ProfilePage: React.FC = () => {
           </div>
         )}
 
-        {/* Tab Content: Listings */}
-        {activeTab === 'listings' && (
-          <div className="bg-[#0A0D12] border border-white/10 rounded-3xl p-6 md:p-8 space-y-6">
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        {/* ── TAB: My Tickets ── */}
+        {activeTab === 'tickets' && (
+          <div className="bg-[#0A0D12] border border-white/10 rounded-3xl p-6 md:p-8 space-y-5">
+            <div className="flex items-center justify-between">
               <div>
-                <h3 className="text-xl font-bold font-display text-white">My Active Listings</h3>
-                <p className="text-xs text-[#A3A8B3]">List of tickets you are currently selling on TicketShield.</p>
+                <h3 className="text-lg font-bold font-display text-white flex items-center gap-2">
+                  <Ticket className="w-4.5 h-[18px] w-[18px] text-cyan-400" /> My Tickets
+                </h3>
+                <p className="text-xs text-[#8B929C] mt-0.5">Your purchased event passes — showing {recentTickets.length} of {myTickets.length}.</p>
               </div>
-              <a
-                href="/sell-ticket"
-                className="px-5 py-2.5 bg-[#FF5A36] text-white font-bold font-display text-xs uppercase tracking-wider rounded-xl shadow"
+              <Link
+                to="/my-tickets"
+                className="flex items-center gap-1.5 text-xs font-mono font-bold text-cyan-400 hover:text-cyan-300 transition-colors"
               >
-                + List New Ticket
-              </a>
+                View All <ArrowRight className="w-4 h-4" />
+              </Link>
             </div>
 
-            <div className="space-y-3">
-              {[
-                { title: 'Say Hi Concert Tour 2026', zone: 'VIP A - Row 03', price: '1,800,000 VND', status: 'ACTIVE' },
-                { title: 'Coldplay Music of the Spheres Tour', zone: 'Cat 1 Standing', price: '3,200,000 VND', status: 'ACTIVE' },
-                { title: 'Monsoon Music Festival 2026', zone: 'Early Bird Pass', price: '950,000 VND', status: 'SOLD' },
-              ].map((item, idx) => (
-                <div key={idx} className="p-4 bg-[#05070A] border border-white/10 rounded-2xl flex items-center justify-between gap-4">
-                  <div className="flex items-center gap-4">
-                    <div className="p-3 rounded-xl bg-[#FF5A36]/10 text-[#FF5A36]">
+            {ticketsPending ? (
+              <div className="flex items-center justify-center gap-2 py-12 text-xs text-zinc-400">
+                <Loader2 className="w-4 h-4 animate-spin text-cyan-400" />
+                Loading tickets...
+              </div>
+            ) : myTickets.length === 0 ? (
+              <div className="py-12 text-center space-y-3">
+                <Ticket className="w-10 h-10 text-zinc-600 mx-auto" />
+                <p className="text-sm font-semibold text-zinc-400">No tickets yet.</p>
+                <Link
+                  to="/marketplace"
+                  className="inline-flex items-center gap-1.5 text-xs font-mono text-[#FF5A36] hover:text-[#FF7252] transition-colors"
+                >
+                  Browse Events <ArrowRight className="w-3.5 h-3.5" />
+                </Link>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {recentTickets.map(ticket => (
+                  <div
+                    key={ticket.escrowId}
+                    className="p-4 bg-[#05070A] border border-white/10 hover:border-white/20 rounded-2xl flex items-center gap-4 transition-colors"
+                  >
+                    <div className="p-3 rounded-xl bg-cyan-500/10 text-cyan-400 shrink-0">
                       <Ticket className="w-5 h-5" />
                     </div>
-                    <div>
-                      <h4 className="font-bold text-white text-sm">{item.title}</h4>
-                      <span className="text-xs text-[#A3A8B3]">{item.zone}</span>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-bold text-white text-sm truncate">{ticket.eventName}</p>
+                      <div className="flex flex-wrap gap-3 mt-1 text-[11px] text-[#8B929C] font-mono">
+                        <span className="flex items-center gap-1"><MapPin className="w-3 h-3" />{ticket.eventVenue}</span>
+                        <span className="flex items-center gap-1"><Calendar className="w-3 h-3" />{formatEventDateTime(ticket.eventStartAt)}</span>
+                      </div>
+                    </div>
+                    <div className="text-right shrink-0">
+                      <p className="text-xs font-mono text-zinc-400">{ticket.tierName}</p>
+                      <p className="text-sm font-bold text-white mt-0.5">{formatVND(ticket.totalAmountPaid)}</p>
                     </div>
                   </div>
-                  <div className="text-right">
-                    <p className="font-bold text-white text-sm">{item.price}</p>
-                    <span className={`text-[10px] font-bold font-mono px-2 py-0.5 rounded-full ${
-                      item.status === 'ACTIVE' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-white/10 text-[#A3A8B3]'
-                    }`}>
-                      {item.status}
-                    </span>
-                  </div>
-                </div>
-              ))}
-            </div>
+                ))}
+
+                {myTickets.length > 3 && (
+                  <Link
+                    to="/my-tickets"
+                    className="flex items-center justify-center gap-2 w-full py-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-2xl text-xs font-mono text-cyan-400 hover:text-cyan-300 transition-all"
+                  >
+                    View all {myTickets.length} tickets <ArrowRight className="w-4 h-4" />
+                  </Link>
+                )}
+              </div>
+            )}
           </div>
         )}
 
-        {/* Tab Content: Purchased Tickets */}
-        {activeTab === 'tickets' && (
-          <div className="bg-[#0A0D12] border border-white/10 rounded-3xl p-6 md:p-8 space-y-6">
-            <h3 className="text-xl font-bold font-display text-white">My Purchased Tickets</h3>
-            <p className="text-xs text-[#A3A8B3]">List of verified official tickets ready for event entry.</p>
-
-            <div className="p-8 text-center bg-[#05070A] border border-white/10 rounded-2xl space-y-3">
-              <Ticket className="w-10 h-10 text-cyan-400 mx-auto" />
-              <h4 className="font-bold text-white text-base">You own 3 official tickets</h4>
-              <p className="text-xs text-[#A3A8B3] max-w-md mx-auto">
-                All QR passes are verified directly with event organizers and ready for entrance scanning on event day.
-              </p>
-            </div>
-          </div>
-        )}
-
-        {/* Tab Content: Wallet & Bank Accounts */}
-        {activeTab === 'wallet' && (
-          <div className="bg-[#0A0D12] border border-white/10 rounded-3xl p-6 md:p-8 space-y-6">
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        {/* ── TAB: My Listings ── */}
+        {activeTab === 'listings' && (
+          <div className="bg-[#0A0D12] border border-white/10 rounded-3xl p-6 md:p-8 space-y-5">
+            <div className="flex items-center justify-between">
               <div>
-                <h3 className="text-xl font-bold font-display text-white flex items-center gap-2">
-                  <Wallet className="w-5 h-5 text-emerald-400" /> Payout Wallet &amp; Bank Accounts
+                <h3 className="text-lg font-bold font-display text-white flex items-center gap-2">
+                  <ListFilter className="w-[18px] h-[18px] text-[#FF5A36]" /> My Listings
                 </h3>
-                <p className="text-xs text-[#A3A8B3]">Manage your ticket sales balance and linked payout accounts.</p>
+                <p className="text-xs text-[#8B929C] mt-0.5">Your resale listings — showing {recentListings.length} of {myListings.length}.</p>
               </div>
-
-              <button
-                onClick={() => setIsBankModalOpen(true)}
-                className="px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-black font-bold font-display text-xs uppercase tracking-wider rounded-xl transition-all cursor-pointer flex items-center gap-1.5"
-              >
-                <Plus className="w-4 h-4" />
-                <span>Add Bank Account</span>
-              </button>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="p-6 bg-gradient-to-br from-emerald-950/40 to-[#05070A] border border-emerald-500/30 rounded-2xl space-y-3">
-                <span className="text-xs font-mono text-emerald-400 uppercase tracking-wider">Available Balance</span>
-                <p className="text-3xl font-bold font-display text-white">32,500,000 VND</p>
-                <button
-                  onClick={() => setIsBankModalOpen(true)}
-                  className="px-5 py-2.5 bg-emerald-500 hover:bg-emerald-600 text-black font-bold font-display text-xs uppercase tracking-wider rounded-xl transition-all cursor-pointer"
+              <div className="flex items-center gap-3">
+                {isReseller && (
+                  <Link
+                    to="/sell-ticket"
+                    className="px-3 py-1.5 bg-[#FF5A36] hover:bg-[#FF7252] text-white font-bold font-display text-[10px] uppercase tracking-wider rounded-xl shadow transition-all"
+                  >
+                    + New Listing
+                  </Link>
+                )}
+                <Link
+                  to="/my-listings"
+                  className="flex items-center gap-1.5 text-xs font-mono font-bold text-[#FF5A36] hover:text-[#FF7252] transition-colors"
                 >
-                  Withdraw to Bank
-                </button>
-              </div>
-
-              <div className="p-6 bg-gradient-to-br from-cyan-950/40 to-[#05070A] border border-cyan-500/30 rounded-2xl space-y-3">
-                <span className="text-xs font-mono text-cyan-400 uppercase tracking-wider">Funds Under 24h Protection</span>
-                <p className="text-3xl font-bold font-display text-white">14,200,000 VND</p>
-                <p className="text-[11px] text-[#A3A8B3]">Automatically transferred to your payout bank account after the 24-hour protection period.</p>
+                  View All <ArrowRight className="w-4 h-4" />
+                </Link>
               </div>
             </div>
 
-            {/* Bank Accounts Section in Wallet Tab */}
-            <div className="pt-4 space-y-4">
-              <h4 className="text-base font-bold text-white font-display flex items-center gap-2">
-                <Building2 className="w-4 h-4 text-emerald-400" /> Linked Payout Bank Accounts ({bankAccounts.length})
-              </h4>
-
-              {bankAccounts.length === 0 ? (
-                <div className="p-6 text-center bg-[#05070A] border border-white/10 rounded-2xl space-y-2 text-xs text-zinc-400">
-                  No payout bank accounts linked yet. Add one to receive automatic sales payouts!
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {bankAccounts.map((acc) => (
-                    <div
-                      key={acc.id}
-                      className={`p-4 rounded-2xl border transition-all ${
-                        acc.isDefault
-                          ? 'bg-gradient-to-r from-emerald-950/30 via-[#05070A] to-[#05070A] border-emerald-500/40'
-                          : 'bg-[#05070A] border-white/10'
-                      }`}
-                    >
-                      <div className="flex items-center justify-between mb-1">
-                        <span className="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 font-mono font-bold text-xs">
-                          {acc.bankCode}
-                        </span>
-                        {acc.isDefault && (
-                          <span className="px-2 py-0.5 rounded-full bg-emerald-500 text-black text-[9px] font-extrabold font-mono uppercase">
-                            Default
-                          </span>
-                        )}
-                      </div>
-                      <div className="font-mono text-lg font-extrabold text-white tracking-wider">
-                        {acc.bankAccountNumber}
-                      </div>
-                      <div className="text-xs font-bold text-amber-400 uppercase">
-                        {acc.accountHolderName}
+            {listingsPending ? (
+              <div className="flex items-center justify-center gap-2 py-12 text-xs text-zinc-400">
+                <Loader2 className="w-4 h-4 animate-spin text-[#FF5A36]" />
+                Loading listings...
+              </div>
+            ) : myListings.length === 0 ? (
+              <div className="py-12 text-center space-y-3">
+                <ListFilter className="w-10 h-10 text-zinc-600 mx-auto" />
+                <p className="text-sm font-semibold text-zinc-400">No listings yet.</p>
+                {isReseller && (
+                  <Link
+                    to="/sell-ticket"
+                    className="inline-flex items-center gap-1.5 text-xs font-mono text-[#FF5A36] hover:text-[#FF7252] transition-colors"
+                  >
+                    Sell a ticket <ArrowRight className="w-3.5 h-3.5" />
+                  </Link>
+                )}
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {recentListings.map(listing => (
+                  <div
+                    key={listing.listingId}
+                    className="p-4 bg-[#05070A] border border-white/10 hover:border-white/20 rounded-2xl flex items-center gap-4 transition-colors"
+                  >
+                    <div className="p-3 rounded-xl bg-[#FF5A36]/10 text-[#FF5A36] shrink-0">
+                      <Ticket className="w-5 h-5" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-bold text-white text-sm truncate">{listing.eventName}</p>
+                      <div className="flex flex-wrap gap-3 mt-1 text-[11px] text-[#8B929C] font-mono">
+                        <span>{listing.tierName}</span>
+                        <span className="flex items-center gap-1"><Calendar className="w-3 h-3" />{formatEventDateTime(listing.eventStartAt)}</span>
                       </div>
                     </div>
-                  ))}
-                </div>
-              )}
-            </div>
+                    <div className="text-right shrink-0 space-y-1">
+                      <p className="text-sm font-bold text-white">{formatVND(listing.resalePrice)}</p>
+                      <span className={`text-[10px] font-bold font-mono px-2 py-0.5 rounded-full ${STATUS_STYLES[listing.listingStatus] || 'bg-white/10 text-zinc-400'}`}>
+                        {listing.listingStatus.toUpperCase()}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+
+                {myListings.length > 3 && (
+                  <Link
+                    to="/my-listings"
+                    className="flex items-center justify-center gap-2 w-full py-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-2xl text-xs font-mono text-[#FF5A36] hover:text-[#FF7252] transition-all"
+                  >
+                    View all {myListings.length} listings <ArrowRight className="w-4 h-4" />
+                  </Link>
+                )}
+              </div>
+            )}
           </div>
         )}
 
       </div>
 
-      {/* Seller Bank Account Management Modal (FE-3.1.2) */}
+      {/* Bank Account Modal */}
       <SellerBankAccountModal
         isOpen={isBankModalOpen}
         onClose={() => setIsBankModalOpen(false)}
         onSuccess={(newAccount) => {
-          setBankAccounts((prev) => {
-            const updated = prev.map((a) => ({
+          setBankAccounts(prev => {
+            const updated = prev.map(a => ({
               ...a,
               isDefault: newAccount.isDefault ? false : a.isDefault,
             }));

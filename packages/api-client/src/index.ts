@@ -5,4 +5,4 @@ export * from './services/resaleListings.api';
 export * from './services/events.api';
 export * from './services/bankAccounts.api';
 export * from './services/mockTickets.api';
-
+export * from './services/organizers.api';

@@ -12,6 +12,7 @@ import { SellTicketPage } from '../pages/SellTicketPage';
 import { MyListingsPage } from '../pages/MyListingsPage';
 import { MyTicketsPage } from '../pages/MyTicketsPage';
 import { OrganizerPortalPage } from '../pages/OrganizerPortalPage';
+import { PayoutAccountsPage } from '../pages/PayoutAccountsPage';
 import { ProtectedRoute, GuestRoute } from './ProtectedRoute';
 
 export const AppRoutes: React.FC = () => {
@@ -33,6 +34,7 @@ export const AppRoutes: React.FC = () => {
       {/* Protected Pages (Requires authenticated session) */}
       <Route element={<ProtectedRoute />}>
         <Route path="/profile" element={<ProfilePage />} />
+        <Route path="/payout-accounts" element={<PayoutAccountsPage />} />
         <Route path="/sell-ticket" element={<SellTicketPage />} />
         <Route path="/my-listings" element={<MyListingsPage />} />
         <Route path="/my-tickets" element={<MyTicketsPage />} />

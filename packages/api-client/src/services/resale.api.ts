@@ -30,13 +30,13 @@ export const resaleApi = {
   /**
    * Khởi tạo phiên xác thực vé chính chủ & yêu cầu Nhà tổ chức gửi OTP qua gRPC
    */
-  requestVerificationOtp: async (ticketCode: string): Promise<VerificationResult> => {
+  requestVerificationOtp: async (ticketCode: string, organizerId?: string): Promise<VerificationResult> => {
     return await httpClient<VerificationResult>('/ticket-verifications', {
       method: 'POST',
       headers: {
         'Idempotency-Key': generateIdempotencyKey(),
       },
-      body: JSON.stringify({ ticketCode }),
+      body: JSON.stringify({ ticketCode, organizerId }),
     });
   },
 
