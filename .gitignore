@@ -29,4 +29,7 @@ Thumbs.db
 
 # Local Agent Directives & Rules (Never push to remote)
 .agents/
-
+local_docs/
+local/
+ACTIVITY_LOG.md
+AGENTS.md

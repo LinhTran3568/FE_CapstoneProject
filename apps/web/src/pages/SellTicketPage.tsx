@@ -1,46 +1,26 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useUIStore } from '../stores/uiStore';
-import { useAuthStore } from '../stores/authStore';
 import { resaleApi, bankAccountsApi, VerificationResult, SellerListingDto } from '@ticketshield/api-client';
 import { UserBankAccountDto, PurchasedTicketDto } from '@ticketshield/types';
 import { useMyTickets } from '../hooks/useMyTickets';
-import { QRCodeCanvas } from 'qrcode.react';
-import {
-  ShieldCheck,
-  CheckCircle2,
-  ArrowLeft,
-  ArrowRight,
-  Lock,
-  Calendar,
-  MapPin,
-  Ticket,
-  QrCode,
-  Edit3,
-  Check,
-  ChevronDown,
-  Info,
-  AlertCircle,
-  Loader2,
-  X,
-  Copy,
-  Download,
-  ExternalLink,
-  Globe,
-  Share2,
-  Sparkles,
-  Building2,
-  Tag
-} from 'lucide-react';
-import { TicketShieldTrustBadge } from '../components/ui/TicketShieldTrustBadge';
+import { useOrganizers } from '../hooks/useOrganizers';
 import { PrivateResaleScenarioModal } from '../components/ui/PrivateResaleScenarioModal';
 import { SellerBankAccountModal } from '../components/profile/SellerBankAccountModal';
 import { buildPrivateShareLink, buildPublicShareLink, copyToClipboard } from '../utils/shareLink';
+import {
+  SellWizardProgress,
+  Step1EnterTicketCode,
+  Step2VerifyOtp,
+  Step3ConfirmDetails,
+  Step4SetPrice,
+  Step5ReviewPublish,
+  Step6ListingSuccess,
+} from '../components/sell';
 
 export const SellTicketPage: React.FC = () => {
   const navigate = useNavigate();
   const { showToast } = useUIStore();
-  const { user } = useAuthStore();
   const { data: purchasedTickets = [], isPending: isLoadingPurchased } = useMyTickets();
 
   const purchasedPassCode = (ticket: PurchasedTicketDto) =>
@@ -58,10 +38,18 @@ export const SellTicketPage: React.FC = () => {
   }, [currentStep]);
 
   // Resale Workflow Verification state
+  // =========================================================================================
+  // [AI AGENT INSTRUCTION - BUNDLE RESALE STATE EXTENSION]
+  // Khi triển khai tính năng Bán vé theo Combo/Gói (Bundle Resale):
+  // 1. Mở rộng state `ticketCode: string` -> hỗ trợ `selectedTicketCodes: string[]`.
+  // 2. Đảm bảo form Step 1 hỗ trợ hiển thị danh sách mã vé (chips/tags) thay vì chỉ 1 chuỗi đơn.
+  // =========================================================================================
   const [ticketCode, setTicketCode] = useState('');
+  const [selectedOrganizerId, setSelectedOrganizerId] = useState<string>('');
   const [verificationId, setVerificationId] = useState<string>('');
   const [verificationResult, setVerificationResult] = useState<VerificationResult | null>(null);
   const [isRequestingOtp, setIsRequestingOtp] = useState<boolean>(false);
+  const { data: organizers = [], isLoading: isLoadingOrganizers } = useOrganizers();
 
   // Scenario Modal state
   const [showScenarioModal, setShowScenarioModal] = useState<boolean>(false);
@@ -92,6 +80,7 @@ export const SellTicketPage: React.FC = () => {
         const d = JSON.parse(raw);
         if (d.verificationId && d.currentStep > 1 && d.currentStep < 6) {
           setTicketCode(d.ticketCode || '');
+          if (d.selectedOrganizerId) setSelectedOrganizerId(d.selectedOrganizerId);
           setVerificationId(d.verificationId);
           setVerificationResult(d.verificationResult || null);
           setFaceValue(d.faceValue || 2500000);
@@ -120,6 +109,7 @@ export const SellTicketPage: React.FC = () => {
         DRAFT_STORAGE_KEY,
         JSON.stringify({
           ticketCode,
+          selectedOrganizerId,
           verificationId,
           verificationResult,
           currentStep,
@@ -131,7 +121,7 @@ export const SellTicketPage: React.FC = () => {
         })
       );
     }
-  }, [verificationId, currentStep, ticketCode, faceValue, resalePrice, priceInputText, verificationResult, otpExpiresAt]);
+  }, [verificationId, currentStep, ticketCode, selectedOrganizerId, faceValue, resalePrice, priceInputText, verificationResult, otpExpiresAt]);
 
   const [existingListings, setExistingListings] = useState<SellerListingDto[]>([]);
   const [isLoadingListings, setIsLoadingListings] = useState<boolean>(true);
@@ -344,8 +334,8 @@ export const SellTicketPage: React.FC = () => {
 
     // Enforce Seller Bank Account requirement before starting resale verification
     if (bankAccounts.length === 0) {
-      showToast('⚠️ Please add a payout bank account before listing your ticket!', 'warning');
-      setIsAddBankModalOpen(true);
+      showToast('⚠️ Vui lòng liên kết tài khoản ngân hàng nhận tiền trước khi đăng bán vé!', 'warning');
+      navigate('/payout-accounts?returnUrl=/sell-ticket');
       return;
     }
 
@@ -375,7 +365,7 @@ export const SellTicketPage: React.FC = () => {
     try {
       setIsRequestingOtp(true);
       showToast('Verifying ticket & requesting OTP from Organizer...', 'info');
-      const result = await resaleApi.requestVerificationOtp(normalizedCode);
+      const result = await resaleApi.requestVerificationOtp(normalizedCode, selectedOrganizerId || undefined);
       setVerificationId(result.verificationId);
       setVerificationResult(result);
       const targetExpiresAt = Date.now() + 300 * 1000;
@@ -389,14 +379,8 @@ export const SellTicketPage: React.FC = () => {
       showToast('OTP code sent! Please check the ticket owner email/phone.', 'success');
       setCurrentStep(2);
     } catch (err: any) {
-      const msg = err?.message || '';
-      if (msg.includes('TICKET_NOT_ELIGIBLE') || msg.includes('TICKET_NOT_AVAILABLE') || msg.includes('LOCKED')) {
-        showToast('This ticket is currently in another transaction or unavailable for resale.', 'warning');
-      } else if (msg.includes('TICKET_NOT_FOUND')) {
-        showToast('Ticket not found. Please double check your ticket code!', 'error');
-      } else {
-        showToast('Unable to verify ticket at this time.', 'error');
-      }
+      const msg = err?.response?.data?.message || err?.message || 'Verification failed. Please check the ticket code and try again.';
+      showToast(msg, 'error');
     } finally {
       setIsRequestingOtp(false);
     }
@@ -417,7 +401,8 @@ export const SellTicketPage: React.FC = () => {
       setOtp(['', '', '', '', '', '']);
       showToast('OTP code resent successfully!', 'success');
     } catch (err: any) {
-      showToast('Could not resend OTP. Please try again shortly!', 'error');
+      const msg = err?.response?.data?.message || err?.message || 'Could not resend OTP. Please try again shortly!';
+      showToast(msg, 'error');
     } finally {
       setIsResendingOtp(false);
     }
@@ -449,16 +434,8 @@ export const SellTicketPage: React.FC = () => {
       showToast('OTP verified & ticket locked successfully!', 'success');
       setCurrentStep(3);
     } catch (err: any) {
-      const serverMsg = err?.response?.data?.message || err?.message || '';
-      if (serverMsg.includes('TICKET_LOCKED')) {
-        showToast('This ticket is currently locked or already listed!', 'error');
-      } else if (serverMsg.includes('OTP_INVALID')) {
-        showToast('Invalid OTP code. Please check again!', 'error');
-      } else if (serverMsg.includes('OTP_EXPIRED') || serverMsg.includes('VERIFICATION_CLOSED')) {
-        showToast('Verification session expired. Please click Resend OTP!', 'error');
-      } else {
-        showToast(serverMsg || 'Invalid OTP or session expired. Please try again!', 'error');
-      }
+      const msg = err?.response?.data?.message || err?.message || 'Invalid or expired OTP code!';
+      showToast(msg, 'error');
     } finally {
       setIsVerifyingOtp(false);
     }
@@ -507,8 +484,8 @@ export const SellTicketPage: React.FC = () => {
   const handlePublishListing = async () => {
     // Enforce Seller Bank Account requirement before publishing
     if (bankAccounts.length === 0) {
-      showToast('⚠️ Please link a payout bank account before completing your listing!', 'warning');
-      setIsAddBankModalOpen(true);
+      showToast('⚠️ Vui lòng liên kết tài khoản ngân hàng nhận tiền trước khi hoàn tất đăng bán!', 'warning');
+      navigate('/payout-accounts?returnUrl=/sell-ticket');
       return;
     }
 
@@ -562,22 +539,8 @@ export const SellTicketPage: React.FC = () => {
       fetchExistingListings();
       setCurrentStep(6);
     } catch (err: any) {
-      const msg = err?.message || '';
-      if (msg.includes('TICKET_ALREADY_LISTED')) {
-        showToast('This ticket has already been listed! Please check "MY LISTINGS".', 'warning');
-      } else if (msg.includes('PRICE_EXCEEDS_CEILING')) {
-        showToast(
-          `Resale price cannot exceed the event ceiling (${priceCeiling.toLocaleString('vi-VN')} VND). Lower the price and try again.`,
-          'warning'
-        );
-      } else if (msg.includes('PRICE_BELOW_MINIMUM_SELLER_FEE')) {
-        showToast(
-          'Resale price must be at least the minimum seller fee. Raise the price and try again.',
-          'warning'
-        );
-      } else {
-        showToast('Could not create listing at this time. Please try again later!', 'error');
-      }
+      const msg = err?.response?.data?.message || err?.message || 'Could not publish listing. Please try again.';
+      showToast(msg, 'error');
     } finally {
       setIsPublishing(false);
     }
@@ -845,1274 +808,121 @@ export const SellTicketPage: React.FC = () => {
 
       <div className={`relative z-10 mx-auto space-y-4 transition-all duration-300 ${currentStep === 6 ? 'max-w-6xl' : 'max-w-3xl'}`}>
 
-        {/* Process Stepper Header Bar (Compact & Close Proximity) */}
-        <div className="w-fit mx-auto bg-[#0A0D14]/95 backdrop-blur-xl border border-white/10 rounded-full px-4 py-2 sm:px-5 sm:py-2 shadow-2xl flex items-center justify-center gap-3 sm:gap-5">
-          <div className="flex items-center gap-2 sm:gap-2.5 min-w-0">
-            {currentStep > 1 && currentStep < 6 && (
-              <button
-                type="button"
-                onClick={() => {
-                  if (currentStep === 2) {
-                    handleAbandonSession();
-                  } else {
-                    setCurrentStep((prev) => prev - 1);
-                  }
-                }}
-                className="p-1 bg-white/10 hover:bg-white/20 text-white rounded-full transition-colors flex items-center justify-center cursor-pointer shrink-0"
-                title="Back to previous step"
-              >
-                <ArrowLeft className="w-3.5 h-3.5" />
-              </button>
-            )}
-            <span className="font-mono font-bold text-white text-xs sm:text-sm tracking-wide shrink-0">
-              {currentStep === 1 && 'Step 1: Enter Ticket Code'}
-              {currentStep === 2 && 'Step 2: Organizer Verification'}
-              {currentStep === 3 && 'Step 3: Confirm Ticket Details'}
-              {currentStep === 4 && 'Step 4: Set Resale Price'}
-              {currentStep === 5 && 'Step 5: Review & Publish'}
-              {currentStep === 6 && 'Step 6: Listing Complete'}
-            </span>
-          </div>
-
-          <div className="w-px h-3.5 bg-white/15 shrink-0 hidden sm:block" />
-
-          <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
-            {[1, 2, 3, 4, 5, 6].map((stepNum) => {
-              const isCompleted = stepNum < currentStep;
-              const isCurrent = stepNum === currentStep;
-              return (
-                <React.Fragment key={stepNum}>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (stepNum < currentStep) setCurrentStep(stepNum);
-                    }}
-                    disabled={stepNum > currentStep}
-                    className={`w-5 h-5 sm:w-6 sm:h-6 rounded-full flex items-center justify-center text-[10px] sm:text-[11px] font-bold font-mono transition-all duration-200 ${
-                      isCurrent
-                        ? "bg-[#FF5722] text-white shadow-md shadow-[#FF5722]/30 scale-105 ring-2 ring-[#FF5722]/30"
-                        : isCompleted
-                        ? "bg-emerald-500 text-black cursor-pointer hover:scale-105"
-                        : "bg-[#151B26] text-slate-400 border border-white/5 cursor-default"
-                    }`}
-                    title={`Step ${stepNum}`}
-                  >
-                    {isCompleted ? <Check className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-black stroke-[3]" /> : stepNum}
-                  </button>
-                  {stepNum < 6 && (
-                    <div
-                      className={`w-1.5 sm:w-2.5 h-[1.5px] rounded-full transition-colors ${
-                        stepNum < currentStep ? "bg-emerald-500" : "bg-slate-700/70"
-                      }`}
-                    />
-                  )}
-                </React.Fragment>
-              );
-            })}
-          </div>
-        </div>
-
-
-
-        {/* Draft resume session banner */}
-        {resumeDraftAvailable && currentStep > 1 && currentStep < 6 && (
-          <div className="max-w-2xl mx-auto px-4 py-2.5 bg-[#0A131F]/90 backdrop-blur-xl border border-cyan-400/40 rounded-xl shadow-[0_0_20px_rgba(6,182,212,0.15)] flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 animate-fade-in-up">
-            <div className="flex items-center gap-2.5 min-w-0">
-              <span className="flex h-2 w-2 relative shrink-0">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75" />
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-cyan-400" />
-              </span>
-              <div className="text-xs text-slate-200 truncate flex flex-wrap items-center gap-1.5">
-                <span className="font-medium text-white">Draft Session:</span>
-                <span className="px-2 py-0.5 bg-cyan-500/20 border border-cyan-400/40 text-cyan-300 font-mono font-bold rounded text-[11px]">
-                  {ticketCode}
-                </span>
-                <span className="text-slate-400 text-[11px] hidden sm:inline">
-                  (Step {currentStep}/6 · Auto Restored)
-                </span>
-              </div>
-            </div>
-
-            <button
-              type="button"
-              onClick={handleAbandonSession}
-              disabled={isCancellingSession}
-              className="self-end sm:self-auto px-3 py-1.5 bg-rose-500/15 hover:bg-rose-500/30 text-rose-300 hover:text-white border border-rose-500/35 hover:border-rose-400 rounded-lg font-mono text-[11px] font-semibold transition-all duration-150 flex items-center gap-1 cursor-pointer disabled:opacity-50 shrink-0"
-              title="Cancel session & unlock ticket at Organizer"
-            >
-              {isCancellingSession ? (
-                <>
-                  <Loader2 className="w-3 h-3 animate-spin" />
-                  <span>Unlocking...</span>
-                </>
-              ) : (
-                <>
-                  <X className="w-3 h-3" />
-                  <span>Discard & Unlock</span>
-                </>
-              )}
-            </button>
-          </div>
-        )}
+        {/* Process Stepper Header & Draft Banner */}
+        <SellWizardProgress
+          currentStep={currentStep}
+          setCurrentStep={setCurrentStep}
+          handleAbandonSession={handleAbandonSession}
+          resumeDraftAvailable={resumeDraftAvailable}
+          ticketCode={ticketCode}
+          isCancellingSession={isCancellingSession}
+        />
 
         {/* STEP 1: ENTER TICKET CODE */}
         {currentStep === 1 && (
-          <div key={1} className="animate-fade-in-up max-w-2xl mx-auto space-y-6 text-center pt-4">
-            <div className="space-y-3">
-              <h1 className="text-2xl sm:text-3xl font-extrabold font-display text-white tracking-tight">
-                Enter Original Ticket Code
-              </h1>
-              <p className="text-xs sm:text-sm text-[#A3A8B3] max-w-md mx-auto leading-relaxed">
-                Enter the original ticket code issued by the event organizer to begin ticket verification.
-              </p>
-            </div>
-
-            {/* Bank Account Warning Banner */}
-            {bankAccounts.length === 0 && !isLoadingBankAccounts && (
-              <div className="p-4 bg-amber-500/10 border border-amber-500/30 rounded-2xl flex items-start gap-3.5 text-left animate-fade-in-up">
-                <div className="p-2 bg-amber-500/20 text-amber-400 rounded-xl shrink-0">
-                  <Building2 className="w-5 h-5" />
-                </div>
-                <div className="space-y-1.5 flex-1">
-                  <h4 className="text-xs font-bold text-amber-300 uppercase tracking-wide">
-                    Payout Bank Account Required
-                  </h4>
-                  <p className="text-xs text-amber-200/80 leading-relaxed">
-                    To receive automatic and secure ticket payouts under our <b>24-Hour Funds Protection</b> guarantee, please link your bank account before listing.
-                  </p>
-                  <button
-                    type="button"
-                    onClick={() => setIsAddBankModalOpen(true)}
-                    className="mt-1 px-3 py-1.5 bg-amber-500 text-black hover:bg-amber-400 rounded-lg text-xs font-bold transition-all flex items-center gap-1 cursor-pointer"
-                  >
-                    + Add Bank Account Now
-                  </button>
-                </div>
-              </div>
-            )}
-
-            <form onSubmit={handleNextStep1} className="space-y-6 text-left bg-[#0A0D12]/90 backdrop-blur-md border border-white/10 p-6 sm:p-8 rounded-3xl shadow-2xl hover:border-white/20 transition-all duration-300">
-              <div className="space-y-2.5">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
-                  <label
-                    htmlFor="sell-ticket-input"
-                    className="text-xs sm:text-sm font-semibold uppercase tracking-wider text-[#A3A8B3] font-display block"
-                  >
-                    Original Ticket Code
-                  </label>
-                  <span className="text-[11px] font-mono text-[#8B929C]">
-                    Enter code manually or pick from purchases
-                  </span>
-                </div>
-
-                {/* Unified Row: Ticket Code Input + Select from My Tickets Dropdown */}
-                <div className="flex flex-col md:flex-row items-stretch gap-3">
-                  {/* Left: Prominent Code Input */}
-                  <div className="relative flex-1 group">
-                    <Ticket className="w-5 h-5 text-[#FF5A36] absolute left-4 top-1/2 -translate-y-1/2 group-focus-within:scale-110 group-focus-within:text-[#FF7252] transition-all duration-200 pointer-events-none z-10" />
-
-                    <input
-                      id="sell-ticket-input"
-                      type="text"
-                      value={ticketCode}
-                      onChange={(e) => setTicketCode(e.target.value.toUpperCase())}
-                      placeholder="e.g. ATSH-VIP-888"
-                      className="w-full h-14 sm:h-16 bg-[#05070A] border border-white/15 rounded-2xl pl-12 pr-11 text-base sm:text-lg font-mono font-bold tracking-widest text-white placeholder-[#A3A8B3]/30 focus:outline-none focus:border-[#FF5A36] focus:ring-4 focus:ring-[#FF5A36]/20 transition-all duration-200"
-                      required
-                    />
-
-                    {ticketCode && (
-                      <button
-                        type="button"
-                        onClick={() => setTicketCode('')}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 p-2 text-[#8F96A3] hover:text-white hover:bg-white/10 rounded-xl transition-all duration-150 cursor-pointer"
-                        title="Clear code"
-                      >
-                        <X className="w-4 h-4" />
-                      </button>
-                    )}
-                  </div>
-
-                  {/* Right: Dropdown to pick from My Tickets */}
-                  <div className="relative md:w-72 shrink-0">
-                    <Tag className="w-4 h-4 text-[#FF5A36] absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none z-10" />
-                    <select
-                      id="sell-ticket-from-purchases"
-                      value={
-                        eligibleTickets.some((t) => purchasedPassCode(t).toUpperCase() === ticketCode)
-                          ? ticketCode
-                          : ''
-                      }
-                      onChange={(e) => setTicketCode(e.target.value.toUpperCase())}
-                      disabled={isLoadingPurchased || eligibleTickets.length === 0}
-                      className="w-full h-14 sm:h-16 appearance-none bg-[#05070A] border border-white/15 rounded-2xl pl-10 pr-10 text-xs sm:text-sm font-mono font-semibold text-white focus:outline-none focus:border-[#FF5A36] focus:ring-4 focus:ring-[#FF5A36]/20 disabled:opacity-50 cursor-pointer transition-all shadow-inner truncate"
-                      title={
-                        eligibleTickets.length === 0
-                          ? 'No eligible purchased tickets found'
-                          : 'Select an eligible ticket from your purchases'
-                      }
-                    >
-                      <option value="" className="bg-[#0A0D12] text-zinc-400">
-                        {isLoadingPurchased
-                          ? 'Loading purchases...'
-                          : eligibleTickets.length === 0
-                            ? 'No eligible purchased tickets'
-                            : `Select from My Tickets (${eligibleTickets.length})`}
-                      </option>
-                      {eligibleTickets.map((t) => {
-                        const code = purchasedPassCode(t).toUpperCase();
-                        return (
-                          <option key={t.escrowId} value={code} className="bg-[#0A0D12] text-white">
-                            {code} — {t.eventName}
-                          </option>
-                        );
-                      })}
-                    </select>
-                    <ChevronDown className="w-4 h-4 text-[#A3A8B3] absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none" aria-hidden="true" />
-                  </div>
-                </div>
-
-                <p className="text-[11px] text-[#8B929C] leading-relaxed">
-                  Only tickets you purchased and have passed the safety verification window are listed in the dropdown. You can also paste or type any valid ticket code directly into the input.
-                </p>
-              </div>
-
-              <button
-                type="submit"
-                disabled={isRequestingOtp || !ticketCode.trim()}
-                className={`w-full h-14 sm:h-15 font-bold font-display uppercase tracking-widest text-xs sm:text-sm rounded-2xl transition-all duration-200 flex items-center justify-center gap-2 ${
-                  !ticketCode.trim() || isRequestingOtp
-                    ? 'bg-white/10 text-white/40 cursor-not-allowed border border-white/5'
-                    : 'bg-[#FF5A36] hover:bg-[#FF7252] text-white shadow-lg shadow-[#FF5A36]/30 hover:shadow-xl hover:shadow-[#FF5A36]/50 hover:-translate-y-0.5 active:translate-y-0 cursor-pointer'
-                }`}
-              >
-                {isRequestingOtp ? (
-                  <>
-                    <Loader2 className="w-5 h-5 animate-spin" />
-                    <span>Verifying...</span>
-                  </>
-                ) : (
-                  <span>Verify Ticket</span>
-                )}
-              </button>
-            </form>
-          </div>
+          <Step1EnterTicketCode
+            ticketCode={ticketCode}
+            setTicketCode={setTicketCode}
+            selectedOrganizerId={selectedOrganizerId}
+            setSelectedOrganizerId={setSelectedOrganizerId}
+            organizers={organizers}
+            isLoadingOrganizers={isLoadingOrganizers}
+            eligibleTickets={eligibleTickets}
+            purchasedPassCode={purchasedPassCode}
+            handleStartVerification={handleNextStep1}
+            isRequestingOtp={isRequestingOtp}
+            bankAccounts={bankAccounts}
+            isLoadingBankAccounts={isLoadingBankAccounts}
+            onAddBankAccount={() => setIsAddBankModalOpen(true)}
+          />
         )}
+
 
         {/* STEP 2: VERIFY OTP CODE */}
         {currentStep === 2 && (
-          <div key={2} className="animate-fade-in-up max-w-xl mx-auto space-y-6 pt-4">
-            <div className="bg-[#0A0D12]/90 backdrop-blur-md border border-white/10 p-6 sm:p-8 rounded-3xl space-y-6 shadow-2xl hover:border-white/20 transition-all duration-300">
-
-              <div className="space-y-2">
-                <h2 className="text-2xl sm:text-3xl font-extrabold font-display text-white">
-                  Verify Owner OTP Code
-                </h2>
-                <p className="text-xs text-[#A3A8B3] leading-relaxed">
-                  Enter the OTP sent by the Organizer to the ticket owner's email/phone to lock the ticket.
-                </p>
-              </div>
-
-              <form onSubmit={handleVerifyOtp} className="space-y-6">
-                <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <label className="text-xs font-semibold uppercase tracking-wider text-[#A3A8B3] font-display">
-                      Verification OTP (6 Digits)
-                    </label>
-                    <div className="flex items-center gap-3">
-                      {otp.some((d) => d !== '') && (
-                        <button
-                          type="button"
-                          onClick={handleClearOtp}
-                          className="text-xs text-[#A3A8B3] hover:text-white hover:underline transition-colors font-mono"
-                        >
-                          Clear
-                        </button>
-                      )}
-                      <button
-                        type="button"
-                        onClick={handleResendOtp}
-                        disabled={isResendingOtp}
-                        className="text-xs text-[#FF5A36] hover:underline transition-all font-mono flex items-center gap-1"
-                      >
-                        {isResendingOtp ? 'Resending...' : 'Resend OTP'}
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-6 gap-2" onPaste={handleOtpPaste}>
-                    {otp.map((digit, idx) => (
-                      <input
-                        key={idx}
-                        id={`otp-input-${idx}`}
-                        type="text"
-                        inputMode="numeric"
-                        autoComplete="one-time-code"
-                        maxLength={1}
-                        value={digit}
-                        onChange={(e) => handleOtpChange(idx, e.target.value)}
-                        onKeyDown={(e) => handleOtpKeyDown(idx, e)}
-                        onPaste={handleOtpPaste}
-                        className="w-full h-12 bg-[#05070A] border border-white/15 rounded-xl text-center font-mono font-bold text-lg text-white focus:outline-none focus:border-[#FF5A36] focus:ring-2 focus:ring-[#FF5A36]/30 focus:scale-105 transition-all duration-200"
-                      />
-                    ))}
-                  </div>
-
-                  <div className="flex items-center gap-2 text-xs sm:text-sm font-mono mt-3">
-                    <span className="text-[#A3A8B3]">
-                      Code expires in:
-                    </span>
-                    <span className={`text-sm sm:text-base font-bold font-mono tracking-wider ${otpTimeLeft <= 60 ? 'text-rose-400 animate-pulse' : 'text-[#FF5A36]'}`}>
-                      {formatOtpTimer(otpTimeLeft)}
-                    </span>
-                  </div>
-                </div>
-
-                <button
-                  type="submit"
-                  disabled={isVerifyingOtp || otpTimeLeft === 0}
-                  className="w-full py-4 bg-[#FF5A36] hover:bg-[#FF7252] disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold font-display uppercase tracking-widest text-xs rounded-xl shadow-lg shadow-[#FF5A36]/30 hover:shadow-xl hover:shadow-[#FF5A36]/50 hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200 flex items-center justify-center gap-2"
-                >
-                  {isVerifyingOtp ? (
-                    <>
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                      <span>Confirming...</span>
-                    </>
-                  ) : (
-                    <span>Confirm & Lock</span>
-                  )}
-                </button>
-
-                <div className="p-3 bg-white/5 border border-white/10 rounded-xl text-[11px] text-[#A3A8B3] flex items-center gap-2 hover:border-emerald-500/30 transition-all duration-300">
-                  <Lock className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                  <span>System verification ensures ticket is authentic and not yet used.</span>
-                </div>
-
-                <div className="text-center pt-2">
-                  <button
-                    type="button"
-                    onClick={handleAbandonSession}
-                    disabled={isCancellingSession}
-                    className="px-4 py-2 bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 hover:text-rose-100 border border-rose-500/30 hover:border-rose-400 rounded-xl text-xs font-mono font-semibold transition-all duration-200 disabled:opacity-50 inline-flex items-center gap-2 cursor-pointer shadow-sm hover:scale-[1.02] active:scale-95"
-                  >
-                    {isCancellingSession ? (
-                      <>
-                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                        <span>Cancelling...</span>
-                      </>
-                    ) : (
-                      <>
-                        <X className="w-3.5 h-3.5 stroke-[2.5]" />
-                        <span>Cancel</span>
-                      </>
-                    )}
-                  </button>
-                </div>
-              </form>
-
-            </div>
-          </div>
+          <Step2VerifyOtp
+            otp={otp}
+            handleOtpChange={handleOtpChange}
+            handleOtpKeyDown={handleOtpKeyDown}
+            handleOtpPaste={handleOtpPaste}
+            handleClearOtp={handleClearOtp}
+            handleResendOtp={handleResendOtp}
+            isResendingOtp={isResendingOtp}
+            otpTimeLeft={otpTimeLeft}
+            formatOtpTimer={formatOtpTimer}
+            handleVerifyOtp={handleVerifyOtp}
+            isVerifyingOtp={isVerifyingOtp}
+            handleAbandonSession={handleAbandonSession}
+            isCancellingSession={isCancellingSession}
+          />
         )}
 
         {/* STEP 3: TICKET VERIFIED & LOCKED */}
         {currentStep === 3 && (
-          <div key={3} className="animate-fade-in-up max-w-2xl mx-auto space-y-6 pt-2">
-            <div className="text-center space-y-2">
-              <h2 className="text-3xl font-extrabold font-display text-white">
-                Ticket Verified & Safely Locked
-              </h2>
-              <p className="text-xs text-[#A3A8B3] max-w-md mx-auto">
-                Your ticket has been verified as authentic and is ready for pricing.
-              </p>
-            </div>
-
-            {/* Ticket Card Preview */}
-            <div className="group relative bg-[#0A0D12]/90 backdrop-blur-md border border-white/[0.08] hover:border-white/[0.16] rounded-3xl overflow-hidden shadow-2xl transition-all duration-300">
-              {/* Holographic Shimmer Light Sweep */}
-              <div className="absolute inset-0 pointer-events-none overflow-hidden rounded-3xl z-10">
-                <div className="w-1/2 h-full bg-gradient-to-r from-transparent via-white/[0.04] to-transparent animate-ticket-shimmer" />
-              </div>
-
-              {/* Concert image banner */}
-              <div className="relative h-44 overflow-hidden">
-                <img
-                  src="/images/landing/featured-1.jpg"
-                  alt="Concert Ticket"
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-out"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-[#0A0D12] via-[#0A0D12]/50 to-transparent" />
-              </div>
-
-              {/* Ticket body */}
-              <div className="p-6 space-y-5">
-
-                {/* Header row: label + verified status */}
-                <div className="flex items-start justify-between gap-4">
-                  <div className="space-y-1">
-                    <span className="text-[10px] text-[#8F96A3] font-mono font-bold uppercase tracking-[0.08em] block">
-                      OFFICIAL DIGITAL TICKET PASS
-                    </span>
-                    <h3 className="text-2xl font-extrabold font-display text-white group-hover:text-[#FF7252] transition-colors duration-300 leading-tight">
-                      Anh Trai Say Hi Concert 2026
-                    </h3>
-                  </div>
-
-                  {/* Verified status with pulsing radar ping effect */}
-                  <div className="flex items-center gap-2 shrink-0 pt-0.5">
-                    <span className="relative flex h-2 w-2">
-                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#FF5A36] opacity-75" />
-                      <span className="relative inline-flex rounded-full h-2 w-2 bg-[#FF5A36] shadow-[0_0_8px_#FF5A36]" />
-                    </span>
-                    <span className="text-[10px] font-mono font-bold uppercase tracking-[0.08em] text-[#FF5A36] whitespace-nowrap">
-                      VERIFIED · LOCKED
-                    </span>
-                  </div>
-                </div>
-
-                {/* Info row: ticket code + location */}
-                <div className="grid grid-cols-2 divide-x divide-white/[0.07] bg-[#05070A] border border-white/[0.07] group-hover:border-white/[0.15] rounded-2xl overflow-hidden transition-colors duration-300">
-                  <div className="p-3.5 space-y-1 hover:bg-white/[0.02] transition-colors duration-200">
-                    <span className="text-[10px] text-[#8F96A3] font-mono font-bold uppercase tracking-[0.08em] block">
-                      ORIGINAL TICKET CODE
-                    </span>
-                    <p className="font-bold text-white font-mono text-sm tracking-wide group-hover:text-[#FF5A36] transition-colors duration-200">
-                      {ticketCode}
-                    </p>
-                  </div>
-                  <div className="p-3.5 pl-4 space-y-1 hover:bg-white/[0.02] transition-colors duration-200">
-                    <span className="text-[10px] text-[#8F96A3] font-mono font-bold uppercase tracking-[0.08em] block">
-                      VENUE
-                    </span>
-                    <p className="font-bold text-white text-sm">Van Hanh Mall Stadium, TP.HCM</p>
-                  </div>
-                </div>
-
-                {/* Price cap row */}
-                <div className="grid grid-cols-2 divide-x divide-white/[0.07] bg-[#05070A] border border-white/[0.07] group-hover:border-white/[0.15] rounded-2xl overflow-hidden transition-colors duration-300">
-                  <div className="p-4 space-y-1.5 hover:bg-white/[0.02] transition-colors duration-200">
-                    <span className="text-[10px] text-[#8F96A3] font-mono font-bold uppercase tracking-[0.08em] block">
-                      FACE VALUE
-                    </span>
-                    <p className="text-lg font-bold font-display text-white">
-                      {faceValue.toLocaleString('vi-VN')} VND
-                    </p>
-                  </div>
-                  <div className="p-4 pl-5 space-y-1.5 hover:bg-white/[0.02] transition-colors duration-200">
-                    <span className="text-[10px] text-[#8F96A3] font-mono font-bold uppercase tracking-[0.08em] block">
-                      MAX RESALE PRICE
-                    </span>
-                    <p className="text-lg font-bold font-display text-white">
-                      {priceCeiling.toLocaleString('vi-VN')} VND
-                    </p>
-                    <span className="text-[10px] text-[#8F96A3] font-mono block leading-tight">
-                      {markupPercent > 0
-                        ? `Face value + ${markupPercent}% event markup`
-                        : 'Per TicketShield policy'}
-                    </span>
-                  </div>
-                </div>
-
-              </div>
-            </div>
-
-            {/* Glowing CTA Button with Shimmer Sheen */}
-            <button
-              onClick={() => setCurrentStep(4)}
-              className="group relative w-full py-4 bg-[#FF5A36] hover:bg-[#FF7252] text-white font-bold font-display uppercase tracking-widest text-xs rounded-xl shadow-lg shadow-[#FF5A36]/30 hover:shadow-2xl hover:shadow-[#FF5A36]/50 hover:-translate-y-0.5 active:translate-y-0 transition-all duration-300 overflow-hidden flex items-center justify-center gap-2 cursor-pointer"
-            >
-              <div className="absolute inset-0 -translate-x-full group-hover:translate-x-full bg-gradient-to-r from-transparent via-white/20 to-transparent transition-transform duration-700 pointer-events-none" />
-              <span>Continue</span>
-            </button>
-          </div>
+          <Step3ConfirmDetails
+            ticketCode={ticketCode}
+            faceValue={faceValue}
+            priceCeiling={priceCeiling}
+            markupPercent={markupPercent}
+            onContinue={() => setCurrentStep(4)}
+          />
         )}
 
         {/* STEP 4: SET RESALE PRICE */}
         {currentStep === 4 && (
-          <div key={4} className="animate-fade-in-up max-w-xl mx-auto space-y-6 pt-2">
-            <div className="space-y-2 text-center">
-              <h2 className="text-3xl font-extrabold font-display text-white">
-                Set Resale Price
-              </h2>
-              <p className="text-xs text-[#A3A8B3]">
-                Slide or type a price up to the event ceiling ({priceCeiling.toLocaleString('vi-VN')} VND
-                {markupPercent > 0 ? `, face value + ${markupPercent}%` : ''}).
-              </p>
-            </div>
-
-            {/* Price Selector Main Box */}
-            <div className="bg-[#0A0D12]/90 backdrop-blur-md border border-white/10 p-6 sm:p-8 rounded-3xl space-y-6 shadow-2xl text-center hover:border-white/20 transition-all duration-300">
-              <span className="text-xs text-[#A3A8B3] uppercase tracking-wider font-display font-semibold">
-                PROPOSED RESALE PRICE
-              </span>
-
-              <div className="text-4xl sm:text-5xl font-extrabold font-display text-white tracking-tight flex items-center justify-center gap-2 transition-all duration-300">
-                <span className="transition-all duration-300">
-                  {resalePrice > 0 ? resalePrice.toLocaleString('vi-VN') : '0'}
-                </span>
-                <span className="text-base font-normal text-[#FF5A36]">VND</span>
-              </div>
-
-              <div className="space-y-2 text-left">
-                <label htmlFor="resale-price-slider" className="sr-only">
-                  Resale price within the event ceiling
-                </label>
-                <input
-                  id="resale-price-slider"
-                  type="range"
-                  min={1000}
-                  max={Math.max(priceCeiling, 1000)}
-                  step={1000}
-                  value={Math.min(Math.max(Math.round((resalePrice || 1000) / 1000) * 1000, 1000), Math.max(priceCeiling, 1000))}
-                  onChange={(e) => updatePrice(Number(e.target.value))}
-                  aria-valuemin={1000}
-                  aria-valuemax={priceCeiling}
-                  aria-valuenow={resalePrice}
-                  className="w-full h-2 appearance-none rounded-full cursor-pointer bg-white/10 accent-[#FF5A36]"
-                />
-                <div className="flex items-center justify-between text-[10px] font-mono text-[#8F96A3]">
-                  <span>Min</span>
-                  <span>Max {priceCeiling.toLocaleString('vi-VN')}</span>
-                </div>
-              </div>
-
-              {/* Manual Price Input – Compact row with stepper */}
-              <div className="space-y-1.5">
-                {/* Label + Input row */}
-                <div className="flex items-center gap-3">
-                  {/* Label */}
-                  <div className="flex flex-col text-left shrink-0">
-                    <span className="text-[10px] text-[#A3A8B3] font-mono uppercase tracking-wider whitespace-nowrap font-semibold">
-                      Custom Price (VND)
-                    </span>
-                    <span className="text-[9px] text-[#8F96A3] font-mono whitespace-nowrap">
-                      (Cannot exceed event ceiling)
-                    </span>
-                  </div>
-
-                  {/* Stepper row: [ input ] [ − ] [ + ] */}
-                  <div className="flex items-center flex-1 gap-2">
-                    {/* Input */}
-                    <div className="relative flex-1 group/input">
-                      <input
-                        id="resale-price-input"
-                        type="text"
-                        inputMode="numeric"
-                        value={priceInputText}
-                        onChange={handlePriceInputChange}
-                        onFocus={(e) => e.target.select()}
-                        onBlur={handlePriceInputBlur}
-                        className={`w-full bg-[#05070A] border rounded-xl pl-3 pr-14 py-2.5 text-sm font-mono font-bold text-white tracking-wider text-right focus:outline-none transition-all duration-200 ${resalePrice > priceCeiling
-                          ? 'border-rose-500 focus:ring-2 focus:ring-rose-500/30'
-                          : 'border-white/15 focus:border-[#FF5A36] focus:ring-2 focus:ring-[#FF5A36]/30 group-hover/input:border-white/25'
-                          }`}
-                        placeholder="0"
-                      />
-                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-mono text-[#FF5A36] font-bold pointer-events-none">
-                        VND
-                      </span>
-                    </div>
-
-                    {/* Decrease button */}
-                    <button
-                      type="button"
-                      onClick={() => handleStepPrice(-10000)}
-                      disabled={resalePrice <= 0}
-                      className={`w-10 h-10 shrink-0 rounded-xl bg-[#05070A] border transition-all duration-150 flex items-center justify-center font-bold text-lg leading-none ${
-                        resalePrice <= 0
-                          ? 'border-white/5 text-white/20 cursor-not-allowed opacity-40'
-                          : 'border-white/10 text-white hover:border-[#FF5A36] hover:text-[#FF5A36] hover:bg-[#FF5A36]/10 active:scale-95 cursor-pointer'
-                      }`}
-                      title="Decrease 10,000 VND"
-                    >
-                      −
-                    </button>
-
-                    {/* Increase button */}
-                    <button
-                      type="button"
-                      onClick={() => handleStepPrice(10000)}
-                      disabled={resalePrice >= priceCeiling}
-                      className={`w-10 h-10 shrink-0 rounded-xl bg-[#05070A] border transition-all duration-150 flex items-center justify-center font-bold text-lg leading-none ${
-                        resalePrice >= priceCeiling
-                          ? 'border-white/5 text-white/20 cursor-not-allowed opacity-40'
-                          : 'border-white/10 text-white hover:border-[#FF5A36] hover:text-[#FF5A36] hover:bg-[#FF5A36]/10 active:scale-95 cursor-pointer'
-                      }`}
-                      title={resalePrice >= priceCeiling ? 'Cannot exceed the event ceiling' : 'Increase 10,000 VND'}
-                    >
-                      +
-                    </button>
-                  </div>
-                </div>
-
-                {/* Validation hint */}
-                <div className="min-h-[20px] flex items-center justify-end text-[10px] font-mono">
-                  {resalePrice > priceCeiling && (
-                    <span className="text-rose-400 font-semibold">
-                      Cannot exceed the event ceiling ({priceCeiling.toLocaleString('vi-VN')} VND)
-                    </span>
-                  )}
-                  {resalePrice < faceValue && resalePrice > 0 && (
-                    <span className="text-emerald-400">
-                      {(faceValue - resalePrice).toLocaleString('vi-VN')} VND ({Math.round((1 - resalePrice / faceValue) * 100)}%) below face value
-                    </span>
-                  )}
-                  {resalePrice === faceValue && (
-                    <span className="text-[#A3A8B3]">
-                      At face value ({faceValue.toLocaleString('vi-VN')} VND)
-                    </span>
-                  )}
-                  {resalePrice > faceValue && resalePrice <= priceCeiling && (
-                    <span className="text-[#A3A8B3]">
-                      {(resalePrice - faceValue).toLocaleString('vi-VN')} VND above face, within the {markupPercent}% ceiling
-                    </span>
-                  )}
-                </div>
-              </div>
-
-              {/* Quick Discount Buttons */}
-              <div className="space-y-2">
-                <span className="text-[11px] text-[#A3A8B3]">Quick price presets:</span>
-                <div className={`grid gap-2 text-xs font-mono ${priceCeiling > faceValue ? 'grid-cols-2 sm:grid-cols-5' : 'grid-cols-4'}`}>
-                  <button
-                    onClick={() => handleApplyDiscount(5)}
-                    className={`py-2.5 rounded-xl border transition-all duration-200 hover:scale-105 active:scale-95 ${resalePrice === Math.round(faceValue * 0.95)
-                      ? 'bg-[#FF5A36]/20 border-[#FF5A36] text-[#FF5A36] font-bold shadow-lg shadow-[#FF5A36]/20'
-                      : 'bg-[#05070A] border-white/10 text-[#A3A8B3] hover:text-white hover:border-white/30'
-                      }`}
-                  >
-                    -5%
-                  </button>
-
-                  <button
-                    onClick={() => handleApplyDiscount(10)}
-                    className={`py-2.5 rounded-xl border transition-all duration-200 hover:scale-105 active:scale-95 ${resalePrice === Math.round(faceValue * 0.9)
-                      ? 'bg-[#FF5A36]/20 border-[#FF5A36] text-[#FF5A36] font-bold shadow-lg shadow-[#FF5A36]/20'
-                      : 'bg-[#05070A] border-white/10 text-[#A3A8B3] hover:text-white hover:border-white/30'
-                      }`}
-                  >
-                    -10%
-                  </button>
-
-                  <button
-                    onClick={() => handleApplyDiscount(15)}
-                    className={`py-2.5 rounded-xl border transition-all duration-200 hover:scale-105 active:scale-95 ${resalePrice === Math.round(faceValue * 0.85)
-                      ? 'bg-[#FF5A36]/20 border-[#FF5A36] text-[#FF5A36] font-bold shadow-lg shadow-[#FF5A36]/20'
-                      : 'bg-[#05070A] border-white/10 text-[#A3A8B3] hover:text-white hover:border-white/30'
-                      }`}
-                  >
-                    -15%
-                  </button>
-
-                  <button
-                    onClick={() => handleApplyDiscount(0)}
-                    className={`py-2.5 rounded-xl border transition-all duration-200 hover:scale-105 active:scale-95 ${resalePrice === faceValue
-                      ? 'bg-[#FF5A36]/20 border-[#FF5A36] text-[#FF5A36] font-bold shadow-lg shadow-[#FF5A36]/20'
-                      : 'bg-[#05070A] border-white/10 text-[#A3A8B3] hover:text-white hover:border-white/30'
-                      }`}
-                  >
-                    Face Value
-                  </button>
-
-                  {priceCeiling > faceValue && (
-                    <button
-                      onClick={() => updatePrice(priceCeiling)}
-                      className={`py-2.5 rounded-xl border transition-all duration-200 hover:scale-105 active:scale-95 ${resalePrice === priceCeiling
-                        ? 'bg-[#FF5A36]/20 border-[#FF5A36] text-[#FF5A36] font-bold shadow-lg shadow-[#FF5A36]/20'
-                        : 'bg-[#05070A] border-white/10 text-[#A3A8B3] hover:text-white hover:border-white/30'
-                        }`}
-                    >
-                      Max Price
-                    </button>
-                  )}
-                </div>
-              </div>
-
-              {/* Platform Fee & Net Payout Breakdown Box */}
-              <div className="p-4 sm:p-5 bg-[#080B11]/90 backdrop-blur-sm border border-emerald-500/25 rounded-2xl space-y-3 shadow-lg">
-                <div className="flex items-center justify-between pb-2.5 border-b border-white/10">
-                  <div className="flex items-center gap-2 text-xs font-semibold text-zinc-200">
-                    <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />
-                    <span>Fee Breakdown</span>
-                  </div>
-                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-500/10 text-emerald-300 border border-emerald-500/30">
-                    3% Seller Fee
-                  </span>
-                </div>
-
-                <div className="space-y-2 text-xs">
-                  <div className="flex justify-between items-center text-zinc-400">
-                    <span>Listed Price:</span>
-                    <span className="font-semibold text-zinc-200 tabular-nums">
-                      {resalePrice.toLocaleString('vi-VN')} VND
-                    </span>
-                  </div>
-
-                  <div className="flex justify-between items-center text-zinc-400">
-                    <span>Seller Service Fee (3%):</span>
-                    <span className="font-medium text-amber-400 tabular-nums">
-                      - {Math.max(Math.round(resalePrice * 0.03), 5000).toLocaleString('vi-VN')} VND
-                    </span>
-                  </div>
-                </div>
-
-                <div className="flex justify-between items-baseline pt-2.5 border-t border-white/10">
-                  <div>
-                    <span className="text-xs font-bold text-emerald-400 block">
-                      Estimated Seller Payout
-                    </span>
-                    <span className="text-[10px] text-zinc-500">
-                      (Automatically deposited to your bank account after settlement)
-                    </span>
-                  </div>
-                  <div className="text-right">
-                    <span className="text-base sm:text-lg font-extrabold text-emerald-400 font-display tabular-nums tracking-tight">
-                      {Math.max(resalePrice - Math.max(Math.round(resalePrice * 0.03), 5000), 0).toLocaleString('vi-VN')}
-                    </span>
-                    <span className="ml-1 text-xs font-bold text-emerald-400">VND</span>
-                  </div>
-                </div>
-              </div>
-
-              <button
-                onClick={() => setCurrentStep(5)}
-                disabled={resalePrice > priceCeiling || resalePrice <= 0}
-                className={`w-full py-4 font-bold font-display uppercase tracking-widest text-xs rounded-xl transition-all duration-200 flex items-center justify-center gap-2 ${
-                  resalePrice > priceCeiling || resalePrice <= 0
-                    ? 'bg-white/5 text-white/30 border border-white/5 cursor-not-allowed opacity-50'
-                    : 'bg-[#FF5A36] hover:bg-[#FF7252] text-white shadow-lg shadow-[#FF5A36]/30 hover:shadow-xl hover:shadow-[#FF5A36]/50 hover:-translate-y-0.5 active:translate-y-0 cursor-pointer'
-                }`}
-              >
-                <span>Continue</span>
-              </button>
-            </div>
-          </div>
+          <Step4SetPrice
+            priceCeiling={priceCeiling}
+            faceValue={faceValue}
+            markupPercent={markupPercent}
+            resalePrice={resalePrice}
+            updatePrice={updatePrice}
+            priceInputText={priceInputText}
+            handlePriceInputChange={handlePriceInputChange}
+            handlePriceInputBlur={handlePriceInputBlur}
+            handleStepPrice={handleStepPrice}
+            handleApplyDiscount={handleApplyDiscount}
+            onContinue={() => setCurrentStep(5)}
+          />
         )}
 
         {/* STEP 5: REVIEW & CONFIRM LISTING */}
         {currentStep === 5 && (
-          <div key={5} className="animate-fade-in-up max-w-[640px] mx-auto space-y-5 pt-2">
-            <div className="space-y-1 text-center">
-              <h2 className="text-2xl font-bold font-display text-white">
-                Review &amp; Confirm Listing
-              </h2>
-              <p className="text-xs text-gray-400">
-                Review your ticket details before publishing to TicketShield Marketplace.
-              </p>
-            </div>
-
-            {/* Main Panel */}
-            <div className="bg-[#0B0E14] border border-gray-800 rounded-2xl overflow-hidden shadow-2xl p-6 sm:p-7 space-y-6 text-left">
-              {/* 1. Ticket Summary Header */}
-              <div className="flex items-start justify-between gap-4 pb-4 border-b border-gray-800/80">
-                <div className="space-y-1">
-                  <h3 className="text-lg font-bold text-white tracking-wide">
-                    Anh Trai Say Hi Concert 2026
-                  </h3>
-                  <div className="flex items-center gap-2 text-xs text-gray-400 font-mono">
-                    <Ticket className="w-3.5 h-3.5 text-cyan-400" />
-                    <span>Ticket Code: <strong className="text-gray-200">{ticketCode || 'ATSH-VIP-8862'}</strong></span>
-                  </div>
-                </div>
-                <span className="px-2.5 py-1 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[11px] font-semibold font-mono rounded-full shrink-0 uppercase">
-                  VERIFIED
-                </span>
-              </div>
-
-              {/* 2. Compact Price Comparison */}
-              <div className="grid grid-cols-2 gap-4 text-xs pb-3 border-b border-gray-800/80">
-                <div>
-                  <span className="text-gray-400 font-medium block mb-0.5 uppercase tracking-wider text-[11px]">ORIGINAL PRICE</span>
-                  <span className="font-mono font-bold text-white text-sm">
-                    {faceValue.toLocaleString('vi-VN')} VND
-                  </span>
-                </div>
-                <div className="text-right">
-                  <span className="text-gray-400 font-medium block mb-0.5 uppercase tracking-wider text-[11px]">RESALE PRICE</span>
-                  <span className="font-mono font-bold text-[#FF5A36] text-sm">
-                    {resalePrice.toLocaleString('vi-VN')} VND
-                  </span>
-                </div>
-              </div>
-
-              {/* 3. Redesigned Fee Breakdown ("PRICE BREAKDOWN") */}
-              <div className="space-y-3 pb-3 border-b border-gray-800/80">
-                <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider block">
-                  PRICE BREAKDOWN
-                </span>
-
-                <div className="space-y-2.5 text-xs">
-                  {/* Resale Price */}
-                  <div className="flex justify-between items-center text-gray-300">
-                    <span>Resale Price</span>
-                    <span className="font-mono font-medium text-white">{resalePrice.toLocaleString('vi-VN')} VND</span>
-                  </div>
-
-                  {/* Seller Fee */}
-                  <div className="relative flex justify-between items-center text-gray-300">
-                    <div className="flex items-center gap-1.5">
-                      <span>Seller Fee · 3%</span>
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setActiveFeeTooltip(activeFeeTooltip === 'seller' ? null : 'seller');
-                        }}
-                        className="w-4 h-4 rounded-full bg-gray-800 hover:bg-gray-700 text-gray-400 hover:text-white text-[10px] font-bold flex items-center justify-center transition-colors cursor-pointer"
-                        title="Seller fee info"
-                      >
-                        ?
-                      </button>
-                      {activeFeeTooltip === 'seller' && (
-                        <div className="absolute left-0 top-full mt-1.5 w-68 p-3 bg-[#131822] border border-gray-700 rounded-xl shadow-2xl text-[11px] text-gray-200 z-30 animate-in fade-in zoom-in-95 duration-150">
-                          <div className="font-semibold text-white mb-1">3% Seller Fee</div>
-                          <div>TicketShield deducts 3% from the resale price for transaction processing and order support.</div>
-                        </div>
-                      )}
-                    </div>
-                    <span className="font-mono text-gray-400">-{Math.max(Math.round(resalePrice * 0.03), 5000).toLocaleString('vi-VN')} VND</span>
-                  </div>
-
-                  {/* Seller Net Payout (Primary Number) */}
-                  <div className="flex justify-between items-center pt-1 text-sm font-bold">
-                    <span className="text-white">You Receive</span>
-                    <span className={`font-mono text-base ${resalePrice < 5000 ? 'text-rose-400' : 'text-emerald-400'}`}>
-                      {resalePrice < 5000
-                        ? 'Below minimum fee'
-                        : `${Math.max(resalePrice - Math.max(Math.round(resalePrice * 0.03), 5000), 0).toLocaleString('vi-VN')} VND`}
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Payout Destination Account */}
-              <div className="space-y-2 pt-1">
-                <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider block">
-                  PAYOUT BANK ACCOUNT
-                </span>
-                <div className="p-3.5 bg-[#05070A] border border-gray-800 rounded-xl">
-                  {bankAccounts.length > 0 ? (
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className="w-9 h-9 rounded-lg bg-[#0052CC]/20 border border-[#0052CC]/40 flex items-center justify-center font-bold text-[#4C9EEB] text-xs font-mono">
-                          {bankAccounts[0].bankCode}
-                        </div>
-                        <div>
-                          <div className="font-semibold text-white text-xs sm:text-sm flex items-center gap-2">
-                            <span>{bankAccounts[0].accountHolderName}</span>
-                            <span className="text-[10px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-1.5 py-0.5 rounded font-mono">
-                              ✓ Verified
-                            </span>
-                          </div>
-                          <div className="text-[11px] text-[#A3A8B3]">
-                            Bank {bankAccounts[0].bankCode} • **** {bankAccounts[0].bankAccountNumber.slice(-4)}
-                          </div>
-                        </div>
-                      </div>
-                      {bankAccounts.length > 1 && (
-                        <span className="text-[10px] text-[#A3A8B3] font-mono">
-                          +{bankAccounts.length - 1} view all
-                        </span>
-                      )}
-                    </div>
-                  ) : (
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs text-amber-400 flex items-center gap-1.5">
-                        <AlertCircle className="w-4 h-4 text-amber-400" />
-                        <span>No payout bank account linked</span>
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => setIsAddBankModalOpen(true)}
-                        className="px-2.5 py-1 bg-amber-500/20 text-amber-300 hover:bg-amber-500/30 border border-amber-500/40 rounded-lg text-xs font-bold transition-all cursor-pointer"
-                      >
-                        + Add Account
-                      </button>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* 4. Visibility Control */}
-              <div className="space-y-2 pt-1">
-                <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider block">
-                  VISIBILITY
-                </span>
-                <div className="grid grid-cols-2 p-1 bg-[#05070A] border border-gray-800 rounded-xl gap-1">
-                  <button
-                    type="button"
-                    onClick={() => setIsPrivateListing(false)}
-                    className={`py-2.5 px-3 rounded-lg text-xs font-semibold transition-all flex items-center justify-center gap-2 cursor-pointer ${
-                      !isPrivateListing
-                        ? 'bg-white/10 text-white font-bold shadow-sm'
-                        : 'text-[#8F96A3] hover:text-white hover:bg-white/[0.03]'
-                    }`}
-                  >
-                    <Globe className="w-3.5 h-3.5 text-[#FF5A36]" />
-                    <span>Public</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => setIsPrivateListing(true)}
-                    className={`py-2.5 px-3 rounded-lg text-xs font-semibold transition-all flex items-center justify-center gap-2 cursor-pointer ${
-                      isPrivateListing
-                        ? 'bg-purple-950/60 border border-purple-500/40 text-purple-200 font-bold shadow-sm'
-                        : 'text-[#8F96A3] hover:text-white hover:bg-white/[0.03]'
-                    }`}
-                  >
-                    <Lock className="w-3.5 h-3.5 text-purple-400" />
-                    <span>Private</span>
-                  </button>
-                </div>
-                <p className="text-[11px] text-gray-400">
-                  {!isPrivateListing
-                    ? 'Listed openly on Marketplace. Anyone can search and buy.'
-                    : 'Hidden from Marketplace. Accessible only via secret link or QR code.'}
-                </p>
-              </div>
-
-              {/* 5. Confirmation Checkbox */}
-              <label className="flex items-center gap-2.5 text-xs text-gray-300 cursor-pointer pt-2 group">
-                <input
-                  type="checkbox"
-                  checked={agreedTerms}
-                  onChange={(e) => setAgreedTerms(e.target.checked)}
-                  className="rounded border-gray-700 bg-black text-[#FF5A36] focus:ring-0 w-4 h-4 cursor-pointer"
-                />
-                <span className="group-hover:text-white transition-colors">
-                  I certify that I am the authentic ticket owner and agree to list on TicketShield Marketplace
-                </span>
-              </label>
-
-              {/* 6. Publish Button */}
-              <button
-                onClick={handlePublishListing}
-                disabled={isPublishing || !agreedTerms}
-                className="w-full py-3.5 bg-[#FF5A36] hover:bg-[#FF7252] disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold font-display uppercase tracking-wider text-xs rounded-xl shadow-md transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer mt-2"
-              >
-                {isPublishing ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    <span>PUBLISHING...</span>
-                  </>
-                ) : (
-                  <span>PUBLISH LISTING</span>
-                )}
-              </button>
-            </div>
-          </div>
+          <Step5ReviewPublish
+            ticketCode={ticketCode}
+            faceValue={faceValue}
+            resalePrice={resalePrice}
+            bankAccounts={bankAccounts}
+            isPrivateListing={isPrivateListing}
+            setIsPrivateListing={setIsPrivateListing}
+            agreedTerms={agreedTerms}
+            setAgreedTerms={setAgreedTerms}
+            handlePublishListing={handlePublishListing}
+            isPublishing={isPublishing}
+            activeFeeTooltip={activeFeeTooltip}
+            setActiveFeeTooltip={setActiveFeeTooltip}
+            onManageBankAccounts={() => navigate('/payout-accounts?returnUrl=/sell-ticket')}
+          />
         )}
 
         {/* STEP 6: LISTING PUBLISHED */}
-        {currentStep === 6 && (() => {
-          const matchedListing = existingListings.find(
-            (l) => (publishedListingId && l.listingId === publishedListingId) || l.originalTicketCode === ticketCode
-          );
-          const isAtsh = ticketCode.startsWith('ATSH') || !ticketCode;
-          const resolvedEventName = matchedListing?.eventName || (isAtsh ? 'Anh Trai Say Hi Concert 2026' : 'Live Concert');
-          const resolvedEventDate = matchedListing?.eventStartAt
-            ? new Date(matchedListing.eventStartAt).toLocaleString('vi-VN', {
-                hour: '2-digit',
-                minute: '2-digit',
-                day: '2-digit',
-                month: '2-digit',
-                year: 'numeric',
-              })
-            : '19:00, Oct 26, 2026';
-          const resolvedVenue = matchedListing?.eventVenue || 'Van Hanh Mall Stadium, TP.HCM';
-          const resolvedTier = matchedListing?.tierName || (
-            ticketCode.includes('VIP')
-              ? 'VIP Zone A - Row 1 Seat 12'
-              : ticketCode.includes('GA')
-              ? 'GA Standing Zone 2'
-              : 'Standard Zone C'
-          );
-          const resolvedPoster = '/images/landing/featured-1.jpg';
-
-          return (
-            <div key={6} className="animate-fade-in-up w-full mx-auto space-y-6 pt-2">
-              {/* Header */}
-              <div className="text-center space-y-2">
-                <div className={`w-14 h-14 rounded-full flex items-center justify-center mx-auto shadow-xl animate-pop-in ${
-                  isPrivateListing
-                    ? 'bg-purple-500/20 border-2 border-purple-500 text-purple-400 shadow-purple-500/30'
-                    : 'bg-emerald-500/20 border-2 border-emerald-500 text-emerald-400 shadow-emerald-500/40'
-                }`}>
-                  <CheckCircle2 className="w-7 h-7" />
-                </div>
-
-                <h2 className="text-2xl sm:text-3xl font-extrabold font-display text-white">
-                  {isPrivateListing ? 'Private Listing Created Successfully!' : 'Listing Published Successfully!'}
-                </h2>
-                <p className="text-xs sm:text-sm text-[#A3A8B3] max-w-lg mx-auto">
-                  {isPrivateListing
-                    ? 'Your ticket is protected with our 100% 24-Hour Funds Protection guarantee. Share your secret private link or QR code with your buyer.'
-                    : 'Your ticket is now listed publicly on TicketShield Marketplace under 100% 24-Hour Protection.'}
-                </p>
-              </div>
-
-              {/* 2-Column Grid */}
-              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-                {/* Left Column: Ticketbox-style Ticket Pass + Bottom Navigation Buttons */}
-                <div className="lg:col-span-7 flex flex-col justify-between space-y-4">
-                  {/* TICKETBOX SHAPE CARD WITH 100% TRANSLUCENT CUTOUTS */}
-                  <div className="relative ticket-perforated-mask bg-[#0A0D14] border border-[#27272A] rounded-2xl overflow-hidden shadow-2xl transition-all duration-300 hover:border-white/20 flex flex-col sm:flex-row">
-                    {/* Top Notch Transparent Cutout Rim Arc (Desktop) */}
-                    <svg
-                      className="hidden sm:block absolute -top-[1px] right-[calc(14rem-14px)] w-7 h-3.5 z-20 pointer-events-none"
-                      viewBox="0 0 28 14"
-                      fill="none"
-                    >
-                      <path d="M0 0 A 14 14 0 0 0 28 0" stroke="#27272A" strokeWidth="1.5" fill="none" />
-                    </svg>
-
-                    {/* Bottom Notch Transparent Cutout Rim Arc (Desktop) */}
-                    <svg
-                      className="hidden sm:block absolute -bottom-[1px] right-[calc(14rem-14px)] w-7 h-3.5 z-20 pointer-events-none"
-                      viewBox="0 0 28 14"
-                      fill="none"
-                    >
-                      <path d="M0 14 A 14 14 0 0 1 28 14" stroke="#27272A" strokeWidth="1.5" fill="none" />
-                    </svg>
-
-                    {/* Perforated Dashed Seam Divider (Desktop) */}
-                    <div className="hidden sm:block absolute top-3.5 bottom-3.5 right-[14rem] w-[1px] border-r-2 border-dashed border-[#27272A] z-10 pointer-events-none" />
-
-                    {/* Left: Text Content Wrapper */}
-                    <div className="flex-1 p-5 sm:p-6 flex flex-col justify-between space-y-4 relative min-w-0">
-
-                      {/* Top Header: Badge & Event Name */}
-                      <div className="space-y-1.5 text-left">
-                        <div className="flex items-center gap-2">
-                          <span className="text-[10px] text-[#8F96A3] font-mono font-bold uppercase tracking-wider block">
-                            OFFICIAL DIGITAL TICKET PASS
-                          </span>
-                          {isPrivateListing ? (
-                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[9px] font-bold font-mono uppercase bg-purple-500/20 border border-purple-500/40 text-purple-300">
-                              <Lock className="w-2.5 h-2.5" /> PRIVATE PASS
-                            </span>
-                          ) : (
-                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[9px] font-bold font-mono uppercase bg-emerald-500/20 border border-emerald-500/40 text-emerald-300">
-                              <Globe className="w-2.5 h-2.5" /> PUBLIC
-                            </span>
-                          )}
-                        </div>
-
-                        <h3 className="text-lg sm:text-xl font-extrabold font-display text-white leading-tight">
-                          {resolvedEventName}
-                        </h3>
-                        <p className="text-xs font-mono font-semibold text-[#FF5A36] tracking-wide">
-                          {resolvedTier}
-                        </p>
-                      </div>
-
-                      {/* Event Info: Date & Venue */}
-                      <div className="space-y-2 text-left text-xs font-sans">
-                        <div className="flex items-center gap-2 text-white">
-                          <Calendar className="w-4 h-4 text-[#FF5A36] shrink-0" />
-                          <span className="font-semibold text-xs">{resolvedEventDate}</span>
-                        </div>
-
-                        <div className="flex items-center gap-2 text-[#E4E4E7]">
-                          <MapPin className="w-4 h-4 text-emerald-400 shrink-0" />
-                          <span className="font-bold text-xs uppercase tracking-wide">
-                            {resolvedVenue}
-                          </span>
-                        </div>
-                      </div>
-
-                      {/* Ticket Meta Grid: Code & Listing ID */}
-                      <div className="grid grid-cols-2 gap-3 pt-3 border-t border-[#27272A] text-left">
-                        <div className="space-y-0.5">
-                          <span className="text-[9px] text-[#8F96A3] font-mono font-bold uppercase tracking-wider block">
-                            TICKET CODE
-                          </span>
-                          <p className="font-mono font-bold text-xs text-white tracking-wider truncate">
-                            {ticketCode || 'ATSH-VIP-888'}
-                          </p>
-                        </div>
-                        <div className="space-y-0.5">
-                          <span className="text-[9px] text-[#8F96A3] font-mono font-bold uppercase tracking-wider block">
-                            LISTING ID
-                          </span>
-                          <p className="font-mono font-bold text-xs text-[#A3A8B3] truncate">
-                            {publishedListingId || 'TS-RESALE-LISTING'}
-                          </p>
-                        </div>
-                      </div>
-
-                      {/* Price Row: Face Value vs Resale Price */}
-                      <div className="pt-3 border-t border-[#27272A] flex items-center justify-between text-left">
-                        <div>
-                          <span className="text-[9px] text-[#8F96A3] font-mono font-bold uppercase tracking-wider block">
-                            ORIGINAL PRICE
-                          </span>
-                          <span className="text-xs sm:text-sm text-[#A3A8B3] line-through font-mono">
-                            {faceValue.toLocaleString('vi-VN')} VND
-                          </span>
-                        </div>
-                        <div className="text-right">
-                          <span className="text-[9px] text-emerald-400 font-mono font-bold uppercase tracking-wider block">
-                            RESALE PRICE
-                          </span>
-                          <span className="text-lg sm:text-xl font-extrabold font-display text-emerald-400">
-                            {resalePrice.toLocaleString('vi-VN')} VND
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Right: Img Wrapper (Concert poster) */}
-                    <div className="w-full sm:w-52 md:w-56 shrink-0 relative overflow-hidden bg-[#0A0D14] min-h-[200px] sm:min-h-[320px]">
-                      <img
-                        src={resolvedPoster}
-                        alt={resolvedEventName}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                        loading="lazy"
-                      />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent pointer-events-none" />
-                      <div className="absolute bottom-3 left-3 right-3 text-center">
-                        <span className="px-2.5 py-1 bg-black/80 backdrop-blur-md rounded-md text-[9px] font-mono uppercase font-bold text-white/90 border border-white/10 block shadow-md">
-                          VERIFIED SECURE PASS
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Bottom Navigation Buttons */}
-                  <div className="flex flex-col sm:flex-row items-center gap-3 pt-1">
-                    <button
-                      onClick={() => navigate('/my-listings')}
-                      className="w-full sm:flex-1 py-3.5 bg-[#FF5A36] hover:bg-[#FF7252] text-white font-bold font-display uppercase tracking-wider text-xs rounded-xl shadow-lg shadow-[#FF5A36]/25 hover:shadow-xl hover:shadow-[#FF5A36]/40 hover:-translate-y-0.5 active:translate-y-0 transition-all text-center cursor-pointer"
-                    >
-                      Manage My Listings
-                    </button>
-
-                    {isPrivateListing ? (
-                      <a
-                        href={getShareUrl()}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="w-full sm:flex-1 py-3.5 bg-white/5 border border-white/10 text-white font-bold font-display uppercase tracking-wider text-xs rounded-xl hover:bg-white/10 hover:border-white/20 transition-all flex items-center justify-center gap-2 text-center"
-                      >
-                        <ExternalLink className="w-3.5 h-3.5" />
-                        <span>Preview Ticket Link</span>
-                      </a>
-                    ) : (
-                      <button
-                        onClick={() => navigate('/marketplace')}
-                        className="w-full sm:flex-1 py-3.5 bg-white/5 border border-white/10 text-white font-bold font-display uppercase tracking-wider text-xs rounded-xl hover:bg-white/10 hover:border-white/20 transition-all flex items-center justify-center gap-2 text-center cursor-pointer"
-                      >
-                        <Globe className="w-3.5 h-3.5" />
-                        <span>View on Marketplace</span>
-                      </button>
-                    )}
-                  </div>
-                </div>
-
-                {/* Right Column: Share Link, QR Code & Actions */}
-                <div className="lg:col-span-5 p-6 bg-gradient-to-b from-[#0e131b] to-[#080b0f] border border-white/15 rounded-3xl space-y-5 shadow-2xl flex flex-col justify-between">
-                  {/* Link Section */}
-                  <div className="space-y-2 text-left">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <div className={`p-1.5 rounded-lg ${isPrivateListing ? 'bg-purple-500/20 text-purple-400' : 'bg-[#FF5A36]/20 text-[#FF5A36]'}`}>
-                          <Share2 className="w-4 h-4" />
-                        </div>
-                        <span className="text-xs font-bold text-white font-display">
-                          {isPrivateListing ? 'Secret Shareable Link' : 'Marketplace Listing Link'}
-                        </span>
-                      </div>
-                      {isPrivateListing && (
-                        <span className="text-[10px] font-mono px-2 py-0.5 rounded-full uppercase font-bold bg-purple-500/10 text-purple-300 border border-purple-500/30">
-                          Secret URL
-                        </span>
-                      )}
-                    </div>
-
-                    <div className="flex items-center gap-2 bg-[#05070A] border border-white/10 rounded-xl p-1.5 focus-within:border-[#FF5A36]/50 transition-colors">
-                      <input
-                        type="text"
-                        readOnly
-                        value={getShareUrl()}
-                        className="bg-transparent border-none text-white text-xs font-mono px-2 flex-1 focus:ring-0 truncate select-all"
-                      />
-                      <button
-                        onClick={handleCopyLink}
-                        type="button"
-                        className="px-3.5 py-2 bg-white/10 hover:bg-[#FF5A36] text-white text-xs font-bold font-display rounded-lg transition-all flex items-center gap-1.5 shrink-0 shadow-sm cursor-pointer"
-                      >
-                        {copiedLink ? (
-                          <>
-                            <Check className="w-3.5 h-3.5 text-emerald-400" />
-                            <span className="text-emerald-400 font-bold">Copied!</span>
-                          </>
-                        ) : (
-                          <>
-                            <Copy className="w-3.5 h-3.5" />
-                            <span>Copy</span>
-                          </>
-                        )}
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* QR Code Section */}
-                  <div className="flex flex-col items-center justify-center space-y-3 pt-1">
-                    <div className="p-3.5 bg-white rounded-2xl shadow-xl shadow-black/60 border border-white/80 inline-block">
-                      <QRCodeCanvas
-                        id="listing-qr-canvas"
-                        value={getShareUrl()}
-                        size={155}
-                        level="H"
-                        includeMargin={false}
-                      />
-                    </div>
-
-                    <p className="text-[11px] text-[#A3A8B3] max-w-xs text-center leading-relaxed">
-                      Scan this QR code with any camera or phone scanner to open ticket checkout instantly.
-                    </p>
-
-                    <div className="grid grid-cols-2 gap-2.5 w-full pt-1">
-                      <button
-                        onClick={handleCopyQrImage}
-                        type="button"
-                        className="py-2.5 px-3 bg-white/5 hover:bg-white/10 border border-white/10 text-white rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition-all hover:border-white/20 active:scale-95 cursor-pointer"
-                      >
-                        {copiedQr ? (
-                          <>
-                            <Check className="w-3.5 h-3.5 text-emerald-400" />
-                            <span className="text-emerald-400 font-bold">Image Copied!</span>
-                          </>
-                        ) : (
-                          <>
-                            <Copy className="w-3.5 h-3.5 text-[#A3A8B3]" />
-                            <span>Copy QR Image</span>
-                          </>
-                        )}
-                      </button>
-
-                      <button
-                        onClick={handleDownloadQr}
-                        type="button"
-                        className="py-2.5 px-3 bg-white/5 hover:bg-white/10 border border-white/10 text-white rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition-all hover:border-white/20 active:scale-95 cursor-pointer"
-                      >
-                        <Download className="w-3.5 h-3.5 text-[#A3A8B3]" />
-                        <span>Download QR</span>
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* 24-Hour Guarantee Note */}
-                  <div className="p-3 bg-white/[0.03] border border-white/[0.08] rounded-xl flex items-center gap-2.5 text-[11px] text-[#A3A8B3] text-left">
-                    <Lock className="w-4 h-4 text-emerald-400 shrink-0" />
-                    <span>100% 24-Hour Funds Protection: Payments are securely held until ticket verification is completed.</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          );
-        })()}
+        {currentStep === 6 && (
+          <Step6ListingSuccess
+            ticketCode={ticketCode}
+            publishedListingId={publishedListingId}
+            existingListings={existingListings}
+            faceValue={faceValue}
+            resalePrice={resalePrice}
+            isPrivateListing={isPrivateListing}
+            getShareUrl={getShareUrl}
+            handleCopyLink={handleCopyLink}
+            copiedLink={copiedLink}
+            handleCopyQrImage={handleCopyQrImage}
+            copiedQr={copiedQr}
+            handleDownloadQr={handleDownloadQr}
+            onNavigateMyListings={() => navigate('/my-listings')}
+            onNavigateMarketplace={() => navigate('/marketplace')}
+          />
+        )}
 
         {/* Private Resale Scenario Messaging Modal */}
         <PrivateResaleScenarioModal
@@ -2125,7 +935,8 @@ export const SellTicketPage: React.FC = () => {
         <SellerBankAccountModal
           isOpen={isAddBankModalOpen}
           onClose={() => setIsAddBankModalOpen(false)}
-          onSuccess={() => {
+          onSuccess={(newAccount) => {
+            setBankAccounts((prev) => [newAccount, ...prev.filter((a) => a.id !== newAccount.id)]);
             fetchBankAccounts();
             showToast('Payout bank account saved! You can now proceed with listing your ticket.', 'success');
           }}

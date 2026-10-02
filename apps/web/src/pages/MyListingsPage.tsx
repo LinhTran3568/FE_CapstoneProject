@@ -208,10 +208,6 @@ export const MyListingsPage: React.FC = () => {
             </h1>
             <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 pt-1 text-sm text-[#8B929C]">
               <p>Manage your tickets and track your resale activity.</p>
-              <span className="hidden sm:inline text-white/20">•</span>
-              <span className="text-xs font-mono font-medium text-[#F5F5F5]/80 bg-white/[0.04] px-2.5 py-1 rounded-full border border-white/[0.06] shrink-0">
-                {counts.all} total listings · {counts.Verified} active · {counts.Sold} sold
-              </span>
             </div>
           </div>
 
@@ -220,7 +216,7 @@ export const MyListingsPage: React.FC = () => {
             className="inline-flex items-center justify-center gap-2 px-6 py-3.5 bg-[#FF5A36] hover:bg-[#FF7252] text-white font-bold font-display text-xs uppercase tracking-wider rounded-xl shadow-lg shadow-[#FF5A36]/25 hover:shadow-xl hover:shadow-[#FF5A36]/40 hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200 shrink-0 cursor-pointer"
           >
             <Plus className="w-4 h-4 stroke-[2.5]" />
-            <span>+ SELL A TICKET</span>
+            <span>SELL A TICKET</span>
           </Link>
         </div>
 
@@ -673,7 +669,7 @@ const EmptyState: React.FC<{ filter: StatusFilter; onReset: () => void }> = ({ f
             className="px-5 py-2.5 bg-[#FF5A36] hover:bg-[#FF7252] text-white font-bold font-display text-xs uppercase tracking-wider rounded-xl shadow-lg shadow-[#FF5A36]/25 transition-all cursor-pointer flex items-center gap-1.5"
           >
             <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
-            <span>+ SELL A TICKET</span>
+            <span>SELL A TICKET</span>
           </Link>
         ) : (
           <button

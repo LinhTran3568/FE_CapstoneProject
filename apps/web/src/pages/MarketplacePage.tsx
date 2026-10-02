@@ -39,6 +39,7 @@ export const MarketplacePage: React.FC = () => {
   const [filters, setFilters] = useState<QuickFilterState>({
     keyword: searchParams.get('q') || '',
     city: searchParams.get('city') || 'ALL',
+    organizerId: searchParams.get('organizer') || 'ALL',
     dateRange: 'all',
     sortBy: 'newest',
   });
@@ -52,11 +53,13 @@ export const MarketplacePage: React.FC = () => {
     const q = searchParams.get('q') || '';
     const cat = searchParams.get('category') || 'ALL';
     const city = searchParams.get('city') || 'ALL';
+    const org = searchParams.get('organizer') || 'ALL';
 
     setFilters((prev) => ({
       ...prev,
       keyword: q,
       city: city,
+      organizerId: org,
     }));
     setSelectedCategory(cat);
     setCurrentPage(1);
@@ -72,6 +75,7 @@ export const MarketplacePage: React.FC = () => {
     isFetching,
   } = useMarketplaceListings({
     keyword: filters.keyword.trim() || undefined,
+    organizerId: filters.organizerId && filters.organizerId !== 'ALL' ? filters.organizerId : undefined,
     page: currentPage,
     size: pageSize,
   });
@@ -124,6 +128,13 @@ export const MarketplacePage: React.FC = () => {
         const venue = (item.eventVenue || '').toLowerCase();
         const cityLower = filters.city.toLowerCase();
         if (!venue.includes(cityLower)) {
+          return false;
+        }
+      }
+
+      // 3. Organizer Filter
+      if (filters.organizerId && filters.organizerId !== 'ALL') {
+        if (item.organizerId !== filters.organizerId) {
           return false;
         }
       }

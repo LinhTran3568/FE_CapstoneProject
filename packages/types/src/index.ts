@@ -253,6 +253,15 @@ export interface PaginatedList<T> {
   hasNextPage: boolean;
 }
 
+export interface OrganizerDto {
+  id: string;
+  name: string;
+  code?: string;
+  logoUrl?: string;
+  officialEmail?: string;
+  status: string;
+}
+
 /**
  * Public marketplace resale listing.
  * GET /api/v1/resale-listings → backend `ResaleListingDetailDto`.
@@ -260,6 +269,8 @@ export interface PaginatedList<T> {
 export interface ResaleListingDetailDto {
   listingId: string;
   eventId: string;
+  organizerId?: string;
+  organizerName?: string;
   eventName: string;
   eventVenue: string;
   eventStartAt: string;

@@ -1,9 +1,11 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Search, MapPin, Calendar, ArrowUpDown, X, Check, ChevronDown } from 'lucide-react';
+import { Search, MapPin, Calendar, ArrowUpDown, X, Check, ChevronDown, Building2 } from 'lucide-react';
+import { useOrganizers } from '../../hooks/useOrganizers';
 
 export interface QuickFilterState {
   keyword: string;
   city: string;
+  organizerId?: string;
   dateRange: 'all' | 'upcoming' | 'this-month';
   sortBy: 'newest' | 'price-asc' | 'date-asc';
 }
@@ -38,8 +40,9 @@ export const QuickFilterBar: React.FC<QuickFilterBarProps> = ({
   onChange,
   onReset,
 }) => {
-  const [activeDropdown, setActiveDropdown] = useState<'city' | 'date' | 'sort' | null>(null);
+  const [activeDropdown, setActiveDropdown] = useState<'city' | 'organizer' | 'date' | 'sort' | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const { data: organizers = [] } = useOrganizers();
 
   // Close dropdown on click outside
   useEffect(() => {
@@ -55,11 +58,17 @@ export const QuickFilterBar: React.FC<QuickFilterBarProps> = ({
   const hasActiveFilters =
     Boolean(filters.keyword.trim()) ||
     filters.city !== 'ALL' ||
+    Boolean(filters.organizerId && filters.organizerId !== 'ALL') ||
     filters.dateRange !== 'all' ||
     filters.sortBy !== 'newest';
 
   const currentCityLabel =
     CITY_OPTIONS.find((c) => c.id === filters.city)?.label || 'Location';
+
+  const currentOrganizerLabel =
+    filters.organizerId && filters.organizerId !== 'ALL'
+      ? organizers.find((o) => o.id === filters.organizerId)?.name || 'Organizer'
+      : 'Organizer';
 
   const currentDateLabel =
     DATE_OPTIONS.find((d) => d.id === filters.dateRange)?.label || 'Date';
@@ -70,8 +79,8 @@ export const QuickFilterBar: React.FC<QuickFilterBarProps> = ({
   return (
     <div ref={containerRef} className="relative z-40 w-full space-y-3 mb-8">
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-3 items-center">
-        {/* Search input (5 columns on desktop) */}
-        <div className="lg:col-span-5 relative">
+        {/* Search input (4 columns on desktop) */}
+        <div className="lg:col-span-4 relative">
           <div className="h-11 bg-[#090C12]/90 border border-white/10 hover:border-white/20 focus-within:border-[#FF5A36] focus-within:ring-1 focus-within:ring-[#FF5A36]/40 rounded-xl px-3 flex items-center gap-2 transition-all">
             <Search className="w-4 h-4 text-[#8B929C] shrink-0" />
             <input
@@ -130,6 +139,64 @@ export const QuickFilterBar: React.FC<QuickFilterBarProps> = ({
                 >
                   <span>{opt.label}</span>
                   {filters.city === opt.id && <Check className="w-3.5 h-3.5 text-[#FF5A36]" />}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Organizer Filter (2 columns) */}
+        <div className="lg:col-span-2 relative">
+          <button
+            type="button"
+            onClick={() => setActiveDropdown(activeDropdown === 'organizer' ? null : 'organizer')}
+            className={`w-full h-11 px-3 rounded-xl border text-xs sm:text-sm font-medium flex items-center justify-between transition-all cursor-pointer select-none ${
+              filters.organizerId && filters.organizerId !== 'ALL'
+                ? 'bg-[#FF5A36]/10 border-[#FF5A36]/50 text-white'
+                : 'bg-[#090C12]/90 hover:bg-[#121620] border-white/10 text-[#CBD5E1] hover:text-white'
+            }`}
+          >
+            <div className="flex items-center gap-2 truncate">
+              <Building2 className={`w-4 h-4 shrink-0 ${filters.organizerId && filters.organizerId !== 'ALL' ? 'text-[#FF5A36]' : 'text-[#8B929C]'}`} />
+              <span className="truncate">{currentOrganizerLabel}</span>
+            </div>
+            <ChevronDown className={`w-3.5 h-3.5 text-[#8B929C] transition-transform ${activeDropdown === 'organizer' ? 'rotate-180' : ''}`} />
+          </button>
+
+          {activeDropdown === 'organizer' && (
+            <div className="absolute top-full left-0 mt-1.5 w-56 bg-[#0D1117] border border-white/15 rounded-xl shadow-2xl p-1 z-50 animate-in fade-in zoom-in-95 max-h-60 overflow-y-auto">
+              <button
+                type="button"
+                onClick={() => {
+                  onChange({ ...filters, organizerId: 'ALL' });
+                  setActiveDropdown(null);
+                }}
+                className={`w-full px-3 py-2 rounded-lg text-xs flex items-center justify-between transition-colors cursor-pointer ${
+                  !filters.organizerId || filters.organizerId === 'ALL'
+                    ? 'bg-[#FF5A36]/20 text-[#FF5A36] font-bold'
+                    : 'text-[#CBD5E1] hover:bg-white/10 hover:text-white'
+                }`}
+              >
+                <span>All Organizers</span>
+                {(!filters.organizerId || filters.organizerId === 'ALL') && <Check className="w-3.5 h-3.5 text-[#FF5A36]" />}
+              </button>
+
+              {organizers.map((org) => (
+                <button
+                  key={org.id}
+                  type="button"
+                  onClick={() => {
+                    onChange({ ...filters, organizerId: org.id });
+                    setActiveDropdown(null);
+                  }}
+                  className={`w-full px-3 py-2 rounded-lg text-xs flex items-center justify-between transition-colors cursor-pointer ${
+                    filters.organizerId === org.id
+                      ? 'bg-[#FF5A36]/20 text-[#FF5A36] font-bold'
+                      : 'text-[#CBD5E1] hover:bg-white/10 hover:text-white'
+                  }`}
+                >
+                  <span className="truncate">{org.name}</span>
+                  {filters.organizerId === org.id && <Check className="w-3.5 h-3.5 text-[#FF5A36] shrink-0 ml-1" />}
                 </button>
               ))}
             </div>
