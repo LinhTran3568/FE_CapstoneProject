@@ -293,6 +293,8 @@ const DRAFT_STORAGE_KEY = 'ticketshield_sell_draft';
   const handleNextStep1 = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    if (isRequestingOtp) return;
+
     // Enforce Seller Bank Account requirement before starting resale verification
     if (bankAccounts.length === 0) {
       showToast('⚠️ Vui lòng liên kết tài khoản ngân hàng nhận tiền trước khi đăng bán vé!', 'warning');
@@ -340,7 +342,7 @@ const DRAFT_STORAGE_KEY = 'ticketshield_sell_draft';
       }
     }
 
-    const created: TicketSession[] = [];
+    let created: TicketSession[] = [];
 
     try {
       setIsRequestingOtp(true);
@@ -351,25 +353,27 @@ const DRAFT_STORAGE_KEY = 'ticketshield_sell_draft';
         'info'
       );
 
-      // Tuần tự: BTC chỉ cấp 1 OTP / 1 lần gọi và mỗi phiên cần khóa vé riêng.
-      for (const code of codes) {
-        const result = await resaleApi.requestVerificationOtp(code, selectedOrganizerId || undefined);
-        const originalPrice = result.originalPrice ?? 0;
-        const markup = result.markupPercent ?? 0;
+      // Gọi song song cho tất cả các vé thay vì gọi tuần tự để tăng tốc độ tối đa
+      created = await Promise.all(
+        codes.map(async (code) => {
+          const result = await resaleApi.requestVerificationOtp(code, selectedOrganizerId || undefined);
+          const originalPrice = result.originalPrice ?? 0;
+          const markup = result.markupPercent ?? 0;
 
-        created.push({
-          code,
-          verificationId: result.verificationId,
-          originalPrice,
-          markupPercent: markup,
-          priceCeiling:
-            result.priceCeiling && result.priceCeiling > 0
-              ? result.priceCeiling
-              : Math.trunc(originalPrice * (1 + markup / 100)),
-          locked: false,
-          expiresAt: Date.now() + OTP_TTL_MS,
-        });
-      }
+          return {
+            code,
+            verificationId: result.verificationId,
+            originalPrice,
+            markupPercent: markup,
+            priceCeiling:
+              result.priceCeiling && result.priceCeiling > 0
+                ? result.priceCeiling
+                : Math.trunc(originalPrice * (1 + markup / 100)),
+            locked: false,
+            expiresAt: Date.now() + OTP_TTL_MS,
+          };
+        })
+      );
 
       setSessions(created);
       setTicketCode(codes.join(', '));
