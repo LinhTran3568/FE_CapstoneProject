@@ -86,7 +86,7 @@ export const SellTicketPage: React.FC = () => {
           setFaceValue(d.faceValue || 2500000);
           setResalePrice(d.resalePrice || 2500000);
           setPriceInputText(d.priceInputText || (d.resalePrice ? d.resalePrice.toLocaleString('vi-VN') : '2.500.000'));
-          
+
           if (d.otpExpiresAt) {
             setOtpExpiresAt(d.otpExpiresAt);
             const remaining = Math.max(0, Math.floor((d.otpExpiresAt - Date.now()) / 1000));
@@ -225,7 +225,7 @@ export const SellTicketPage: React.FC = () => {
 
       if (remaining <= 0) {
         if (verificationIdRef.current) {
-          resaleApi.closeVerification(verificationIdRef.current).catch(() => {});
+          resaleApi.closeVerification(verificationIdRef.current).catch(() => { });
           showToast('Verification session expired (5 minutes). Ticket lock released at Organizer.', 'warning');
           resetToStep1();
         }
@@ -438,9 +438,14 @@ export const SellTicketPage: React.FC = () => {
       const result = await resaleApi.confirmVerificationOtp(verificationId, otpCode);
       setVerificationResult(result);
       if (result.originalPrice && result.originalPrice > 0) {
-        setFaceValue(result.originalPrice);
-        setResalePrice(result.originalPrice);
-        setPriceInputText(result.originalPrice.toLocaleString('vi-VN'));
+        const codes = ticketCode
+          .split(',')
+          .map((c) => c.trim().toUpperCase())
+          .filter(Boolean);
+        const totalFaceValue = result.originalPrice * Math.max(1, codes.length);
+        setFaceValue(totalFaceValue);
+        setResalePrice(totalFaceValue);
+        setPriceInputText(totalFaceValue.toLocaleString('vi-VN'));
       }
       showToast('OTP verified & ticket locked successfully!', 'success');
       setCurrentStep(3);
@@ -528,7 +533,22 @@ export const SellTicketPage: React.FC = () => {
 
     try {
       setIsPublishing(true);
-      const result = await resaleApi.publishListing(verificationId, resalePrice, isPrivateListing);
+      const codes = ticketCode
+        .split(',')
+        .map((c) => c.trim().toUpperCase())
+        .filter(Boolean);
+      const isCombo = codes.length > 1;
+      const bundleId = isCombo ? crypto.randomUUID() : undefined;
+      const bundleTotalTickets = isCombo ? codes.length : undefined;
+
+      const result = await resaleApi.publishListing(
+        verificationId,
+        resalePrice,
+        isPrivateListing,
+        bundleId,
+        isCombo ? true : undefined,
+        bundleTotalTickets
+      );
       if (result.listingId) {
         setPublishedListingId(result.listingId);
       }

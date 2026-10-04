@@ -114,7 +114,10 @@ export const resaleApi = {
   publishListing: async (
     verificationId: string,
     resalePrice: number,
-    isPrivate: boolean = false
+    isPrivate: boolean = false,
+    bundleId?: string,
+    isBundleAllOrNothing?: boolean,
+    bundleTotalTickets?: number
   ): Promise<VerificationResult> => {
     return await httpClient<VerificationResult>('/resale-listings/publish', {
       method: 'POST',
@@ -125,6 +128,9 @@ export const resaleApi = {
         verificationId,
         resalePrice,
         isPrivate,
+        bundleId,
+        isBundleAllOrNothing,
+        bundleTotalTickets,
       }),
     });
   },

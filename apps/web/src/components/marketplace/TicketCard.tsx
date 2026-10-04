@@ -62,9 +62,23 @@ export const TicketCard: React.FC<TicketCardProps> = ({
     )
   );
 
-  // FE-5.2.6: Bundle Combo detection strictly from DB fields
-  const isBundle = Boolean(listing.bundleId && (listing.bundleTotalTickets ?? 0) > 1);
-  const bundleCount = listing.bundleTotalTickets ?? 1;
+  // FE-5.2.6: Bundle Combo & Multi-ticket detection
+  const effectiveBundleListings = bundleListings && bundleListings.length > 0
+    ? bundleListings
+    : listing.seatZone && (listing.seatZone.includes(',') || listing.seatZone.includes('|'))
+      ? listing.seatZone.split(/[,|]/).map((seatStr, idx) => ({
+        ...listing,
+        listingId: `${listing.listingId}-${idx}`,
+        seatZone: seatStr.trim(),
+        maskedTicketCode: listing.maskedTicketCode,
+      }))
+      : [listing];
+
+  const isBundle = Boolean(
+    (listing.bundleId && (listing.bundleTotalTickets ?? 0) > 1) ||
+    effectiveBundleListings.length > 1
+  );
+  const bundleCount = effectiveBundleListings.length > 1 ? effectiveBundleListings.length : (listing.bundleTotalTickets ?? 1);
 
   // Dynamic Zone styling with high contrast dark glass and vibrant accents
   const getZoneStyle = (tierName: string) => {
@@ -129,13 +143,12 @@ export const TicketCard: React.FC<TicketCardProps> = ({
   return (
     <div
       id={`ticket-card-${listing.listingId}`}
-      className={`group relative isolate w-full h-[195px] sm:h-[200px] flex rounded-2xl bg-[#0a0c10] border shadow-[0_8px_24px_rgba(0,0,0,0.7)] transition-[border-color,box-shadow,transform] duration-200 ease-out select-none cursor-pointer ${
-        isTransacting
+      className={`group relative isolate w-full h-[195px] sm:h-[200px] flex rounded-2xl bg-[#0a0c10] border shadow-[0_8px_24px_rgba(0,0,0,0.7)] transition-[border-color,box-shadow,transform] duration-200 ease-out select-none cursor-pointer ${isTransacting
           ? 'border-amber-500/40 shadow-[0_8px_30px_rgba(245,158,11,0.15)]'
           : isSold
-          ? 'border-zinc-700/50 opacity-75'
-          : 'border-white/10 hover:border-[#FF5A36] hover:shadow-[0_12px_36px_rgba(255,90,54,0.2)] hover:-translate-y-1'
-      }`}
+            ? 'border-zinc-700/50 opacity-75'
+            : 'border-white/10 hover:border-[#FF5A36] hover:shadow-[0_12px_36px_rgba(255,90,54,0.2)] hover:-translate-y-1'
+        }`}
       onClick={() => {
         if (!isTransacting && onViewDetails) {
           onViewDetails(listing);
@@ -192,9 +205,8 @@ export const TicketCard: React.FC<TicketCardProps> = ({
           <img
             src={backdropUrl}
             alt={listing.eventName}
-            className={`w-full h-full object-cover object-center contrast-125 saturate-110 transition-transform duration-300 ease-out group-hover:scale-105 ${
-              isSold ? 'opacity-40 grayscale' : isTransacting ? 'opacity-55' : 'opacity-70'
-            }`}
+            className={`w-full h-full object-cover object-center contrast-125 saturate-110 transition-transform duration-300 ease-out group-hover:scale-105 ${isSold ? 'opacity-40 grayscale' : isTransacting ? 'opacity-55' : 'opacity-70'
+              }`}
             loading="lazy"
             onError={(e) => {
               e.currentTarget.onerror = null;
@@ -269,35 +281,47 @@ export const TicketCard: React.FC<TicketCardProps> = ({
         {/* Left Middle & Bottom Content */}
         <div className="relative z-10 space-y-2">
           {/* Event Heading - instant smooth color transition on card hover */}
-          <h2 className={`text-[17px] sm:text-[19px] font-extrabold tracking-tight leading-snug drop-shadow-sm transition-colors duration-200 ease-out line-clamp-2 ${
-            isSold ? 'text-zinc-400' : 'text-white group-hover:text-[#FF5A36]'
-          }`}>
+          <h2 className={`text-[17px] sm:text-[19px] font-extrabold tracking-tight leading-snug drop-shadow-sm transition-colors duration-200 ease-out line-clamp-2 ${isSold ? 'text-zinc-400' : 'text-white group-hover:text-[#FF5A36]'
+            }`}>
             {listing.eventName}
           </h2>
 
           {/* Metadata with subtle icons */}
           <div className="flex flex-wrap items-center gap-x-3.5 gap-y-1 text-[11px] sm:text-xs text-zinc-300">
-            {/* Seat Position from DB — compact summary for combos */}
-            {isBundle && bundleListings && bundleListings.length > 1 ? (
-              (() => {
-                // Tìm zone chung (phần đầu giống nhau)
-                const zones = bundleListings.map(l => l.seatZone || l.tierName || '');
-                const firstZoneParts = zones[0].split(' - ');
-                const commonZone = firstZoneParts[0]; // e.g. "VIP Zone A"
-                // Lấy seat numbers: "Seat 08", "Seat 09" → "08 & 09"
-                const seatNums = zones
-                  .map(z => z.match(/seat\s*(\w+)/i)?.[1])
-                  .filter(Boolean);
-                const seatSummary = seatNums.length === bundleListings.length
-                  ? `${commonZone} · Seats ${seatNums.join(' & ')}`
-                  : `${commonZone} · ${bundleListings.length} seats`;
-                return (
-                  <div className="flex items-center gap-1.5 shrink-0" title={zones.join(' | ')}>
-                    <Ticket className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-                    <span className="font-semibold text-amber-200">{seatSummary}</span>
-                  </div>
-                );
-              })()
+            {/* Seat Position from DB — Full Multi-Ticket List for combos */}
+            {isBundle && effectiveBundleListings.length > 1 ? (
+              <div className="w-full bg-[#05070A]/90 border border-white/15 rounded-xl p-2 my-0.5 space-y-1 shadow-inner">
+                <div className="flex items-center justify-between text-[10px] font-extrabold uppercase tracking-wider text-[#FF5A36]">
+                  <span className="flex items-center gap-1">
+                    <Layers className="w-3 h-3 text-[#FF5A36] shrink-0" />
+                    <span>COMBO PACKAGE ({effectiveBundleListings.length} TICKETS)</span>
+                  </span>
+                  {effectiveBundleListings.length > 2 && (
+                    <span className="text-zinc-400 font-normal text-[9px] font-sans">Scroll to view</span>
+                  )}
+                </div>
+
+                <div className="max-h-[58px] overflow-y-auto space-y-1 pr-0.5 [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-[#FF5A36]/40 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-[#FF5A36] [scrollbar-width:thin] [scrollbar-color:rgba(255,90,54,0.4)_transparent]">
+                  {effectiveBundleListings.map((item, idx) => (
+                    <div
+                      key={item.listingId || idx}
+                      className="flex items-center justify-between gap-2 px-2 py-0.5 rounded bg-white/[0.05] border border-white/10 hover:bg-white/10 transition-colors text-[11px]"
+                    >
+                      <div className="flex items-center gap-1.5 min-w-0 truncate">
+                        <span className="font-mono text-[10px] font-bold text-[#FF5A36] bg-[#FF5A36]/15 px-1 py-0.2 rounded border border-[#FF5A36]/30 shrink-0">
+                          {item.maskedTicketCode || `Ticket #${idx + 1}`}
+                        </span>
+                        <span className="text-zinc-200 font-semibold truncate text-[11px]">
+                          {item.seatZone || item.tierName || `Seat #${idx + 1}`}
+                        </span>
+                      </div>
+                      <span className="text-[10px] font-mono text-amber-300 font-bold shrink-0">
+                        Ticket #{idx + 1}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
             ) : listing.seatZone ? (
               <div className="flex items-center gap-1.5 shrink-0" title={`Vị trí ghế: ${listing.seatZone}`}>
                 <Ticket className="w-3.5 h-3.5 text-amber-400 shrink-0" />

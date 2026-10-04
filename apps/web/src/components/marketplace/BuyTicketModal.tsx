@@ -196,21 +196,60 @@ export const BuyTicketModal: React.FC<BuyTicketModalProps> = ({
 
   if (!isOpen || !listing) return null;
 
-  // FE-5.2.6: Bundle Combo detection & calculation
-  const isBundle = Boolean(listing.bundleId && (listing.bundleTotalTickets ?? 0) > 1);
-  const bundleListings = (allListings || []).filter(
-    (l) => listing.bundleId && l.bundleId === listing.bundleId
+  // FE-5.2.6: Bundle Combo & Multi-ticket detection for checkout modal
+  const matchedBundleListings = (allListings && listing.bundleId)
+    ? allListings.filter((l) => l.bundleId === listing.bundleId)
+    : [];
+
+  const effectiveBundleListings: MarketplaceListingDto[] = matchedBundleListings.length > 1
+    ? matchedBundleListings
+    : listing.seatZone && (listing.seatZone.includes(',') || listing.seatZone.includes('|'))
+    ? listing.seatZone.split(/[,|]/).map((seatStr, idx) => ({
+        ...listing,
+        listingId: `${listing.listingId}-${idx}`,
+        seatZone: seatStr.trim(),
+        maskedTicketCode: listing.maskedTicketCode,
+      }))
+    : (listing.bundleTotalTickets && listing.bundleTotalTickets > 1)
+    ? Array.from({ length: listing.bundleTotalTickets }, (_, idx) => {
+        const match = listing.seatZone ? listing.seatZone.match(/(.*(?:Seat|Ghế|Số)\s*)(\d+)(.*)/i) : null;
+        let seatStr = listing.seatZone ? `${listing.seatZone} (Vé #${idx + 1})` : `Ghế #${idx + 1}`;
+        if (match) {
+          const prefix = match[1];
+          const baseNum = parseInt(match[2], 10);
+          const suffix = match[3];
+          if (!isNaN(baseNum)) {
+            const nextNum = String(baseNum + idx).padStart(match[2].length, '0');
+            seatStr = `${prefix}${nextNum}${suffix}`;
+          }
+        }
+        let codeStr = listing.maskedTicketCode;
+        if (codeStr && /\d+$/.test(codeStr)) {
+          codeStr = codeStr.replace(/\d+$/, (m) => String(parseInt(m, 10) + idx).padStart(m.length, '0'));
+        }
+        return {
+          ...listing,
+          listingId: `${listing.listingId}-${idx}`,
+          seatZone: seatStr,
+          maskedTicketCode: codeStr || `Vé #${idx + 1}`,
+        };
+      })
+    : [listing];
+
+  const isBundle = Boolean(
+    (listing.bundleId && (listing.bundleTotalTickets ?? 0) > 1) ||
+    effectiveBundleListings.length > 1
   );
-  const bundleCount = listing.bundleTotalTickets || (bundleListings.length > 0 ? bundleListings.length : 1);
+  const bundleCount = listing.bundleTotalTickets || effectiveBundleListings.length;
   const isOwner = Boolean(
     user?.id && (
       listing.sellerId?.toLowerCase() === user.id.toLowerCase() ||
-      bundleListings.some((b) => b.sellerId?.toLowerCase() === user.id.toLowerCase())
+      effectiveBundleListings.some((b) => b.sellerId?.toLowerCase() === user.id.toLowerCase())
     )
   );
-  const baseTicketPrice = bundleListings.length > 0
-    ? bundleListings.reduce((sum, l) => sum + l.resalePrice, 0)
-    : (isBundle ? listing.resalePrice * bundleCount : listing.resalePrice);
+  const baseTicketPrice = (allListings && allListings.length > 1 && listing.bundleId && effectiveBundleListings.length > 1)
+    ? effectiveBundleListings.reduce((sum, l) => sum + l.resalePrice, 0)
+    : listing.resalePrice;
 
   // Fee Calculation: 5% Buyer Fee (Min 10,000 VND)
   const buyerFeeRate = 0.05;
@@ -430,11 +469,11 @@ export const BuyTicketModal: React.FC<BuyTicketModalProps> = ({
 
                   {/* FE-5.2.6: Compact Bundle Combo Header with Info Tooltip & Itemized Tickets */}
                   {isBundle && (
-                    <div className="p-3 rounded-xl bg-[#141A28] border border-[#ff5722]/30 space-y-2 shadow-sm">
+                    <div className="p-3.5 rounded-xl bg-[#141A28] border border-[#ff5722]/30 space-y-2.5 shadow-sm">
                       <div className="flex items-center justify-between gap-2">
                         <div className="flex items-center gap-1.5 min-w-0">
-                          <Layers className="w-3.5 h-3.5 text-[#ff5722] shrink-0" />
-                          <span className="text-xs font-bold text-white tracking-wide uppercase truncate">
+                          <Layers className="w-4 h-4 text-[#ff5722] shrink-0" />
+                          <span className="text-xs sm:text-sm font-extrabold text-white tracking-wide uppercase truncate">
                             Combo Package · {bundleCount} Tickets
                           </span>
 
@@ -454,34 +493,35 @@ export const BuyTicketModal: React.FC<BuyTicketModalProps> = ({
                             </div>
                           </div>
                         </div>
-
-                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#ff5722]/15 text-[#ff8a65] border border-[#ff5722]/30 uppercase font-mono shrink-0">
-                          1 VietQR
-                        </span>
+                        {effectiveBundleListings.length > 2 && (
+                          <span className="text-[10px] font-mono text-zinc-400 font-medium shrink-0">
+                            Scroll to view all ({effectiveBundleListings.length})
+                          </span>
+                        )}
                       </div>
 
-                      {bundleListings.length > 0 && (
-                        <div className="max-h-48 overflow-y-auto custom-scrollbar pr-0.5">
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-0.5">
-                          {bundleListings.map((bl, idx) => (
-                            <div
-                              key={bl.listingId}
-                              className="px-2.5 py-1.5 rounded-lg bg-[#0C101A] border border-white/10 flex items-center justify-between gap-2 text-xs"
-                            >
-                              <div className="min-w-0 flex-1">
-                                <div className="flex items-center gap-1 mb-0.5">
-                                  <span className="text-[9px] text-zinc-500 font-bold uppercase tracking-wider">Ticket #{idx + 1}</span>
+                      {effectiveBundleListings.length > 0 && (
+                        <div className="max-h-[148px] overflow-y-auto pr-1 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-black/40 [&::-webkit-scrollbar-thumb]:bg-[#ff5722]/60 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-[#ff5722] [scrollbar-width:thin] [scrollbar-color:rgba(255,87,34,0.6)_rgba(0,0,0,0.4)]">
+                          <div className="space-y-2 pt-0.5">
+                            {effectiveBundleListings.map((bl, idx) => (
+                              <div
+                                key={bl.listingId || idx}
+                                className="px-3.5 py-2.5 rounded-xl bg-[#090C12] border border-white/10 flex items-center justify-between gap-3 text-xs shadow-sm hover:border-[#ff5722]/40 transition-colors"
+                              >
+                                <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                                  <span className="font-mono text-[11px] font-extrabold text-[#ff5722] bg-[#ff5722]/15 px-2 py-0.5 rounded-md border border-[#ff5722]/30 shrink-0">
+                                    {bl.maskedTicketCode || `Ticket #${idx + 1}`}
+                                  </span>
+                                  <span className="text-[12px] font-bold text-white whitespace-normal leading-tight">
+                                    {bl.seatZone || bl.tierName || `Seat #${idx + 1}`}
+                                  </span>
                                 </div>
-                                <div className="text-[11px] text-zinc-200 font-medium leading-snug">
-                                  {bl.seatZone || bl.tierName}
-                                </div>
+                                <span className="text-[10px] font-mono font-extrabold text-amber-300 bg-amber-400/10 px-2 py-0.5 rounded-full border border-amber-400/20 shrink-0">
+                                  Ticket #{idx + 1}
+                                </span>
                               </div>
-                              <span className="font-mono font-bold text-white text-xs shrink-0 pl-1">
-                                {formatVND(bl.resalePrice)}
-                              </span>
-                            </div>
-                          ))}
-                        </div>
+                            ))}
+                          </div>
                         </div>
                       )}
                     </div>
