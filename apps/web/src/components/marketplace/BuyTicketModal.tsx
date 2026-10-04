@@ -16,6 +16,7 @@ import {
   Plus,
   Zap,
   Layers,
+  AlertCircle,
 } from 'lucide-react';
 import { MarketplaceListingDto, HoldListingForPurchaseResponse } from '@ticketshield/types';
 import { resaleListingsApi } from '@ticketshield/api-client';
@@ -201,6 +202,12 @@ export const BuyTicketModal: React.FC<BuyTicketModalProps> = ({
     (l) => listing.bundleId && l.bundleId === listing.bundleId
   );
   const bundleCount = listing.bundleTotalTickets || (bundleListings.length > 0 ? bundleListings.length : 1);
+  const isOwner = Boolean(
+    user?.id && (
+      listing.sellerId?.toLowerCase() === user.id.toLowerCase() ||
+      bundleListings.some((b) => b.sellerId?.toLowerCase() === user.id.toLowerCase())
+    )
+  );
   const baseTicketPrice = bundleListings.length > 0
     ? bundleListings.reduce((sum, l) => sum + l.resalePrice, 0)
     : (isBundle ? listing.resalePrice * bundleCount : listing.resalePrice);
@@ -247,6 +254,10 @@ export const BuyTicketModal: React.FC<BuyTicketModalProps> = ({
     e.preventDefault();
     if (!user) {
       showToast('Please sign in to proceed with safe ticket purchase!', 'error');
+      return;
+    }
+    if (isOwner) {
+      showToast('Bạn không thể tự mua vé do chính mình đăng bán!', 'error');
       return;
     }
     if (!fullName || !phone || !email) {
@@ -476,6 +487,21 @@ export const BuyTicketModal: React.FC<BuyTicketModalProps> = ({
                     </div>
                   )}
 
+                  {/* Owner Self-Purchase Warning Banner */}
+                  {isOwner && (
+                    <div className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-start gap-2.5 text-amber-300 text-xs shadow-inner">
+                      <AlertCircle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+                      <div>
+                        <div className="font-bold text-amber-200">
+                          You are the seller of this {isBundle ? 'ticket package' : 'ticket'}
+                        </div>
+                        <div className="text-[11px] text-amber-300/80 mt-0.5 leading-relaxed">
+                          TicketShield policy does not allow purchasing your own tickets. Please sign in with a different buyer account to test checkout.
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
                   {/* B. RECIPIENT INFORMATION FORM */}
                   <form id="buyer-info-form" onSubmit={handleHoldListing} className="space-y-3 pt-1">
                     <div className="text-xs font-semibold text-zinc-300 uppercase tracking-wider">
@@ -656,28 +682,6 @@ export const BuyTicketModal: React.FC<BuyTicketModalProps> = ({
                   statusColor={countdown.statusColor}
                 />
 
-                {/* FE-5.2.6: Bundle Single VietQR Banner */}
-                {isBundle && (
-                  <div className="p-3 rounded-xl bg-gradient-to-r from-[#ff5722]/15 via-amber-500/10 to-transparent border border-[#ff5722]/40 flex flex-wrap items-center justify-between gap-3 text-xs shadow-sm">
-                    <div className="flex items-center gap-2.5">
-                      <div className="p-1.5 rounded-lg bg-[#ff5722]/20 border border-[#ff5722]/40 text-[#ff5722]">
-                        <Layers className="w-4 h-4 animate-pulse" />
-                      </div>
-                      <div>
-                        <div className="text-xs font-black text-white tracking-wide flex items-center gap-2">
-                          <span>ONE-CLICK VIETQR CHECKOUT FOR ALL {holdData?.bundleTotalTickets || bundleCount} TICKETS</span>
-                        </div>
-                        <div className="text-[11px] text-zinc-300 mt-0.5">
-                          Scan the QR code below to complete payment for the entire ticket package in a single transaction.
-                        </div>
-                      </div>
-                    </div>
-                    <span className="px-2.5 py-1 rounded-full bg-[#ff5722]/20 text-orange-200 border border-[#ff5722]/40 font-mono font-bold text-[11px]">
-                      1 TRANSACTION · 1 VIETQR
-                    </span>
-                  </div>
-                )}
-
                 {/* 1.5. Demo Quick Payment Simulation Shortcut */}
                 <div className="p-3.5 rounded-xl bg-gradient-to-r from-[#ff5722]/15 via-amber-500/10 to-transparent border border-[#ff5722]/40 flex flex-wrap items-center justify-between gap-3 shadow-sm">
                   <div className="flex items-center gap-2.5">
@@ -788,10 +792,10 @@ export const BuyTicketModal: React.FC<BuyTicketModalProps> = ({
               <button
                 type="submit"
                 form="buyer-info-form"
-                disabled={isHolding || ((listing.listingStatus || '').toLowerCase() === 'transacting')}
+                disabled={isHolding || isOwner || ((listing.listingStatus || '').toLowerCase() === 'transacting')}
                 className="h-11 px-6 bg-[#ff5722] hover:bg-[#f4511e] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed text-white font-extrabold text-xs sm:text-sm uppercase tracking-wider rounded-lg shadow-[0_4px_14px_rgba(255,87,34,0.35)] transition-all flex items-center justify-center gap-2 cursor-pointer whitespace-nowrap"
               >
-                <span>Reserve & Pay</span>
+                <span>{isOwner ? 'YOUR TICKET (LOCKED)' : 'Reserve & Pay'}</span>
                 <ArrowRight className="w-4 h-4" />
               </button>
             )}

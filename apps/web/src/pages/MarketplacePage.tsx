@@ -26,7 +26,7 @@ import { MarketplaceListingDto } from '@ticketshield/types';
 export const MarketplacePage: React.FC = () => {
   const queryClient = useQueryClient();
   const { showToast } = useUIStore();
-  const { isAuthenticated } = useAuthStore();
+  const { isAuthenticated, user } = useAuthStore();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
 
@@ -236,14 +236,24 @@ export const MarketplacePage: React.FC = () => {
     if (buyListingId && isAuthenticated && listings.length > 0) {
       const targetListing = listings.find((l) => l.listingId === buyListingId);
       if (targetListing) {
-        setBuyingListing(targetListing);
+        const isOwner = Boolean(
+          user?.id && (
+            targetListing.sellerId?.toLowerCase() === user.id.toLowerCase() ||
+            (targetListing.bundleId && listings.some((l) => l.bundleId === targetListing.bundleId && l.sellerId?.toLowerCase() === user.id.toLowerCase()))
+          )
+        );
+        if (isOwner) {
+          showToast('Bạn không thể tự mua vé do chính mình đăng bán!', 'warning');
+        } else {
+          setBuyingListing(targetListing);
+        }
         // Clear buy param so it doesn't re-trigger on subsequent renders
         const newParams = new URLSearchParams(searchParams);
         newParams.delete('buy');
         setSearchParams(newParams, { replace: true });
       }
     }
-  }, [searchParams, isAuthenticated, listings]);
+  }, [searchParams, isAuthenticated, listings, user]);
 
   const handleBuy = (listing: MarketplaceListingDto) => {
     const rawStatus = (listing.listingStatus || '').toLowerCase();
@@ -253,6 +263,17 @@ export const MarketplacePage: React.FC = () => {
     }
     if (rawStatus === 'sold') {
       showToast('This ticket has already been sold. Please choose another ticket!', 'warning');
+      return;
+    }
+
+    const isOwner = Boolean(
+      user?.id && (
+        listing.sellerId?.toLowerCase() === user.id.toLowerCase() ||
+        (listing.bundleId && listings.some((l) => l.bundleId === listing.bundleId && l.sellerId?.toLowerCase() === user.id.toLowerCase()))
+      )
+    );
+    if (isOwner) {
+      showToast('Bạn không thể tự mua vé do chính mình đăng bán!', 'warning');
       return;
     }
 

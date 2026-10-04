@@ -1,8 +1,10 @@
-import React from 'react';
-import { Calendar, MapPin, CheckCircle2, Lock, Timer, Layers, Ticket } from 'lucide-react';
+import React, { useCallback } from 'react';
+import { Calendar, MapPin, CheckCircle2, Lock, Timer, Layers, Ticket, UserCheck } from 'lucide-react';
+import { useQueryClient } from '@tanstack/react-query';
 import { MarketplaceListingDto } from '@ticketshield/types';
 import { formatEventDateTime } from '../../utils/formatters';
 import { usePaymentCountdown } from '../../hooks/usePaymentCountdown';
+import { useAuthStore } from '../../stores/authStore';
 import { SeatAdjacencyBadge } from '../ui/SeatAdjacencyBadge';
 import { detectSeatAdjacency } from '../../utils/seatAdjacency';
 
@@ -20,28 +22,49 @@ export const TicketCard: React.FC<TicketCardProps> = ({
   onViewDetails,
   bundleListings,
 }) => {
+  const { user } = useAuthStore();
+  const queryClient = useQueryClient();
   const formattedPrice = new Intl.NumberFormat('vi-VN').format(listing.resalePrice);
   const formattedOriginalPrice = new Intl.NumberFormat('vi-VN').format(listing.originalPrice);
   const formattedDate = formatEventDateTime(listing.eventStartAt);
 
   // Status check: Verified, Transacting, Sold, Cancelled
   const rawStatus = (listing.listingStatus || 'Verified').toLowerCase();
-  const isTransacting = rawStatus === 'transacting';
-  const isSold = rawStatus === 'sold';
-  const isCancelled = rawStatus === 'cancelled';
-  const isAvailable = !isTransacting && !isSold && !isCancelled;
 
-  // FE-5.2.6: Bundle Combo detection strictly from DB fields
-  const isBundle = Boolean(listing.bundleId && (listing.bundleTotalTickets ?? 0) > 1);
-  const bundleCount = listing.bundleTotalTickets ?? 1;
+  // Invalidate query when countdown expires (hits 00:00) so card immediately reopens
+  const handleCountdownExpire = useCallback(() => {
+    if (typeof window !== 'undefined') {
+      sessionStorage.removeItem(`ticket_hold_target_${listing.listingId}`);
+    }
+    queryClient.invalidateQueries({ queryKey: ['resale-listings'] });
+  }, [listing.listingId, queryClient]);
 
   // Realtime countdown hook for transacting listings (10-min hold duration)
   const countdown = usePaymentCountdown({
     unlockAt: listing.unlockAt,
     durationSeconds: 600,
-    enabled: isTransacting,
+    enabled: rawStatus === 'transacting',
     listingId: listing.listingId,
+    onExpire: handleCountdownExpire,
   });
+
+  // When timer hits 00:00 (isExpired), hold session is finished -> ticket reopens immediately!
+  const isTransacting = rawStatus === 'transacting' && !countdown.isExpired;
+  const isSold = rawStatus === 'sold';
+  const isCancelled = rawStatus === 'cancelled';
+  const isAvailable = !isTransacting && !isSold && !isCancelled;
+
+  // Check if current logged in user owns this listing (or any ticket in bundle)
+  const isOwner = Boolean(
+    user?.id && (
+      listing.sellerId?.toLowerCase() === user.id.toLowerCase() ||
+      bundleListings?.some((b) => b.sellerId?.toLowerCase() === user.id.toLowerCase())
+    )
+  );
+
+  // FE-5.2.6: Bundle Combo detection strictly from DB fields
+  const isBundle = Boolean(listing.bundleId && (listing.bundleTotalTickets ?? 0) > 1);
+  const bundleCount = listing.bundleTotalTickets ?? 1;
 
   // Dynamic Zone styling with high contrast dark glass and vibrant accents
   const getZoneStyle = (tierName: string) => {
@@ -480,6 +503,24 @@ export const TicketCard: React.FC<TicketCardProps> = ({
             >
               <span>SOLD OUT</span>
             </button>
+          ) : isOwner ? (
+            <div className="space-y-1">
+              <button
+                id={`btn-buy-${listing.listingId}`}
+                type="button"
+                disabled
+                className="w-full py-2 px-2 bg-slate-100 border border-slate-300 text-slate-500 rounded-xl font-bold text-[11px] tracking-wide flex items-center justify-center gap-1.5 cursor-not-allowed select-none shadow-inner"
+                title="You cannot purchase your own ticket"
+              >
+                <UserCheck className="w-3.5 h-3.5 text-slate-500 shrink-0" />
+                <span className="font-bold text-[10px] sm:text-[11px] whitespace-nowrap">
+                  YOUR TICKET
+                </span>
+              </button>
+              <div className="text-[9px] text-center font-medium text-slate-500 leading-none">
+                You are the seller
+              </div>
+            </div>
           ) : (
             <button
               id={`btn-buy-${listing.listingId}`}
