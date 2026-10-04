@@ -17,7 +17,21 @@ export const useMyListings = (refetchInterval?: number, enabled = true) =>
   useQuery({
     queryKey: myListingsQueryKey,
     queryFn: () => resaleListingsApi.getMyListings(),
-    refetchInterval,
+    refetchInterval: (query) => {
+      if (typeof refetchInterval === 'number') return refetchInterval;
+
+      const listings = query.state.data ?? [];
+      const hasActiveSettlement = listings.some(
+        (l) => l.inSettlementBuffer || l.escrowStatus === 'Locked' || l.listingStatus === 'Transacting'
+      );
+      if (hasActiveSettlement) return 2000;
+
+      const hasOnSale = listings.some((l) => l.listingStatus === 'Verified');
+      if (hasOnSale) return 3000;
+
+      return 8000;
+    },
+    refetchOnWindowFocus: true,
     enabled,
   });
 

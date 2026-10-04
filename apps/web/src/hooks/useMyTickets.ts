@@ -21,6 +21,8 @@ export const useMyTickets = () => {
       const tickets = await resaleListingsApi.getMyPurchasedTickets();
       return (tickets ?? []).filter(isPaidPurchasedPass);
     },
+    refetchInterval: 5000,
+    refetchOnWindowFocus: true,
     enabled: isAuthenticated,
   });
 };

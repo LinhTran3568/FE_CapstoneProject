@@ -98,8 +98,9 @@ const SettlementCountdownBanner: React.FC<{
 
   useEffect(() => {
     if (isEnded && onRefresh) {
-      const t = setTimeout(onRefresh, 1500);
-      return () => clearTimeout(t);
+      onRefresh();
+      const interval = setInterval(onRefresh, 1500);
+      return () => clearInterval(interval);
     }
     return undefined;
   }, [isEnded, onRefresh]);
@@ -141,14 +142,9 @@ const SettlementCountdownBanner: React.FC<{
 
 export const MyListingsPage: React.FC = () => {
   const { showToast } = useUIStore();
-  const [pollInterval, setPollInterval] = useState<number | undefined>(undefined);
-  const { data, isPending, isError, error, refetch, isFetching } = useMyListings(pollInterval);
+  const { data, isPending, isError, error, refetch, isFetching } = useMyListings();
   const listings = data ?? [];
 
-  useEffect(() => {
-    const hasHolding = listings.some((l) => l.inSettlementBuffer);
-    setPollInterval(hasHolding ? 2000 : undefined);
-  }, [listings]);
   const showListingsError = listingsFailedBeforeAnyData(data, isError);
   const cancelMutation = useCancelListing();
 
