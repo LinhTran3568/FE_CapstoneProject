@@ -24,14 +24,15 @@ export const useMyListings = (refetchInterval?: number, enabled = true) =>
       const hasActiveSettlement = listings.some(
         (l) => l.inSettlementBuffer || l.escrowStatus === 'Locked' || l.listingStatus === 'Transacting'
       );
-      if (hasActiveSettlement) return 2000;
+      if (hasActiveSettlement) return 1500;
 
       const hasOnSale = listings.some((l) => l.listingStatus === 'Verified');
-      if (hasOnSale) return 3000;
+      if (hasOnSale) return 2500;
 
-      return 8000;
+      return 4000;
     },
-    refetchOnWindowFocus: true,
+    refetchIntervalInBackground: true,
+    refetchOnWindowFocus: 'always',
     enabled,
   });
 

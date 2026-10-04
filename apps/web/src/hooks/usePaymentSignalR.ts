@@ -166,14 +166,20 @@ export const useSellerPayoutSignalR = ({
   sellerId,
   enabled = true,
   onPayoutCompleted,
+  onPaymentSuccess,
+  onHoldExpired,
 }: {
   sellerId?: string | null;
   enabled?: boolean;
   onPayoutCompleted?: (payload: SignalRPayoutPayload) => void;
+  onPaymentSuccess?: (payload: SignalRPaymentPayload) => void;
+  onHoldExpired?: (payload: SignalRPaymentPayload) => void;
 }) => {
   return usePaymentSignalR({
     sellerId,
     enabled,
     onPayoutCompleted,
+    onPaymentSuccess,
+    onHoldExpired,
   });
 };

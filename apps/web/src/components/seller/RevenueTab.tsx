@@ -94,7 +94,7 @@ const formatWhen = (iso: string) => {
 export const RevenueTab: React.FC<{
   preview?: { listings: SellerListingDto[]; payouts: MyPayoutDto[] };
 }> = ({ preview }) => {
-  const listingsQuery = useMyListings(preview ? undefined : 3_000, !preview);
+  const listingsQuery = useMyListings(undefined, !preview);
   const payoutsQuery = useMyPayouts(!preview);
   const now = useNow();
 
@@ -107,6 +107,25 @@ export const RevenueTab: React.FC<{
   const listingsError = !preview && listingsFailedBeforeAnyData(listingsQuery.data, listingsQuery.isError);
   const payoutsPending = !preview && payoutsQuery.isPending;
   const payoutsError = !preview && payoutsQuery.isError;
+
+  // When any hold reaches 00:00, aggressively refresh both queries until settled
+  const hasExpiredHold = useMemo(() => {
+    return holding.some((item) => {
+      if (!item.unlockAt) return false;
+      return new Date(item.unlockAt).getTime() <= now;
+    });
+  }, [holding, now]);
+
+  useEffect(() => {
+    if (!hasExpiredHold || preview) return;
+    listingsQuery.refetch();
+    payoutsQuery.refetch();
+    const interval = setInterval(() => {
+      listingsQuery.refetch();
+      payoutsQuery.refetch();
+    }, 1500);
+    return () => clearInterval(interval);
+  }, [hasExpiredHold, preview, listingsQuery, payoutsQuery]);
 
   return (
     <div className="space-y-12">

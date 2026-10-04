@@ -30,71 +30,68 @@ export const PayoutSuccessModal: React.FC<PayoutSuccessModalProps> = ({
 
   return createPortal(
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fade-in"
+      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/75 backdrop-blur-sm animate-fade-in"
       role="dialog"
       aria-modal="true"
       aria-labelledby="payout-success-title"
     >
-      <div className="relative w-full max-w-lg bg-[#0A0D14] border border-emerald-500/40 rounded-3xl p-6 sm:p-8 shadow-2xl shadow-emerald-500/20 text-[#F5F5F5] overflow-hidden transform animate-pop-in">
+      <div className="relative w-full max-w-[380px] bg-[#0C1017] border border-emerald-500/40 rounded-2xl p-5 shadow-2xl shadow-emerald-500/15 text-[#F5F5F5] overflow-hidden transform animate-pop-in">
         {/* Ambient Glows */}
-        <div className="absolute -top-24 -left-24 w-64 h-64 bg-emerald-500/20 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute -bottom-24 -right-24 w-64 h-64 bg-[#FF5A36]/15 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute -top-16 -left-16 w-40 h-40 bg-emerald-500/20 rounded-full blur-2xl pointer-events-none" />
+        <div className="absolute -bottom-16 -right-16 w-40 h-40 bg-[#FF5A36]/15 rounded-full blur-2xl pointer-events-none" />
 
         {/* Close Button */}
         <button
           type="button"
           onClick={onClose}
-          className="absolute top-5 right-5 p-2 rounded-xl text-zinc-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+          className="absolute top-3.5 right-3.5 p-1.5 rounded-lg text-zinc-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
           aria-label="Close dialog"
         >
-          <X className="w-5 h-5" />
+          <X className="w-4 h-4" />
         </button>
 
         {/* Header Visual */}
-        <div className="text-center space-y-3 pb-4">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 shadow-lg shadow-emerald-500/20 animate-bounce">
-            <CheckCircle2 className="w-9 h-9 stroke-[2.2]" />
+        <div className="text-center space-y-2 pb-2">
+          <div className="inline-flex items-center justify-center w-11 h-11 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 shadow-md shadow-emerald-500/20">
+            <CheckCircle2 className="w-6 h-6 stroke-[2.2]" />
           </div>
 
           <div>
-            <div className="inline-block px-3 py-1 rounded-full bg-emerald-500/20 border border-emerald-500/30 text-emerald-300 font-mono text-[10px] font-bold uppercase tracking-widest mb-1.5">
+            <div className="inline-block px-2.5 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-500/30 text-emerald-300 font-mono text-[9px] font-bold uppercase tracking-wider mb-1">
               NAPAS 247 • GIẢI NGÂN THÀNH CÔNG
             </div>
-            <h2 id="payout-success-title" className="text-2xl sm:text-3xl font-extrabold font-display text-white tracking-tight">
+            <h2 id="payout-success-title" className="text-lg font-bold font-display text-white tracking-tight">
               Tiền Đã Về Tài Khoản!
             </h2>
-            <p className="text-xs text-zinc-400 mt-1 max-w-sm mx-auto">
-              Hệ thống TicketShield AI vừa giải ngân tự động tiền bán vé vào tài khoản ngân hàng của bạn.
+            <p className="text-[11px] text-zinc-400 mt-0.5">
+              Hệ thống đã chuyển tiền bán vé vào tài khoản của bạn.
             </p>
           </div>
         </div>
 
         {/* Amount Box */}
-        <div className="my-4 p-5 rounded-2xl bg-gradient-to-br from-emerald-500/15 via-emerald-500/5 to-transparent border border-emerald-500/30 text-center space-y-1">
-          <span className="text-[11px] font-mono text-emerald-400 font-bold uppercase tracking-wider block">
-            Số tiền thực nhận (Net Payout)
+        <div className="my-3 p-3.5 rounded-xl bg-gradient-to-br from-emerald-500/15 via-emerald-500/5 to-transparent border border-emerald-500/30 text-center space-y-0.5">
+          <span className="text-[10px] font-mono text-emerald-400 font-semibold uppercase tracking-wider block">
+            Số tiền thực nhận (Đã trừ 3% phí sàn)
           </span>
-          <div className="text-3xl sm:text-4xl font-extrabold font-display text-emerald-300 tracking-tight">
+          <div className="text-2xl font-extrabold font-display text-emerald-300 tracking-tight">
             +{formatVND(amount)}
           </div>
-          <span className="text-[10px] font-mono text-emerald-400/80 block">
-            Đã trừ phí bảo hộ sàn 3% (Đã miễn phí chuyển khoản)
-          </span>
         </div>
 
         {/* Bank & Transaction Details */}
-        <div className="space-y-2.5 p-4 rounded-2xl bg-white/[0.03] border border-white/10 text-xs font-mono">
+        <div className="space-y-1.5 p-3 rounded-xl bg-white/[0.03] border border-white/10 text-[11px] font-mono">
           <div className="flex items-center justify-between text-zinc-400">
-            <span className="flex items-center gap-1.5">
-              <Building2 className="w-3.5 h-3.5 text-zinc-400" />
-              Ngân hàng nhận:
+            <span className="flex items-center gap-1.5 text-zinc-400">
+              <Building2 className="w-3 h-3 text-zinc-400" />
+              Ngân hàng:
             </span>
             <span className="font-bold text-white">{payoutData.bankCode || 'MB'}</span>
           </div>
 
           <div className="flex items-center justify-between text-zinc-400">
-            <span className="flex items-center gap-1.5">
-              <CreditCard className="w-3.5 h-3.5 text-zinc-400" />
+            <span className="flex items-center gap-1.5 text-zinc-400">
+              <CreditCard className="w-3 h-3 text-zinc-400" />
               Số tài khoản:
             </span>
             <span className="font-bold text-emerald-300 tracking-wider">
@@ -104,8 +101,8 @@ export const PayoutSuccessModal: React.FC<PayoutSuccessModalProps> = ({
 
           {payoutData.accountName && (
             <div className="flex items-center justify-between text-zinc-400">
-              <span className="flex items-center gap-1.5">
-                <User className="w-3.5 h-3.5 text-zinc-400" />
+              <span className="flex items-center gap-1.5 text-zinc-400">
+                <User className="w-3 h-3 text-zinc-400" />
                 Chủ tài khoản:
               </span>
               <span className="font-bold text-white uppercase">{payoutData.accountName}</span>
@@ -114,27 +111,20 @@ export const PayoutSuccessModal: React.FC<PayoutSuccessModalProps> = ({
 
           {payoutData.bankReference && (
             <div className="flex items-center justify-between text-zinc-400 pt-1 border-t border-white/5">
-              <span>Mã tham chiếu ngân hàng:</span>
-              <span className="text-[11px] text-zinc-300 font-bold">{payoutData.bankReference}</span>
-            </div>
-          )}
-
-          {payoutData.escrowId && (
-            <div className="flex items-center justify-between text-zinc-400">
-              <span>Mã Escrow:</span>
-              <span className="text-[11px] text-zinc-400">#{payoutData.escrowId.slice(0, 8).toUpperCase()}</span>
+              <span>Mã giao dịch:</span>
+              <span className="text-[10px] text-zinc-300 font-bold">{payoutData.bankReference}</span>
             </div>
           )}
         </div>
 
         {/* Action Button */}
-        <div className="mt-6 flex flex-col gap-2">
+        <div className="mt-4">
           <button
             type="button"
             onClick={onClose}
-            className="w-full py-3.5 px-6 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-black font-extrabold font-display text-xs uppercase tracking-wider shadow-lg shadow-emerald-500/25 transition-all cursor-pointer active:scale-95"
+            className="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-black font-bold font-display text-xs uppercase tracking-wider shadow-md shadow-emerald-500/20 transition-all cursor-pointer active:scale-95"
           >
-            Xác Nhận & Đóng
+            Đã Hiểu & Đóng
           </button>
         </div>
       </div>

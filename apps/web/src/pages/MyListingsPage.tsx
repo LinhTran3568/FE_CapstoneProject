@@ -24,8 +24,9 @@ import { useQueryClient } from '@tanstack/react-query';
 import type { ListingStatus, SellerListingDto } from '@ticketshield/types';
 import { useUIStore } from '../stores/uiStore';
 import { useAuthStore } from '../stores/authStore';
-import { listingsFailedBeforeAnyData, useCancelListing, useMyListings } from '../hooks/useMyListings';
+import { listingsFailedBeforeAnyData, useCancelListing, useMyListings, myListingsQueryKey } from '../hooks/useMyListings';
 import { useMyBankAccounts, myBankAccountsQueryKey } from '../hooks/useMyBankAccounts';
+import { myPayoutsQueryKey } from '../hooks/useMyPayouts';
 import { useSellerPayoutSignalR, SignalRPayoutPayload } from '../hooks/usePaymentSignalR';
 import { SellerBankAccountModal } from '../components/profile/SellerBankAccountModal';
 import { PayoutSuccessModal } from '../components/seller/PayoutSuccessModal';
@@ -158,12 +159,14 @@ export const MyListingsPage: React.FC = () => {
   const [isAddBankModalOpen, setIsAddBankModalOpen] = useState(false);
   const [payoutSuccessData, setPayoutSuccessData] = useState<SignalRPayoutPayload | null>(null);
 
-  // SignalR Realtime Payout Listener (NOTIF-SETTLE-5.4.3a & FE-SETTLE-5.4.5)
+  // SignalR Realtime Payout & Payment Listener (NOTIF-SETTLE-5.4.3a & FE-SETTLE-5.4.5)
   useSellerPayoutSignalR({
     sellerId: user?.id,
     enabled: !!user?.id,
     onPayoutCompleted: useCallback((payload: SignalRPayoutPayload) => {
-      refetch();
+      void queryClient.invalidateQueries({ queryKey: myListingsQueryKey });
+      void queryClient.invalidateQueries({ queryKey: myPayoutsQueryKey });
+      void refetch();
       setPayoutSuccessData(payload);
       const amountStr = payload.amount ? formatVND(payload.amount) : '';
       const bankInfo = payload.bankCode && payload.accountNumber
@@ -173,7 +176,18 @@ export const MyListingsPage: React.FC = () => {
         `🎉 Tiền bán vé ${amountStr} đã được giải ngân thành công về tài khoản${bankInfo}!`,
         'success'
       );
-    }, [refetch, showToast]),
+    }, [queryClient, refetch, showToast]),
+    onPaymentSuccess: useCallback(() => {
+      void queryClient.invalidateQueries({ queryKey: myListingsQueryKey });
+      void queryClient.invalidateQueries({ queryKey: myPayoutsQueryKey });
+      void refetch();
+      showToast('🎟️ Vé của bạn vừa được người mua thanh toán! Đang chuyển sang trạng thái xử lý/ký quỹ.', 'info');
+    }, [queryClient, refetch, showToast]),
+    onHoldExpired: useCallback(() => {
+      void queryClient.invalidateQueries({ queryKey: myListingsQueryKey });
+      void queryClient.invalidateQueries({ queryKey: myPayoutsQueryKey });
+      void refetch();
+    }, [queryClient, refetch]),
   });
 
   const showListingsError = listingsFailedBeforeAnyData(data, isError);
@@ -581,7 +595,11 @@ export const MyListingsPage: React.FC = () => {
                               unlockAt={listing.unlockAt}
                               netSellerPayout={listing.netSellerPayout}
                               resalePrice={listing.resalePrice}
-                              onRefresh={refetch}
+                              onRefresh={() => {
+                                void queryClient.invalidateQueries({ queryKey: myListingsQueryKey });
+                                void queryClient.invalidateQueries({ queryKey: myPayoutsQueryKey });
+                                void refetch();
+                              }}
                             />
                           ) : (
                             <div className="p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center gap-2 text-xs text-emerald-300">

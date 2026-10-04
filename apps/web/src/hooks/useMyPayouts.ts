@@ -8,6 +8,8 @@ export const useMyPayouts = (enabled = true) =>
   useQuery({
     queryKey: myPayoutsQueryKey,
     queryFn: () => payoutsApi.getMyPayouts(),
-    refetchInterval: enabled ? 60_000 : false,
+    refetchInterval: enabled ? 2500 : false,
+    refetchIntervalInBackground: true,
+    refetchOnWindowFocus: 'always',
     enabled,
   });
