@@ -94,7 +94,7 @@ const formatWhen = (iso: string) => {
 export const RevenueTab: React.FC<{
   preview?: { listings: SellerListingDto[]; payouts: MyPayoutDto[] };
 }> = ({ preview }) => {
-  const listingsQuery = useMyListings(preview ? undefined : 60_000, !preview);
+  const listingsQuery = useMyListings(preview ? undefined : 3_000, !preview);
   const payoutsQuery = useMyPayouts(!preview);
   const now = useNow();
 

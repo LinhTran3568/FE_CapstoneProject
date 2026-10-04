@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
   AlertTriangle,
@@ -79,10 +79,76 @@ const getEventThumbnail = (listing: SellerListingDto, index: number) => {
   return images[charCodeSum % images.length];
 };
 
+const SettlementCountdownBanner: React.FC<{
+  unlockAt?: string | null;
+  netSellerPayout?: number | null;
+  resalePrice: number;
+  onRefresh?: () => void;
+}> = ({ unlockAt, netSellerPayout, resalePrice, onRefresh }) => {
+  const [now, setNow] = useState(() => Date.now());
+
+  useEffect(() => {
+    const timer = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const target = unlockAt ? new Date(unlockAt).getTime() : 0;
+  const diffSeconds = target > 0 ? Math.max(0, Math.floor((target - now) / 1000)) : 0;
+  const isEnded = target > 0 && diffSeconds <= 0;
+
+  useEffect(() => {
+    if (isEnded && onRefresh) {
+      const t = setTimeout(onRefresh, 1500);
+      return () => clearTimeout(t);
+    }
+    return undefined;
+  }, [isEnded, onRefresh]);
+
+  const pad = (v: number) => String(v).padStart(2, '0');
+  const mm = pad(Math.floor(diffSeconds / 60));
+  const ss = pad(diffSeconds % 60);
+
+  return (
+    <div className="p-3 rounded-xl bg-gradient-to-r from-amber-500/15 via-amber-500/10 to-[#0A0D14] border border-amber-500/30 flex flex-wrap items-center justify-between gap-3 text-xs text-amber-200">
+      <div className="flex items-center gap-2.5">
+        <Clock className="w-4 h-4 text-amber-400 shrink-0 animate-pulse" />
+        <div className="leading-tight space-y-0.5">
+          <div className="flex items-center gap-2">
+            <span className="font-bold text-amber-400 uppercase tracking-wider text-[11px]">
+              Ký quỹ bảo vệ (Đang đếm ngược)
+            </span>
+            <span className="px-1.5 py-0.5 rounded bg-amber-400/20 text-amber-300 font-mono text-[10px] font-bold">
+              T+30s Test
+            </span>
+          </div>
+          <span className="text-amber-200/90 text-xs">
+            Tiền bán vé ({formatVND(netSellerPayout || resalePrice)}) sẽ tự động chuyển khoản NAPAS 247 khi hết giờ.
+          </span>
+        </div>
+      </div>
+
+      <div className="flex items-center gap-2 bg-[#05070A]/90 border border-amber-500/40 rounded-lg px-3 py-1.5 shadow-md">
+        <span className="text-[11px] font-mono text-amber-400 font-bold uppercase tracking-wider">
+          Giải ngân sau:
+        </span>
+        <span className="font-mono text-base font-extrabold text-white tracking-widest tabular-nums animate-pulse">
+          {isEnded ? '00:00 (Đang gửi...)' : `${mm}:${ss}`}
+        </span>
+      </div>
+    </div>
+  );
+};
+
 export const MyListingsPage: React.FC = () => {
   const { showToast } = useUIStore();
-  const { data, isPending, isError, error, refetch, isFetching } = useMyListings();
+  const [pollInterval, setPollInterval] = useState<number | undefined>(undefined);
+  const { data, isPending, isError, error, refetch, isFetching } = useMyListings(pollInterval);
   const listings = data ?? [];
+
+  useEffect(() => {
+    const hasHolding = listings.some((l) => l.inSettlementBuffer);
+    setPollInterval(hasHolding ? 2000 : undefined);
+  }, [listings]);
   const showListingsError = listingsFailedBeforeAnyData(data, isError);
   const cancelMutation = useCancelListing();
 
@@ -447,17 +513,16 @@ export const MyListingsPage: React.FC = () => {
                         )}
                       </div>
 
-                      {/* 2-Minute Escrow Settlement & Payout Banner */}
+                      {/* 30-Second Escrow Settlement & Payout Banner */}
                       {listing.listingStatus === 'Sold' && (
                         <div className="pt-2">
                           {listing.inSettlementBuffer ? (
-                            <div className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center gap-2 text-xs text-amber-300">
-                              <Clock className="w-4 h-4 text-amber-400 shrink-0 animate-pulse" />
-                              <div className="leading-tight">
-                                <span className="font-bold text-amber-400">Under 24-Hour Protection: </span>
-                                <span>Ticket sale payout ({formatVND(listing.netSellerPayout || listing.resalePrice)}) will be automatically disbursed to your bank account after 2 minutes.</span>
-                              </div>
-                            </div>
+                            <SettlementCountdownBanner
+                              unlockAt={listing.unlockAt}
+                              netSellerPayout={listing.netSellerPayout}
+                              resalePrice={listing.resalePrice}
+                              onRefresh={refetch}
+                            />
                           ) : (
                             <div className="p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center gap-2 text-xs text-emerald-300">
                               <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
