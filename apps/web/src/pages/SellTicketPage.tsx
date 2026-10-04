@@ -369,21 +369,23 @@ export const SellTicketPage: React.FC = () => {
       }
     }
 
-    const normalizedCode = codes.join(', ');
+    // For multi-ticket combo selection, send primary ticket code codes[0] to Organizer for OTP verification
+    const primaryCode = codes[0];
 
     try {
       setIsRequestingOtp(true);
       showToast('Verifying ticket & requesting OTP from Organizer...', 'info');
-      const result = await resaleApi.requestVerificationOtp(normalizedCode, selectedOrganizerId || undefined);
+      const result = await resaleApi.requestVerificationOtp(primaryCode, selectedOrganizerId || undefined);
       setVerificationId(result.verificationId);
       setVerificationResult(result);
       const targetExpiresAt = Date.now() + 300 * 1000;
       setOtpExpiresAt(targetExpiresAt);
       setOtpTimeLeft(300);
       if (result.originalPrice && result.originalPrice > 0) {
-        setFaceValue(result.originalPrice);
-        setResalePrice(result.originalPrice);
-        setPriceInputText(result.originalPrice.toLocaleString('vi-VN'));
+        const totalFaceValue = result.originalPrice * codes.length;
+        setFaceValue(totalFaceValue);
+        setResalePrice(totalFaceValue);
+        setPriceInputText(totalFaceValue.toLocaleString('vi-VN'));
       }
       showToast('OTP code sent! Please check the ticket owner email/phone.', 'success');
       setCurrentStep(2);
