@@ -6,9 +6,16 @@ import { SeatAdjacencyBadge } from '../ui/SeatAdjacencyBadge';
 export interface Step5ReviewPublishProps {
   /** Mã của từng vé thật trong gói (1–3 vé). */
   ticketCodes: string[];
+  /** Danh sách vé chi tiết kèm giá bán riêng. */
+  tickets?: Array<{
+    code: string;
+    originalPrice: number;
+    resalePrice: number;
+    seatZone?: string;
+  }>;
   /** Tổng giá gốc của tất cả vé trong gói. */
   faceValue: number;
-  /** Giá bán lại áp dụng cho MỖI vé trong gói. */
+  /** Giá bán lại áp dụng cho MỖI vé trong gói (fallback). */
   resalePrice: number;
   bankAccounts: UserBankAccountDto[];
   seatZone?: string;
@@ -25,6 +32,7 @@ export interface Step5ReviewPublishProps {
 
 export const Step5ReviewPublish: React.FC<Step5ReviewPublishProps> = ({
   ticketCodes,
+  tickets,
   faceValue,
   resalePrice,
   bankAccounts,
@@ -39,8 +47,10 @@ export const Step5ReviewPublish: React.FC<Step5ReviewPublishProps> = ({
   setActiveFeeTooltip,
   onManageBankAccounts,
 }) => {
-  const ticketCount = Math.max(ticketCodes.length, 1);
-  const totalResalePrice = resalePrice * ticketCount;
+  const ticketCount = Math.max(tickets?.length || ticketCodes.length, 1);
+  const totalResalePrice = tickets && tickets.length > 0
+    ? tickets.reduce((sum, t) => sum + (t.resalePrice || 0), 0)
+    : resalePrice * ticketCount;
   const totalSellerFee = Math.max(Math.round(totalResalePrice * 0.03), 5000 * ticketCount);
   const totalYouReceive = Math.max(totalResalePrice - totalSellerFee, 0);
 
@@ -117,7 +127,9 @@ export const Step5ReviewPublish: React.FC<Step5ReviewPublishProps> = ({
             </span>
             {ticketCount > 1 && (
               <span className="text-[11px] text-gray-500 font-mono block">
-                {resalePrice.toLocaleString('vi-VN')} VND × {ticketCount} tickets
+                {tickets && tickets.length > 1
+                  ? `${ticketCount} vé trong combo`
+                  : `${resalePrice.toLocaleString('vi-VN')} VND × ${ticketCount} tickets`}
               </span>
             )}
           </div>
@@ -131,11 +143,22 @@ export const Step5ReviewPublish: React.FC<Step5ReviewPublishProps> = ({
 
           <div className="space-y-2.5 text-xs">
             <div className="flex justify-between items-center text-gray-300">
-              <span>Resale Price</span>
+              <span>Resale Price (Tổng giá bán)</span>
               <span className="font-mono font-medium text-white">
                 {totalResalePrice.toLocaleString('vi-VN')} VND
               </span>
             </div>
+
+            {tickets && tickets.length > 1 && (
+              <div className="space-y-1 pl-2.5 py-1 border-l-2 border-[#FF5A36]/40 bg-white/[0.02] rounded-r-lg my-1.5">
+                {tickets.map((t, idx) => (
+                  <div key={t.code} className="flex justify-between items-center text-[11px] text-gray-400 font-mono">
+                    <span>Vé #{idx + 1} ({t.code}):</span>
+                    <span className="text-zinc-200 font-semibold">{t.resalePrice.toLocaleString('vi-VN')} VND</span>
+                  </div>
+                ))}
+              </div>
+            )}
 
             <div className="relative flex justify-between items-center text-gray-300">
               <div className="flex items-center gap-1.5">

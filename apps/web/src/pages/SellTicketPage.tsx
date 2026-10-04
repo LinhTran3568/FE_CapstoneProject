@@ -16,6 +16,7 @@ import {
   Step4SetPrice,
   Step5ReviewPublish,
   Step6ListingSuccess,
+  TicketPriceItem,
 } from '../components/sell';
 
 export const SellTicketPage: React.FC = () => {
@@ -65,14 +66,12 @@ const DRAFT_STORAGE_KEY = 'ticketshield_sell_draft';
   const [showScenarioModal, setShowScenarioModal] = useState<boolean>(false);
   const [activeFeeTooltip, setActiveFeeTooltip] = useState<'seller' | 'buyer' | null>(null);
 
-  // Step 4 Pricing state (declared early for draft storage)
-  // `resalePrice` là giá bán lại của MỖI vé; tổng tiền = resalePrice * số vé.
-  const [resalePrice, setResalePrice] = useState<number>(2500000);
-  const [priceInputText, setPriceInputText] = useState<string>('2.500.000');
+  // Step 4 Pricing state: lưu giá bán của từng vé (theo mã vé)
+  const [ticketPrices, setTicketPrices] = useState<Record<string, number>>({});
+  const [activeTicketIndex, setActiveTicketIndex] = useState<number>(0);
 
   const markupPercent = sessions[0]?.markupPercent ?? 0;
   const faceValue = sessions.reduce((sum, s) => sum + s.originalPrice, 0);
-  // Trần áp dụng cho MỖI vé: chọn mức thấp nhất để không vé nào vượt trần của chính nó.
   const priceCeiling = sessions.length
     ? sessions.reduce((min, s) => Math.min(min, s.priceCeiling || Number.MAX_SAFE_INTEGER), Number.MAX_SAFE_INTEGER)
     : 0;
@@ -100,9 +99,17 @@ const DRAFT_STORAGE_KEY = 'ticketshield_sell_draft';
           setTicketCode((d.ticketCodes || []).join(', '));
           if (d.selectedOrganizerId) setSelectedOrganizerId(d.selectedOrganizerId);
           setSessions(d.sessions);
-          if (d.resalePrice) {
-            setResalePrice(d.resalePrice);
-            setPriceInputText(d.priceInputText || d.resalePrice.toLocaleString('vi-VN'));
+          if (d.ticketPrices && typeof d.ticketPrices === 'object') {
+            setTicketPrices(d.ticketPrices);
+          } else if (d.resalePrice) {
+            const fallback: Record<string, number> = {};
+            (d.sessions as any[]).forEach((s) => {
+              fallback[s.code] = d.resalePrice;
+            });
+            setTicketPrices(fallback);
+          }
+          if (typeof d.activeTicketIndex === 'number') {
+            setActiveTicketIndex(d.activeTicketIndex);
           }
           setCurrentStep(d.currentStep);
           setResumeDraftAvailable(true);
@@ -123,13 +130,13 @@ const DRAFT_STORAGE_KEY = 'ticketshield_sell_draft';
           selectedOrganizerId,
           sessions,
           currentStep,
-          resalePrice,
-          priceInputText: priceInputText || resalePrice.toLocaleString('vi-VN'),
+          ticketPrices,
+          activeTicketIndex,
           savedAt: Date.now(),
         })
       );
     }
-  }, [sessions, currentStep, ticketCodes, selectedOrganizerId, resalePrice, priceInputText]);
+  }, [sessions, currentStep, ticketCodes, selectedOrganizerId, ticketPrices, activeTicketIndex]);
 
   const [existingListings, setExistingListings] = useState<SellerListingDto[]>([]);
   const [isLoadingListings, setIsLoadingListings] = useState<boolean>(true);
@@ -213,77 +220,31 @@ const DRAFT_STORAGE_KEY = 'ticketshield_sell_draft';
   }, []);
 
 
-  const updatePrice = (val: number) => {
-    const clamped = Math.max(0, Math.min(val, priceCeiling));
-    setResalePrice(clamped);
-    setPriceInputText(clamped > 0 ? clamped.toLocaleString('vi-VN') : '');
-  };
+  const handleUpdateTicketPrice = useCallback((code: string, newPrice: number) => {
+    const targetSession = sessions.find((s) => s.code === code);
+    const ceiling = targetSession?.priceCeiling && targetSession.priceCeiling > 0
+      ? targetSession.priceCeiling
+      : Number.MAX_SAFE_INTEGER;
+    const clamped = Math.max(0, Math.min(newPrice, ceiling));
+    setTicketPrices((prev) => ({
+      ...prev,
+      [code]: clamped,
+    }));
+  }, [sessions]);
 
-  const handlePriceInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const input = e.target;
-    const oldVal = input.value;
-    const oldPos = input.selectionStart || 0;
-
-    const digitsBeforeCursor = oldVal.slice(0, oldPos).replace(/\D/g, '').length;
-
-    const raw = oldVal.replace(/\D/g, '');
-    if (raw === '') {
-      setPriceInputText('');
-      setResalePrice(0);
-      return;
-    }
-
-    if (raw.length > 11) return;
-
-    const parsed = parseInt(raw, 10);
-    if (!isNaN(parsed)) {
-      const formatted = parsed.toLocaleString('vi-VN');
-      setResalePrice(parsed);
-      setPriceInputText(formatted);
-
-      requestAnimationFrame(() => {
-        let newPos = 0;
-        let count = 0;
-        for (let i = 0; i < formatted.length; i++) {
-          if (/\d/.test(formatted[i])) {
-            count++;
-          }
-          if (count >= digitsBeforeCursor) {
-            newPos = i + 1;
-            break;
-          }
-        }
-        if (newPos === 0 && formatted.length > 0) newPos = formatted.length;
-        input.setSelectionRange(newPos, newPos);
-      });
-    }
-  };
-
-  const handlePriceInputBlur = () => {
-    if (!priceInputText || resalePrice === 0) {
-      updatePrice(faceValue / Math.max(sessions.length, 1));
-    } else if (resalePrice > priceCeiling) {
-      updatePrice(priceCeiling);
-    }
-  };
-
-  const handleStepPrice = (delta: number) => {
-    const current = resalePrice || 0;
-    const next = current + delta;
-    if (delta > 0 && next > priceCeiling) {
-      updatePrice(priceCeiling);
-      return;
-    }
-    if (next < 0) {
-      updatePrice(0);
-      return;
-    }
-    updatePrice(next);
-  };
-
-  const handleApplyDiscount = (percent: number) => {
-    updatePrice(Math.round(perTicketFaceValue * (1 - percent / 100)));
-  };
+  const ticketsPriceList = useMemo<TicketPriceItem[]>(() => {
+    return sessions.map((s) => {
+      const price = ticketPrices[s.code] ?? s.originalPrice ?? 0;
+      return {
+        code: s.code,
+        originalPrice: s.originalPrice,
+        markupPercent: s.markupPercent,
+        priceCeiling: s.priceCeiling,
+        resalePrice: price,
+        seatZone: purchasedTickets.find((t) => purchasedPassCode(t) === s.code)?.seatZone,
+      };
+    });
+  }, [sessions, ticketPrices, purchasedTickets]);
 
   // Step 5 Confirmation state
   const [agreedTerms, setAgreedTerms] = useState(true);
@@ -385,12 +346,12 @@ const DRAFT_STORAGE_KEY = 'ticketshield_sell_draft';
       setSessions(created);
       setTicketCode(codes.join(', '));
 
-      if (created.every((s) => s.originalPrice > 0)) {
-        const total = created.reduce((sum, s) => sum + s.originalPrice, 0);
-        const perTicket = Math.trunc(total / created.length);
-        setResalePrice(perTicket);
-        setPriceInputText(perTicket.toLocaleString('vi-VN'));
-      }
+      const initialPrices: Record<string, number> = {};
+      created.forEach((s) => {
+        initialPrices[s.code] = s.originalPrice > 0 ? s.originalPrice : 50000;
+      });
+      setTicketPrices(initialPrices);
+      setActiveTicketIndex(0);
 
       showToast(
         codes.length > 1
@@ -462,6 +423,14 @@ const DRAFT_STORAGE_KEY = 'ticketshield_sell_draft';
             : s
         )
       );
+
+      if (result.originalPrice && result.originalPrice > 0) {
+        setTicketPrices((prev) => ({
+          ...prev,
+          [entry.code]: prev[entry.code] || result.originalPrice || 50000,
+        }));
+      }
+
       return true;
     } catch (err: any) {
       const rawMsg = err?.response?.data?.message || err?.message || '';
@@ -528,8 +497,8 @@ const DRAFT_STORAGE_KEY = 'ticketshield_sell_draft';
     }
     setSessions([]);
     setTicketCode(keepCodes ?? '');
-    setResalePrice(0);
-    setPriceInputText('');
+    setTicketPrices({});
+    setActiveTicketIndex(0);
     setCurrentStep(1);
     setResumeDraftAvailable(false);
   };
@@ -590,39 +559,43 @@ const DRAFT_STORAGE_KEY = 'ticketshield_sell_draft';
       return;
     }
 
-    if (resalePrice > priceCeiling) {
-      showToast(
-        `Resale price cannot exceed the event ceiling (${priceCeiling.toLocaleString('vi-VN')} VND per ticket). Lower the price and try again.`,
-        'warning'
-      );
-      return;
-    }
-
-    if (resalePrice < 5000) {
-      showToast(
-        'Resale price must be at least the minimum seller fee (5.000 VND). Raise the price and try again.',
-        'warning'
-      );
-      return;
+    for (const s of sessions) {
+      const p = ticketPrices[s.code] ?? s.originalPrice;
+      const ceiling = s.priceCeiling && s.priceCeiling > 0 ? s.priceCeiling : Number.MAX_SAFE_INTEGER;
+      if (p > ceiling) {
+        showToast(
+          `Giá bán vé ${s.code} vượt quá trần cho phép (${ceiling.toLocaleString('vi-VN')} VND). Vui lòng hạ giá.`,
+          'warning'
+        );
+        return;
+      }
+      if (p < 5000) {
+        showToast(
+          `Giá bán vé ${s.code} phải tối thiểu 5.000 VND. Vui lòng tăng giá.`,
+          'warning'
+        );
+        return;
+      }
     }
 
     try {
       setIsPublishing(true);
 
       if (sessions.length === 1) {
+        const p = ticketPrices[sessions[0].code] ?? sessions[0].originalPrice;
         const result = await resaleApi.publishListing(
           sessions[0].verificationId,
-          resalePrice,
+          p,
           isPrivateListing
         );
         setPublishedListingId(result.listingId ?? '');
         setPublishedPrivateToken(result.privateAccessToken ?? '');
       } else {
-        // BE tạo N listing thật trong 1 transaction; chỉ cần 1 vé lỗi là cả gói rollback.
+        // BE tạo N listing thật trong 1 transaction; mỗi vé mang giá bán riêng của chính nó
         const result = await resaleApi.bulkPublishListing(
           sessions.map((s) => ({
             verificationId: s.verificationId,
-            resalePrice,
+            resalePrice: ticketPrices[s.code] ?? s.originalPrice,
             isPrivate: isPrivateListing,
           })),
           true
@@ -904,17 +877,10 @@ const DRAFT_STORAGE_KEY = 'ticketshield_sell_draft';
         {/* STEP 4: SET RESALE PRICE */}
         {currentStep === 4 && (
           <Step4SetPrice
-            priceCeiling={priceCeiling}
-            faceValue={perTicketFaceValue}
-            ticketCount={sessions.length}
-            markupPercent={markupPercent}
-            resalePrice={resalePrice}
-            updatePrice={updatePrice}
-            priceInputText={priceInputText}
-            handlePriceInputChange={handlePriceInputChange}
-            handlePriceInputBlur={handlePriceInputBlur}
-            handleStepPrice={handleStepPrice}
-            handleApplyDiscount={handleApplyDiscount}
+            tickets={ticketsPriceList}
+            activeTicketIndex={activeTicketIndex}
+            setActiveTicketIndex={setActiveTicketIndex}
+            onUpdateTicketPrice={handleUpdateTicketPrice}
             onContinue={() => setCurrentStep(5)}
           />
         )}
@@ -923,8 +889,9 @@ const DRAFT_STORAGE_KEY = 'ticketshield_sell_draft';
         {currentStep === 5 && (
           <Step5ReviewPublish
             ticketCodes={ticketCodes}
+            tickets={ticketsPriceList}
             faceValue={faceValue}
-            resalePrice={resalePrice}
+            resalePrice={ticketPrices[sessions[0]?.code] ?? sessions[0]?.originalPrice ?? 0}
             bankAccounts={bankAccounts}
             seatZone={purchasedTickets.find((t) => purchasedPassCode(t) === sessions[0]?.code)?.seatZone}
             isPrivateListing={isPrivateListing}
@@ -946,7 +913,7 @@ const DRAFT_STORAGE_KEY = 'ticketshield_sell_draft';
             publishedListingId={publishedListingId}
             existingListings={existingListings}
             faceValue={faceValue}
-            resalePrice={resalePrice}
+            resalePrice={ticketPrices[sessions[0]?.code] ?? sessions[0]?.originalPrice ?? 0}
             isPrivateListing={isPrivateListing}
             getShareUrl={getShareUrl}
             handleCopyLink={handleCopyLink}
