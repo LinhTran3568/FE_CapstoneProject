@@ -4,8 +4,11 @@ import { Ticket, Globe, Lock, Check, AlertCircle, Loader2 } from 'lucide-react';
 import { SeatAdjacencyBadge } from '../ui/SeatAdjacencyBadge';
 
 export interface Step5ReviewPublishProps {
-  ticketCode: string;
+  /** Mã của từng vé thật trong gói (1–3 vé). */
+  ticketCodes: string[];
+  /** Tổng giá gốc của tất cả vé trong gói. */
   faceValue: number;
+  /** Giá bán lại áp dụng cho MỖI vé trong gói. */
   resalePrice: number;
   bankAccounts: UserBankAccountDto[];
   seatZone?: string;
@@ -21,7 +24,7 @@ export interface Step5ReviewPublishProps {
 }
 
 export const Step5ReviewPublish: React.FC<Step5ReviewPublishProps> = ({
-  ticketCode,
+  ticketCodes,
   faceValue,
   resalePrice,
   bankAccounts,
@@ -36,6 +39,11 @@ export const Step5ReviewPublish: React.FC<Step5ReviewPublishProps> = ({
   setActiveFeeTooltip,
   onManageBankAccounts,
 }) => {
+  const ticketCount = Math.max(ticketCodes.length, 1);
+  const totalResalePrice = resalePrice * ticketCount;
+  const totalSellerFee = Math.max(Math.round(totalResalePrice * 0.03), 5000 * ticketCount);
+  const totalYouReceive = Math.max(totalResalePrice - totalSellerFee, 0);
+
   return (
     <div key={5} className="animate-fade-in-up max-w-[640px] mx-auto space-y-5 pt-2">
       <div className="space-y-1 text-center">
@@ -59,7 +67,7 @@ export const Step5ReviewPublish: React.FC<Step5ReviewPublishProps> = ({
               <div className="flex items-center gap-1.5">
                 <Ticket className="w-3.5 h-3.5 text-cyan-400" />
                 <span>
-                  Ticket Code: <strong className="text-gray-200">{ticketCode || 'ATSH-VIP-8862'}</strong>
+                  {ticketCount > 1 ? `${ticketCount} Tickets in this combo:` : 'Ticket Code:'}
                 </span>
               </div>
               {seatZone && (
@@ -70,6 +78,19 @@ export const Step5ReviewPublish: React.FC<Step5ReviewPublishProps> = ({
                   showSubtext={true}
                 />
               )}
+            </div>
+            <div className="flex flex-wrap gap-1.5 pt-0.5">
+              {ticketCodes.length === 0 && (
+                <span className="text-gray-400">ATSH-VIP-8862</span>
+              )}
+              {ticketCodes.map((code) => (
+                <span
+                  key={code}
+                  className="px-2 py-0.5 bg-white/[0.04] border border-white/10 rounded-md text-[11px] text-gray-200 break-all"
+                >
+                  {code}
+                </span>
+              ))}
             </div>
           </div>
           <span className="px-2.5 py-1 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[11px] font-semibold font-mono rounded-full shrink-0 uppercase">
@@ -92,8 +113,13 @@ export const Step5ReviewPublish: React.FC<Step5ReviewPublishProps> = ({
               RESALE PRICE
             </span>
             <span className="font-mono font-bold text-[#FF5A36] text-sm">
-              {resalePrice.toLocaleString('vi-VN')} VND
+              {totalResalePrice.toLocaleString('vi-VN')} VND
             </span>
+            {ticketCount > 1 && (
+              <span className="text-[11px] text-gray-500 font-mono block">
+                {resalePrice.toLocaleString('vi-VN')} VND × {ticketCount} tickets
+              </span>
+            )}
           </div>
         </div>
 
@@ -107,7 +133,7 @@ export const Step5ReviewPublish: React.FC<Step5ReviewPublishProps> = ({
             <div className="flex justify-between items-center text-gray-300">
               <span>Resale Price</span>
               <span className="font-mono font-medium text-white">
-                {resalePrice.toLocaleString('vi-VN')} VND
+                {totalResalePrice.toLocaleString('vi-VN')} VND
               </span>
             </div>
 
@@ -133,16 +159,16 @@ export const Step5ReviewPublish: React.FC<Step5ReviewPublishProps> = ({
                 )}
               </div>
               <span className="font-mono text-gray-400">
-                -{Math.max(Math.round(resalePrice * 0.03), 5000).toLocaleString('vi-VN')} VND
+                -{totalSellerFee.toLocaleString('vi-VN')} VND
               </span>
             </div>
 
             <div className="flex justify-between items-center pt-1 text-sm font-bold">
               <span className="text-white">You Receive</span>
-              <span className={`font-mono text-base ${resalePrice < 5000 ? 'text-rose-400' : 'text-emerald-400'}`}>
-                {resalePrice < 5000
+              <span className={`font-mono text-base ${totalResalePrice < 5000 ? 'text-rose-400' : 'text-emerald-400'}`}>
+                {totalResalePrice < 5000
                   ? 'Below minimum fee'
-                  : `${Math.max(resalePrice - Math.max(Math.round(resalePrice * 0.03), 5000), 0).toLocaleString('vi-VN')} VND`}
+                  : `${totalYouReceive.toLocaleString('vi-VN')} VND`}
               </span>
             </div>
           </div>
@@ -250,7 +276,7 @@ export const Step5ReviewPublish: React.FC<Step5ReviewPublishProps> = ({
             className="rounded border-gray-700 bg-black text-[#FF5A36] focus:ring-0 w-4 h-4 cursor-pointer"
           />
           <span className="group-hover:text-white transition-colors">
-            I certify that I am the authentic ticket owner and agree to list on TicketShield Marketplace
+            I certify that I am the authentic owner of {ticketCount > 1 ? 'all ' + ticketCount + ' tickets' : 'this ticket'} and agree to list on TicketShield Marketplace
           </span>
         </label>
 
@@ -266,7 +292,7 @@ export const Step5ReviewPublish: React.FC<Step5ReviewPublishProps> = ({
               <span>PUBLISHING...</span>
             </>
           ) : (
-            <span>PUBLISH LISTING</span>
+            <span>{ticketCount > 1 ? `PUBLISH COMBO (${ticketCount} TICKETS)` : 'PUBLISH LISTING'}</span>
           )}
         </button>
       </div>

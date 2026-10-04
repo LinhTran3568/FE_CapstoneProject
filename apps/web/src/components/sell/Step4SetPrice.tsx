@@ -3,7 +3,10 @@ import { ShieldCheck } from 'lucide-react';
 
 export interface Step4SetPriceProps {
   priceCeiling: number;
+  /** Giá gốc của MỘT vé (đã chia trung bình khi bán gói). */
   faceValue: number;
+  /** Số vé trong gói. 1 = bán đơn lẻ. */
+  ticketCount: number;
   markupPercent: number;
   resalePrice: number;
   updatePrice: (val: number) => void;
@@ -18,6 +21,7 @@ export interface Step4SetPriceProps {
 export const Step4SetPrice: React.FC<Step4SetPriceProps> = ({
   priceCeiling,
   faceValue,
+  ticketCount,
   markupPercent,
   resalePrice,
   updatePrice,
@@ -28,6 +32,9 @@ export const Step4SetPrice: React.FC<Step4SetPriceProps> = ({
   handleApplyDiscount,
   onContinue,
 }) => {
+  const isCombo = ticketCount > 1;
+  const totalResalePrice = resalePrice * ticketCount;
+
   return (
     <div key={4} className="animate-fade-in-up max-w-xl mx-auto space-y-6 pt-2">
       <div className="space-y-2 text-center">
@@ -43,7 +50,7 @@ export const Step4SetPrice: React.FC<Step4SetPriceProps> = ({
       {/* Price Selector Main Box */}
       <div className="bg-[#0A0D12]/90 backdrop-blur-md border border-white/10 p-6 sm:p-8 rounded-3xl space-y-6 shadow-2xl text-center hover:border-white/20 transition-all duration-300">
         <span className="text-xs text-[#A3A8B3] uppercase tracking-wider font-display font-semibold">
-          PROPOSED RESALE PRICE
+          {isCombo ? 'PROPOSED RESALE PRICE (PER TICKET)' : 'PROPOSED RESALE PRICE'}
         </span>
 
         <div className="text-4xl sm:text-5xl font-extrabold font-display text-white tracking-tight flex items-center justify-center gap-2 transition-all duration-300">
@@ -52,6 +59,13 @@ export const Step4SetPrice: React.FC<Step4SetPriceProps> = ({
           </span>
           <span className="text-base font-normal text-[#FF5A36]">VND</span>
         </div>
+
+        {isCombo && (
+          <p className="text-xs font-mono text-[#A3A8B3]">
+            {resalePrice.toLocaleString('vi-VN')} VND × {ticketCount} tickets ={' '}
+            <span className="text-[#FF5A36] font-bold">{totalResalePrice.toLocaleString('vi-VN')} VND</span>
+          </p>
+        )}
 
         <div className="space-y-2 text-left">
           <label htmlFor="resale-price-slider" className="sr-only">

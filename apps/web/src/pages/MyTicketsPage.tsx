@@ -679,17 +679,21 @@ const EntryQrModal: React.FC<EntryQrModalProps> = ({ ticket, onClose }) => {
   const [selectedTicketIndex, setSelectedTicketIndex] = useState(0);
 
   const isCombo = Boolean((ticket.bundleTotalTickets && ticket.bundleTotalTickets >= 2) || (ticket.bundleItems && ticket.bundleItems.length >= 2));
-  const totalCount = ticket.bundleTotalTickets || ticket.bundleItems?.length || 1;
 
+  // Chỉ hiển thị vé có dữ liệu thật từ BE. Không sinh mã "-T1/-T2" hay ghép seat giả:
+  // nếu BE chưa trả bundleItems thì hiển thị đúng 1 vé đang có.
   const items = (ticket.bundleItems && ticket.bundleItems.length > 0)
     ? ticket.bundleItems
-    : Array.from({ length: totalCount }).map((_, i) => ({
-        listingId: ticket.listingId,
-        ticketCode: ticket.ticketPassCode ? `${ticket.ticketPassCode}-T${i + 1}` : '',
-        seatZone: ticket.seatZone || `Seat #${i + 1}`,
-        qrCodeData: ticket.qrCodeData,
-        qrCodeImageUrl: ticket.qrCodeImageUrl,
-      }));
+    : [
+        {
+          listingId: ticket.listingId,
+          ticketCode: ticket.ticketPassCode || '',
+          seatZone: ticket.seatZone || '',
+          qrCodeData: ticket.qrCodeData,
+          qrCodeImageUrl: ticket.qrCodeImageUrl,
+        },
+      ];
+  const totalCount = items.length;
 
   const currentItem = items[selectedTicketIndex] || items[0];
   const payload = currentItem.qrCodeData || currentItem.ticketCode || entryPayload(ticket);

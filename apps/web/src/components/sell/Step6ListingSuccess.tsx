@@ -15,10 +15,13 @@ import {
 } from 'lucide-react';
 
 export interface Step6ListingSuccessProps {
-  ticketCode: string;
+  /** Mã vé THẬT vừa đăng bán (1 vé = 1 phần tử; combo = 2–3 phần tử). */
+  ticketCodes: string[];
   publishedListingId: string;
   existingListings: SellerListingDto[];
+  /** Tổng giá gốc của cả gói. */
   faceValue: number;
+  /** Giá bán của MỘT vé. */
   resalePrice: number;
   isPrivateListing: boolean;
   getShareUrl: () => string;
@@ -32,7 +35,7 @@ export interface Step6ListingSuccessProps {
 }
 
 export const Step6ListingSuccess: React.FC<Step6ListingSuccessProps> = ({
-  ticketCode,
+  ticketCodes,
   publishedListingId,
   existingListings,
   faceValue,
@@ -47,11 +50,16 @@ export const Step6ListingSuccess: React.FC<Step6ListingSuccessProps> = ({
   onNavigateMyListings,
   onNavigateMarketplace,
 }) => {
+  const isCombo = ticketCodes.length > 1;
+  const totalResalePrice = resalePrice * Math.max(ticketCodes.length, 1);
+
+  // Chỉ dùng metadata từ listing thật vừa tạo — không bịa tên sự kiện/venue/tier khi chưa có.
   const matchedListing = existingListings.find(
-    (l) => (publishedListingId && l.listingId === publishedListingId) || l.originalTicketCode === ticketCode
+    (l) =>
+      (publishedListingId && l.listingId === publishedListingId) ||
+      ticketCodes.includes(l.originalTicketCode)
   );
-  const isAtsh = ticketCode.startsWith('ATSH') || !ticketCode;
-  const resolvedEventName = matchedListing?.eventName || (isAtsh ? 'Anh Trai Say Hi Concert 2026' : 'Live Concert');
+  const resolvedEventName = matchedListing?.eventName || 'Your listing';
   const resolvedEventDate = matchedListing?.eventStartAt
     ? new Date(matchedListing.eventStartAt).toLocaleString('vi-VN', {
         hour: '2-digit',
@@ -60,15 +68,11 @@ export const Step6ListingSuccess: React.FC<Step6ListingSuccessProps> = ({
         month: '2-digit',
         year: 'numeric',
       })
-    : '19:00, Oct 26, 2026';
-  const resolvedVenue = matchedListing?.eventVenue || 'Van Hanh Mall Stadium, TP.HCM';
-  const resolvedTier = matchedListing?.tierName || (
-    ticketCode.includes('VIP')
-      ? 'VIP Zone A - Row 1 Seat 12'
-      : ticketCode.includes('GA')
-      ? 'GA Standing Zone 2'
-      : 'Standard Zone C'
-  );
+    : '—';
+  const resolvedVenue = matchedListing?.eventVenue || '—';
+  const resolvedTier =
+    matchedListing?.tierName ||
+    (isCombo ? `Combo ${ticketCodes.length} vé` : '—');
   const resolvedPoster = '/images/landing/featured-1.jpg';
 
   return (
@@ -89,9 +93,11 @@ export const Step6ListingSuccess: React.FC<Step6ListingSuccessProps> = ({
           {isPrivateListing ? 'Private Listing Created Successfully!' : 'Listing Published Successfully!'}
         </h2>
         <p className="text-xs sm:text-sm text-[#A3A8B3] max-w-lg mx-auto">
-          {isPrivateListing
-            ? 'Your ticket is protected with our 100% 24-Hour Funds Protection guarantee. Share your secret private link or QR code with your buyer.'
-            : 'Your ticket is now listed publicly on TicketShield Marketplace under 100% 24-Hour Protection.'}
+          {isCombo
+            ? `All ${ticketCodes.length} tickets are listed together as one combo. Buyers pay the total of every ticket.`
+            : isPrivateListing
+              ? 'Your ticket is protected with our 100% 24-Hour Funds Protection guarantee. Share your secret private link or QR code with your buyer.'
+              : 'Your ticket is now listed publicly on TicketShield Marketplace under 100% 24-Hour Protection.'}
         </p>
       </div>
 
@@ -163,22 +169,29 @@ export const Step6ListingSuccess: React.FC<Step6ListingSuccessProps> = ({
                 </div>
               </div>
 
-              {/* Ticket Meta Grid: Code & Listing ID */}
-              <div className="grid grid-cols-2 gap-3 pt-3 border-t border-[#27272A] text-left">
+              {/* Ticket Meta Grid: Codes & Listing ID */}
+              <div className="pt-3 border-t border-[#27272A] text-left space-y-3">
                 <div className="space-y-0.5">
                   <span className="text-[9px] text-[#8F96A3] font-mono font-bold uppercase tracking-wider block">
-                    TICKET CODE
+                    {isCombo ? `TICKET CODES (${ticketCodes.length})` : 'TICKET CODE'}
                   </span>
-                  <p className="font-mono font-bold text-xs text-white tracking-wider truncate">
-                    {ticketCode || 'ATSH-VIP-888'}
-                  </p>
+                  <ul className="space-y-0.5">
+                    {ticketCodes.map((code) => (
+                      <li
+                        key={code}
+                        className="font-mono font-bold text-xs text-white tracking-wider truncate"
+                      >
+                        {code}
+                      </li>
+                    ))}
+                  </ul>
                 </div>
                 <div className="space-y-0.5">
                   <span className="text-[9px] text-[#8F96A3] font-mono font-bold uppercase tracking-wider block">
-                    LISTING ID
+                    {isCombo ? 'BUNDLE ID' : 'LISTING ID'}
                   </span>
                   <p className="font-mono font-bold text-xs text-[#A3A8B3] truncate">
-                    {publishedListingId || 'TS-RESALE-LISTING'}
+                    {publishedListingId || '—'}
                   </p>
                 </div>
               </div>
@@ -195,11 +208,16 @@ export const Step6ListingSuccess: React.FC<Step6ListingSuccessProps> = ({
                 </div>
                 <div className="text-right">
                   <span className="text-[9px] text-emerald-400 font-mono font-bold uppercase tracking-wider block">
-                    RESALE PRICE
+                    {isCombo ? 'RESALE PRICE (PER TICKET)' : 'RESALE PRICE'}
                   </span>
                   <span className="text-lg sm:text-xl font-extrabold font-display text-emerald-400">
                     {resalePrice.toLocaleString('vi-VN')} VND
                   </span>
+                  {isCombo && (
+                    <span className="block text-[10px] font-mono text-[#8F96A3] mt-0.5">
+                      Total {totalResalePrice.toLocaleString('vi-VN')} VND
+                    </span>
+                  )}
                 </div>
               </div>
             </div>

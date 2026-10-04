@@ -62,23 +62,14 @@ export const TicketCard: React.FC<TicketCardProps> = ({
     )
   );
 
-  // FE-5.2.6: Bundle Combo & Multi-ticket detection
+  // FE-5.2.6: Bundle Combo & Multi-ticket detection.
+  // Chỉ dùng listing thật của gói; không tách seatZone để bịa vé ảo.
   const effectiveBundleListings = bundleListings && bundleListings.length > 0
     ? bundleListings
-    : listing.seatZone && (listing.seatZone.includes(',') || listing.seatZone.includes('|'))
-      ? listing.seatZone.split(/[,|]/).map((seatStr, idx) => ({
-        ...listing,
-        listingId: `${listing.listingId}-${idx}`,
-        seatZone: seatStr.trim(),
-        maskedTicketCode: listing.maskedTicketCode,
-      }))
-      : [listing];
+    : [listing];
 
-  const isBundle = Boolean(
-    (listing.bundleId && (listing.bundleTotalTickets ?? 0) > 1) ||
-    effectiveBundleListings.length > 1
-  );
-  const bundleCount = effectiveBundleListings.length > 1 ? effectiveBundleListings.length : (listing.bundleTotalTickets ?? 1);
+  const isBundle = effectiveBundleListings.length > 1;
+  const bundleCount = effectiveBundleListings.length;
 
   // Dynamic Zone styling with high contrast dark glass and vibrant accents
   const getZoneStyle = (tierName: string) => {

@@ -196,60 +196,26 @@ export const BuyTicketModal: React.FC<BuyTicketModalProps> = ({
 
   if (!isOpen || !listing) return null;
 
-  // FE-5.2.6: Bundle Combo & Multi-ticket detection for checkout modal
-  const matchedBundleListings = (allListings && listing.bundleId)
+  // FE-5.2.6: Bundle Combo & Multi-ticket detection for checkout modal.
+  // Chỉ dựng danh sách vé từ listing THẬT cùng bundleId. Không suy diễn vé từ
+  // seatZone hay từ BundleTotalTickets vì sẽ tạo ra vé/mã không tồn tại.
+  const matchedBundleListings: MarketplaceListingDto[] = (allListings && listing.bundleId)
     ? allListings.filter((l) => l.bundleId === listing.bundleId)
     : [];
 
-  const effectiveBundleListings: MarketplaceListingDto[] = matchedBundleListings.length > 1
-    ? matchedBundleListings
-    : listing.seatZone && (listing.seatZone.includes(',') || listing.seatZone.includes('|'))
-    ? listing.seatZone.split(/[,|]/).map((seatStr, idx) => ({
-        ...listing,
-        listingId: `${listing.listingId}-${idx}`,
-        seatZone: seatStr.trim(),
-        maskedTicketCode: listing.maskedTicketCode,
-      }))
-    : (listing.bundleTotalTickets && listing.bundleTotalTickets > 1)
-    ? Array.from({ length: listing.bundleTotalTickets }, (_, idx) => {
-        const match = listing.seatZone ? listing.seatZone.match(/(.*(?:Seat|Ghế|Số)\s*)(\d+)(.*)/i) : null;
-        let seatStr = listing.seatZone ? `${listing.seatZone} (Vé #${idx + 1})` : `Ghế #${idx + 1}`;
-        if (match) {
-          const prefix = match[1];
-          const baseNum = parseInt(match[2], 10);
-          const suffix = match[3];
-          if (!isNaN(baseNum)) {
-            const nextNum = String(baseNum + idx).padStart(match[2].length, '0');
-            seatStr = `${prefix}${nextNum}${suffix}`;
-          }
-        }
-        let codeStr = listing.maskedTicketCode;
-        if (codeStr && /\d+$/.test(codeStr)) {
-          codeStr = codeStr.replace(/\d+$/, (m) => String(parseInt(m, 10) + idx).padStart(m.length, '0'));
-        }
-        return {
-          ...listing,
-          listingId: `${listing.listingId}-${idx}`,
-          seatZone: seatStr,
-          maskedTicketCode: codeStr || `Vé #${idx + 1}`,
-        };
-      })
-    : [listing];
+  const effectiveBundleListings: MarketplaceListingDto[] =
+    matchedBundleListings.length > 1 ? matchedBundleListings : [listing];
 
-  const isBundle = Boolean(
-    (listing.bundleId && (listing.bundleTotalTickets ?? 0) > 1) ||
-    effectiveBundleListings.length > 1
-  );
-  const bundleCount = listing.bundleTotalTickets || effectiveBundleListings.length;
+  const isBundle = effectiveBundleListings.length > 1;
+  const bundleCount = effectiveBundleListings.length;
   const isOwner = Boolean(
     user?.id && (
       listing.sellerId?.toLowerCase() === user.id.toLowerCase() ||
       effectiveBundleListings.some((b) => b.sellerId?.toLowerCase() === user.id.toLowerCase())
     )
   );
-  const baseTicketPrice = (allListings && allListings.length > 1 && listing.bundleId && effectiveBundleListings.length > 1)
-    ? effectiveBundleListings.reduce((sum, l) => sum + l.resalePrice, 0)
-    : listing.resalePrice;
+  // Tổng tiền tính trên đúng N listing thật của gói.
+  const baseTicketPrice = effectiveBundleListings.reduce((sum, l) => sum + l.resalePrice, 0);
 
   // Fee Calculation: 5% Buyer Fee (Min 10,000 VND)
   const buyerFeeRate = 0.05;

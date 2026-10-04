@@ -1,7 +1,7 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useUIStore } from '../stores/uiStore';
-import { resaleApi, bankAccountsApi, VerificationResult, SellerListingDto } from '@ticketshield/api-client';
+import { resaleApi, bankAccountsApi, SellerListingDto } from '@ticketshield/api-client';
 import { UserBankAccountDto, PurchasedTicketDto } from '@ticketshield/types';
 import { useMyTickets } from '../hooks/useMyTickets';
 import { useOrganizers } from '../hooks/useOrganizers';
@@ -26,7 +26,10 @@ export const SellTicketPage: React.FC = () => {
   const purchasedPassCode = (ticket: PurchasedTicketDto) =>
     (ticket.ticketPassCode || ticket.qrCodeData || '').trim();
 
-  const DRAFT_STORAGE_KEY = 'ticketshield_sell_draft';
+const DRAFT_STORAGE_KEY = 'ticketshield_sell_draft';
+  const OTP_TTL_MS = 300 * 1000;
+  /** Domain Law: một gói vé chỉ chứa từ 2 đến 3 vé (khớp ResaleListing.MaxBundleTickets ở BE). */
+  const MAX_BUNDLE_TICKETS = 3;
 
   const [currentStep, setCurrentStep] = useState<number>(1);
   const [isCancellingSession, setIsCancellingSession] = useState<boolean>(false);
@@ -37,17 +40,24 @@ export const SellTicketPage: React.FC = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, [currentStep]);
 
+  // =========================================================================================
   // Resale Workflow Verification state
   // =========================================================================================
-  // [AI AGENT INSTRUCTION - BUNDLE RESALE STATE EXTENSION]
-  // Khi triển khai tính năng Bán vé theo Combo/Gói (Bundle Resale):
-  // 1. Mở rộng state `ticketCode: string` -> hỗ trợ `selectedTicketCodes: string[]`.
-  // 2. Đảm bảo form Step 1 hỗ trợ hiển thị danh sách mã vé (chips/tags) thay vì chỉ 1 chuỗi đơn.
-  // =========================================================================================
+  // Mỗi vé trong gói có MỘT phiên OTP riêng: BTC chỉ cấp OTP/khóa được từng vé một,
+  // nên không thể dùng chung một verificationId cho cả gói.
+  interface TicketSession {
+    code: string;
+    verificationId: string;
+    originalPrice: number;
+    priceCeiling: number;
+    markupPercent: number;
+    locked: boolean;
+    expiresAt: number | null;
+  }
+
   const [ticketCode, setTicketCode] = useState('');
   const [selectedOrganizerId, setSelectedOrganizerId] = useState<string>('');
-  const [verificationId, setVerificationId] = useState<string>('');
-  const [verificationResult, setVerificationResult] = useState<VerificationResult | null>(null);
+  const [sessions, setSessions] = useState<TicketSession[]>([]);
   const [isRequestingOtp, setIsRequestingOtp] = useState<boolean>(false);
   const { data: organizers = [], isLoading: isLoadingOrganizers } = useOrganizers();
 
@@ -56,21 +66,29 @@ export const SellTicketPage: React.FC = () => {
   const [activeFeeTooltip, setActiveFeeTooltip] = useState<'seller' | 'buyer' | null>(null);
 
   // Step 4 Pricing state (declared early for draft storage)
-  const [faceValue, setFaceValue] = useState<number>(2500000);
+  // `resalePrice` là giá bán lại của MỖI vé; tổng tiền = resalePrice * số vé.
   const [resalePrice, setResalePrice] = useState<number>(2500000);
   const [priceInputText, setPriceInputText] = useState<string>('2.500.000');
-  const markupPercent = verificationResult?.markupPercent ?? 0;
-  const priceCeiling =
-    verificationResult?.priceCeiling && verificationResult.priceCeiling > 0
-      ? verificationResult.priceCeiling
-      : Math.trunc(faceValue * (1 + markupPercent / 100));
 
-  // Step 2 OTP Form state & Expiry timestamp
-  const [otp, setOtp] = useState(['', '', '', '', '', '']);
+  const markupPercent = sessions[0]?.markupPercent ?? 0;
+  const faceValue = sessions.reduce((sum, s) => sum + s.originalPrice, 0);
+  // Trần áp dụng cho MỖI vé: chọn mức thấp nhất để không vé nào vượt trần của chính nó.
+  const priceCeiling = sessions.length
+    ? sessions.reduce((min, s) => Math.min(min, s.priceCeiling || Number.MAX_SAFE_INTEGER), Number.MAX_SAFE_INTEGER)
+    : 0;
+
+  // Step 2 OTP state
   const [isVerifyingOtp, setIsVerifyingOtp] = useState(false);
-  const [isResendingOtp, setIsResendingOtp] = useState(false);
-  const [otpExpiresAt, setOtpExpiresAt] = useState<number | null>(null);
-  const [otpTimeLeft, setOtpTimeLeft] = useState<number>(300);
+  const [resendingCode, setResendingCode] = useState<string | null>(null);
+
+  const ticketCodes = useMemo(() => sessions.map((s) => s.code), [sessions]);
+  const otpTickets = useMemo(
+    () => sessions.map((s) => ({ code: s.code, expiresAt: s.expiresAt, locked: s.locked })),
+    [sessions]
+  );
+  const ticketCount = Math.max(sessions.length, 1);
+  const isBundle = sessions.length > 1;
+  const perTicketFaceValue = Math.trunc(faceValue / ticketCount);
 
   // Auto restore unfinished draft session from localStorage on load
   useEffect(() => {
@@ -78,21 +96,14 @@ export const SellTicketPage: React.FC = () => {
       const raw = localStorage.getItem(DRAFT_STORAGE_KEY);
       if (raw) {
         const d = JSON.parse(raw);
-        if (d.verificationId && d.currentStep > 1 && d.currentStep < 6) {
-          setTicketCode(d.ticketCode || '');
+        if (d.sessions?.length && d.currentStep > 1 && d.currentStep < 6) {
+          setTicketCode((d.ticketCodes || []).join(', '));
           if (d.selectedOrganizerId) setSelectedOrganizerId(d.selectedOrganizerId);
-          setVerificationId(d.verificationId);
-          setVerificationResult(d.verificationResult || null);
-          setFaceValue(d.faceValue || 2500000);
-          setResalePrice(d.resalePrice || 2500000);
-          setPriceInputText(d.priceInputText || (d.resalePrice ? d.resalePrice.toLocaleString('vi-VN') : '2.500.000'));
-
-          if (d.otpExpiresAt) {
-            setOtpExpiresAt(d.otpExpiresAt);
-            const remaining = Math.max(0, Math.floor((d.otpExpiresAt - Date.now()) / 1000));
-            setOtpTimeLeft(remaining);
+          setSessions(d.sessions);
+          if (d.resalePrice) {
+            setResalePrice(d.resalePrice);
+            setPriceInputText(d.priceInputText || d.resalePrice.toLocaleString('vi-VN'));
           }
-
           setCurrentStep(d.currentStep);
           setResumeDraftAvailable(true);
         }
@@ -104,24 +115,21 @@ export const SellTicketPage: React.FC = () => {
 
   // Auto save draft session to localStorage on step change
   useEffect(() => {
-    if (verificationId && currentStep > 1 && currentStep < 6) {
+    if (sessions.length > 0 && currentStep > 1 && currentStep < 6) {
       localStorage.setItem(
         DRAFT_STORAGE_KEY,
         JSON.stringify({
-          ticketCode,
+          ticketCodes,
           selectedOrganizerId,
-          verificationId,
-          verificationResult,
+          sessions,
           currentStep,
-          faceValue,
           resalePrice,
           priceInputText: priceInputText || resalePrice.toLocaleString('vi-VN'),
-          otpExpiresAt,
           savedAt: Date.now(),
         })
       );
     }
-  }, [verificationId, currentStep, ticketCode, selectedOrganizerId, faceValue, resalePrice, priceInputText, verificationResult, otpExpiresAt]);
+  }, [sessions, currentStep, ticketCodes, selectedOrganizerId, resalePrice, priceInputText]);
 
   const [existingListings, setExistingListings] = useState<SellerListingDto[]>([]);
   const [isLoadingListings, setIsLoadingListings] = useState<boolean>(true);
@@ -178,71 +186,50 @@ export const SellTicketPage: React.FC = () => {
     );
   });
 
-  const verificationIdRef = useRef(verificationId);
+  const verificationIdsRef = useRef<string[]>([]);
   const currentStepRef = useRef(currentStep);
 
   useEffect(() => {
-    verificationIdRef.current = verificationId;
+    verificationIdsRef.current = sessions.map((s) => s.verificationId).filter(Boolean);
     currentStepRef.current = currentStep;
-  }, [verificationId, currentStep]);
+  }, [sessions, currentStep]);
 
-  // Auto send gRPC unlock beacon when user exits or navigates away (PAGEHIDE / BEFOREUNLOAD)
+  // Auto send gRPC unlock beacons for EVERY session when user exits or navigates away
   useEffect(() => {
-    const handleBeforeUnload = () => {
-      if (verificationIdRef.current && currentStepRef.current > 1 && currentStepRef.current < 6) {
-        resaleApi.closeVerificationBeacon(verificationIdRef.current);
+    const releaseAll = () => {
+      const ids = verificationIdsRef.current;
+      if (ids.length > 0 && currentStepRef.current > 1 && currentStepRef.current < 6) {
+        ids.forEach((id) => resaleApi.closeVerificationBeacon(id));
       }
     };
 
-    const handlePageHide = () => {
-      if (verificationIdRef.current && currentStepRef.current > 1 && currentStepRef.current < 6) {
-        resaleApi.closeVerificationBeacon(verificationIdRef.current);
-      }
-    };
-
-    window.addEventListener('beforeunload', handleBeforeUnload);
-    window.addEventListener('pagehide', handlePageHide);
+    window.addEventListener('beforeunload', releaseAll);
+    window.addEventListener('pagehide', releaseAll);
 
     return () => {
-      window.removeEventListener('beforeunload', handleBeforeUnload);
-      window.removeEventListener('pagehide', handlePageHide);
+      window.removeEventListener('beforeunload', releaseAll);
+      window.removeEventListener('pagehide', releaseAll);
     };
   }, []);
 
-  // Countdown timer for OTP (5 minutes) - Based on exact target timestamp otpExpiresAt
+  // Nếu OTP của bất kỳ vé nào hết hạn thì huỷ toàn bộ gói: không vé nào được bỏ sót ở trạng thái khoá.
   useEffect(() => {
-    if (currentStep !== 2) return;
-
-    let targetExpiry = otpExpiresAt;
-    if (!targetExpiry) {
-      targetExpiry = Date.now() + 300 * 1000;
-      setOtpExpiresAt(targetExpiry);
-    }
+    if (currentStep !== 2 || sessions.length === 0) return;
 
     const checkAndTick = () => {
-      const remaining = Math.max(0, Math.floor((targetExpiry! - Date.now()) / 1000));
-      setOtpTimeLeft(remaining);
-
-      if (remaining <= 0) {
-        if (verificationIdRef.current) {
-          resaleApi.closeVerification(verificationIdRef.current).catch(() => { });
-          showToast('Verification session expired (5 minutes). Ticket lock released at Organizer.', 'warning');
-          resetToStep1();
-        }
+      const now = Date.now();
+      const expired = sessions.find((s) => !s.locked && s.expiresAt && s.expiresAt <= now);
+      if (expired) {
+        handleAbandonSession();
+        showToast('Verification session expired (5 minutes). All ticket locks were released at Organizer.', 'warning');
       }
     };
 
     checkAndTick();
     const interval = setInterval(checkAndTick, 1000);
-
     return () => clearInterval(interval);
-  }, [currentStep, otpExpiresAt]);
-
-  const formatOtpTimer = (seconds: number) => {
-    const m = Math.floor(seconds / 60).toString().padStart(2, '0');
-    const s = (seconds % 60).toString().padStart(2, '0');
-    return `${m}:${s}`;
-  };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentStep, sessions]);
 
   const updatePrice = (val: number) => {
     const clamped = Math.max(0, Math.min(val, priceCeiling));
@@ -292,7 +279,7 @@ export const SellTicketPage: React.FC = () => {
 
   const handlePriceInputBlur = () => {
     if (!priceInputText || resalePrice === 0) {
-      updatePrice(faceValue);
+      updatePrice(faceValue / Math.max(sessions.length, 1));
     } else if (resalePrice > priceCeiling) {
       updatePrice(priceCeiling);
     }
@@ -313,11 +300,7 @@ export const SellTicketPage: React.FC = () => {
   };
 
   const handleApplyDiscount = (percent: number) => {
-    if (percent === 0) {
-      updatePrice(faceValue);
-    } else {
-      updatePrice(Math.round(faceValue * (1 - percent / 100)));
-    }
+    updatePrice(Math.round(perTicketFaceValue * (1 - percent / 100)));
   };
 
   // Step 5 Confirmation state
@@ -329,7 +312,13 @@ export const SellTicketPage: React.FC = () => {
   const [copiedLink, setCopiedLink] = useState<boolean>(false);
   const [copiedQr, setCopiedQr] = useState<boolean>(false);
 
-  // Step 1: Request OTP for Ticket Verification
+  /** Đóng mọi phiên đã tạo (dùng khi luồng lỗi giữa chừng) — không để vé nào bị khoá treo. */
+  const closeAllSessions = useCallback(async () => {
+    const ids = sessions.map((s) => s.verificationId).filter(Boolean);
+    await Promise.allSettled(ids.map((id) => resaleApi.closeVerification(id)));
+  }, [sessions]);
+
+  // Step 1: Request an OTP for EVERY ticket (BTC issues one OTP per ticket)
   const handleNextStep1 = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -347,6 +336,17 @@ export const SellTicketPage: React.FC = () => {
 
     if (codes.length === 0) {
       showToast('Please enter the ticket identifier code!', 'warning');
+      return;
+    }
+
+    if (codes.length > MAX_BUNDLE_TICKETS) {
+      showToast(`A combo can include at most ${MAX_BUNDLE_TICKETS} tickets. Please remove some codes.`, 'warning');
+      return;
+    }
+
+    const duplicate = codes.find((code, i) => codes.indexOf(code) !== i);
+    if (duplicate) {
+      showToast(`Ticket ${duplicate} appears more than once. Each code must be unique.`, 'warning');
       return;
     }
 
@@ -369,27 +369,57 @@ export const SellTicketPage: React.FC = () => {
       }
     }
 
-    // For multi-ticket combo selection, send primary ticket code codes[0] to Organizer for OTP verification
-    const primaryCode = codes[0];
+    const created: TicketSession[] = [];
 
     try {
       setIsRequestingOtp(true);
-      showToast('Verifying ticket & requesting OTP from Organizer...', 'info');
-      const result = await resaleApi.requestVerificationOtp(primaryCode, selectedOrganizerId || undefined);
-      setVerificationId(result.verificationId);
-      setVerificationResult(result);
-      const targetExpiresAt = Date.now() + 300 * 1000;
-      setOtpExpiresAt(targetExpiresAt);
-      setOtpTimeLeft(300);
-      if (result.originalPrice && result.originalPrice > 0) {
-        const totalFaceValue = result.originalPrice * codes.length;
-        setFaceValue(totalFaceValue);
-        setResalePrice(totalFaceValue);
-        setPriceInputText(totalFaceValue.toLocaleString('vi-VN'));
+      showToast(
+        codes.length > 1
+          ? `Requesting a separate OTP for each of the ${codes.length} tickets...`
+          : 'Verifying ticket & requesting OTP from Organizer...',
+        'info'
+      );
+
+      // Tuần tự: BTC chỉ cấp 1 OTP / 1 lần gọi và mỗi phiên cần khóa vé riêng.
+      for (const code of codes) {
+        const result = await resaleApi.requestVerificationOtp(code, selectedOrganizerId || undefined);
+        const originalPrice = result.originalPrice ?? 0;
+        const markup = result.markupPercent ?? 0;
+
+        created.push({
+          code,
+          verificationId: result.verificationId,
+          originalPrice,
+          markupPercent: markup,
+          priceCeiling:
+            result.priceCeiling && result.priceCeiling > 0
+              ? result.priceCeiling
+              : Math.trunc(originalPrice * (1 + markup / 100)),
+          locked: false,
+          expiresAt: Date.now() + OTP_TTL_MS,
+        });
       }
-      showToast('OTP code sent! Please check the ticket owner email/phone.', 'success');
+
+      setSessions(created);
+      setTicketCode(codes.join(', '));
+
+      if (created.every((s) => s.originalPrice > 0)) {
+        const total = created.reduce((sum, s) => sum + s.originalPrice, 0);
+        const perTicket = Math.trunc(total / created.length);
+        setResalePrice(perTicket);
+        setPriceInputText(perTicket.toLocaleString('vi-VN'));
+      }
+
+      showToast(
+        codes.length > 1
+          ? `${created.length} OTP codes sent. Each ticket has its own code.`
+          : 'OTP code sent! Please check the ticket owner email/phone.',
+        'success'
+      );
       setCurrentStep(2);
     } catch (err: any) {
+      // Hoàn tác phần đã tạo: không vé nào được giữ ở trạng thái chờ OTP.
+      await Promise.allSettled(created.map((s) => resaleApi.closeVerification(s.verificationId)));
       const msg = err?.response?.data?.message || err?.message || 'Verification failed. Please check the ticket code and try again.';
       showToast(msg, 'error');
     } finally {
@@ -397,94 +427,125 @@ export const SellTicketPage: React.FC = () => {
     }
   };
 
-  // Resend OTP
-  const handleResendOtp = async () => {
-    if (!verificationId) {
-      showToast('Verification session not found!', 'warning');
-      return;
-    }
+  // Resend OTP cho một vé cụ thể
+  const handleResendOtp = async (code: string) => {
+    const target = sessions.find((s) => s.code === code);
+    if (!target) return;
+
     try {
-      setIsResendingOtp(true);
-      await resaleApi.resendVerificationOtp(verificationId);
-      const targetExpiresAt = Date.now() + 300 * 1000;
-      setOtpExpiresAt(targetExpiresAt);
-      setOtpTimeLeft(300);
-      setOtp(['', '', '', '', '', '']);
-      showToast('OTP code resent successfully!', 'success');
+      setResendingCode(code);
+      await resaleApi.resendVerificationOtp(target.verificationId);
+      setSessions((prev) =>
+        prev.map((s) => (s.code === code ? { ...s, expiresAt: Date.now() + OTP_TTL_MS } : s))
+      );
+      showToast(`New OTP sent for ticket ${code}.`, 'success');
     } catch (err: any) {
       const msg = err?.response?.data?.message || err?.message || 'Could not resend OTP. Please try again shortly!';
       showToast(msg, 'error');
     } finally {
-      setIsResendingOtp(false);
+      setResendingCode(null);
     }
   };
 
-  // Step 2: Confirm OTP & Lock Ticket
-  const handleVerifyOtp = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const otpCode = otp.join('').trim();
-    if (otpCode.length < 4) {
-      showToast('Please enter the full 6-digit OTP code!', 'warning');
-      return;
+  // Step 2: Confirm OTP từng vé (all-or-nothing).
+  // Mỗi trang xác thực đúng 1 vé; nếu một vé hỏng thì giải phóng TẤT CẢ vé trong gói.
+  const handleVerifyOneTicket = async (entry: { code: string; otp: string }): Promise<boolean> => {
+    if (sessions.length === 0) {
+      showToast('Invalid verification session!', 'error');
+      return false;
     }
 
-    if (!verificationId) {
-      showToast('Invalid verification session!', 'error');
-      return;
+    const target = sessions.find((s) => s.code === entry.code);
+    if (!target) {
+      showToast(`Ticket ${entry.code} is no longer part of this combo.`, 'error');
+      return false;
     }
 
     try {
       setIsVerifyingOtp(true);
-      const result = await resaleApi.confirmVerificationOtp(verificationId, otpCode);
-      setVerificationResult(result);
-      if (result.originalPrice && result.originalPrice > 0) {
-        const codes = ticketCode
-          .split(',')
-          .map((c) => c.trim().toUpperCase())
-          .filter(Boolean);
-        const totalFaceValue = result.originalPrice * Math.max(1, codes.length);
-        setFaceValue(totalFaceValue);
-        setResalePrice(totalFaceValue);
-        setPriceInputText(totalFaceValue.toLocaleString('vi-VN'));
-      }
-      showToast('OTP verified & ticket locked successfully!', 'success');
-      setCurrentStep(3);
+      const result = await resaleApi.confirmVerificationOtp(target.verificationId, entry.otp);
+
+      setSessions((prev) =>
+        prev.map((s) =>
+          s.code === entry.code
+            ? {
+                ...s,
+                locked: true,
+                originalPrice: result.originalPrice ?? s.originalPrice,
+                markupPercent: result.markupPercent ?? s.markupPercent,
+                priceCeiling:
+                  result.priceCeiling && result.priceCeiling > 0 ? result.priceCeiling : s.priceCeiling,
+              }
+            : s
+        )
+      );
+      return true;
     } catch (err: any) {
       const msg = err?.response?.data?.message || err?.message || 'Invalid or expired OTP code!';
-      showToast(msg, 'error');
+
+      // Giải phóng TẤT CẢ phiên trong gói (kể cả các vé đã khoá trước đó) rồi đưa người dùng về bước 1.
+      await closeAllSessions();
+      resetToStep1(sessions.map((s) => s.code).join(', '));
+      showToast(
+        sessions.length > 1
+          ? `${msg} Every locked ticket in this combo was released — please verify all OTPs again.`
+          : msg,
+        'error'
+      );
+      return false;
     } finally {
       setIsVerifyingOtp(false);
     }
   };
 
-  // Helper reset form to Step 1 and remove draft
-  const resetToStep1 = () => {
+  // Tất cả vé đã khoá -> sang bước 3
+  const handleOtpVerified = () => {
+    if (sessions.length === 0 || !sessions.every((s) => s.locked)) return;
+    showToast(
+      sessions.length > 1
+        ? `All ${sessions.length} tickets verified & locked successfully!`
+        : 'OTP verified & ticket locked successfully!',
+      'success'
+    );
+    setCurrentStep(3);
+  };
+
+  // Helper reset form to Step 1 and remove draft (giữ lại mã vé nếu muốn thử lại)
+  const resetToStep1 = (keepCodes?: string) => {
     try {
       localStorage.removeItem(DRAFT_STORAGE_KEY);
     } catch (e) {
       console.warn('Could not clear sell draft', e);
     }
-    setVerificationId('');
-    setVerificationResult(null);
-    setTicketCode('');
-    setOtp(['', '', '', '', '', '']);
-    setOtpExpiresAt(null);
-    setOtpTimeLeft(300);
+    setSessions([]);
+    setTicketCode(keepCodes ?? '');
+    setResalePrice(0);
+    setPriceInputText('');
     setCurrentStep(1);
     setResumeDraftAvailable(false);
   };
 
-  // Close abandoned session and release lock at Organizer
+  // Close abandoned sessions and release ALL ticket locks at Organizer
   const handleAbandonSession = async () => {
-    if (!verificationId) {
+    if (sessions.length === 0) {
       resetToStep1();
       return;
     }
     try {
       setIsCancellingSession(true);
-      showToast('Cancelling session and unlocking ticket with Organizer...', 'info');
-      await resaleApi.closeVerification(verificationId);
-      showToast('Session cancelled and ticket unlocked successfully!', 'success');
+      showToast(
+        sessions.length > 1
+          ? 'Cancelling all sessions and unlocking every ticket with Organizer...'
+          : 'Cancelling session and unlocking ticket with Organizer...',
+        'info'
+      );
+      await closeAllSessions();
+      showToast(
+        sessions.length > 1
+          ? 'All sessions cancelled and tickets unlocked successfully!'
+          : 'Session cancelled and ticket unlocked successfully!',
+        'success'
+      );
       resetToStep1();
       fetchExistingListings();
     } catch (err: any) {
@@ -496,7 +557,7 @@ export const SellTicketPage: React.FC = () => {
     }
   };
 
-  // Step 5: Publish Resale Listing
+  // Step 5: Publish Resale Listing (1 vé = publish, 2–3 vé = bulk all-or-nothing)
   const handlePublishListing = async () => {
     // Enforce Seller Bank Account requirement before publishing
     if (bankAccounts.length === 0) {
@@ -510,14 +571,19 @@ export const SellTicketPage: React.FC = () => {
       return;
     }
 
-    if (!verificationId) {
+    if (sessions.length === 0) {
       showToast('Missing verification session!', 'error');
+      return;
+    }
+
+    if (!sessions.every((s) => s.locked)) {
+      showToast('Every ticket must pass its own OTP check before listing.', 'warning');
       return;
     }
 
     if (resalePrice > priceCeiling) {
       showToast(
-        `Resale price cannot exceed the event ceiling (${priceCeiling.toLocaleString('vi-VN')} VND). Lower the price and try again.`,
+        `Resale price cannot exceed the event ceiling (${priceCeiling.toLocaleString('vi-VN')} VND per ticket). Lower the price and try again.`,
         'warning'
       );
       return;
@@ -533,28 +599,28 @@ export const SellTicketPage: React.FC = () => {
 
     try {
       setIsPublishing(true);
-      const codes = ticketCode
-        .split(',')
-        .map((c) => c.trim().toUpperCase())
-        .filter(Boolean);
-      const isCombo = codes.length > 1;
-      const bundleId = isCombo ? crypto.randomUUID() : undefined;
-      const bundleTotalTickets = isCombo ? codes.length : undefined;
 
-      const result = await resaleApi.publishListing(
-        verificationId,
-        resalePrice,
-        isPrivateListing,
-        bundleId,
-        isCombo ? true : undefined,
-        bundleTotalTickets
-      );
-      if (result.listingId) {
-        setPublishedListingId(result.listingId);
+      if (sessions.length === 1) {
+        const result = await resaleApi.publishListing(
+          sessions[0].verificationId,
+          resalePrice,
+          isPrivateListing
+        );
+        setPublishedListingId(result.listingId ?? '');
+        setPublishedPrivateToken(result.privateAccessToken ?? '');
+      } else {
+        // BE tạo N listing thật trong 1 transaction; chỉ cần 1 vé lỗi là cả gói rollback.
+        const result = await resaleApi.bulkPublishListing(
+          sessions.map((s) => ({
+            verificationId: s.verificationId,
+            resalePrice,
+            isPrivate: isPrivateListing,
+          })),
+          true
+        );
+        setPublishedListingId(result.listings?.[0]?.listingId ?? '');
       }
-      if (result.privateAccessToken) {
-        setPublishedPrivateToken(result.privateAccessToken);
-      }
+
       try {
         localStorage.removeItem(DRAFT_STORAGE_KEY);
       } catch (e) {
@@ -562,9 +628,11 @@ export const SellTicketPage: React.FC = () => {
       }
       setResumeDraftAvailable(false);
       showToast(
-        isPrivateListing
-          ? 'Private ticket listing created! Access via secret link or QR code.'
-          : 'Ticket listed successfully on TicketShield Marketplace!',
+        isBundle
+          ? `Combo of ${sessions.length} tickets listed successfully on TicketShield Marketplace!`
+          : isPrivateListing
+            ? 'Private ticket listing created! Access via secret link or QR code.'
+            : 'Ticket listed successfully on TicketShield Marketplace!',
         'success'
       );
       fetchExistingListings();
@@ -576,6 +644,7 @@ export const SellTicketPage: React.FC = () => {
       setIsPublishing(false);
     }
   };
+
 
   const getShareUrl = () => {
     if (isPrivateListing && publishedPrivateToken) {
@@ -648,80 +717,6 @@ export const SellTicketPage: React.FC = () => {
     } catch {
       handleDownloadQr();
     }
-  };
-
-  const handleClearOtp = () => {
-    setOtp(['', '', '', '', '', '']);
-    document.getElementById('otp-input-0')?.focus();
-  };
-
-  const handleOtpChange = (index: number, val: string) => {
-    const cleaned = val.replace(/\D/g, '');
-    if (!cleaned) {
-      const newOtp = [...otp];
-      newOtp[index] = '';
-      setOtp(newOtp);
-      return;
-    }
-
-    if (cleaned.length > 1) {
-      const digits = cleaned.slice(0, 6 - index).split('');
-      const newOtp = [...otp];
-      digits.forEach((d, i) => {
-        if (index + i < 6) newOtp[index + i] = d;
-      });
-      setOtp(newOtp);
-      const nextIdx = Math.min(index + digits.length, 5);
-      document.getElementById(`otp-input-${nextIdx}`)?.focus();
-      return;
-    }
-
-    const newOtp = [...otp];
-    newOtp[index] = cleaned[0];
-    setOtp(newOtp);
-
-    // Auto-focus next input
-    if (index < 5) {
-      const nextInput = document.getElementById(`otp-input-${index + 1}`);
-      nextInput?.focus();
-    }
-  };
-
-  const handleOtpKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Backspace') {
-      if (!otp[index] && index > 0) {
-        const newOtp = [...otp];
-        newOtp[index - 1] = '';
-        setOtp(newOtp);
-        const prevInput = document.getElementById(`otp-input-${index - 1}`);
-        prevInput?.focus();
-      } else if (otp[index]) {
-        const newOtp = [...otp];
-        newOtp[index] = '';
-        setOtp(newOtp);
-      }
-    } else if (e.key === 'ArrowLeft' && index > 0) {
-      document.getElementById(`otp-input-${index - 1}`)?.focus();
-    } else if (e.key === 'ArrowRight' && index < 5) {
-      document.getElementById(`otp-input-${index + 1}`)?.focus();
-    }
-  };
-
-  const handleOtpPaste = (e: React.ClipboardEvent) => {
-    e.preventDefault();
-    const pastedData = e.clipboardData.getData('text').trim().replace(/\D/g, '');
-    if (!pastedData) return;
-
-    const digits = pastedData.slice(0, 6).split('');
-    const newOtp = ['', '', '', '', '', ''];
-    digits.forEach((digit, idx) => {
-      if (idx < 6) newOtp[idx] = digit;
-    });
-    setOtp(newOtp);
-
-    const focusIdx = Math.min(digits.length, 5);
-    const targetInput = document.getElementById(`otp-input-${focusIdx}`);
-    targetInput?.focus();
   };
 
   return (
@@ -872,30 +867,27 @@ export const SellTicketPage: React.FC = () => {
         {/* STEP 2: VERIFY OTP CODE */}
         {currentStep === 2 && (
           <Step2VerifyOtp
-            otp={otp}
-            handleOtpChange={handleOtpChange}
-            handleOtpKeyDown={handleOtpKeyDown}
-            handleOtpPaste={handleOtpPaste}
-            handleClearOtp={handleClearOtp}
-            handleResendOtp={handleResendOtp}
-            isResendingOtp={isResendingOtp}
-            otpTimeLeft={otpTimeLeft}
-            formatOtpTimer={formatOtpTimer}
-            handleVerifyOtp={handleVerifyOtp}
-            isVerifyingOtp={isVerifyingOtp}
-            handleAbandonSession={handleAbandonSession}
-            isCancellingSession={isCancellingSession}
+            tickets={otpTickets}
+            onVerifyTicket={handleVerifyOneTicket}
+            onComplete={handleOtpVerified}
+            onResend={handleResendOtp}
+            onAbandon={handleAbandonSession}
+            isVerifying={isVerifyingOtp}
+            resendingCode={resendingCode}
+            isCancelling={isCancellingSession}
           />
         )}
 
         {/* STEP 3: TICKET VERIFIED & LOCKED */}
         {currentStep === 3 && (
           <Step3ConfirmDetails
-            ticketCode={ticketCode}
-            faceValue={faceValue}
-            priceCeiling={priceCeiling}
+            tickets={sessions.map((s) => ({
+              code: s.code,
+              originalPrice: s.originalPrice,
+              priceCeiling: s.priceCeiling,
+              seatZone: purchasedTickets.find((t) => purchasedPassCode(t) === s.code)?.seatZone,
+            }))}
             markupPercent={markupPercent}
-            seatZone={purchasedTickets.find((t) => purchasedPassCode(t) === ticketCode)?.seatZone}
             onContinue={() => setCurrentStep(4)}
           />
         )}
@@ -904,7 +896,8 @@ export const SellTicketPage: React.FC = () => {
         {currentStep === 4 && (
           <Step4SetPrice
             priceCeiling={priceCeiling}
-            faceValue={faceValue}
+            faceValue={perTicketFaceValue}
+            ticketCount={sessions.length}
             markupPercent={markupPercent}
             resalePrice={resalePrice}
             updatePrice={updatePrice}
@@ -920,11 +913,11 @@ export const SellTicketPage: React.FC = () => {
         {/* STEP 5: REVIEW & CONFIRM LISTING */}
         {currentStep === 5 && (
           <Step5ReviewPublish
-            ticketCode={ticketCode}
+            ticketCodes={ticketCodes}
             faceValue={faceValue}
             resalePrice={resalePrice}
             bankAccounts={bankAccounts}
-            seatZone={purchasedTickets.find((t) => purchasedPassCode(t) === ticketCode)?.seatZone}
+            seatZone={purchasedTickets.find((t) => purchasedPassCode(t) === sessions[0]?.code)?.seatZone}
             isPrivateListing={isPrivateListing}
             setIsPrivateListing={setIsPrivateListing}
             agreedTerms={agreedTerms}
@@ -940,7 +933,7 @@ export const SellTicketPage: React.FC = () => {
         {/* STEP 6: LISTING PUBLISHED */}
         {currentStep === 6 && (
           <Step6ListingSuccess
-            ticketCode={ticketCode}
+            ticketCodes={ticketCodes}
             publishedListingId={publishedListingId}
             existingListings={existingListings}
             faceValue={faceValue}

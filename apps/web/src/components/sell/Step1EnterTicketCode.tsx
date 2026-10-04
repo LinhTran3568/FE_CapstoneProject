@@ -4,6 +4,9 @@ import { PurchasedTicketDto, UserBankAccountDto } from '@ticketshield/types';
 import { Building2, ChevronDown, Check, Ticket, X, Loader2, ArrowRight, AlertCircle } from 'lucide-react';
 import { SeatAdjacencyBadge } from '../ui/SeatAdjacencyBadge';
 
+/** Domain Law: một gói vé chỉ chứa từ 2 đến 3 vé (khớp ResaleListing.MaxBundleTickets ở BE). */
+const MAX_BUNDLE_TICKETS = 3;
+
 export interface Step1EnterTicketCodeProps {
   ticketCode: string;
   setTicketCode: (code: string) => void;
@@ -41,6 +44,7 @@ export const Step1EnterTicketCode: React.FC<Step1EnterTicketCodeProps> = ({
   const [isPurchasesDropdownOpen, setIsPurchasesDropdownOpen] = useState(false);
   const [ticketSearch, setTicketSearch] = useState('');
   const [eventMismatchError, setEventMismatchError] = useState<string>('');
+  const [selectionNotice, setSelectionNotice] = useState<string>('');
   const purchasesDropdownRef = useRef<HTMLDivElement>(null);
 
   // Parse comma-separated ticket codes into an array of normalized uppercase codes
@@ -73,7 +77,12 @@ export const Step1EnterTicketCode: React.FC<Step1EnterTicketCodeProps> = ({
       const nextCodes = selectedCodes.filter((c) => c !== code);
       setTicketCode(nextCodes.join(', '));
       setEventMismatchError('');
+      setSelectionNotice('');
     } else {
+      if (selectedCodes.length >= MAX_BUNDLE_TICKETS) {
+        setSelectionNotice(`A combo can include at most ${MAX_BUNDLE_TICKETS} tickets. Remove a ticket before adding another.`);
+        return;
+      }
       // Domain & Business Validation: All tickets in a bundle MUST belong to the same Event (eventId)
       if (selectedCodes.length > 0) {
         const firstSelectedTicket = eligibleTickets.find((item) =>
@@ -92,6 +101,7 @@ export const Step1EnterTicketCode: React.FC<Step1EnterTicketCodeProps> = ({
         }
       }
       setEventMismatchError('');
+      setSelectionNotice('');
       const nextCodes = [...selectedCodes, code];
       setTicketCode(nextCodes.join(', '));
     }
@@ -116,6 +126,16 @@ export const Step1EnterTicketCode: React.FC<Step1EnterTicketCodeProps> = ({
       .map((t) => purchasedPassCode(t).toUpperCase())
       .filter(Boolean);
 
+    if (sameEventCodes.length > MAX_BUNDLE_TICKETS) {
+      const truncated = sameEventCodes.slice(0, MAX_BUNDLE_TICKETS);
+      setTicketCode(truncated.join(', '));
+      setSelectionNotice(
+        `Only the first ${MAX_BUNDLE_TICKETS} tickets were selected because a combo can include at most ${MAX_BUNDLE_TICKETS} tickets.`
+      );
+      return;
+    }
+
+    setSelectionNotice('');
     setTicketCode(sameEventCodes.join(', '));
   };
 
@@ -344,6 +364,19 @@ export const Step1EnterTicketCode: React.FC<Step1EnterTicketCodeProps> = ({
                     </div>
                   )}
                 </div>
+
+                {/* Selection limit notice */}
+                {selectionNotice && (
+                  <div className="mx-2 my-2 p-2.5 bg-amber-500/10 border border-amber-500/25 rounded-xl text-xs text-amber-300 flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <AlertCircle className="w-4 h-4 text-amber-400 shrink-0" />
+                      <span className="truncate">{selectionNotice}</span>
+                    </div>
+                    <button type="button" onClick={() => setSelectionNotice('')} className="text-amber-400 hover:text-white">
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                )}
 
                 {/* Event mismatch error banner */}
                 {eventMismatchError && (
