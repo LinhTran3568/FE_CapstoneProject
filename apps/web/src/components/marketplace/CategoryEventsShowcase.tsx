@@ -14,6 +14,19 @@ export const CategoryEventsShowcase: React.FC<CategoryEventsShowcaseProps> = ({
   onBuy,
   onViewCategory,
 }) => {
+  // Build bundleMap: bundleId -> all listings in that bundle
+  const bundleMap = React.useMemo(() => {
+    const map = new Map<string, MarketplaceListingDto[]>();
+    for (const item of listings) {
+      if (item.bundleId && (item.bundleTotalTickets ?? 0) > 1) {
+        const group = map.get(item.bundleId) || [];
+        group.push(item);
+        map.set(item.bundleId, group);
+      }
+    }
+    return map;
+  }, [listings]);
+
   // Helper filter by category/keyword
   const concertListings = listings.filter((l) => {
     const title = (l.eventName || '').toLowerCase();
@@ -59,10 +72,27 @@ export const CategoryEventsShowcase: React.FC<CategoryEventsShowcaseProps> = ({
     );
   });
 
+  // Helper: dedup bundle combos — chỉ giữ 1 card đại diện cho mỗi bundleId
+  const dedupBundleListings = (items: MarketplaceListingDto[]) => {
+    const seen = new Set<string>();
+    return items.filter((item) => {
+      if (item.bundleId && (item.bundleTotalTickets ?? 0) > 1) {
+        if (seen.has(item.bundleId)) return false;
+        seen.add(item.bundleId);
+      }
+      return true;
+    });
+  };
+
+  const concertDisplay = dedupBundleListings(concertListings);
+  const sportsDisplay = dedupBundleListings(sportsListings);
+  const theaterDisplay = dedupBundleListings(theaterListings);
+  const festivalDisplay = dedupBundleListings(festivalListings);
+
   return (
     <div className="space-y-12 my-10">
       {/* 1. CONCERTS & LIVE MUSIC */}
-      {concertListings.length > 0 && (
+      {concertDisplay.length > 0 && (
         <div>
           <div className="flex items-center justify-between mb-5">
             <div className="flex items-center gap-2.5">
@@ -82,21 +112,26 @@ export const CategoryEventsShowcase: React.FC<CategoryEventsShowcaseProps> = ({
               onClick={() => onViewCategory('CONCERT')}
               className="text-xs font-semibold text-[#FF5A36] hover:text-white flex items-center gap-1 transition-colors cursor-pointer"
             >
-              <span>View all ({concertListings.length})</span>
+              <span>View all ({concertDisplay.length})</span>
               <ArrowRight className="w-3.5 h-3.5" />
             </button>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {concertListings.slice(0, 3).map((listing) => (
-              <TicketCard key={listing.listingId} listing={listing} onBuy={onBuy} />
+            {concertDisplay.slice(0, 3).map((listing) => (
+              <TicketCard
+                key={listing.listingId}
+                listing={listing}
+                onBuy={onBuy}
+                bundleListings={listing.bundleId ? bundleMap.get(listing.bundleId) : undefined}
+              />
             ))}
           </div>
         </div>
       )}
 
       {/* 2. SPORTS & TOURNAMENTS */}
-      {sportsListings.length > 0 && (
+      {sportsDisplay.length > 0 && (
         <div>
           <div className="flex items-center justify-between mb-5">
             <div className="flex items-center gap-2.5">
@@ -116,21 +151,26 @@ export const CategoryEventsShowcase: React.FC<CategoryEventsShowcaseProps> = ({
               onClick={() => onViewCategory('SPORTS')}
               className="text-xs font-semibold text-emerald-400 hover:text-white flex items-center gap-1 transition-colors cursor-pointer"
             >
-              <span>View all ({sportsListings.length})</span>
+              <span>View all ({sportsDisplay.length})</span>
               <ArrowRight className="w-3.5 h-3.5" />
             </button>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {sportsListings.slice(0, 3).map((listing) => (
-              <TicketCard key={listing.listingId} listing={listing} onBuy={onBuy} />
+            {sportsDisplay.slice(0, 3).map((listing) => (
+              <TicketCard
+                key={listing.listingId}
+                listing={listing}
+                onBuy={onBuy}
+                bundleListings={listing.bundleId ? bundleMap.get(listing.bundleId) : undefined}
+              />
             ))}
           </div>
         </div>
       )}
 
       {/* 3. THEATER & SHOWS */}
-      {theaterListings.length > 0 && (
+      {theaterDisplay.length > 0 && (
         <div>
           <div className="flex items-center justify-between mb-5">
             <div className="flex items-center gap-2.5">
@@ -150,21 +190,26 @@ export const CategoryEventsShowcase: React.FC<CategoryEventsShowcaseProps> = ({
               onClick={() => onViewCategory('THEATER')}
               className="text-xs font-semibold text-cyan-400 hover:text-white flex items-center gap-1 transition-colors cursor-pointer"
             >
-              <span>View all ({theaterListings.length})</span>
+              <span>View all ({theaterDisplay.length})</span>
               <ArrowRight className="w-3.5 h-3.5" />
             </button>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {theaterListings.slice(0, 3).map((listing) => (
-              <TicketCard key={listing.listingId} listing={listing} onBuy={onBuy} />
+            {theaterDisplay.slice(0, 3).map((listing) => (
+              <TicketCard
+                key={listing.listingId}
+                listing={listing}
+                onBuy={onBuy}
+                bundleListings={listing.bundleId ? bundleMap.get(listing.bundleId) : undefined}
+              />
             ))}
           </div>
         </div>
       )}
 
       {/* 4. FESTIVALS & EDM */}
-      {festivalListings.length > 0 && (
+      {festivalDisplay.length > 0 && (
         <div>
           <div className="flex items-center justify-between mb-5">
             <div className="flex items-center gap-2.5">
@@ -184,14 +229,19 @@ export const CategoryEventsShowcase: React.FC<CategoryEventsShowcaseProps> = ({
               onClick={() => onViewCategory('FESTIVAL')}
               className="text-xs font-semibold text-purple-400 hover:text-white flex items-center gap-1 transition-colors cursor-pointer"
             >
-              <span>View all ({festivalListings.length})</span>
+              <span>View all ({festivalDisplay.length})</span>
               <ArrowRight className="w-3.5 h-3.5" />
             </button>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {festivalListings.slice(0, 3).map((listing) => (
-              <TicketCard key={listing.listingId} listing={listing} onBuy={onBuy} />
+            {festivalDisplay.slice(0, 3).map((listing) => (
+              <TicketCard
+                key={listing.listingId}
+                listing={listing}
+                onBuy={onBuy}
+                bundleListings={listing.bundleId ? bundleMap.get(listing.bundleId) : undefined}
+              />
             ))}
           </div>
         </div>

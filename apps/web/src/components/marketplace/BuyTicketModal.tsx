@@ -392,9 +392,11 @@ export const BuyTicketModal: React.FC<BuyTicketModalProps> = ({
                             COMBO · {bundleCount} {bundleCount > 1 ? 'TICKETS' : 'TICKET'}
                           </span>
                         )}
-                        <span className="text-xs font-mono text-zinc-400">
-                          {listing.maskedTicketCode || 'AT*********88'}
-                        </span>
+                        {!isBundle && (
+                          <span className="text-xs font-mono text-zinc-400">
+                            {listing.maskedTicketCode || 'AT*********88'}
+                          </span>
+                        )}
                       </div>
                       {(listing.seatZone || listing.tierName) && (
                         <SeatAdjacencyBadge
@@ -448,6 +450,7 @@ export const BuyTicketModal: React.FC<BuyTicketModalProps> = ({
                       </div>
 
                       {bundleListings.length > 0 && (
+                        <div className="max-h-48 overflow-y-auto custom-scrollbar pr-0.5">
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-0.5">
                           {bundleListings.map((bl, idx) => (
                             <div
@@ -455,16 +458,10 @@ export const BuyTicketModal: React.FC<BuyTicketModalProps> = ({
                               className="px-2.5 py-1.5 rounded-lg bg-[#0C101A] border border-white/10 flex items-center justify-between gap-2 text-xs"
                             >
                               <div className="min-w-0 flex-1">
-                                <div className="flex items-center gap-1.5">
-                                  <span className="font-mono text-[#ff8a65] font-bold text-[11px]">
-                                    {bl.maskedTicketCode}
-                                  </span>
-                                  <span className="text-[9px] text-zinc-400 font-mono">#{idx + 1}</span>
+                                <div className="flex items-center gap-1 mb-0.5">
+                                  <span className="text-[9px] text-zinc-500 font-bold uppercase tracking-wider">Ticket #{idx + 1}</span>
                                 </div>
-                                <div
-                                  className="text-[10.5px] text-zinc-300 truncate"
-                                  title={bl.seatZone || bl.tierName}
-                                >
+                                <div className="text-[11px] text-zinc-200 font-medium leading-snug">
                                   {bl.seatZone || bl.tierName}
                                 </div>
                               </div>
@@ -473,6 +470,7 @@ export const BuyTicketModal: React.FC<BuyTicketModalProps> = ({
                               </span>
                             </div>
                           ))}
+                        </div>
                         </div>
                       )}
                     </div>

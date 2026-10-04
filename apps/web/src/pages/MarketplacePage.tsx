@@ -160,14 +160,37 @@ export const MarketplacePage: React.FC = () => {
     });
 
     // 4. Sorting
-    return filtered.sort((a, b) => {
+    const sorted = filtered.sort((a, b) => {
       if (filters.sortBy === 'price-asc') return a.resalePrice - b.resalePrice;
       if (filters.sortBy === 'date-asc') {
         return new Date(a.eventStartAt).getTime() - new Date(b.eventStartAt).getTime();
       }
       return new Date(b.createdAt || '').getTime() - new Date(a.createdAt || '').getTime();
     });
+
+    // 5. Dedup bundle combos: chỉ giữ 1 card đại diện cho mỗi bundleId
+    const seenBundleIds = new Set<string>();
+    return sorted.filter((item) => {
+      if (item.bundleId && (item.bundleTotalTickets ?? 0) > 1) {
+        if (seenBundleIds.has(item.bundleId)) return false; // bỏ qua vé thứ 2, 3...
+        seenBundleIds.add(item.bundleId);
+      }
+      return true;
+    });
   }, [listings, selectedCategory, filters]);
+
+  // Map bundleId -> all listings in that bundle (dùng để truyền vào TicketCard)
+  const bundleMap = useMemo(() => {
+    const map = new Map<string, MarketplaceListingDto[]>();
+    for (const item of listings) {
+      if (item.bundleId && (item.bundleTotalTickets ?? 0) > 1) {
+        const group = map.get(item.bundleId) || [];
+        group.push(item);
+        map.set(item.bundleId, group);
+      }
+    }
+    return map;
+  }, [listings]);
 
   // Update filter & sync with URL
   const handleFilterChange = (newFilters: QuickFilterState) => {
@@ -630,7 +653,12 @@ export const MarketplacePage: React.FC = () => {
           <div className="space-y-8">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {filteredListings.map((listing) => (
-                <TicketCard key={listing.listingId} listing={listing} onBuy={handleBuy} />
+                <TicketCard
+                  key={listing.listingId}
+                  listing={listing}
+                  onBuy={handleBuy}
+                  bundleListings={listing.bundleId ? bundleMap.get(listing.bundleId) : undefined}
+                />
               ))}
             </div>
 

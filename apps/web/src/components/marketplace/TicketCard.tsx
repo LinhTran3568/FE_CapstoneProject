@@ -10,12 +10,15 @@ interface TicketCardProps {
   listing: MarketplaceListingDto;
   onBuy: (listing: MarketplaceListingDto) => void;
   onViewDetails?: (listing: MarketplaceListingDto) => void;
+  /** Tất cả các vé trong cùng bundle (dùng để hiện đủ ghế combo) */
+  bundleListings?: MarketplaceListingDto[];
 }
 
 export const TicketCard: React.FC<TicketCardProps> = ({
   listing,
   onBuy,
   onViewDetails,
+  bundleListings,
 }) => {
   const formattedPrice = new Intl.NumberFormat('vi-VN').format(listing.resalePrice);
   const formattedOriginalPrice = new Intl.NumberFormat('vi-VN').format(listing.originalPrice);
@@ -247,15 +250,35 @@ export const TicketCard: React.FC<TicketCardProps> = ({
 
           {/* Metadata with subtle icons */}
           <div className="flex flex-wrap items-center gap-x-3.5 gap-y-1 text-[11px] sm:text-xs text-zinc-300">
-            {/* Seat Position from DB */}
-            {listing.seatZone && (
+            {/* Seat Position from DB — compact summary for combos */}
+            {isBundle && bundleListings && bundleListings.length > 1 ? (
+              (() => {
+                // Tìm zone chung (phần đầu giống nhau)
+                const zones = bundleListings.map(l => l.seatZone || l.tierName || '');
+                const firstZoneParts = zones[0].split(' - ');
+                const commonZone = firstZoneParts[0]; // e.g. "VIP Zone A"
+                // Lấy seat numbers: "Seat 08", "Seat 09" → "08 & 09"
+                const seatNums = zones
+                  .map(z => z.match(/seat\s*(\w+)/i)?.[1])
+                  .filter(Boolean);
+                const seatSummary = seatNums.length === bundleListings.length
+                  ? `${commonZone} · Seats ${seatNums.join(' & ')}`
+                  : `${commonZone} · ${bundleListings.length} seats`;
+                return (
+                  <div className="flex items-center gap-1.5 shrink-0" title={zones.join(' | ')}>
+                    <Ticket className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                    <span className="font-semibold text-amber-200">{seatSummary}</span>
+                  </div>
+                );
+              })()
+            ) : listing.seatZone ? (
               <div className="flex items-center gap-1.5 shrink-0" title={`Vị trí ghế: ${listing.seatZone}`}>
                 <Ticket className="w-3.5 h-3.5 text-amber-400 shrink-0" />
                 <span className="font-semibold text-amber-200">
                   {listing.seatZone}
                 </span>
               </div>
-            )}
+            ) : null}
 
             {/* Date & Time */}
             <div className="flex items-center gap-1.5 shrink-0">
@@ -366,11 +389,21 @@ export const TicketCard: React.FC<TicketCardProps> = ({
 
         {/* Stub Top: Monospace code pill and barcode */}
         <div className="flex items-center justify-between pt-0.5">
-          <div className="px-1.5 py-0.5 rounded bg-slate-300/80 border border-slate-400/50">
-            <span className="font-mono-code text-[10px] sm:text-[11px] font-bold tracking-wider text-slate-800">
-              {passCode}
-            </span>
-          </div>
+          {isBundle ? (
+            // Combo: thay mã vé đơn bằng badge số lượng vé
+            <div className="px-2 py-0.5 rounded bg-[#FF5A36]/15 border border-[#FF5A36]/40 flex items-center gap-1">
+              <Layers className="w-3 h-3 text-[#FF5A36] shrink-0" />
+              <span className="font-mono text-[10px] sm:text-[11px] font-bold tracking-wider text-[#FF5A36] uppercase">
+                {bundleCount} TICKETS
+              </span>
+            </div>
+          ) : (
+            <div className="px-1.5 py-0.5 rounded bg-slate-300/80 border border-slate-400/50">
+              <span className="font-mono-code text-[10px] sm:text-[11px] font-bold tracking-wider text-slate-800">
+                {passCode}
+              </span>
+            </div>
+          )}
 
           {/* Realistic Barcode Graphic */}
           <div className="flex items-center gap-[2px] h-4.5 opacity-80" title="Ticket barcode">
