@@ -42,6 +42,10 @@ export const Step3ConfirmDetails: React.FC<Step3ConfirmDetailsProps> = ({
             src="/images/landing/featured-1.jpg"
             alt="Concert Ticket"
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-out"
+            onError={(e) => {
+              e.currentTarget.onerror = null;
+              e.currentTarget.src = '/images/landing/concert.jpg';
+            }}
           />
           <div className="absolute inset-0 bg-gradient-to-t from-[#0A0D12] via-[#0A0D12]/50 to-transparent" />
         </div>

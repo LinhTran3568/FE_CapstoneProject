@@ -24,7 +24,7 @@ import { formatEventDateTime, formatVND } from '../utils/formatters';
 import { SeatAdjacencyBadge } from '../components/ui/SeatAdjacencyBadge';
 
 const entryPayload = (ticket: PurchasedTicketDto) =>
-  (ticket.qrCodeData || ticket.ticketPassCode || '').trim();
+  (ticket.qrCodeImageUrl || ticket.qrCodeData || ticket.ticketPassCode || '').trim();
 
 /** Returns true if the payload is a base64-encoded PNG/image data URL */
 const isBase64Image = (value: string) => value.startsWith('data:image/');
@@ -34,7 +34,7 @@ const canShowEntryQr = (ticket: PurchasedTicketDto) => {
   if (status === 'PENDING_PAYMENT' || status === 'REFUNDED' || status === 'REFUNDQUEUED') {
     return false;
   }
-  return entryPayload(ticket).length > 0;
+  return Boolean(ticket.qrCodeImageUrl || ticket.qrCodeData || ticket.ticketPassCode);
 };
 
 const getDisputedBadge = (ticket: PurchasedTicketDto) => {
@@ -370,19 +370,19 @@ const getZoneStyle = (tierName: string) => {
 const getEventBackdrop = (name: string): string => {
   const lower = (name || '').toLowerCase();
   if (lower.includes('say hi') || lower.includes('anh trai')) {
-    return 'https://images.unsplash.com/photo-1540039155733-5bb30b53aa14?auto=format&fit=crop&w=1200&q=80';
+    return '/images/landing/hero-concert.jpg';
   }
   if (lower.includes('mỹ tâm') || lower.includes('tri âm')) {
-    return 'https://images.unsplash.com/photo-1501386761578-eac5c94b800a?auto=format&fit=crop&w=1200&q=80';
+    return '/images/landing/featured-1.jpg';
   }
   if (lower.includes('rave') || lower.includes('festival') || lower.includes('edm')) {
-    return 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?auto=format&fit=crop&w=1200&q=80';
+    return '/images/landing/festival.jpg';
   }
-  if (lower.includes('derby') || lower.includes('league') || lower.includes('viettel')) {
-    return 'https://images.unsplash.com/photo-1508098682722-e99c43a406b2?auto=format&fit=crop&w=1200&q=80';
+  if (lower.includes('derby') || lower.includes('league') || lower.includes('viettel') || lower.includes('sports')) {
+    return '/images/landing/sports.jpg';
   }
-  if (lower.includes('kịch') || lower.includes('ngày xửa')) {
-    return 'https://images.unsplash.com/photo-1507676184212-d03ab07a01bf?auto=format&fit=crop&w=1200&q=80';
+  if (lower.includes('kịch') || lower.includes('ngày xửa') || lower.includes('theater')) {
+    return '/images/landing/theater.jpg';
   }
   return '/images/landing/concert.jpg';
 };
@@ -435,6 +435,10 @@ const OfficialTicketPassCard: React.FC<OfficialTicketPassCardProps> = ({ ticket,
             alt={ticket.eventName}
             className="w-full h-full object-cover object-center contrast-125 saturate-110 transition-transform duration-300 ease-out group-hover:scale-105 opacity-70"
             loading="lazy"
+            onError={(e) => {
+              e.currentTarget.onerror = null;
+              e.currentTarget.src = '/images/landing/concert.jpg';
+            }}
           />
           {/* Multi-layer gradient overlays for high text contrast */}
           <div className="absolute inset-0 bg-gradient-to-r from-[#07080b]/95 via-[#0a0c10]/85 to-[#0b0d13]/95" />
@@ -763,10 +767,16 @@ const EntryQrModal: React.FC<EntryQrModalProps> = ({ ticket, onClose }) => {
           </p>
         </div>
 
-        {/* Official QR Code Box */}
+        {/* Official QR Code Box — Renders real QR from backend */}
         <div className="flex flex-col items-center justify-center gap-3 py-2">
           <div className="p-4 bg-white rounded-2xl shadow-xl border-4 border-white inline-block">
-            {isBase64Image(payload) ? (
+            {ticket.qrCodeImageUrl ? (
+              <img
+                src={ticket.qrCodeImageUrl}
+                alt="Official Ticket QR Code"
+                className="w-[200px] h-[200px] object-contain rounded-lg"
+              />
+            ) : isBase64Image(payload) ? (
               <img
                 src={payload}
                 alt="Official Ticket QR Code"
@@ -775,7 +785,7 @@ const EntryQrModal: React.FC<EntryQrModalProps> = ({ ticket, onClose }) => {
             ) : (
               <QRCodeCanvas
                 id="official-entry-qr-canvas"
-                value={payload}
+                value={payload || ticket.ticketPassCode || 'OFFICIAL_TICKET_PASS'}
                 size={200}
                 level="H"
                 includeMargin={false}

@@ -64,6 +64,10 @@ export const CityTimeBrowseSection: React.FC<CityTimeBrowseSectionProps> = ({
                 src={city.imageUrl}
                 alt={city.name}
                 className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 brightness-75 group-hover:brightness-90"
+                onError={(e) => {
+                  e.currentTarget.onerror = null;
+                  e.currentTarget.src = '/images/landing/hero-concert.jpg';
+                }}
               />
               <div className="absolute inset-0 bg-gradient-to-t from-[#05070A] via-[#05070A]/40 to-transparent" />
 

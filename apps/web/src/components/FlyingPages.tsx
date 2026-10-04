@@ -168,10 +168,10 @@ export default function FlyingPages() {
           </div>
         `;
       } else {
-        // Variant 8: Project Logo v2 Page
+        // Variant 8: Project Logo Page
         contentHtml = `
           <div class="mini-page-logo-container">
-            <img src="/project-logo-v2.png" class="mini-page-logo-img" alt="Logo" />
+            <img src="/favicon.svg" class="mini-page-logo-img" alt="TicketShield Logo" onerror="this.style.display='none'" />
           </div>
         `;
       }

@@ -43,19 +43,19 @@ const eventList: EventItem[] = [
   },
   {
     title: "Mori Live",
-    img: "https://cdn.cosmos.so/79de41ec-baa4-4ac0-a9a4-c090005ca640?format=jpeg"
+    img: "/images/landing/concert.jpg"
   },
   {
     title: "Ampersand Pass",
-    img: "https://cdn.cosmos.so/1a18b312-21cd-4484-bce5-9fb7ed1c5e01?format=jpeg"
+    img: "/images/landing/electronic.jpg"
   },
   {
     title: "Cosmic Arena",
-    img: "https://cdn.cosmos.so/d765f64f-7a66-462f-8b2d-3d7bc8d7db55?format=jpeg"
+    img: "/images/landing/festival.jpg"
   },
   {
     title: "Typography Gala",
-    img: "https://cdn.cosmos.so/6b9f08ea-f0c5-471f-a620-71221ff1fb65?format=jpeg"
+    img: "/images/landing/theater.jpg"
   }
 ];
 
@@ -112,6 +112,10 @@ export const PartnersSection: React.FC = () => {
                 loading="lazy"
                 decoding="async"
                 draggable={false}
+                onError={(e) => {
+                  e.currentTarget.onerror = null;
+                  e.currentTarget.src = '/images/landing/concert.jpg';
+                }}
               />
               <div className="event-square-overlay">
                 <span className="event-square-title">{event.title}</span>

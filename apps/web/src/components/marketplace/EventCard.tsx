@@ -33,11 +33,15 @@ export const EventCard: React.FC<EventCardProps> = ({ event, onSelectEvent }) =>
         <img
           src={
             event.bannerUrl ||
-            'https://images.unsplash.com/photo-1540039155733-5bb30b53aa14?auto=format&fit=crop&w=800&q=80'
+            '/images/landing/hero-concert.jpg'
           }
           alt={event.name}
           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ease-out brightness-95 group-hover:brightness-105"
           loading="lazy"
+          onError={(e) => {
+            e.currentTarget.onerror = null;
+            e.currentTarget.src = '/images/landing/hero-concert.jpg';
+          }}
         />
         <div className="absolute inset-0 bg-gradient-to-t from-[#090C12] via-black/30 to-transparent pointer-events-none" />
 

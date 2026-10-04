@@ -80,6 +80,10 @@ export const FeaturedArtistsOrganizers: React.FC<FeaturedArtistsOrganizersProps>
                 src={artist.avatarUrl}
                 alt={artist.name}
                 className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                onError={(e) => {
+                  e.currentTarget.onerror = null;
+                  e.currentTarget.src = '/images/landing/artist-1.jpg';
+                }}
               />
             </div>
             <h4 className="text-sm font-bold text-white group-hover:text-[#FF5A36] transition-colors line-clamp-1">

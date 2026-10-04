@@ -16,7 +16,7 @@ const CATEGORY_CARDS: CategoryCard[] = [
     name: 'Concerts & Live Music',
     count: 24,
     icon: Music,
-    imageUrl: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?auto=format&fit=crop&w=600&q=80',
+    imageUrl: '/images/landing/hero-concert.jpg',
     accentColor: '#FF5A36',
   },
   {
@@ -24,7 +24,7 @@ const CATEGORY_CARDS: CategoryCard[] = [
     name: 'Festivals & EDM',
     count: 12,
     icon: Zap,
-    imageUrl: 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?auto=format&fit=crop&w=600&q=80',
+    imageUrl: '/images/landing/festival.jpg',
     accentColor: '#A855F7',
   },
   {
@@ -32,7 +32,7 @@ const CATEGORY_CARDS: CategoryCard[] = [
     name: 'Sports & Tournaments',
     count: 16,
     icon: Trophy,
-    imageUrl: 'https://images.unsplash.com/photo-1508098682722-e99c43a406b2?auto=format&fit=crop&w=600&q=80',
+    imageUrl: '/images/landing/sports.jpg',
     accentColor: '#10B981',
   },
   {
@@ -40,7 +40,7 @@ const CATEGORY_CARDS: CategoryCard[] = [
     name: 'Theater & Performing Arts',
     count: 8,
     icon: Theater,
-    imageUrl: 'https://images.unsplash.com/photo-1507676184212-d03ab07a01bf?auto=format&fit=crop&w=600&q=80',
+    imageUrl: '/images/landing/theater.jpg',
     accentColor: '#06B6D4',
   },
   {
@@ -48,7 +48,7 @@ const CATEGORY_CARDS: CategoryCard[] = [
     name: 'Workshops & Talks',
     count: 5,
     icon: GraduationCap,
-    imageUrl: 'https://images.unsplash.com/photo-1475721027785-f74eccf877e2?auto=format&fit=crop&w=600&q=80',
+    imageUrl: '/images/landing/electronic.jpg',
     accentColor: '#F59E0B',
   },
 ];
@@ -80,6 +80,10 @@ export const CategoryBrowseGrid: React.FC<CategoryBrowseGridProps> = ({ onSelect
                 src={cat.imageUrl}
                 alt={cat.name}
                 className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500 brightness-75 group-hover:brightness-90"
+                onError={(e) => {
+                  e.currentTarget.onerror = null;
+                  e.currentTarget.src = '/images/landing/concert.jpg';
+                }}
               />
               <div className="absolute inset-0 bg-gradient-to-t from-[#05070A] via-[#05070A]/50 to-transparent" />
 

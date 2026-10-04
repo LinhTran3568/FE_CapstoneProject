@@ -18,7 +18,7 @@ const FALLBACK_SLIDES: TrendingEventDto[] = [
     category: 'CONCERT',
     venue: 'Sân vận động Quốc gia Mỹ Đình',
     city: 'Hà Nội',
-    bannerUrl: 'https://images.unsplash.com/photo-1540039155733-5bb30b53aa14?auto=format&fit=crop&w=1600&q=80',
+    bannerUrl: '/images/landing/hero-concert.jpg',
     eventStartAt: '2026-10-24T19:00:00Z',
     minResalePrice: 1200000,
     totalAvailableListings: 18,
@@ -30,7 +30,7 @@ const FALLBACK_SLIDES: TrendingEventDto[] = [
     category: 'CONCERT',
     venue: 'Sân vận động Quân khu 7',
     city: 'TP. Hồ Chí Minh',
-    bannerUrl: 'https://images.unsplash.com/photo-1501386761578-eac5c94b800a?auto=format&fit=crop&w=1600&q=80',
+    bannerUrl: '/images/landing/featured-1.jpg',
     eventStartAt: '2026-11-15T19:30:00Z',
     minResalePrice: 850000,
     totalAvailableListings: 12,
@@ -42,7 +42,7 @@ const FALLBACK_SLIDES: TrendingEventDto[] = [
     category: 'FESTIVAL',
     venue: 'Khu Đô Thị Sala, TP. Thủ Đức',
     city: 'TP. Hồ Chí Minh',
-    bannerUrl: 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?auto=format&fit=crop&w=1600&q=80',
+    bannerUrl: '/images/landing/festival.jpg',
     eventStartAt: '2026-12-05T15:00:00Z',
     minResalePrice: 650000,
     totalAvailableListings: 9,
@@ -148,6 +148,10 @@ export const TrendingBannerSlider: React.FC<TrendingBannerSliderProps> = ({ onSe
               src={currentSlide.bannerUrl}
               alt={currentSlide.name}
               className="w-full h-full object-cover object-center"
+              onError={(e) => {
+                e.currentTarget.onerror = null;
+                e.currentTarget.src = '/images/landing/hero-concert.jpg';
+              }}
             />
 
             {/* Gradient Overlays */}
