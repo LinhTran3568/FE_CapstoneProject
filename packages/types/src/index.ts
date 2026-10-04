@@ -244,6 +244,14 @@ export interface MyPayoutDto {
  * Purchased ticket pass for buyers
  * GET /api/v1/resale-listings/my-purchased-tickets
  */
+export interface PurchasedTicketItemDto {
+  listingId: string;
+  ticketCode: string;
+  seatZone: string;
+  qrCodeData: string;
+  qrCodeImageUrl: string;
+}
+
 export interface PurchasedTicketDto {
   escrowId: string;
   listingId: string;
@@ -263,6 +271,10 @@ export interface PurchasedTicketDto {
   qrCodeData: string;
   qrCodeImageUrl: string;
   purchasedAt: string;
+
+  bundleId?: string | null;
+  bundleTotalTickets?: number | null;
+  bundleItems?: PurchasedTicketItemDto[];
 }
 
 /**

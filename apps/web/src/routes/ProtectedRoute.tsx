@@ -43,7 +43,9 @@ export const GuestRoute: React.FC = () => {
   }
 
   if (isAuthenticated) {
-    const from = (location.state as any)?.from?.pathname || '/marketplace';
+    const rawFrom = (location.state as any)?.from;
+    const targetPath = typeof rawFrom === 'string' ? rawFrom : rawFrom?.pathname;
+    const from = (!targetPath || targetPath === '/sell-ticket' || targetPath === '/sell') ? '/marketplace' : targetPath;
     return <Navigate to={from} replace />;
   }
 

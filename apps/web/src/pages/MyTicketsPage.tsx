@@ -406,6 +406,9 @@ const OfficialTicketPassCard: React.FC<OfficialTicketPassCardProps> = ({ ticket,
   const backdropUrl = getEventBackdrop(ticket.eventName);
   const formattedDate = ticket.eventStartAt ? formatEventDateTime(ticket.eventStartAt) : 'Date & Time Announced by Organizer';
 
+  const isCombo = Boolean((ticket.bundleTotalTickets && ticket.bundleTotalTickets >= 2) || (ticket.bundleItems && ticket.bundleItems.length >= 2));
+  const totalTicketsCount = ticket.bundleTotalTickets || ticket.bundleItems?.length || 1;
+
   const handleCopyCode = useCallback(
     (e: React.MouseEvent) => {
       e.stopPropagation();
@@ -421,13 +424,13 @@ const OfficialTicketPassCard: React.FC<OfficialTicketPassCardProps> = ({ ticket,
   return (
     <div
       id={`my-ticket-card-${ticket.escrowId || ticket.listingId}`}
-      className="group relative isolate w-full h-[195px] sm:h-[200px] flex rounded-2xl bg-[#0a0c10] border border-white/10 hover:border-[#FF5A36] shadow-[0_8px_24px_rgba(0,0,0,0.7)] hover:shadow-[0_12px_36px_rgba(255,90,54,0.2)] hover:-translate-y-1 transition-[border-color,box-shadow,transform] duration-200 ease-out select-none cursor-pointer"
+      className="group relative isolate w-full min-h-[200px] flex items-stretch rounded-2xl bg-[#0a0c10] border border-white/10 hover:border-[#FF5A36] shadow-[0_8px_24px_rgba(0,0,0,0.7)] hover:shadow-[0_12px_36px_rgba(255,90,54,0.2)] hover:-translate-y-1 transition-[border-color,box-shadow,transform] duration-200 ease-out select-none cursor-pointer overflow-hidden"
       onClick={() => {
         if (hasQr) onViewQr();
       }}
     >
       {/* ================= LEFT SECTION: MAIN BODY (65% width) ================= */}
-      <div className="relative w-[65%] h-full rounded-l-2xl overflow-hidden flex flex-col justify-between p-4 sm:p-5 bg-[#0a0c10]">
+      <div className="relative w-[65%] min-h-full rounded-l-2xl overflow-hidden flex flex-col justify-between p-3.5 sm:p-4 bg-[#0a0c10]">
         {/* Live Concert Photo Backdrop */}
         <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none">
           <img
@@ -447,18 +450,25 @@ const OfficialTicketPassCard: React.FC<OfficialTicketPassCardProps> = ({ ticket,
         </div>
 
         {/* Top Badges */}
-        <div className="relative z-10 flex items-center justify-between gap-2">
-          <div className="flex items-center gap-2">
-            <div
-              className={`inline-flex items-center gap-2 px-3 py-1 rounded-full border backdrop-blur-md ${zoneStyle.badge}`}
-            >
-              <span className={`w-2 h-2 rounded-full animate-pulse ${zoneStyle.dot}`} />
-              <span className="text-[11px] font-bold tracking-wider uppercase text-white">
-                {cleanTierName(ticket.tierName || ticket.seatZone || '')}
-              </span>
-            </div>
+        <div className="relative z-10 flex flex-wrap items-center justify-between gap-1.5">
+          <div className="flex flex-wrap items-center gap-1.5">
+            {isCombo ? (
+              <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-gradient-to-r from-amber-500/25 to-[#FF5A36]/25 border border-amber-500/50 text-[10px] sm:text-[11px] font-extrabold tracking-wider uppercase text-amber-300 backdrop-blur-md shadow-sm">
+                <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
+                <span>COMBO PACKAGE ({totalTicketsCount} TICKETS)</span>
+              </div>
+            ) : (
+              <div
+                className={`inline-flex items-center gap-2 px-3 py-1 rounded-full border backdrop-blur-md ${zoneStyle.badge}`}
+              >
+                <span className={`w-2 h-2 rounded-full animate-pulse ${zoneStyle.dot}`} />
+                <span className="text-[11px] font-bold tracking-wider uppercase text-white">
+                  {cleanTierName(ticket.tierName || ticket.seatZone || '')}
+                </span>
+              </div>
+            )}
 
-            {ticket.seatZone && (
+            {ticket.seatZone && !isCombo && (
               <SeatAdjacencyBadge
                 seats={ticket.seatZone}
                 variant="glass"
@@ -479,27 +489,47 @@ const OfficialTicketPassCard: React.FC<OfficialTicketPassCardProps> = ({ ticket,
         </div>
 
         {/* Middle & Bottom Content */}
-        <div className="relative z-10 space-y-2">
-          <h2 className="text-[17px] sm:text-[19px] font-extrabold tracking-tight leading-snug text-white group-hover:text-[#FF5A36] drop-shadow-sm transition-colors duration-200 ease-out line-clamp-2">
+        <div className="relative z-10 space-y-1.5 mt-1.5">
+          <h2 className="text-[16px] sm:text-[18px] font-extrabold tracking-tight leading-snug text-white group-hover:text-[#FF5A36] drop-shadow-sm transition-colors duration-200 ease-out line-clamp-1">
             {ticket.eventName}
           </h2>
 
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] sm:text-xs text-zinc-300">
-            <div className="flex items-center gap-1.5 shrink-0">
-              <Calendar className="w-3.5 h-3.5 text-zinc-400 shrink-0" />
+          {/* If Combo, show ticket breakdown */}
+          {isCombo && ticket.bundleItems && ticket.bundleItems.length > 0 ? (
+            <div className="space-y-1 my-1 max-h-[52px] overflow-y-auto pr-0.5 custom-scrollbar">
+              {ticket.bundleItems.map((item, idx) => (
+                <div key={idx} className="flex items-center justify-between text-[10px] sm:text-[11px] bg-black/50 px-2 py-0.5 rounded border border-white/10 font-mono">
+                  <span className="text-amber-300 font-semibold truncate max-w-[130px] sm:max-w-[170px]">
+                    #{idx + 1}: {item.seatZone}
+                  </span>
+                  {item.ticketCode && (
+                    <span className="text-zinc-400 text-[9px] sm:text-[10px] font-mono truncate max-w-[80px] sm:max-w-[110px] ml-1">{item.ticketCode}</span>
+                  )}
+                </div>
+              ))}
+            </div>
+          ) : isCombo ? (
+            <div className="text-[10px] sm:text-[11px] font-mono text-amber-300 bg-black/50 px-2 py-0.5 rounded border border-amber-500/20 truncate">
+              Seats: {ticket.seatZone || 'Multiple Seats (Vé Đôi)'}
+            </div>
+          ) : null}
+
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-zinc-300 pt-0.5">
+            <div className="flex items-center gap-1 shrink-0">
+              <Calendar className="w-3 h-3 text-zinc-400 shrink-0" />
               <span className="font-medium text-zinc-300">{formattedDate}</span>
             </div>
 
-            <div className="flex items-center gap-1.5 min-w-0">
-              <MapPin className="w-3.5 h-3.5 text-zinc-400 shrink-0" />
-              <span className="font-medium text-zinc-300 truncate max-w-[150px] sm:max-w-[190px]">
+            <div className="flex items-center gap-1 min-w-0">
+              <MapPin className="w-3 h-3 text-zinc-400 shrink-0" />
+              <span className="font-medium text-zinc-300 truncate max-w-[130px] sm:max-w-[170px]">
                 {ticket.eventVenue || 'Official Venue'}
               </span>
             </div>
 
             {ticket.recipientName && (
-              <div className="flex items-center gap-1.5 shrink-0">
-                <User className="w-3.5 h-3.5 text-[#10b981] shrink-0" />
+              <div className="flex items-center gap-1 shrink-0">
+                <User className="w-3 h-3 text-[#10b981] shrink-0" />
                 <span className="font-medium text-zinc-300">
                   Pass Holder: <span className="text-[#10b981] font-semibold">{ticket.recipientName}</span>
                 </span>
@@ -511,11 +541,11 @@ const OfficialTicketPassCard: React.FC<OfficialTicketPassCardProps> = ({ ticket,
 
       {/* ================= PERFORATION JUNCTION, NOTCHES & VERTICAL TEAR LINE ================= */}
       {/* Top Notch Cutout with contour border */}
-      <div className="absolute left-[65%] -top-[1px] -translate-x-1/2 w-7 h-[15px] z-30 pointer-events-none">
-        <svg viewBox="0 0 28 15" className="w-full h-full block overflow-visible" fill="none">
-          <path d="M 0,-1 L 28,-1 L 28,0 A 14,14 0 0,1 0,0 Z" fill="#07090E" />
+      <div className="absolute left-[65%] -top-[1px] -translate-x-1/2 w-5 h-[10px] z-30 pointer-events-none">
+        <svg viewBox="0 0 20 10" className="w-full h-full block overflow-visible" fill="none">
+          <path d="M 0,-1 L 20,-1 L 20,0 A 10,10 0 0,1 0,0 Z" fill="#07090E" />
           <path
-            d="M 0,0.5 A 14,14 0 0,0 28,0.5"
+            d="M 0,0.5 A 10,10 0 0,0 20,0.5"
             fill="none"
             className="stroke-white/10 group-hover:stroke-[#FF5A36] transition-colors duration-200 ease-out"
             strokeWidth="1.5"
@@ -524,7 +554,7 @@ const OfficialTicketPassCard: React.FC<OfficialTicketPassCardProps> = ({ ticket,
       </div>
 
       {/* Vertical Perforated Tear Line */}
-      <div className="absolute left-[65%] -ml-[2px] top-[14px] bottom-[14px] -translate-x-1/2 w-[2px] z-20 pointer-events-none flex flex-col items-center justify-center">
+      <div className="absolute left-[65%] -ml-[1px] top-[10px] bottom-[10px] -translate-x-1/2 w-[2px] z-20 pointer-events-none flex flex-col items-center justify-center">
         <svg className="h-full w-[2px] overflow-visible" preserveAspectRatio="none" viewBox="0 0 2 202">
           <line
             x1="1"
@@ -533,18 +563,18 @@ const OfficialTicketPassCard: React.FC<OfficialTicketPassCardProps> = ({ ticket,
             y2="202"
             className="stroke-[#FF5A36]/45 group-hover:stroke-[#FF5A36] group-hover:drop-shadow-[0_0_6px_rgba(255,90,54,0.75)] transition-all duration-200 ease-out"
             strokeWidth="2"
-            strokeDasharray="9 5"
+            strokeDasharray="8 4"
             strokeLinecap="round"
           />
         </svg>
       </div>
 
       {/* Bottom Notch Cutout with contour border */}
-      <div className="absolute left-[65%] -bottom-[1px] -translate-x-1/2 w-7 h-[15px] z-30 pointer-events-none">
-        <svg viewBox="0 0 28 15" className="w-full h-full block overflow-visible" fill="none">
-          <path d="M 0,14.5 A 14,14 0 0,1 28,14.5 L 28,15.5 L 0,15.5 Z" fill="#07090E" />
+      <div className="absolute left-[65%] -bottom-[1px] -translate-x-1/2 w-5 h-[10px] z-30 pointer-events-none">
+        <svg viewBox="0 0 20 10" className="w-full h-full block overflow-visible" fill="none">
+          <path d="M 0,10 A 10,10 0 0,1 20,10 L 20,11 L 0,11 Z" fill="#07090E" />
           <path
-            d="M 0,14.5 A 14,14 0 0,1 28,14.5"
+            d="M 0,9.5 A 10,10 0 0,1 20,9.5"
             fill="none"
             className="stroke-white/10 group-hover:stroke-[#FF5A36] transition-colors duration-200 ease-out"
             strokeWidth="1.5"
@@ -553,17 +583,17 @@ const OfficialTicketPassCard: React.FC<OfficialTicketPassCardProps> = ({ ticket,
       </div>
 
       {/* ================= RIGHT SECTION: TICKET STUB (35% width) ================= */}
-      <div className="relative w-[35%] h-full bg-[#e2e8f0] rounded-r-2xl overflow-hidden flex flex-col justify-between p-3.5 sm:p-4 paper-texture shadow-inner">
+      <div className="relative w-[35%] min-h-full bg-[#e2e8f0] rounded-r-2xl overflow-hidden flex flex-col justify-between p-3 sm:p-3.5 paper-texture shadow-inner">
         <div className="absolute top-0 bottom-0 left-0 w-3 bg-gradient-to-r from-black/10 to-transparent pointer-events-none" />
 
         {/* Stub Top: Monospace code pill and barcode */}
-        <div className="flex items-center justify-between pt-0.5">
+        <div className="flex items-center justify-between gap-1 pt-0.5 min-w-0">
           <div
             onClick={handleCopyCode}
             title="Click to copy pass code"
-            className="px-1.5 py-0.5 rounded bg-slate-300/80 border border-slate-400/50 flex items-center gap-1 cursor-pointer hover:bg-slate-300 transition-colors"
+            className="px-1.5 py-0.5 rounded bg-slate-300/80 border border-slate-400/50 flex items-center gap-1 cursor-pointer hover:bg-slate-300 transition-colors min-w-0 shrink"
           >
-            <span className="font-mono-code text-[10px] sm:text-[11px] font-bold tracking-wider text-slate-800 truncate max-w-[100px]">
+            <span className="font-mono text-[9.5px] sm:text-[10.5px] font-bold tracking-tight text-slate-800 truncate max-w-[130px] sm:max-w-[150px]">
               {code || 'ISSUING...'}
             </span>
             {code ? (
@@ -576,32 +606,27 @@ const OfficialTicketPassCard: React.FC<OfficialTicketPassCardProps> = ({ ticket,
           </div>
 
           {/* Realistic Barcode Graphic */}
-          <div className="flex items-center gap-[2px] h-4.5 opacity-80" title="Ticket barcode">
-            <span className="w-[2.5px] h-full bg-slate-900" />
-            <span className="w-[1px] h-full bg-slate-900" />
-            <span className="w-[3px] h-full bg-slate-900" />
-            <span className="w-[1px] h-full bg-slate-900" />
+          <div className="flex items-center gap-[1.5px] h-3.5 opacity-75 shrink-0" title="Ticket barcode">
             <span className="w-[2px] h-full bg-slate-900" />
-            <span className="w-[4px] h-full bg-slate-900" />
-            <span className="w-[1.5px] h-full bg-slate-900" />
             <span className="w-[1px] h-full bg-slate-900" />
             <span className="w-[2.5px] h-full bg-slate-900" />
             <span className="w-[1px] h-full bg-slate-900" />
-            <span className="w-[3px] h-full bg-slate-900" />
             <span className="w-[2px] h-full bg-slate-900" />
+            <span className="w-[2.5px] h-full bg-slate-900" />
+            <span className="w-[1px] h-full bg-slate-900" />
           </div>
         </div>
 
         {/* Stub Middle: Amount Paid */}
-        <div className="my-auto py-0.5">
+        <div className="my-auto py-1">
           <div className="text-[9px] font-bold tracking-wider text-slate-500 uppercase mb-0.5">
             AMOUNT PAID
           </div>
           <div className="flex items-baseline">
-            <span className="text-[19px] sm:text-[21px] font-extrabold tracking-tight text-slate-900 leading-none">
+            <span className="text-[17px] sm:text-[20px] font-extrabold tracking-tight text-slate-900 leading-none">
               {new Intl.NumberFormat('vi-VN').format(ticket.totalAmountPaid)}
             </span>
-            <span className="ml-1 text-[11px] font-bold text-slate-700">VND</span>
+            <span className="ml-1 text-[10px] sm:text-[11px] font-bold text-slate-700">VND</span>
           </div>
         </div>
 
@@ -614,20 +639,20 @@ const OfficialTicketPassCard: React.FC<OfficialTicketPassCardProps> = ({ ticket,
                 e.stopPropagation();
                 onViewQr();
               }}
-              className="w-full py-2 px-2 sm:px-3 bg-[#ff5722] hover:bg-[#f4511e] active:scale-[0.98] transition-all duration-150 rounded-xl font-bold text-[11px] sm:text-xs text-white tracking-wide shadow-[0_4px_14px_rgba(255,87,34,0.35)] flex items-center justify-center gap-1.5 cursor-pointer group/btn"
+              className="w-full py-2 px-2 bg-[#ff5722] hover:bg-[#f4511e] active:scale-[0.98] transition-all duration-150 rounded-xl font-bold text-[10px] sm:text-[11px] text-white tracking-wider uppercase shadow-[0_4px_14px_rgba(255,87,34,0.35)] flex items-center justify-center gap-1 cursor-pointer group/btn whitespace-nowrap"
             >
               <QrCode className="w-3.5 h-3.5 shrink-0" />
-              <span>VIEW ENTRY QR</span>
-              <span className="transition-transform duration-150 group-hover/btn:translate-x-1">→</span>
+              <span>{isCombo ? `VIEW QRS (${totalTicketsCount})` : 'VIEW ENTRY QR'}</span>
+              <span className="transition-transform duration-150 group-hover/btn:translate-x-0.5">→</span>
             </button>
           ) : (
             <button
               type="button"
               disabled
-              className="w-full py-2 px-2 bg-slate-300 border border-slate-400 text-slate-600 rounded-xl font-bold text-[11px] tracking-wide flex items-center justify-center gap-1.5 cursor-not-allowed select-none"
+              className="w-full py-2 px-2 bg-slate-300 border border-slate-400 text-slate-600 rounded-xl font-bold text-[10px] tracking-wide flex items-center justify-center gap-1 cursor-not-allowed select-none"
             >
               <Loader2 className="w-3.5 h-3.5 animate-spin shrink-0" />
-              <span className="text-[10px]">ISSUING PASS...</span>
+              <span>ISSUING...</span>
             </button>
           )}
         </div>
@@ -639,6 +664,7 @@ const OfficialTicketPassCard: React.FC<OfficialTicketPassCardProps> = ({ ticket,
 /**
  * Entry QR Modal Component
  * Renders high-resolution official pass QR code with one-click download to PNG.
+ * Supports multi-ticket / combo package tab switching.
  */
 interface EntryQrModalProps {
   ticket: PurchasedTicketDto;
@@ -650,9 +676,24 @@ const EntryQrModal: React.FC<EntryQrModalProps> = ({ ticket, onClose }) => {
   const showToast = useUIStore((state) => state.showToast);
   const [copied, setCopied] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
+  const [selectedTicketIndex, setSelectedTicketIndex] = useState(0);
 
-  const payload = entryPayload(ticket);
-  const code = ticket.ticketPassCode || (isBase64Image(payload) ? '' : payload);
+  const isCombo = Boolean((ticket.bundleTotalTickets && ticket.bundleTotalTickets >= 2) || (ticket.bundleItems && ticket.bundleItems.length >= 2));
+  const totalCount = ticket.bundleTotalTickets || ticket.bundleItems?.length || 1;
+
+  const items = (ticket.bundleItems && ticket.bundleItems.length > 0)
+    ? ticket.bundleItems
+    : Array.from({ length: totalCount }).map((_, i) => ({
+        listingId: ticket.listingId,
+        ticketCode: ticket.ticketPassCode ? `${ticket.ticketPassCode}-T${i + 1}` : '',
+        seatZone: ticket.seatZone || `Seat #${i + 1}`,
+        qrCodeData: ticket.qrCodeData,
+        qrCodeImageUrl: ticket.qrCodeImageUrl,
+      }));
+
+  const currentItem = items[selectedTicketIndex] || items[0];
+  const payload = currentItem.qrCodeData || currentItem.ticketCode || entryPayload(ticket);
+  const code = currentItem.ticketCode || (isBase64Image(payload) ? '' : payload);
 
   const handleKeyDown = useCallback(
     (event: KeyboardEvent) => {
@@ -677,7 +718,7 @@ const EntryQrModal: React.FC<EntryQrModalProps> = ({ ticket, onClose }) => {
   const handleDownloadQr = useCallback(() => {
     try {
       setIsDownloading(true);
-      const safeTicketCode = (ticket.ticketPassCode || ticket.escrowId || 'ticket').replace(
+      const safeTicketCode = (code || ticket.escrowId || `ticket-${selectedTicketIndex + 1}`).replace(
         /[^a-zA-Z0-9-_]/g,
         '_'
       );
@@ -699,7 +740,6 @@ const EntryQrModal: React.FC<EntryQrModalProps> = ({ ticket, onClose }) => {
       // 2. If rendered via QRCodeCanvas
       const sourceCanvas = document.getElementById('official-entry-qr-canvas') as HTMLCanvasElement | null;
       if (sourceCanvas) {
-        // Create high-res offscreen canvas with white background and clean margins
         const padding = 28;
         const offscreen = document.createElement('canvas');
         offscreen.width = sourceCanvas.width + padding * 2;
@@ -729,7 +769,7 @@ const EntryQrModal: React.FC<EntryQrModalProps> = ({ ticket, onClose }) => {
       showToast('Lỗi khi tải mã QR.', 'error');
       setIsDownloading(false);
     }
-  }, [payload, ticket.escrowId, ticket.ticketPassCode, showToast]);
+  }, [code, payload, selectedTicketIndex, ticket.escrowId, showToast]);
 
   return (
     <div
@@ -740,7 +780,7 @@ const EntryQrModal: React.FC<EntryQrModalProps> = ({ ticket, onClose }) => {
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
-        className="bg-[#10141D] border border-white/20 rounded-3xl max-w-md w-full p-6 sm:p-7 space-y-5 shadow-2xl relative text-center"
+        className="bg-[#10141D] border border-white/20 rounded-3xl max-w-md w-full p-6 sm:p-7 space-y-4 shadow-2xl relative text-center"
         onClick={(event) => event.stopPropagation()}
       >
         {/* Close Button */}
@@ -757,35 +797,63 @@ const EntryQrModal: React.FC<EntryQrModalProps> = ({ ticket, onClose }) => {
         <div className="space-y-1.5 pr-8">
           <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-[11px] font-mono font-bold text-emerald-400 uppercase tracking-wider">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-            <span>OFFICIAL ENTRY PASS</span>
+            <span>{isCombo ? `COMBO PACKAGE (${totalCount} TICKETS)` : 'OFFICIAL ENTRY PASS'}</span>
           </div>
           <h2 id={titleId} className="text-xl font-bold font-display text-white leading-tight">
             {ticket.eventName}
           </h2>
-          <p className="text-xs font-mono text-[#94A3B8]">
-            {ticket.seatZone || ticket.tierName || 'Standard Entry'} • {ticket.eventVenue || 'Venue entrance'}
-          </p>
+          <div className="space-y-1 pt-0.5">
+            <div className="text-xs font-mono font-semibold text-amber-400">
+              {currentItem.seatZone || ticket.seatZone || ticket.tierName || 'Standard Entry'}
+            </div>
+            <div className="text-[11px] font-mono text-[#94A3B8] flex items-center justify-center gap-1">
+              <MapPin className="w-3.5 h-3.5 text-[#94A3B8] shrink-0" />
+              <span className="truncate max-w-[320px]">{ticket.eventVenue || 'Venue entrance'}</span>
+            </div>
+          </div>
         </div>
 
-        {/* Official QR Code Box — Renders real QR from backend */}
-        <div className="flex flex-col items-center justify-center gap-3 py-2">
+        {/* Combo Multi-ticket Tabs */}
+        {isCombo && items.length > 1 && (
+          <div className="flex justify-center w-full">
+            <div className="inline-flex items-center gap-1.5 p-1 bg-[#080B10] rounded-xl border border-white/10 text-xs font-mono max-w-full overflow-x-auto scrollbar-none">
+              {items.map((item, idx) => (
+                <button
+                  key={idx}
+                  type="button"
+                  onClick={() => setSelectedTicketIndex(idx)}
+                  className={`px-3.5 py-1.5 rounded-lg font-bold transition-all cursor-pointer shrink-0 ${
+                    selectedTicketIndex === idx
+                      ? 'bg-[#FF573D] text-white shadow-md shadow-[#FF573D]/30'
+                      : 'text-[#94A3B8] hover:text-white hover:bg-white/5'
+                  }`}
+                >
+                  Ticket #{idx + 1}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Official QR Code Box — Renders real QR for selected ticket */}
+        <div className="flex flex-col items-center justify-center gap-3 py-1">
           <div className="p-4 bg-white rounded-2xl shadow-xl border-4 border-white inline-block">
-            {ticket.qrCodeImageUrl ? (
+            {currentItem.qrCodeImageUrl ? (
               <img
-                src={ticket.qrCodeImageUrl}
-                alt="Official Ticket QR Code"
+                src={currentItem.qrCodeImageUrl}
+                alt={`Official Ticket #${selectedTicketIndex + 1} QR Code`}
                 className="w-[200px] h-[200px] object-contain rounded-lg"
               />
             ) : isBase64Image(payload) ? (
               <img
                 src={payload}
-                alt="Official Ticket QR Code"
+                alt={`Official Ticket #${selectedTicketIndex + 1} QR Code`}
                 className="w-[200px] h-[200px] object-contain rounded-lg"
               />
             ) : (
               <QRCodeCanvas
                 id="official-entry-qr-canvas"
-                value={payload || ticket.ticketPassCode || 'OFFICIAL_TICKET_PASS'}
+                value={payload || 'OFFICIAL_TICKET_PASS'}
                 size={200}
                 level="H"
                 includeMargin={false}
@@ -811,12 +879,12 @@ const EntryQrModal: React.FC<EntryQrModalProps> = ({ ticket, onClose }) => {
           )}
 
           <p className="text-xs text-[#94A3B8] max-w-xs leading-relaxed">
-            Show this official QR code to event staff at the gate for rapid scanner check-in.
+            {isCombo ? `Show this QR code for Ticket #${selectedTicketIndex + 1} at gate check-in.` : 'Show this official QR code to event staff at the gate for rapid scanner check-in.'}
           </p>
         </div>
 
         {/* Action Buttons */}
-        <div className="pt-2 flex flex-col sm:flex-row gap-3">
+        <div className="pt-1 flex flex-col sm:flex-row gap-3">
           <button
             type="button"
             onClick={handleDownloadQr}
@@ -828,7 +896,7 @@ const EntryQrModal: React.FC<EntryQrModalProps> = ({ ticket, onClose }) => {
             ) : (
               <Download className="w-4 h-4" />
             )}
-            <span>Download QR Code</span>
+            <span>Download Ticket #{selectedTicketIndex + 1} QR</span>
           </button>
 
           <button

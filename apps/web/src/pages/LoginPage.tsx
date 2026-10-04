@@ -18,7 +18,9 @@ export const LoginPage: React.FC = () => {
   const location = useLocation();
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
 
-  const from = (location.state as any)?.from?.pathname || '/marketplace';
+  const rawFrom = (location.state as any)?.from;
+  const targetPath = typeof rawFrom === 'string' ? rawFrom : rawFrom?.pathname;
+  const from = (!targetPath || targetPath === '/sell-ticket' || targetPath === '/sell') ? '/marketplace' : targetPath;
 
   const {
     register,
