@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { AlertTriangle, RefreshCw } from 'lucide-react';
 import type { MyPayoutDto, SellerListingDto } from '@ticketshield/types';
-import { useMyListings } from '../../hooks/useMyListings';
+import { listingsFailedBeforeAnyData, useMyListings } from '../../hooks/useMyListings';
 import { useMyPayouts } from '../../hooks/useMyPayouts';
 import { formatVND } from '../../utils/formatters';
 
@@ -91,7 +91,7 @@ export const RevenueTab: React.FC<{
   );
   const payouts = preview?.payouts ?? payoutsQuery.data ?? [];
   const listingsPending = !preview && listingsQuery.isPending;
-  const listingsError = !preview && listingsQuery.isError;
+  const listingsError = !preview && listingsFailedBeforeAnyData(listingsQuery.data, listingsQuery.isError);
   const payoutsPending = !preview && payoutsQuery.isPending;
   const payoutsError = !preview && payoutsQuery.isError;
 

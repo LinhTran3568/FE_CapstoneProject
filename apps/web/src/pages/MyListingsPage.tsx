@@ -21,7 +21,7 @@ import {
 } from 'lucide-react';
 import type { ListingStatus, SellerListingDto } from '@ticketshield/types';
 import { useUIStore } from '../stores/uiStore';
-import { useCancelListing, useMyListings } from '../hooks/useMyListings';
+import { listingsFailedBeforeAnyData, useCancelListing, useMyListings } from '../hooks/useMyListings';
 import { RevenueTab } from '../components/seller/RevenueTab';
 import { ConfirmModal } from '../components/ui/ConfirmModal';
 import { formatEventDateTime, formatVND } from '../utils/formatters';
@@ -81,7 +81,9 @@ const getEventThumbnail = (listing: SellerListingDto, index: number) => {
 
 export const MyListingsPage: React.FC = () => {
   const { showToast } = useUIStore();
-  const { data: listings = [], isPending, isError, error, refetch, isFetching } = useMyListings();
+  const { data, isPending, isError, error, refetch, isFetching } = useMyListings();
+  const listings = data ?? [];
+  const showListingsError = listingsFailedBeforeAnyData(data, isError);
   const cancelMutation = useCancelListing();
 
   const [filter, setFilter] = useState<StatusFilter>('all');
@@ -330,7 +332,7 @@ export const MyListingsPage: React.FC = () => {
           {isPending && <ListingSkeleton />}
 
           {/* Error State */}
-          {isError && (
+          {showListingsError && (
             <div className="py-16 px-6 bg-[#0B0E12] border border-white/[0.08] rounded-2xl flex flex-col items-center text-center gap-3.5 shadow-xl">
               <div className="p-3.5 rounded-2xl bg-rose-500/10 border border-rose-500/20 text-rose-400">
                 <AlertTriangle className="w-6 h-6" />
@@ -352,13 +354,13 @@ export const MyListingsPage: React.FC = () => {
           )}
 
           {/* Empty States */}
-          {!isPending && !isError && visibleListings.length === 0 && (
+          {!isPending && !showListingsError && visibleListings.length === 0 && (
             <EmptyState filter={filter} onReset={() => handleFilterChange('all')} />
           )}
 
           {/* Listing Inventory Cards (Paginated 5 per page) */}
           {!isPending &&
-            !isError &&
+            !showListingsError &&
             paginatedListings.map((listing, index) => {
               const isDiscounted = listing.discountPercentage > 0;
               const thumbnail = getEventThumbnail(listing, index);
@@ -524,7 +526,7 @@ export const MyListingsPage: React.FC = () => {
             })}
 
           {/* Pagination Controls (when visibleListings.length > ITEMS_PER_PAGE) */}
-          {!isPending && !isError && visibleListings.length > ITEMS_PER_PAGE && (
+          {!isPending && !showListingsError && visibleListings.length > ITEMS_PER_PAGE && (
             <div className="pt-6 flex flex-col sm:flex-row items-center justify-between gap-4 border-t border-white/[0.06]">
               <div className="text-xs text-[#8B929C] font-mono">
                 Showing <span className="text-[#F5F5F5] font-semibold">{(currentPage - 1) * ITEMS_PER_PAGE + 1}</span> – <span className="text-[#F5F5F5] font-semibold">{Math.min(currentPage * ITEMS_PER_PAGE, visibleListings.length)}</span> of <span className="text-[#F5F5F5] font-semibold">{visibleListings.length}</span> listings

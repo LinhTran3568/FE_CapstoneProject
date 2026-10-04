@@ -5,6 +5,10 @@ import type { SellerListingDto } from '@ticketshield/types';
 /** Cache key for the signed-in seller's listings. Invalidate it after any listing change. */
 export const myListingsQueryKey = ['resale-listings', 'mine'] as const;
 
+/** The full-screen error replaces the list only before any list has arrived. */
+export const listingsFailedBeforeAnyData = (data: unknown, isError: boolean) =>
+  isError && data === undefined;
+
 /**
  * All listings of the signed-in seller (every status).
  * Filtering by status happens on the page so the per-status counts stay available.
