@@ -18,12 +18,17 @@ import {
   Clock,
   CheckCircle2,
   DollarSign,
+  CreditCard,
 } from 'lucide-react';
+import { useQueryClient } from '@tanstack/react-query';
 import type { ListingStatus, SellerListingDto } from '@ticketshield/types';
 import { useUIStore } from '../stores/uiStore';
 import { useAuthStore } from '../stores/authStore';
 import { listingsFailedBeforeAnyData, useCancelListing, useMyListings } from '../hooks/useMyListings';
+import { useMyBankAccounts, myBankAccountsQueryKey } from '../hooks/useMyBankAccounts';
 import { useSellerPayoutSignalR, SignalRPayoutPayload } from '../hooks/usePaymentSignalR';
+import { SellerBankAccountModal } from '../components/profile/SellerBankAccountModal';
+import { PayoutSuccessModal } from '../components/seller/PayoutSuccessModal';
 import { RevenueTab } from '../components/seller/RevenueTab';
 import { ConfirmModal } from '../components/ui/ConfirmModal';
 import { formatEventDateTime, formatVND } from '../utils/formatters';
@@ -145,15 +150,21 @@ const SettlementCountdownBanner: React.FC<{
 export const MyListingsPage: React.FC = () => {
   const { showToast } = useUIStore();
   const { user } = useAuthStore();
+  const queryClient = useQueryClient();
+  const { data: bankAccounts = [], isLoading: isLoadingBankAccounts } = useMyBankAccounts();
   const { data, isPending, isError, error, refetch, isFetching } = useMyListings();
   const listings = data ?? [];
 
-  // SignalR Realtime Payout Listener (NOTIF-SETTLE-5.4.3a)
+  const [isAddBankModalOpen, setIsAddBankModalOpen] = useState(false);
+  const [payoutSuccessData, setPayoutSuccessData] = useState<SignalRPayoutPayload | null>(null);
+
+  // SignalR Realtime Payout Listener (NOTIF-SETTLE-5.4.3a & FE-SETTLE-5.4.5)
   useSellerPayoutSignalR({
     sellerId: user?.id,
     enabled: !!user?.id,
     onPayoutCompleted: useCallback((payload: SignalRPayoutPayload) => {
       refetch();
+      setPayoutSuccessData(payload);
       const amountStr = payload.amount ? formatVND(payload.amount) : '';
       const bankInfo = payload.bankCode && payload.accountNumber
         ? ` (${payload.bankCode} - ${payload.accountNumber})`
@@ -324,6 +335,39 @@ export const MyListingsPage: React.FC = () => {
             <span>SELL A TICKET</span>
           </Link>
         </div>
+
+        {/* Missing Bank Account Warning Banner (FE-SETTLE-5.4.5) */}
+        {!isLoadingBankAccounts && bankAccounts.length === 0 && (
+          <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-amber-500/15 via-rose-500/10 to-[#0A0D14] border border-amber-500/40 shadow-xl shadow-amber-500/5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 animate-fade-in">
+            <div className="flex items-start gap-3.5">
+              <div className="p-2.5 rounded-xl bg-amber-500/20 text-amber-400 border border-amber-500/30 shrink-0 mt-0.5">
+                <AlertTriangle className="w-5 h-5 stroke-[2.2] animate-pulse" />
+              </div>
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <span className="font-bold text-sm text-white font-display uppercase tracking-wide">
+                    Chưa cài đặt tài khoản ngân hàng nhận tiền!
+                  </span>
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                    CẦN THIẾT LẬP
+                  </span>
+                </div>
+                <p className="text-xs text-amber-200/80 leading-relaxed max-w-2xl font-sans">
+                  Để hệ thống TicketShield AI có thể giải ngân tiền bán vé trực tiếp qua cổng <strong>NAPAS 247</strong> sau khi hết thời gian ký quỹ, bạn vui lòng liên kết số tài khoản ngân hàng chính chủ.
+                </p>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setIsAddBankModalOpen(true)}
+              className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-gradient-to-r from-amber-500 to-[#FF5A36] hover:from-amber-400 hover:to-[#FF7252] text-black font-bold font-display text-xs uppercase tracking-wider rounded-xl shadow-lg shadow-amber-500/20 transition-all shrink-0 cursor-pointer active:scale-95"
+            >
+              <CreditCard className="w-4 h-4 stroke-[2.2]" />
+              <span>Liên kết ngân hàng ngay</span>
+            </button>
+          </div>
+        )}
 
         <div
           className="inline-flex w-full sm:w-auto items-center gap-1.5 p-1.5 bg-[#0B0E12] border border-white/[0.08] rounded-2xl shadow-xl"
@@ -719,6 +763,24 @@ export const MyListingsPage: React.FC = () => {
           </div>
         )}
       </ConfirmModal>
+
+      {/* Seller Bank Account Setup Modal (FE-SETTLE-5.4.5) */}
+      <SellerBankAccountModal
+        isOpen={isAddBankModalOpen}
+        onClose={() => setIsAddBankModalOpen(false)}
+        onSuccess={() => {
+          setIsAddBankModalOpen(false);
+          void queryClient.invalidateQueries({ queryKey: myBankAccountsQueryKey });
+          showToast('Liên kết tài khoản ngân hàng nhận tiền thành công!', 'success');
+        }}
+      />
+
+      {/* Realtime Payout Success Modal (SignalR - FE-SETTLE-5.4.5) */}
+      <PayoutSuccessModal
+        isOpen={payoutSuccessData !== null}
+        onClose={() => setPayoutSuccessData(null)}
+        payoutData={payoutSuccessData}
+      />
     </div>
   );
 };

@@ -19,6 +19,7 @@ import {
   Calendar,
   MapPin,
   Loader2,
+  AlertTriangle,
 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { authApi, bankAccountsApi, VIETNAM_BANKS } from '@ticketshield/api-client';
@@ -491,6 +492,34 @@ export const ProfilePage: React.FC = () => {
                 </Link>
               </div>
             </div>
+
+            {/* Missing Bank Account Warning Banner (FE-SETTLE-5.4.5) */}
+            {!isLoadingAccounts && bankAccounts.length === 0 && (
+              <div className="p-4 rounded-2xl bg-gradient-to-r from-amber-500/15 via-rose-500/10 to-[#0A0D14] border border-amber-500/40 shadow-lg shadow-amber-500/5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 animate-fade-in">
+                <div className="flex items-start gap-3">
+                  <div className="p-2 rounded-xl bg-amber-500/20 text-amber-400 border border-amber-500/30 shrink-0 mt-0.5">
+                    <AlertTriangle className="w-4 h-4 stroke-[2.2] animate-pulse" />
+                  </div>
+                  <div>
+                    <span className="font-bold text-xs text-white uppercase tracking-wide block">
+                      Chưa cài đặt tài khoản ngân hàng nhận tiền!
+                    </span>
+                    <p className="text-[11px] text-amber-200/80 leading-relaxed font-sans mt-0.5">
+                      Liên kết tài khoản ngân hàng để hệ thống tự động giải ngân tiền bán vé trực tiếp qua NAPAS 247.
+                    </p>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setIsBankModalOpen(true)}
+                  className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 bg-gradient-to-r from-amber-500 to-[#FF5A36] hover:from-amber-400 hover:to-[#FF7252] text-black font-bold font-display text-[11px] uppercase tracking-wider rounded-xl shadow transition-all shrink-0 cursor-pointer active:scale-95"
+                >
+                  <CreditCard className="w-3.5 h-3.5 stroke-[2.2]" />
+                  <span>Liên kết ngay</span>
+                </button>
+              </div>
+            )}
 
             {listingsPending ? (
               <div className="flex items-center justify-center gap-2 py-12 text-xs text-zinc-400">
