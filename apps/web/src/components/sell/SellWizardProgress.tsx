@@ -8,6 +8,7 @@ export interface SellWizardProgressProps {
   resumeDraftAvailable: boolean;
   ticketCode: string;
   isCancellingSession: boolean;
+  isPublishing?: boolean;
 }
 
 export const SellWizardProgress: React.FC<SellWizardProgressProps> = ({
@@ -17,24 +18,65 @@ export const SellWizardProgress: React.FC<SellWizardProgressProps> = ({
   resumeDraftAvailable,
   ticketCode,
   isCancellingSession,
+  isPublishing = false,
 }) => {
+  // Điều kiện hiển thị nút Back:
+  // - Bước 6 (Đã publish): KHÔNG cho quay lại bất kỳ bước nào (tránh lỗi).
+  // - Bước 3 (Vé đã xác thực & khóa): KHÔNG cho quay lại Bước 2 (OTP).
+  // - Bước 2: Bấm quay lại sẽ hủy phiên & giải phóng khóa vé tại BTC.
+  // - Bước 4: Cho phép quay lại Bước 3.
+  // - Bước 5: Cho phép quay lại Bước 4 (chỉnh giá bán).
+  const canGoBack =
+    !isPublishing &&
+    !isCancellingSession &&
+    (currentStep === 2 || currentStep === 4 || currentStep === 5);
+
+  const handleBackClick = () => {
+    if (currentStep === 2) {
+      handleAbandonSession();
+    } else if (currentStep === 4) {
+      setCurrentStep(3);
+    } else if (currentStep === 5) {
+      setCurrentStep(4);
+    }
+  };
+
+  const isStepClickable = (stepNum: number) => {
+    if (isPublishing || isCancellingSession) return false;
+    // Khi đã publish (Bước 6) -> Khóa tuyệt đối, không cho bấm quay lại Bước 4 hay bất kỳ bước nào
+    if (currentStep === 6) return false;
+    // Không thể nhảy cóc vượt bước hiện tại
+    if (stepNum > currentStep) return false;
+    // Đang ở bước này
+    if (stepNum === currentStep) return false;
+    // Khi đã xác thực OTP xong (Bước >= 3), khóa không cho quay lại Bước 1 hay Bước 2
+    if (currentStep >= 3 && stepNum <= 2) return false;
+    // Ở Bước 3, không thể quay lại
+    if (currentStep === 3) return false;
+    // Ở Bước 2, không cho bấm nhảy sang Bước 1 (phải bấm nút hủy để mở khóa vé)
+    if (currentStep === 2 && stepNum === 1) return false;
+
+    return true;
+  };
+
   return (
     <>
       {/* Process Stepper Header Bar (Compact & Close Proximity) */}
       <div className="w-fit mx-auto bg-[#0A0D14]/95 backdrop-blur-xl border border-white/10 rounded-full px-4 py-2 sm:px-5 sm:py-2 shadow-2xl flex items-center justify-center gap-3 sm:gap-5">
         <div className="flex items-center gap-2 sm:gap-2.5 min-w-0">
-          {currentStep > 1 && currentStep < 6 && (
+          {canGoBack && (
             <button
               type="button"
-              onClick={() => {
-                if (currentStep === 2) {
-                  handleAbandonSession();
-                } else {
-                  setCurrentStep((prev) => prev - 1);
-                }
-              }}
-              className="p-1 bg-white/10 hover:bg-white/20 text-white rounded-full transition-colors flex items-center justify-center cursor-pointer shrink-0"
-              title="Back to previous step"
+              onClick={handleBackClick}
+              disabled={isCancellingSession || isPublishing}
+              className="p-1 bg-white/10 hover:bg-white/20 text-white rounded-full transition-colors flex items-center justify-center cursor-pointer shrink-0 disabled:opacity-40 disabled:cursor-not-allowed"
+              title={
+                currentStep === 2
+                  ? 'Hủy phiên xác thực & mở khóa vé'
+                  : currentStep === 5
+                  ? 'Quay lại Bước 4 (Chỉnh giá bán)'
+                  : 'Quay lại bước trước'
+              }
             >
               <ArrowLeft className="w-3.5 h-3.5" />
             </button>
@@ -55,22 +97,34 @@ export const SellWizardProgress: React.FC<SellWizardProgressProps> = ({
           {[1, 2, 3, 4, 5, 6].map((stepNum) => {
             const isCompleted = stepNum < currentStep;
             const isCurrent = stepNum === currentStep;
+            const clickable = isStepClickable(stepNum);
+
             return (
               <React.Fragment key={stepNum}>
                 <button
                   type="button"
                   onClick={() => {
-                    if (stepNum < currentStep) setCurrentStep(stepNum);
+                    if (clickable) setCurrentStep(stepNum);
                   }}
-                  disabled={stepNum > currentStep}
+                  disabled={!clickable}
                   className={`w-5 h-5 sm:w-6 sm:h-6 rounded-full flex items-center justify-center text-[10px] sm:text-[11px] font-bold font-mono transition-all duration-200 ${
                     isCurrent
                       ? 'bg-[#FF5722] text-white shadow-md shadow-[#FF5722]/30 scale-105 ring-2 ring-[#FF5722]/30'
                       : isCompleted
-                      ? 'bg-emerald-500 text-black cursor-pointer hover:scale-105'
+                      ? clickable
+                        ? 'bg-emerald-500 text-black cursor-pointer hover:scale-105'
+                        : 'bg-emerald-500/50 text-black/60 cursor-not-allowed'
                       : 'bg-[#151B26] text-slate-400 border border-white/5 cursor-default'
                   }`}
-                  title={`Step ${stepNum}`}
+                  title={
+                    isCurrent
+                      ? `Bước ${stepNum} (Hiện tại)`
+                      : isCompleted
+                      ? clickable
+                        ? `Quay lại Bước ${stepNum}`
+                        : `Bước ${stepNum} (Đã khóa, không thể quay lại)`
+                      : `Bước ${stepNum}`
+                  }
                 >
                   {isCompleted ? <Check className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-black stroke-[3]" /> : stepNum}
                 </button>

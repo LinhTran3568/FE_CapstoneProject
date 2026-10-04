@@ -255,6 +255,34 @@ const DRAFT_STORAGE_KEY = 'ticketshield_sell_draft';
   const [copiedLink, setCopiedLink] = useState<boolean>(false);
   const [copiedQr, setCopiedQr] = useState<boolean>(false);
 
+  // Khóa các trường hợp không cho quay lại bước trước tránh bị lỗi
+  // Đặc biệt: khi đã publish vé (Bước 6), tuyệt đối không cho quay lại Bước 4 hay bất kỳ bước nào
+  const handleSetCurrentStep = useCallback(
+    (action: React.SetStateAction<number>) => {
+      setCurrentStep((prev) => {
+        const next = typeof action === 'function' ? action(prev) : action;
+        // Đã publish (Bước 6) -> Không cho quay lại bất kỳ bước nào (kể cả Bước 4)
+        if (prev === 6 && next < 6) {
+          return 6;
+        }
+        // Đang publish -> Không cho đổi bước
+        if (isPublishing) {
+          return prev;
+        }
+        // Đã xác thực OTP & khóa vé (Bước >= 3) -> Không cho quay lại Bước 1 hoặc 2
+        if (prev >= 3 && next <= 2) {
+          return prev;
+        }
+        // Đang ở Bước 3 -> Không cho quay lại Bước 2 (OTP)
+        if (prev === 3 && next < 3) {
+          return 3;
+        }
+        return next;
+      });
+    },
+    [isPublishing]
+  );
+
   /** Đóng mọi phiên đã tạo (dùng khi luồng lỗi giữa chừng) — không để vé nào bị khoá treo. */
   const closeAllSessions = useCallback(async () => {
     const ids = sessions.map((s) => s.verificationId).filter(Boolean);
@@ -819,11 +847,12 @@ const DRAFT_STORAGE_KEY = 'ticketshield_sell_draft';
         {/* Process Stepper Header & Draft Banner */}
         <SellWizardProgress
           currentStep={currentStep}
-          setCurrentStep={setCurrentStep}
+          setCurrentStep={handleSetCurrentStep}
           handleAbandonSession={handleAbandonSession}
           resumeDraftAvailable={resumeDraftAvailable}
           ticketCode={ticketCode}
           isCancellingSession={isCancellingSession}
+          isPublishing={isPublishing}
         />
 
         {/* STEP 1: ENTER TICKET CODE */}
