@@ -217,6 +217,30 @@ export interface SellerListingDto {
 }
 
 /**
+ * One payout the signed-in seller already requested.
+ * GET /api/v1/payouts/my-payouts → backend `MyPayoutDto`.
+ */
+export interface MyPayoutDto {
+  payoutId: string;
+  payoutCode: string;
+  escrowId: string;
+  escrowStatus: string;
+  unlockAt: string | null;
+  eventName: string;
+  originalTicketCode: string;
+  amount: number;
+  status: string;
+  recipientBankCode: string;
+  recipientAccountNumber: string;
+  recipientAccountName: string;
+  bankReferenceCode: string | null;
+  retryCount: number;
+  lastErrorMessage: string | null;
+  processedAt: string | null;
+  createdAt: string;
+}
+
+/**
  * Purchased ticket pass for buyers
  * GET /api/v1/resale-listings/my-purchased-tickets
  */
