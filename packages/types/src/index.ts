@@ -290,6 +290,11 @@ export interface ResaleListingDetailDto {
   sellerFullName: string;
   unlockAt?: string | null;
   createdAt: string;
+
+  // Bundle support (FE-5.2.6 / BE-CORE-5.2.2)
+  bundleId?: string | null;
+  isBundleAllOrNothing?: boolean;
+  bundleTotalTickets?: number;
 }
 
 export interface HoldListingForPurchaseRequest {
@@ -316,6 +321,16 @@ export interface HoldListingForPurchaseResponse {
   netSellerPayout: number;
   unlockAt: string;
   holdDurationSeconds: number;
+
+  // Bundle support (FE-5.2.6 / BE-CORE-5.2.3)
+  bundleId?: string | null;
+  bundleTotalTickets?: number;
+  bundleItems?: Array<{
+    listingId: string;
+    resalePrice: number;
+    buyerFee: number;
+    sellerFee: number;
+  }>;
 }
 
 /** GET /api/v1/resale-listings/{id}/payment-status → backend GetPaymentStatusDto */

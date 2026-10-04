@@ -670,6 +670,7 @@ export const MarketplacePage: React.FC = () => {
       {/* Modals inherited from user design */}
       <BuyTicketModal
         listing={buyingListing}
+        allListings={listings}
         isOpen={Boolean(buyingListing)}
         onClose={() => setBuyingListing(null)}
         onSuccess={(orderData) => {

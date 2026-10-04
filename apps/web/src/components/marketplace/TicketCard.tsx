@@ -1,5 +1,5 @@
 import React from 'react';
-import { Calendar, MapPin, CheckCircle2, Lock, Timer } from 'lucide-react';
+import { Calendar, MapPin, CheckCircle2, Lock, Timer, Layers, Ticket } from 'lucide-react';
 import { MarketplaceListingDto } from '@ticketshield/types';
 import { formatEventDateTime } from '../../utils/formatters';
 import { usePaymentCountdown } from '../../hooks/usePaymentCountdown';
@@ -27,6 +27,10 @@ export const TicketCard: React.FC<TicketCardProps> = ({
   const isSold = rawStatus === 'sold';
   const isCancelled = rawStatus === 'cancelled';
   const isAvailable = !isTransacting && !isSold && !isCancelled;
+
+  // FE-5.2.6: Bundle Combo detection strictly from DB fields
+  const isBundle = Boolean(listing.bundleId && (listing.bundleTotalTickets ?? 0) > 1);
+  const bundleCount = listing.bundleTotalTickets ?? 1;
 
   // Realtime countdown hook for transacting listings (10-min hold duration)
   const countdown = usePaymentCountdown({
@@ -173,18 +177,30 @@ export const TicketCard: React.FC<TicketCardProps> = ({
           <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_left,_var(--tw-gradient-stops))] from-amber-500/15 via-transparent to-transparent"></div>
         </div>
 
-        {/* Left Top Content: VIP Badge & Status Badges */}
-        <div className="relative z-10 flex items-center justify-between gap-2">
-          <div className="flex items-center gap-2 min-w-0">
+        {/* Left Top Content: VIP Badge, Bundle Badge & Seat Badge (flex-wrap ensures no clipping) */}
+        <div className="relative z-10 flex flex-wrap items-center justify-between gap-1.5">
+          <div className="flex flex-wrap items-center gap-1.5 min-w-0">
             {/* Tier / Zone Badge */}
             <div
-              className={`inline-flex items-center gap-2 px-3 py-1 rounded-full border backdrop-blur-md shrink-0 ${zoneStyle.badge}`}
+              className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full border backdrop-blur-md shrink-0 ${zoneStyle.badge}`}
             >
-              <span className={`w-2 h-2 rounded-full animate-pulse ${zoneStyle.dot}`}></span>
-              <span className="text-[11px] font-bold tracking-wider uppercase text-white truncate max-w-[120px]">
+              <span className={`w-1.5 h-1.5 rounded-full animate-pulse ${zoneStyle.dot}`}></span>
+              <span className="text-[10px] sm:text-[11px] font-bold tracking-wider uppercase text-white truncate max-w-[110px]">
                 {listing.tierName || 'VIP ZONE A'}
               </span>
             </div>
+
+            {/* FE-5.2.6: Bundle Combo Badge from DB */}
+            {isBundle && (
+              <div
+                id={`badge-bundle-${listing.listingId}`}
+                className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-[#FF5A36]/15 border border-[#FF5A36]/60 text-[#FF8A65] text-[10px] sm:text-[11px] font-extrabold tracking-wider uppercase backdrop-blur-md shadow-[0_0_15px_rgba(255,90,54,0.25)] shrink-0"
+                title={`Combo package of ${bundleCount} ${bundleCount > 1 ? 'tickets' : 'ticket'}`}
+              >
+                <Layers className="w-3 h-3 text-[#FF5A36] shrink-0" />
+                <span>COMBO · {bundleCount} {bundleCount > 1 ? 'TICKETS' : 'TICKET'}</span>
+              </div>
+            )}
 
             {/* Seat Adjacency / Position Badge */}
             {(listing.seatZone || listing.tierName) && (
@@ -231,6 +247,16 @@ export const TicketCard: React.FC<TicketCardProps> = ({
 
           {/* Metadata with subtle icons */}
           <div className="flex flex-wrap items-center gap-x-3.5 gap-y-1 text-[11px] sm:text-xs text-zinc-300">
+            {/* Seat Position from DB */}
+            {listing.seatZone && (
+              <div className="flex items-center gap-1.5 shrink-0" title={`Vị trí ghế: ${listing.seatZone}`}>
+                <Ticket className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                <span className="font-semibold text-amber-200">
+                  {listing.seatZone}
+                </span>
+              </div>
+            )}
+
             {/* Date & Time */}
             <div className="flex items-center gap-1.5 shrink-0">
               <Calendar className="w-3.5 h-3.5 text-zinc-400 shrink-0" />
@@ -365,8 +391,10 @@ export const TicketCard: React.FC<TicketCardProps> = ({
 
         {/* Stub Middle: Pricing Block */}
         <div className="my-auto py-0.5">
-          <div className="text-[9px] font-bold tracking-wider text-slate-500 uppercase mb-0.5">
-            PRICE
+          <div className="flex items-center justify-between mb-0.5">
+            <span className="text-[9px] font-bold tracking-wider text-slate-500 uppercase">
+              {isBundle ? `COMBO (${bundleCount} ${bundleCount > 1 ? 'TICKETS' : 'TICKET'})` : 'PRICE'}
+            </span>
           </div>
           <div className="flex items-baseline">
             <span className="text-[20px] sm:text-[22px] font-extrabold tracking-tight text-slate-900 leading-none">
@@ -429,7 +457,7 @@ export const TicketCard: React.FC<TicketCardProps> = ({
               }}
               className="w-full py-2 px-3 bg-[#ff5722] hover:bg-[#f4511e] active:scale-[0.98] transition-all duration-150 rounded-xl font-bold text-[11px] sm:text-xs text-white tracking-wide shadow-[0_4px_14px_rgba(255,87,34,0.35)] flex items-center justify-center gap-1.5 cursor-pointer group/btn"
             >
-              <span>BUY TICKET</span>
+              <span className="whitespace-nowrap">{isBundle ? 'BUY COMBO' : 'BUY TICKET'}</span>
               <span className="transition-transform duration-150 group-hover/btn:translate-x-1">→</span>
             </button>
           )}

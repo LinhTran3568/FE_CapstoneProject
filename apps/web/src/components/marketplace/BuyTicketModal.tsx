@@ -15,6 +15,7 @@ import {
   User,
   Plus,
   Zap,
+  Layers,
 } from 'lucide-react';
 import { MarketplaceListingDto, HoldListingForPurchaseResponse } from '@ticketshield/types';
 import { resaleListingsApi } from '@ticketshield/api-client';
@@ -37,6 +38,7 @@ interface BuyTicketModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess: (orderData: any) => void;
+  allListings?: MarketplaceListingDto[];
 }
 
 export const BuyTicketModal: React.FC<BuyTicketModalProps> = ({
@@ -44,6 +46,7 @@ export const BuyTicketModal: React.FC<BuyTicketModalProps> = ({
   isOpen,
   onClose,
   onSuccess,
+  allListings = [],
 }) => {
   const queryClient = useQueryClient();
   const { user } = useAuthStore();
@@ -192,11 +195,21 @@ export const BuyTicketModal: React.FC<BuyTicketModalProps> = ({
 
   if (!isOpen || !listing) return null;
 
+  // FE-5.2.6: Bundle Combo detection & calculation
+  const isBundle = Boolean(listing.bundleId && (listing.bundleTotalTickets ?? 0) > 1);
+  const bundleListings = (allListings || []).filter(
+    (l) => listing.bundleId && l.bundleId === listing.bundleId
+  );
+  const bundleCount = listing.bundleTotalTickets || (bundleListings.length > 0 ? bundleListings.length : 1);
+  const baseTicketPrice = bundleListings.length > 0
+    ? bundleListings.reduce((sum, l) => sum + l.resalePrice, 0)
+    : (isBundle ? listing.resalePrice * bundleCount : listing.resalePrice);
+
   // Fee Calculation: 5% Buyer Fee (Min 10,000 VND)
   const buyerFeeRate = 0.05;
   const minBuyerFee = 10000;
-  const estimatedBuyerFee = Math.max(Math.round(listing.resalePrice * buyerFeeRate), minBuyerFee);
-  const totalBuyerPaidEstimated = Math.max(0, listing.resalePrice + estimatedBuyerFee - discountAmount);
+  const estimatedBuyerFee = Math.max(Math.round(baseTicketPrice * buyerFeeRate), minBuyerFee);
+  const totalBuyerPaidEstimated = Math.max(0, baseTicketPrice + estimatedBuyerFee - discountAmount);
 
   // Dynamic QR Code fallback URL
   const displayQrUrl =
@@ -373,6 +386,12 @@ export const BuyTicketModal: React.FC<BuyTicketModalProps> = ({
                         <span className="text-[11px] font-mono font-bold text-[#ff5722] px-2.5 py-0.5 rounded bg-[#ff5722]/15 border border-[#ff5722]/30 uppercase tracking-wide">
                           {listing.tierName || 'STANDARD'}
                         </span>
+                        {isBundle && (
+                          <span className="text-[11px] font-mono font-bold text-orange-300 px-2.5 py-0.5 rounded bg-[#ff5722]/15 border border-[#ff5722]/40 uppercase tracking-wide flex items-center gap-1.5 shadow-sm">
+                            <Layers className="w-3.5 h-3.5 text-[#ff5722]" />
+                            COMBO · {bundleCount} {bundleCount > 1 ? 'TICKETS' : 'TICKET'}
+                          </span>
+                        )}
                         <span className="text-xs font-mono text-zinc-400">
                           {listing.maskedTicketCode || 'AT*********88'}
                         </span>
@@ -395,6 +414,69 @@ export const BuyTicketModal: React.FC<BuyTicketModalProps> = ({
                       {listing.eventVenue || 'Official Venue'}
                     </p>
                   </div>
+
+                  {/* FE-5.2.6: Compact Bundle Combo Header with Info Tooltip & Itemized Tickets */}
+                  {isBundle && (
+                    <div className="p-3 rounded-xl bg-[#141A28] border border-[#ff5722]/30 space-y-2 shadow-sm">
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-1.5 min-w-0">
+                          <Layers className="w-3.5 h-3.5 text-[#ff5722] shrink-0" />
+                          <span className="text-xs font-bold text-white tracking-wide uppercase truncate">
+                            Combo Package · {bundleCount} Tickets
+                          </span>
+
+                          {/* Info (i) icon with interactive hover tooltip */}
+                          <div className="relative group/info inline-flex items-center shrink-0">
+                            <button
+                              type="button"
+                              className="text-zinc-400 hover:text-orange-300 transition-colors p-0.5 rounded cursor-pointer"
+                              aria-label="Combo details"
+                            >
+                              <Info className="w-3.5 h-3.5" />
+                            </button>
+                            <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-1.5 hidden group-hover/info:block z-50 w-64 p-2.5 bg-[#0B0F17] border border-white/15 rounded-xl shadow-xl text-[11px] text-zinc-200 leading-relaxed pointer-events-none backdrop-blur-md">
+                              <span className="font-semibold text-[#ff8a65] block mb-0.5">All-or-Nothing Combo</span>
+                              All {bundleCount} tickets in this package are reserved simultaneously and paid via 1 single VietQR transaction.
+                              <div className="absolute left-1/2 -translate-x-1/2 -bottom-1 w-2 h-2 bg-[#0B0F17] border-r border-b border-white/15 rotate-45" />
+                            </div>
+                          </div>
+                        </div>
+
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#ff5722]/15 text-[#ff8a65] border border-[#ff5722]/30 uppercase font-mono shrink-0">
+                          1 VietQR
+                        </span>
+                      </div>
+
+                      {bundleListings.length > 0 && (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-0.5">
+                          {bundleListings.map((bl, idx) => (
+                            <div
+                              key={bl.listingId}
+                              className="px-2.5 py-1.5 rounded-lg bg-[#0C101A] border border-white/10 flex items-center justify-between gap-2 text-xs"
+                            >
+                              <div className="min-w-0 flex-1">
+                                <div className="flex items-center gap-1.5">
+                                  <span className="font-mono text-[#ff8a65] font-bold text-[11px]">
+                                    {bl.maskedTicketCode}
+                                  </span>
+                                  <span className="text-[9px] text-zinc-400 font-mono">#{idx + 1}</span>
+                                </div>
+                                <div
+                                  className="text-[10.5px] text-zinc-300 truncate"
+                                  title={bl.seatZone || bl.tierName}
+                                >
+                                  {bl.seatZone || bl.tierName}
+                                </div>
+                              </div>
+                              <span className="font-mono font-bold text-white text-xs shrink-0 pl-1">
+                                {formatVND(bl.resalePrice)}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
 
                   {/* B. RECIPIENT INFORMATION FORM */}
                   <form id="buyer-info-form" onSubmit={handleHoldListing} className="space-y-3 pt-1">
@@ -528,9 +610,9 @@ export const BuyTicketModal: React.FC<BuyTicketModalProps> = ({
                   {/* Price Breakdown */}
                   <div className="space-y-2.5 text-sm">
                     <div className="flex justify-between items-center text-zinc-400">
-                      <span>Ticket Price</span>
+                      <span>{isBundle ? `Ticket Price (${bundleCount} ${bundleCount > 1 ? 'tickets' : 'ticket'})` : 'Ticket Price'}</span>
                       <span className="font-semibold text-white font-mono tabular-nums">
-                        {formatVND(listing.resalePrice)}
+                        {formatVND(baseTicketPrice)}
                       </span>
                     </div>
 
@@ -575,6 +657,28 @@ export const BuyTicketModal: React.FC<BuyTicketModalProps> = ({
                   isExpired={countdown.isExpired}
                   statusColor={countdown.statusColor}
                 />
+
+                {/* FE-5.2.6: Bundle Single VietQR Banner */}
+                {isBundle && (
+                  <div className="p-3 rounded-xl bg-gradient-to-r from-[#ff5722]/15 via-amber-500/10 to-transparent border border-[#ff5722]/40 flex flex-wrap items-center justify-between gap-3 text-xs shadow-sm">
+                    <div className="flex items-center gap-2.5">
+                      <div className="p-1.5 rounded-lg bg-[#ff5722]/20 border border-[#ff5722]/40 text-[#ff5722]">
+                        <Layers className="w-4 h-4 animate-pulse" />
+                      </div>
+                      <div>
+                        <div className="text-xs font-black text-white tracking-wide flex items-center gap-2">
+                          <span>ONE-CLICK VIETQR CHECKOUT FOR ALL {holdData?.bundleTotalTickets || bundleCount} TICKETS</span>
+                        </div>
+                        <div className="text-[11px] text-zinc-300 mt-0.5">
+                          Scan the QR code below to complete payment for the entire ticket package in a single transaction.
+                        </div>
+                      </div>
+                    </div>
+                    <span className="px-2.5 py-1 rounded-full bg-[#ff5722]/20 text-orange-200 border border-[#ff5722]/40 font-mono font-bold text-[11px]">
+                      1 TRANSACTION · 1 VIETQR
+                    </span>
+                  </div>
+                )}
 
                 {/* 1.5. Demo Quick Payment Simulation Shortcut */}
                 <div className="p-3.5 rounded-xl bg-gradient-to-r from-[#ff5722]/15 via-amber-500/10 to-transparent border border-[#ff5722]/40 flex flex-wrap items-center justify-between gap-3 shadow-sm">
