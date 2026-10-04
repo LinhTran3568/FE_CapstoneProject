@@ -13,12 +13,28 @@ export interface SignalRPaymentPayload {
   qrCodeData?: string;
 }
 
+export interface SignalRPayoutPayload {
+  escrowId: string;
+  listingId?: string;
+  sellerId: string;
+  amount: number;
+  netSellerPayout?: number;
+  bankCode?: string;
+  accountNumber?: string;
+  accountName?: string;
+  bankReference?: string;
+  status: string;
+  processedAt?: string;
+}
+
 export interface UsePaymentSignalROptions {
   listingId?: string | null;
   paymentReference?: string | null;
+  sellerId?: string | null;
   enabled?: boolean;
   onPaymentSuccess?: (payload: SignalRPaymentPayload) => void;
   onHoldExpired?: (payload: SignalRPaymentPayload) => void;
+  onPayoutCompleted?: (payload: SignalRPayoutPayload) => void;
 }
 
 const getHubUrl = (): string => {
@@ -30,9 +46,11 @@ const getHubUrl = (): string => {
 export const usePaymentSignalR = ({
   listingId,
   paymentReference,
+  sellerId,
   enabled = true,
   onPaymentSuccess,
   onHoldExpired,
+  onPayoutCompleted,
 }: UsePaymentSignalROptions) => {
   const [isConnected, setIsConnected] = useState(false);
   const [connectionError, setConnectionError] = useState<string | null>(null);
@@ -43,8 +61,11 @@ export const usePaymentSignalR = ({
   const onHoldExpiredRef = useRef(onHoldExpired);
   onHoldExpiredRef.current = onHoldExpired;
 
+  const onPayoutCompletedRef = useRef(onPayoutCompleted);
+  onPayoutCompletedRef.current = onPayoutCompleted;
+
   useEffect(() => {
-    if (!enabled || (!listingId && !paymentReference)) {
+    if (!enabled || (!listingId && !paymentReference && !sellerId)) {
       setIsConnected(false);
       return undefined;
     }
@@ -73,11 +94,18 @@ export const usePaymentSignalR = ({
       }
     };
 
+    const handlePayout = (data: SignalRPayoutPayload) => {
+      if (onPayoutCompletedRef.current) {
+        onPayoutCompletedRef.current(data);
+      }
+    };
+
     // Register event listeners
     connection.on('PaymentApproved', handleSuccess);
     connection.on('PaymentCompleted', handleSuccess);
     connection.on('OrderSettled', handleSuccess);
     connection.on('HoldExpired', handleHoldExpired);
+    connection.on('PayoutCompleted', handlePayout);
 
     let isSubscribed = true;
 
@@ -99,6 +127,9 @@ export const usePaymentSignalR = ({
         if (paymentReference) {
           await connection.invoke('JoinPayment', paymentReference).catch(() => {});
         }
+        if (sellerId) {
+          await connection.invoke('JoinSeller', sellerId).catch(() => {});
+        }
       } catch (err: any) {
         if (isSubscribed) {
           setIsConnected(false);
@@ -117,13 +148,32 @@ export const usePaymentSignalR = ({
       if (paymentReference && connection.state === signalR.HubConnectionState.Connected) {
         connection.invoke('LeavePayment', paymentReference).catch(() => {});
       }
+      if (sellerId && connection.state === signalR.HubConnectionState.Connected) {
+        connection.invoke('LeaveSeller', sellerId).catch(() => {});
+      }
       connection.stop().catch(() => {});
       setIsConnected(false);
     };
-  }, [enabled, listingId, paymentReference]);
+  }, [enabled, listingId, paymentReference, sellerId]);
 
   return {
     isConnected,
     connectionError,
   };
+};
+
+export const useSellerPayoutSignalR = ({
+  sellerId,
+  enabled = true,
+  onPayoutCompleted,
+}: {
+  sellerId?: string | null;
+  enabled?: boolean;
+  onPayoutCompleted?: (payload: SignalRPayoutPayload) => void;
+}) => {
+  return usePaymentSignalR({
+    sellerId,
+    enabled,
+    onPayoutCompleted,
+  });
 };

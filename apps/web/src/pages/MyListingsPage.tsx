@@ -21,7 +21,9 @@ import {
 } from 'lucide-react';
 import type { ListingStatus, SellerListingDto } from '@ticketshield/types';
 import { useUIStore } from '../stores/uiStore';
+import { useAuthStore } from '../stores/authStore';
 import { listingsFailedBeforeAnyData, useCancelListing, useMyListings } from '../hooks/useMyListings';
+import { useSellerPayoutSignalR, SignalRPayoutPayload } from '../hooks/usePaymentSignalR';
 import { RevenueTab } from '../components/seller/RevenueTab';
 import { ConfirmModal } from '../components/ui/ConfirmModal';
 import { formatEventDateTime, formatVND } from '../utils/formatters';
@@ -142,8 +144,26 @@ const SettlementCountdownBanner: React.FC<{
 
 export const MyListingsPage: React.FC = () => {
   const { showToast } = useUIStore();
+  const { user } = useAuthStore();
   const { data, isPending, isError, error, refetch, isFetching } = useMyListings();
   const listings = data ?? [];
+
+  // SignalR Realtime Payout Listener (NOTIF-SETTLE-5.4.3a)
+  useSellerPayoutSignalR({
+    sellerId: user?.id,
+    enabled: !!user?.id,
+    onPayoutCompleted: useCallback((payload: SignalRPayoutPayload) => {
+      refetch();
+      const amountStr = payload.amount ? formatVND(payload.amount) : '';
+      const bankInfo = payload.bankCode && payload.accountNumber
+        ? ` (${payload.bankCode} - ${payload.accountNumber})`
+        : '';
+      showToast(
+        `🎉 Tiền bán vé ${amountStr} đã được giải ngân thành công về tài khoản${bankInfo}!`,
+        'success'
+      );
+    }, [refetch, showToast]),
+  });
 
   const showListingsError = listingsFailedBeforeAnyData(data, isError);
   const cancelMutation = useCancelListing();
