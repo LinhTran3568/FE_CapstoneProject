@@ -21,6 +21,7 @@ import type { PurchasedTicketDto } from '@ticketshield/types';
 import { useMyTickets } from '../hooks/useMyTickets';
 import { useUIStore } from '../stores/uiStore';
 import { formatEventDateTime, formatVND } from '../utils/formatters';
+import { SeatAdjacencyBadge } from '../components/ui/SeatAdjacencyBadge';
 
 const entryPayload = (ticket: PurchasedTicketDto) =>
   (ticket.qrCodeData || ticket.ticketPassCode || '').trim();
@@ -443,13 +444,24 @@ const OfficialTicketPassCard: React.FC<OfficialTicketPassCardProps> = ({ ticket,
 
         {/* Top Badges */}
         <div className="relative z-10 flex items-center justify-between gap-2">
-          <div
-            className={`inline-flex items-center gap-2 px-3 py-1 rounded-full border backdrop-blur-md ${zoneStyle.badge}`}
-          >
-            <span className={`w-2 h-2 rounded-full animate-pulse ${zoneStyle.dot}`} />
-            <span className="text-[11px] font-bold tracking-wider uppercase text-white">
-              {cleanTierName(ticket.tierName || ticket.seatZone || '')}
-            </span>
+          <div className="flex items-center gap-2">
+            <div
+              className={`inline-flex items-center gap-2 px-3 py-1 rounded-full border backdrop-blur-md ${zoneStyle.badge}`}
+            >
+              <span className={`w-2 h-2 rounded-full animate-pulse ${zoneStyle.dot}`} />
+              <span className="text-[11px] font-bold tracking-wider uppercase text-white">
+                {cleanTierName(ticket.tierName || ticket.seatZone || '')}
+              </span>
+            </div>
+
+            {ticket.seatZone && (
+              <SeatAdjacencyBadge
+                seats={ticket.seatZone}
+                variant="glass"
+                size="xs"
+                showSubtext={false}
+              />
+            )}
           </div>
 
           {disputeBadge && (

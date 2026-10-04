@@ -864,6 +864,7 @@ export const SellTicketPage: React.FC = () => {
             faceValue={faceValue}
             priceCeiling={priceCeiling}
             markupPercent={markupPercent}
+            seatZone={purchasedTickets.find((t) => purchasedPassCode(t) === ticketCode)?.seatZone}
             onContinue={() => setCurrentStep(4)}
           />
         )}
@@ -892,6 +893,7 @@ export const SellTicketPage: React.FC = () => {
             faceValue={faceValue}
             resalePrice={resalePrice}
             bankAccounts={bankAccounts}
+            seatZone={purchasedTickets.find((t) => purchasedPassCode(t) === ticketCode)?.seatZone}
             isPrivateListing={isPrivateListing}
             setIsPrivateListing={setIsPrivateListing}
             agreedTerms={agreedTerms}

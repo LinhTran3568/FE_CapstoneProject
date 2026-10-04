@@ -1,12 +1,14 @@
 import React from 'react';
 import { UserBankAccountDto } from '@ticketshield/types';
 import { Ticket, Globe, Lock, Check, AlertCircle, Loader2 } from 'lucide-react';
+import { SeatAdjacencyBadge } from '../ui/SeatAdjacencyBadge';
 
 export interface Step5ReviewPublishProps {
   ticketCode: string;
   faceValue: number;
   resalePrice: number;
   bankAccounts: UserBankAccountDto[];
+  seatZone?: string;
   isPrivateListing: boolean;
   setIsPrivateListing: (val: boolean) => void;
   agreedTerms: boolean;
@@ -23,6 +25,7 @@ export const Step5ReviewPublish: React.FC<Step5ReviewPublishProps> = ({
   faceValue,
   resalePrice,
   bankAccounts,
+  seatZone,
   isPrivateListing,
   setIsPrivateListing,
   agreedTerms,
@@ -48,15 +51,25 @@ export const Step5ReviewPublish: React.FC<Step5ReviewPublishProps> = ({
       <div className="bg-[#0B0E14] border border-gray-800 rounded-2xl overflow-hidden shadow-2xl p-6 sm:p-7 space-y-6 text-left">
         {/* 1. Ticket Summary Header */}
         <div className="flex items-start justify-between gap-4 pb-4 border-b border-gray-800/80">
-          <div className="space-y-1">
+          <div className="space-y-1.5">
             <h3 className="text-lg font-bold text-white tracking-wide">
               Anh Trai Say Hi Concert 2026
             </h3>
-            <div className="flex items-center gap-2 text-xs text-gray-400 font-mono">
-              <Ticket className="w-3.5 h-3.5 text-cyan-400" />
-              <span>
-                Ticket Code: <strong className="text-gray-200">{ticketCode || 'ATSH-VIP-8862'}</strong>
-              </span>
+            <div className="flex items-center gap-2.5 flex-wrap text-xs text-gray-400 font-mono">
+              <div className="flex items-center gap-1.5">
+                <Ticket className="w-3.5 h-3.5 text-cyan-400" />
+                <span>
+                  Ticket Code: <strong className="text-gray-200">{ticketCode || 'ATSH-VIP-8862'}</strong>
+                </span>
+              </div>
+              {seatZone && (
+                <SeatAdjacencyBadge
+                  seats={seatZone}
+                  variant="glass"
+                  size="xs"
+                  showSubtext={true}
+                />
+              )}
             </div>
           </div>
           <span className="px-2.5 py-1 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[11px] font-semibold font-mono rounded-full shrink-0 uppercase">

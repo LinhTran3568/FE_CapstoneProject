@@ -191,6 +191,7 @@ export interface SellerListingDto {
   eventStartAt: string;
   tierId: string;
   tierName: string;
+  seatZone?: string | null;
   originalTicketCode: string;
   /** VND */
   originalPrice: number;
@@ -276,6 +277,7 @@ export interface ResaleListingDetailDto {
   eventStartAt: string;
   tierId: string;
   tierName: string;
+  seatZone?: string | null;
   originalPrice: number;
   resalePrice: number;
   discountAmount: number;
@@ -554,5 +556,49 @@ export interface AuditLog {
   ipAddress: string;
   timestamp: string;
 }
+
+/**
+ * Seat Adjacency Detection & Classification Types (FE-5.2.5b / BR-G06)
+ */
+export type SeatAdjacencyStatus =
+  | 'ADJACENT'              // Ghế liền kề (cùng hàng, số liên tiếp hoặc cùng chẵn/lẻ)
+  | 'DIFFERENT_LOCATIONS'   // Vị trí khác nhau (khác Zone, khác Hàng, hoặc cách ghế)
+  | 'GENERAL_ADMISSION'    // Vé tự do / đứng (GA)
+  | 'SINGLE_SEAT'           // Vé đơn lẻ (1 vé duy nhất)
+  | 'UNKNOWN';              // Không đủ thông tin vị trí
+
+export interface SeatInfoInput {
+  seatZone?: string | null;
+  seatRow?: string | null;
+  seatNumber?: string | number | null;
+  seatInfo?: string | null;
+  tierName?: string | null;
+  raw?: string | null;
+}
+
+export interface ParsedSeat {
+  zone: string;
+  row: string;
+  seatNumber: number | null;
+  seatNumberRaw: string;
+  isStanding: boolean;
+  raw: string;
+}
+
+export interface SeatAdjacencyResult {
+  isAdjacent: boolean;
+  status: SeatAdjacencyStatus;
+  badgeText: string;
+  badgeSubtext?: string;
+  badgeTone: 'success' | 'warning' | 'info' | 'neutral';
+  commonZone: string | null;
+  commonRow: string | null;
+  seatNumbers: number[];
+  parsedSeats: ParsedSeat[];
+  reason: string;
+  liquidityScore: 'HIGH' | 'MEDIUM' | 'LOW';
+  liquidityNote: string;
+}
+
 
 

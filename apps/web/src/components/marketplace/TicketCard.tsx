@@ -3,6 +3,8 @@ import { Calendar, MapPin, CheckCircle2, Lock, Timer } from 'lucide-react';
 import { MarketplaceListingDto } from '@ticketshield/types';
 import { formatEventDateTime } from '../../utils/formatters';
 import { usePaymentCountdown } from '../../hooks/usePaymentCountdown';
+import { SeatAdjacencyBadge } from '../ui/SeatAdjacencyBadge';
+import { detectSeatAdjacency } from '../../utils/seatAdjacency';
 
 interface TicketCardProps {
   listing: MarketplaceListingDto;
@@ -174,8 +176,9 @@ export const TicketCard: React.FC<TicketCardProps> = ({
         {/* Left Top Content: VIP Badge & Status Badges */}
         <div className="relative z-10 flex items-center justify-between gap-2">
           <div className="flex items-center gap-2 min-w-0">
+            {/* Tier / Zone Badge */}
             <div
-              className={`inline-flex items-center gap-2 px-3 py-1 rounded-full border backdrop-blur-md ${zoneStyle.badge}`}
+              className={`inline-flex items-center gap-2 px-3 py-1 rounded-full border backdrop-blur-md shrink-0 ${zoneStyle.badge}`}
             >
               <span className={`w-2 h-2 rounded-full animate-pulse ${zoneStyle.dot}`}></span>
               <span className="text-[11px] font-bold tracking-wider uppercase text-white truncate max-w-[120px]">
@@ -183,25 +186,35 @@ export const TicketCard: React.FC<TicketCardProps> = ({
               </span>
             </div>
 
-            {listing.organizerName && (
-              <div
-                className="hidden sm:inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-[10px] font-bold uppercase tracking-wider backdrop-blur-md shadow-sm truncate max-w-[140px]"
-                title={`Ban tổ chức: ${listing.organizerName}`}
-              >
-                <span className="truncate">{listing.organizerName}</span>
-              </div>
+            {/* Seat Adjacency / Position Badge */}
+            {(listing.seatZone || listing.tierName) && (
+              (() => {
+                const adj = detectSeatAdjacency(listing.seatZone || listing.tierName);
+                if (adj.status === 'ADJACENT' || adj.status === 'DIFFERENT_LOCATIONS' || (adj.status === 'SINGLE_SEAT' && (adj.commonRow || adj.seatNumbers.length > 0))) {
+                  return (
+                    <SeatAdjacencyBadge
+                      result={adj}
+                      variant="glass"
+                      size="xs"
+                      showSubtext={false}
+                      className="inline-flex shrink-0 shadow-sm"
+                    />
+                  );
+                }
+                return null;
+              })()
             )}
           </div>
 
           {isTransacting && (
-            <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-amber-400/50 bg-black/75 text-white text-[10px] sm:text-[11px] font-bold tracking-wider uppercase backdrop-blur-md shadow-sm">
+            <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-amber-400/50 bg-black/75 text-white text-[10px] sm:text-[11px] font-bold tracking-wider uppercase backdrop-blur-md shadow-sm shrink-0">
               <Lock className="w-3.5 h-3.5 text-amber-300 animate-pulse" />
               <span>Reserved</span>
             </div>
           )}
 
           {isSold && (
-            <div className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full border border-zinc-600/50 bg-black/75 text-zinc-200 text-[10px] sm:text-[11px] font-bold tracking-wider uppercase backdrop-blur-md shadow-sm">
+            <div className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full border border-zinc-600/50 bg-black/75 text-zinc-200 text-[10px] sm:text-[11px] font-bold tracking-wider uppercase backdrop-blur-md shadow-sm shrink-0">
               <span>Sold</span>
             </div>
           )}
@@ -217,7 +230,7 @@ export const TicketCard: React.FC<TicketCardProps> = ({
           </h2>
 
           {/* Metadata with subtle icons */}
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] sm:text-xs text-zinc-300">
+          <div className="flex flex-wrap items-center gap-x-3.5 gap-y-1 text-[11px] sm:text-xs text-zinc-300">
             {/* Date & Time */}
             <div className="flex items-center gap-1.5 shrink-0">
               <Calendar className="w-3.5 h-3.5 text-zinc-400 shrink-0" />
@@ -227,17 +240,25 @@ export const TicketCard: React.FC<TicketCardProps> = ({
             {/* Venue Location */}
             <div className="flex items-center gap-1.5 min-w-0">
               <MapPin className="w-3.5 h-3.5 text-zinc-400 shrink-0" />
-              <span className="font-medium text-zinc-300 truncate max-w-[150px] sm:max-w-[190px]">
+              <span className="font-medium text-zinc-300 truncate max-w-[140px] sm:max-w-[180px]">
                 {listing.eventVenue}
               </span>
             </div>
 
-            {/* Verified Seller */}
+            {/* Organizer */}
+            {listing.organizerName && (
+              <div className="hidden sm:flex items-center gap-1.5 shrink-0">
+                <span className="font-medium text-zinc-400">BTC:</span>
+                <span className="font-medium text-white">{listing.organizerName}</span>
+              </div>
+            )}
+
+            {/* Seller */}
             {listing.sellerFullName && (
               <div className="flex items-center gap-1.5 shrink-0">
-                <CheckCircle2 className="w-3.5 h-3.5 text-[#10b981] shrink-0" />
-                <span className="font-medium text-zinc-300">
-                  Seller: <span className="text-[#10b981] font-semibold">{listing.sellerFullName}</span>
+                <CheckCircle2 className="w-3.5 h-3.5 text-zinc-400 shrink-0" />
+                <span className="font-medium text-zinc-400">
+                  Seller: <span className="text-white font-medium">{listing.sellerFullName}</span>
                 </span>
               </div>
             )}

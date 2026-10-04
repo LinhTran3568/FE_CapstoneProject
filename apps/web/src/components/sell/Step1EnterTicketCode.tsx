@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { OrganizerDto } from '@ticketshield/api-client';
 import { PurchasedTicketDto, UserBankAccountDto } from '@ticketshield/types';
 import { Building2, ChevronDown, Check, Ticket, X, Loader2, ArrowRight } from 'lucide-react';
+import { SeatAdjacencyBadge } from '../ui/SeatAdjacencyBadge';
 
 export interface Step1EnterTicketCodeProps {
   ticketCode: string;
@@ -327,7 +328,17 @@ export const Step1EnterTicketCode: React.FC<Step1EnterTicketCodeProps> = ({
                           <div className="min-w-0 pr-2">
                             <div className="font-mono font-bold text-xs text-[#FF5A36]">{code}</div>
                             <div className="text-xs font-semibold text-white truncate">{t.eventName}</div>
-                            <div className="text-[10px] text-[#8B929C] truncate">{t.tierName}</div>
+                            <div className="flex items-center gap-1.5 mt-0.5">
+                              <span className="text-[10px] text-[#8B929C] truncate">{t.tierName}</span>
+                              {(t.seatZone || t.tierName) && (
+                                <SeatAdjacencyBadge
+                                  seats={t.seatZone || t.tierName}
+                                  variant="subtle"
+                                  size="xs"
+                                  showSubtext={true}
+                                />
+                              )}
+                            </div>
                           </div>
                           {isSelected && <Check className="w-4 h-4 text-[#FF5A36] shrink-0" />}
                         </button>

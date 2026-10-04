@@ -23,6 +23,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '../../stores/authStore';
 import { useUIStore } from '../../stores/uiStore';
 import { usePaymentCountdown } from '../../hooks/usePaymentCountdown';
+import { SeatAdjacencyBadge } from '../ui/SeatAdjacencyBadge';
 import { usePaymentSignalR, SignalRPaymentPayload } from '../../hooks/usePaymentSignalR';
 
 import { PaymentCountdownBar } from './checkout/PaymentCountdownBar';
@@ -366,14 +367,24 @@ export const BuyTicketModal: React.FC<BuyTicketModalProps> = ({
                   )}
 
                   {/* A. COMPACT EVENT DETAILS PANEL */}
-                  <div className="p-4 rounded-xl bg-[#1A2335] border border-[#28354D] space-y-1.5">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="text-[11px] font-mono font-bold text-[#ff5722] px-2.5 py-0.5 rounded bg-[#ff5722]/15 border border-[#ff5722]/30 uppercase tracking-wide">
-                        {listing.tierName || 'STANDARD'}
-                      </span>
-                      <span className="text-xs font-mono text-zinc-400">
-                        {listing.maskedTicketCode || 'AT*********88'}
-                      </span>
+                  <div className="p-4 rounded-xl bg-[#1A2335] border border-[#28354D] space-y-2">
+                    <div className="flex items-center gap-2 flex-wrap justify-between">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-[11px] font-mono font-bold text-[#ff5722] px-2.5 py-0.5 rounded bg-[#ff5722]/15 border border-[#ff5722]/30 uppercase tracking-wide">
+                          {listing.tierName || 'STANDARD'}
+                        </span>
+                        <span className="text-xs font-mono text-zinc-400">
+                          {listing.maskedTicketCode || 'AT*********88'}
+                        </span>
+                      </div>
+                      {(listing.seatZone || listing.tierName) && (
+                        <SeatAdjacencyBadge
+                          seats={listing.seatZone || listing.tierName}
+                          variant="glow"
+                          size="xs"
+                          showSubtext={true}
+                        />
+                      )}
                     </div>
 
                     <h3 className="text-lg sm:text-[20px] font-bold text-white tracking-tight leading-snug pt-0.5">

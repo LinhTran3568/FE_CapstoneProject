@@ -1,10 +1,12 @@
 import React from 'react';
+import { SeatAdjacencyBadge } from '../ui/SeatAdjacencyBadge';
 
 export interface Step3ConfirmDetailsProps {
   ticketCode: string;
   faceValue: number;
   priceCeiling: number;
   markupPercent: number;
+  seatZone?: string;
   onContinue: () => void;
 }
 
@@ -13,6 +15,7 @@ export const Step3ConfirmDetails: React.FC<Step3ConfirmDetailsProps> = ({
   faceValue,
   priceCeiling,
   markupPercent,
+  seatZone,
   onContinue,
 }) => {
   return (
@@ -85,6 +88,16 @@ export const Step3ConfirmDetails: React.FC<Step3ConfirmDetailsProps> = ({
               <p className="font-bold text-white text-sm">Van Hanh Mall Stadium, TP.HCM</p>
             </div>
           </div>
+
+          {/* Seat Adjacency Badge row */}
+          {seatZone && (
+            <div className="flex items-center justify-between px-4 py-2.5 rounded-2xl bg-[#05070A] border border-white/[0.07]">
+              <span className="text-[10px] text-[#8F96A3] font-mono font-bold uppercase tracking-[0.08em]">
+                VỊ TRÍ &amp; LIỀN KỀ
+              </span>
+              <SeatAdjacencyBadge seats={seatZone} variant="glass" size="sm" />
+            </div>
+          )}
 
           {/* Price cap row */}
           <div className="grid grid-cols-2 divide-x divide-white/[0.07] bg-[#05070A] border border-white/[0.07] group-hover:border-white/[0.15] rounded-2xl overflow-hidden transition-colors duration-300">
