@@ -90,9 +90,18 @@ export const Step2VerifyOtp: React.FC<Step2VerifyOtpProps> = ({
   const allLocked = tickets.length > 0 && tickets.every((t) => t.locked);
   const lockedCount = tickets.filter((t) => t.locked).length;
 
+  const hasCompletedRef = useRef(false);
+  const onCompleteRef = useRef(onComplete);
+  onCompleteRef.current = onComplete;
+
   useEffect(() => {
-    if (allLocked) onComplete();
-  }, [allLocked, onComplete]);
+    if (allLocked && !hasCompletedRef.current) {
+      hasCompletedRef.current = true;
+      onCompleteRef.current();
+    } else if (!allLocked) {
+      hasCompletedRef.current = false;
+    }
+  }, [allLocked]);
 
   // Auto focus slot 0 when safePage changes
   useEffect(() => {
@@ -181,12 +190,18 @@ export const Step2VerifyOtp: React.FC<Step2VerifyOtpProps> = ({
     }
 
     setError('');
-    const ok = await onVerifyTicket({ code: currentCode, otp: otpStr });
-    if (!ok) return;
+    try {
+      const ok = await onVerifyTicket({ code: currentCode, otp: otpStr });
+      if (!ok) return;
 
-    if (!isLastPage) {
-      setPage((p) => Math.min(p + 1, tickets.length - 1));
-      setError('');
+      if (!isLastPage) {
+        setPage((p) => Math.min(p + 1, tickets.length - 1));
+        setError('');
+      }
+    } catch (err: any) {
+      setError(err?.message || 'Mã OTP không chính xác. Vui lòng kiểm tra lại!');
+      setCurrentDigits(emptyDigits());
+      setTimeout(() => inputRefs.current[0]?.focus(), 120);
     }
   };
 
@@ -344,7 +359,12 @@ export const Step2VerifyOtp: React.FC<Step2VerifyOtpProps> = ({
               <span>Chưa nhận được mã?</span>
               <button
                 type="button"
-                onClick={() => onResend(current.code)}
+                onClick={async () => {
+                  setError('');
+                  setCurrentDigits(emptyDigits());
+                  await onResend(current.code);
+                  setTimeout(() => inputRefs.current[0]?.focus(), 120);
+                }}
                 disabled={resendingCode !== null || current.locked}
                 className="text-[#FF5738] hover:underline font-medium disabled:opacity-40 transition-colors cursor-pointer"
               >

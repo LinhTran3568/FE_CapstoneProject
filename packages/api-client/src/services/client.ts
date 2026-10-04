@@ -215,7 +215,10 @@ export async function httpClient<T>(
   } catch (err: any) {
     if (axios.isAxiosError(err) && err.response?.data) {
       const resData = err.response.data as ApiResponse<T>;
-      throw new Error(parseApiResponseErrorMessage(resData, err.message || `Request failed with status ${err.response.status}`));
+      const error = new Error(parseApiResponseErrorMessage(resData, err.message || `Request failed with status ${err.response.status}`));
+      (error as any).response = err.response;
+      (error as any).status = err.response.status;
+      throw error;
     }
     throw err;
   }

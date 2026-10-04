@@ -212,24 +212,6 @@ const DRAFT_STORAGE_KEY = 'ticketshield_sell_draft';
     };
   }, []);
 
-  // Nếu OTP của bất kỳ vé nào hết hạn thì huỷ toàn bộ gói: không vé nào được bỏ sót ở trạng thái khoá.
-  useEffect(() => {
-    if (currentStep !== 2 || sessions.length === 0) return;
-
-    const checkAndTick = () => {
-      const now = Date.now();
-      const expired = sessions.find((s) => !s.locked && s.expiresAt && s.expiresAt <= now);
-      if (expired) {
-        handleAbandonSession();
-        showToast('Verification session expired (5 minutes). All ticket locks were released at Organizer.', 'warning');
-      }
-    };
-
-    checkAndTick();
-    const interval = setInterval(checkAndTick, 1000);
-    return () => clearInterval(interval);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentStep, sessions]);
 
   const updatePrice = (val: number) => {
     const clamped = Math.max(0, Math.min(val, priceCeiling));
@@ -448,16 +430,17 @@ const DRAFT_STORAGE_KEY = 'ticketshield_sell_draft';
   };
 
   // Step 2: Confirm OTP từng vé (all-or-nothing).
-  // Mỗi trang xác thực đúng 1 vé; nếu một vé hỏng thì giải phóng TẤT CẢ vé trong gói.
+  // Mỗi trang xác thực đúng 1 vé; nếu một vé bị khóa/quá số lần nhập thì giải phóng toàn bộ và về Bước 1.
+  // Nếu chỉ sai mã OTP thông thường (OTP_INVALID) thì giữ nguyên trang để người dùng nhập lại.
   const handleVerifyOneTicket = async (entry: { code: string; otp: string }): Promise<boolean> => {
     if (sessions.length === 0) {
-      showToast('Invalid verification session!', 'error');
+      showToast('Phiên xác thực không hợp lệ!', 'error');
       return false;
     }
 
     const target = sessions.find((s) => s.code === entry.code);
     if (!target) {
-      showToast(`Ticket ${entry.code} is no longer part of this combo.`, 'error');
+      showToast(`Vé ${entry.code} không tồn tại trong danh sách xác thực.`, 'error');
       return false;
     }
 
@@ -481,34 +464,60 @@ const DRAFT_STORAGE_KEY = 'ticketshield_sell_draft';
       );
       return true;
     } catch (err: any) {
-      const msg = err?.response?.data?.message || err?.message || 'Invalid or expired OTP code!';
+      const rawMsg = err?.response?.data?.message || err?.message || '';
+      const errorCode = err?.response?.data?.errors?.[0] || rawMsg;
+      const status = err?.response?.status;
 
-      // Giải phóng TẤT CẢ phiên trong gói (kể cả các vé đã khoá trước đó) rồi đưa người dùng về bước 1.
-      await closeAllSessions();
-      resetToStep1(sessions.map((s) => s.code).join(', '));
-      showToast(
-        sessions.length > 1
-          ? `${msg} Every locked ticket in this combo was released — please verify all OTPs again.`
-          : msg,
-        'error'
-      );
-      return false;
+      // Chỉ hủy toàn bộ và đá về Step 1 khi số lần thử đã cạn kiệt (429 / OTP_ATTEMPTS_EXHAUSTED) hoặc vé đã bị khóa bên khác
+      const isFatal =
+        errorCode === 'OTP_ATTEMPTS_EXHAUSTED' ||
+        status === 429 ||
+        errorCode === 'TICKET_CHANGED' ||
+        errorCode === 'TICKET_LOCKED';
+
+      if (isFatal) {
+        await closeAllSessions();
+        resetToStep1(sessions.map((s) => s.code).join(', '));
+        const fatalMsg =
+          errorCode === 'OTP_ATTEMPTS_EXHAUSTED' || status === 429
+            ? 'Đã nhập sai OTP quá 3 lần. Toàn bộ vé trong gói đã được mở khóa, vui lòng thực hiện lại từ đầu!'
+            : `Xác thực thất bại (${rawMsg || 'Vé không khả dụng'}). Toàn bộ vé đã được mở khóa.`;
+        showToast(fatalMsg, 'error');
+        return false;
+      }
+
+      // Xử lý lỗi có thể thử lại tại Step 2 (không bị out ra):
+      let userFriendlyMsg = 'Mã OTP không chính xác. Vui lòng kiểm tra lại!';
+      if (errorCode === 'OTP_INVALID' || rawMsg.includes('OTP_INVALID')) {
+        userFriendlyMsg = 'Mã OTP không chính xác. Vui lòng kiểm tra kỹ 6 chữ số được gửi tới email/SĐT chủ vé!';
+      } else if (errorCode === 'OTP_EXPIRED' || rawMsg.includes('OTP_EXPIRED') || rawMsg.includes('expired')) {
+        userFriendlyMsg = 'Mã OTP đã hết hạn. Vui lòng bấm "Gửi lại OTP" bên dưới để nhận mã mới!';
+      } else if (rawMsg) {
+        userFriendlyMsg = rawMsg;
+      }
+
+      showToast(userFriendlyMsg, 'error');
+      throw new Error(userFriendlyMsg);
     } finally {
       setIsVerifyingOtp(false);
     }
   };
 
   // Tất cả vé đã khoá -> sang bước 3
-  const handleOtpVerified = () => {
-    if (sessions.length === 0 || !sessions.every((s) => s.locked)) return;
-    showToast(
-      sessions.length > 1
-        ? `All ${sessions.length} tickets verified & locked successfully!`
-        : 'OTP verified & ticket locked successfully!',
-      'success'
-    );
-    setCurrentStep(3);
-  };
+  const handleOtpVerified = useCallback(() => {
+    setCurrentStep((prev) => {
+      if (prev === 2) {
+        showToast(
+          sessions.length > 1
+            ? `All ${sessions.length} tickets verified & locked successfully!`
+            : 'OTP verified & ticket locked successfully!',
+          'success'
+        );
+        return 3;
+      }
+      return prev;
+    });
+  }, [sessions.length, showToast]);
 
   // Helper reset form to Step 1 and remove draft (giữ lại mã vé nếu muốn thử lại)
   const resetToStep1 = (keepCodes?: string) => {
