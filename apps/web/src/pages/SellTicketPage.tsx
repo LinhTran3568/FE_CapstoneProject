@@ -165,9 +165,10 @@ export const SellTicketPage: React.FC = () => {
     fetchExistingListings();
   }, [fetchExistingListings]);
 
-  // Purchased on TicketShield and released from escrow; not already listed.
+  // Purchased on TicketShield and released or held in escrow; not already listed.
   const eligibleTickets = purchasedTickets.filter((t) => {
-    if ((t.status || '').trim().toUpperCase() !== 'VALID') return false;
+    const status = (t.status || '').trim().toUpperCase();
+    if (status !== 'VALID' && status !== 'IN_ESCROW' && status !== 'LOCKED') return false;
     const code = purchasedPassCode(t).toUpperCase();
     if (!code) return false;
     return !existingListings.some(
@@ -339,28 +340,36 @@ export const SellTicketPage: React.FC = () => {
       return;
     }
 
-    const normalizedCode = ticketCode.trim().toUpperCase();
-    if (!normalizedCode) {
+    const codes = ticketCode
+      .split(',')
+      .map((c) => c.trim().toUpperCase())
+      .filter(Boolean);
+
+    if (codes.length === 0) {
       showToast('Please enter the ticket identifier code!', 'warning');
       return;
     }
 
-    const isAlreadyListed = existingListings.some(
-      (l) => l.originalTicketCode === normalizedCode &&
-        String(l.listingStatus).toLowerCase() !== 'cancelled'
-    );
-    if (isAlreadyListed) {
-      showToast('This ticket is already listed on Marketplace! Please check "My Listings" to manage.', 'warning');
-      return;
+    for (const code of codes) {
+      const isAlreadyListed = existingListings.some(
+        (l) => l.originalTicketCode === code &&
+          String(l.listingStatus).toLowerCase() !== 'cancelled'
+      );
+      if (isAlreadyListed) {
+        showToast(`Ticket ${code} is already listed on Marketplace! Please check "My Listings" to manage.`, 'warning');
+        return;
+      }
+
+      const ownedPurchase = purchasedTickets.find(
+        (t) => purchasedPassCode(t).toUpperCase() === code
+      );
+      if (ownedPurchase && (ownedPurchase.status || '').trim().toUpperCase() !== 'VALID') {
+        showToast(`Ticket ${code} cannot be resold yet. Please wait until the protection period has concluded.`, 'error');
+        return;
+      }
     }
 
-    const ownedPurchase = purchasedTickets.find(
-      (t) => purchasedPassCode(t).toUpperCase() === normalizedCode
-    );
-    if (ownedPurchase && (ownedPurchase.status || '').trim().toUpperCase() !== 'VALID') {
-      showToast('This ticket cannot be resold yet. Please wait until the 24-hour protection period has concluded.', 'error');
-      return;
-    }
+    const normalizedCode = codes.join(', ');
 
     try {
       setIsRequestingOtp(true);

@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { OrganizerDto } from '@ticketshield/api-client';
 import { PurchasedTicketDto, UserBankAccountDto } from '@ticketshield/types';
-import { Building2, ChevronDown, Check, Ticket, X, Loader2, ArrowRight } from 'lucide-react';
+import { Building2, ChevronDown, Check, Ticket, X, Loader2, ArrowRight, AlertCircle } from 'lucide-react';
 import { SeatAdjacencyBadge } from '../ui/SeatAdjacencyBadge';
 
 export interface Step1EnterTicketCodeProps {
@@ -40,7 +40,14 @@ export const Step1EnterTicketCode: React.FC<Step1EnterTicketCodeProps> = ({
 
   const [isPurchasesDropdownOpen, setIsPurchasesDropdownOpen] = useState(false);
   const [ticketSearch, setTicketSearch] = useState('');
+  const [eventMismatchError, setEventMismatchError] = useState<string>('');
   const purchasesDropdownRef = useRef<HTMLDivElement>(null);
+
+  // Parse comma-separated ticket codes into an array of normalized uppercase codes
+  const selectedCodes = ticketCode
+    .split(',')
+    .map((c) => c.trim().toUpperCase())
+    .filter(Boolean);
 
   // Close dropdowns on outside click
   useEffect(() => {
@@ -55,6 +62,62 @@ export const Step1EnterTicketCode: React.FC<Step1EnterTicketCodeProps> = ({
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  const handleToggleTicket = (t: PurchasedTicketDto) => {
+    const code = purchasedPassCode(t).toUpperCase();
+    if (!code) return;
+
+    const isAlreadySelected = selectedCodes.includes(code);
+
+    if (isAlreadySelected) {
+      const nextCodes = selectedCodes.filter((c) => c !== code);
+      setTicketCode(nextCodes.join(', '));
+      setEventMismatchError('');
+    } else {
+      // Domain & Business Validation: All tickets in a bundle MUST belong to the same Event (eventId)
+      if (selectedCodes.length > 0) {
+        const firstSelectedTicket = eligibleTickets.find((item) =>
+          selectedCodes.includes(purchasedPassCode(item).toUpperCase())
+        );
+        if (
+          firstSelectedTicket &&
+          firstSelectedTicket.eventId &&
+          t.eventId &&
+          firstSelectedTicket.eventId !== t.eventId
+        ) {
+          setEventMismatchError(
+            `Tất cả các vé trong gói bán phải thuộc cùng 1 sự kiện (${firstSelectedTicket.eventName}).`
+          );
+          return;
+        }
+      }
+      setEventMismatchError('');
+      const nextCodes = [...selectedCodes, code];
+      setTicketCode(nextCodes.join(', '));
+    }
+  };
+
+  const handleSelectAllSameEvent = () => {
+    if (eligibleTickets.length === 0) return;
+    setEventMismatchError('');
+
+    let targetEventId = eligibleTickets[0].eventId;
+    if (selectedCodes.length > 0) {
+      const firstSelected = eligibleTickets.find((t) =>
+        selectedCodes.includes(purchasedPassCode(t).toUpperCase())
+      );
+      if (firstSelected?.eventId) {
+        targetEventId = firstSelected.eventId;
+      }
+    }
+
+    const sameEventCodes = eligibleTickets
+      .filter((t) => !targetEventId || t.eventId === targetEventId)
+      .map((t) => purchasedPassCode(t).toUpperCase())
+      .filter(Boolean);
+
+    setTicketCode(sameEventCodes.join(', '));
+  };
 
   return (
     <div key={1} className="animate-fade-in-up max-w-2xl mx-auto space-y-6 text-center pt-4">
@@ -97,11 +160,10 @@ export const Step1EnterTicketCode: React.FC<Step1EnterTicketCodeProps> = ({
               id="sell-organizer-select"
               type="button"
               onClick={() => setIsOrganizerDropdownOpen((prev) => !prev)}
-              className={`w-full h-14 bg-[#05070A] border ${
-                isOrganizerDropdownOpen
-                  ? 'border-[#FF5A36] ring-4 ring-[#FF5A36]/20'
-                  : 'border-white/15 hover:border-white/25'
-              } rounded-2xl pl-4 pr-4 flex items-center justify-between text-left transition-all duration-200 cursor-pointer shadow-inner`}
+              className={`w-full h-14 bg-[#05070A] border ${isOrganizerDropdownOpen
+                ? 'border-[#FF5A36] ring-4 ring-[#FF5A36]/20'
+                : 'border-white/15 hover:border-white/25'
+                } rounded-2xl pl-4 pr-4 flex items-center justify-between text-left transition-all duration-200 cursor-pointer shadow-inner`}
             >
               <div className="flex items-center gap-3">
                 <Building2 className="w-5 h-5 text-zinc-400 shrink-0" />
@@ -112,9 +174,8 @@ export const Step1EnterTicketCode: React.FC<Step1EnterTicketCodeProps> = ({
                 </span>
               </div>
               <ChevronDown
-                className={`w-4 h-4 text-zinc-400 transition-transform duration-200 ${
-                  isOrganizerDropdownOpen ? 'rotate-180 text-[#FF5A36]' : ''
-                }`}
+                className={`w-4 h-4 text-zinc-400 transition-transform duration-200 ${isOrganizerDropdownOpen ? 'rotate-180 text-[#FF5A36]' : ''
+                  }`}
               />
             </button>
 
@@ -126,11 +187,10 @@ export const Step1EnterTicketCode: React.FC<Step1EnterTicketCodeProps> = ({
                     setSelectedOrganizerId('');
                     setIsOrganizerDropdownOpen(false);
                   }}
-                  className={`w-full px-3.5 py-3 rounded-xl text-left text-sm flex items-center justify-between transition-colors cursor-pointer ${
-                    !selectedOrganizerId
-                      ? 'bg-[#FF5A36]/15 text-[#FF5A36] font-bold border border-[#FF5A36]/30'
-                      : 'text-zinc-300 hover:bg-white/10 hover:text-white'
-                  }`}
+                  className={`w-full px-3.5 py-3 rounded-xl text-left text-sm flex items-center justify-between transition-colors cursor-pointer ${!selectedOrganizerId
+                    ? 'bg-[#FF5A36]/15 text-[#FF5A36] font-bold border border-[#FF5A36]/30'
+                    : 'text-zinc-300 hover:bg-white/10 hover:text-white'
+                    }`}
                 >
                   <div>
                     <div className="font-semibold text-white">VieON Entertainment</div>
@@ -149,11 +209,10 @@ export const Step1EnterTicketCode: React.FC<Step1EnterTicketCodeProps> = ({
                         setSelectedOrganizerId(org.id);
                         setIsOrganizerDropdownOpen(false);
                       }}
-                      className={`w-full px-3.5 py-3 rounded-xl text-left text-sm flex items-center justify-between transition-colors cursor-pointer ${
-                        isSelected
-                          ? 'bg-[#FF5A36]/15 text-[#FF5A36] font-bold border border-[#FF5A36]/30'
-                          : 'text-zinc-300 hover:bg-white/10 hover:text-white'
-                      }`}
+                      className={`w-full px-3.5 py-3 rounded-xl text-left text-sm flex items-center justify-between transition-colors cursor-pointer ${isSelected
+                        ? 'bg-[#FF5A36]/15 text-[#FF5A36] font-bold border border-[#FF5A36]/30'
+                        : 'text-zinc-300 hover:bg-white/10 hover:text-white'
+                        }`}
                     >
                       <div>
                         <div className="font-semibold text-white">{org.name}</div>
@@ -168,7 +227,7 @@ export const Step1EnterTicketCode: React.FC<Step1EnterTicketCodeProps> = ({
           </div>
         </div>
 
-        {/* 2. Ticket Code Input with Embedded 'From Wallet' Dropdown */}
+        {/* 2. Ticket Code Input with Embedded 'My Tickets' Multi-Select Checklist */}
         <div className="space-y-2">
           <div className="flex items-center justify-between">
             <label className="text-xs font-semibold uppercase tracking-wider text-[#A3A8B3] font-display block">
@@ -183,20 +242,22 @@ export const Step1EnterTicketCode: React.FC<Step1EnterTicketCodeProps> = ({
 
           <div className="relative" ref={purchasesDropdownRef}>
             <div
-              className={`flex items-center bg-[#05070A] border ${
-                isPurchasesDropdownOpen
-                  ? 'border-[#FF5A36] ring-4 ring-[#FF5A36]/20'
-                  : ticketCode
-                    ? 'border-[#FF5A36]/50'
-                    : 'border-white/15 focus-within:border-[#FF5A36] focus-within:ring-4 focus-within:ring-[#FF5A36]/20'
-              } rounded-2xl transition-all duration-200 shadow-inner h-14 pl-4 pr-2 gap-2`}
+              className={`flex items-center bg-[#05070A] border ${isPurchasesDropdownOpen
+                ? 'border-[#FF5A36] ring-4 ring-[#FF5A36]/20'
+                : ticketCode
+                  ? 'border-[#FF5A36]/50'
+                  : 'border-white/15 focus-within:border-[#FF5A36] focus-within:ring-4 focus-within:ring-[#FF5A36]/20'
+                } rounded-2xl transition-all duration-200 shadow-inner h-14 pl-4 pr-2 gap-2`}
             >
               <Ticket className="w-4.5 h-4.5 text-[#FF5A36] shrink-0 pointer-events-none" />
               <input
                 id="sell-ticket-input"
                 type="text"
                 value={ticketCode}
-                onChange={(e) => setTicketCode(e.target.value.toUpperCase())}
+                onChange={(e) => {
+                  setTicketCode(e.target.value.toUpperCase());
+                  setEventMismatchError('');
+                }}
                 placeholder="e.g. ATSH-VIP-888"
                 className="flex-1 bg-transparent border-0 outline-none text-base font-mono font-bold tracking-widest text-white placeholder-[#A3A8B3]/30 min-w-0"
                 required
@@ -205,7 +266,10 @@ export const Step1EnterTicketCode: React.FC<Step1EnterTicketCodeProps> = ({
               {ticketCode && (
                 <button
                   type="button"
-                  onClick={() => setTicketCode('')}
+                  onClick={() => {
+                    setTicketCode('');
+                    setEventMismatchError('');
+                  }}
                   className="p-1.5 text-[#8F96A3] hover:text-white hover:bg-white/10 rounded-lg transition-colors cursor-pointer shrink-0"
                   title="Clear code"
                 >
@@ -216,33 +280,34 @@ export const Step1EnterTicketCode: React.FC<Step1EnterTicketCodeProps> = ({
               {/* Subtle vertical separator */}
               <div className="h-6 w-px bg-white/10 shrink-0" />
 
-              {/* 'My Tickets' button inside input (Clean, without confusing count badge) */}
+              {/* 'My Tickets' button inside input */}
               <button
                 type="button"
                 onClick={() => {
                   setIsPurchasesDropdownOpen((prev) => !prev);
                   setTicketSearch('');
+                  setEventMismatchError('');
                 }}
-                className={`h-9 px-3 rounded-xl flex items-center gap-1.5 text-xs font-semibold shrink-0 transition-all cursor-pointer ${
-                  isPurchasesDropdownOpen
-                    ? 'bg-[#FF5A36] text-white shadow-md shadow-[#FF5A36]/30'
-                    : 'bg-[#151921] hover:bg-[#1C222C] text-zinc-200 border border-white/10'
-                }`}
-              >
-                <span className="whitespace-nowrap">My Tickets</span>
-                <ChevronDown
-                  className={`w-3.5 h-3.5 transition-transform duration-200 ${
-                    isPurchasesDropdownOpen ? 'rotate-180' : 'text-zinc-400'
+                className={`h-9 px-3 rounded-xl flex items-center gap-1.5 text-xs font-semibold shrink-0 transition-all cursor-pointer ${isPurchasesDropdownOpen || selectedCodes.length > 0
+                  ? 'bg-[#FF5A36] text-white shadow-md shadow-[#FF5A36]/30'
+                  : 'bg-[#151921] hover:bg-[#1C222C] text-zinc-200 border border-white/10'
                   }`}
+              >
+                <span className="whitespace-nowrap">
+                  My Tickets {eligibleTickets.length > 0 && `(${eligibleTickets.length})`}
+                </span>
+                <ChevronDown
+                  className={`w-3.5 h-3.5 transition-transform duration-200 ${isPurchasesDropdownOpen ? 'rotate-180' : 'text-zinc-400'
+                    }`}
                 />
               </button>
             </div>
 
-            {/* Dropdown panel: Centered and full width matching the input / organizer dropdown */}
+            {/* Dropdown panel: Multi-Select Checklist */}
             {isPurchasesDropdownOpen && (
               <div className="absolute top-full left-0 right-0 mt-2 bg-[#0A0D12] border border-white/15 rounded-2xl shadow-2xl z-50 animate-in fade-in zoom-in-95 overflow-hidden">
-                {/* Search bar inside dropdown */}
-                <div className="p-2 border-b border-white/[0.06]">
+                {/* Search bar & quick select controls inside dropdown */}
+                <div className="p-2 border-b border-white/[0.06] space-y-2">
                   <div className="flex items-center gap-2.5 bg-[#05070A] border border-white/10 rounded-xl px-3 h-9 focus-within:border-[#FF5A36]/50 transition-colors">
                     <svg className="w-3.5 h-3.5 text-[#8B929C] shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                       <circle cx="11" cy="11" r="8" /><path d="M21 21l-4.35-4.35" />
@@ -265,9 +330,35 @@ export const Step1EnterTicketCode: React.FC<Step1EnterTicketCodeProps> = ({
                       </button>
                     )}
                   </div>
+
+                  {eligibleTickets.length > 1 && (
+                    <div className="flex items-center justify-between px-1 text-[11px] text-[#8B929C]">
+                      <span>Chọn nhiều vé để bán dạng Gói/Combo</span>
+                      <button
+                        type="button"
+                        onClick={handleSelectAllSameEvent}
+                        className="text-[#FF5A36] hover:underline font-semibold cursor-pointer"
+                      >
+                        Select All (Same Event)
+                      </button>
+                    </div>
+                  )}
                 </div>
 
-                {/* Ticket list */}
+                {/* Event mismatch error banner */}
+                {eventMismatchError && (
+                  <div className="mx-2 my-2 p-2.5 bg-amber-500/10 border border-amber-500/25 rounded-xl text-xs text-amber-300 flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <AlertCircle className="w-4 h-4 text-amber-400 shrink-0" />
+                      <span className="truncate">{eventMismatchError}</span>
+                    </div>
+                    <button type="button" onClick={() => setEventMismatchError('')} className="text-amber-400 hover:text-white">
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                )}
+
+                {/* Ticket checklist */}
                 <div className="max-h-60 overflow-y-auto p-1.5 space-y-1">
                   {(() => {
                     const filtered = eligibleTickets.filter((t) => {
@@ -288,78 +379,147 @@ export const Step1EnterTicketCode: React.FC<Step1EnterTicketCodeProps> = ({
                         </div>
                       );
                     }
-                    // =========================================================================================
-                    // [AI AGENT INSTRUCTION - MULTI-TICKET BUNDLE RESALE SELECTION]
-                    // Khi đồng đội / Agent tiếp quản phát triển tính năng BÁN GÓI/COMBO VÉ (Bundle Resale):
-                    // 1. UI MULTI-SELECT TỐI ƯU TRÊN MY TICKETS:
-                    //    - Chuyển cơ chế từ chọn 1 vé đơn lẻ (single-click đóng dropdown) sang Multi-Select Checkbox.
-                    //    - Khi click vé: Toggle thêm/bớt mã vé trong danh sách `selectedTicketCodes: string[]`
-                    //      thay vì set 1 chuỗi `ticketCode` rồi tự ý đóng dropdown `setIsPurchasesDropdownOpen(false)`.
-                    //    - Bổ sung ô Checkbox trực quan ở mỗi dòng vé.
-                    //    - Bổ sung thanh Action Footer cố định ở đáy dropdown: "Đã chọn: X vé" + Nút "[Xác nhận chọn]".
-                    //    - Render danh sách vé đã chọn dạng tags/chips có nút (x) để người dùng quản lý thuận tiện.
-                    // 2. DOMAIN & BUSINESS VALIDATION:
-                    //    - Ràng buộc: Tất cả vé trong 1 gói resale bắt buộc phải cùng 1 Event (`eventId`).
-                    // 3. ZERO-TOLERANCE ARCHITECTURAL STANDARDS (KỶ LUẬT ĐỒ ÁN CAPSTONE BẮT BUỘC):
-                    //    - FE: Đóng gói toàn bộ danh sách vé trong bundle vào 1 MediatR Command Payload duy nhất.
-                    //    - BE: CẤM Loop-Commit & Patching. Toàn bộ N vé trong gói bắt buộc phải được bọc trong
-                    //      1 Database Transaction nguyên tử duy nhất (ACID), chèn sẵn `bundle_id` ngay từ đầu,
-                    //      triệt tiêu 100% nguy cơ phát sinh vé mồ côi nếu transaction bị gián đoạn giữa chừng.
-                    // =========================================================================================
+
                     return filtered.map((t) => {
                       const code = purchasedPassCode(t).toUpperCase();
-                      const isSelected = code === ticketCode;
+                      const isSelected = selectedCodes.includes(code);
                       return (
-                        <button
+                        <div
                           key={t.escrowId}
-                          type="button"
-                          onClick={() => {
-                            // NOTE FOR BUNDLE: Replace single-value assign with toggle in selectedTicketCodes array
-                            setTicketCode(isSelected ? '' : code);
-                            setIsPurchasesDropdownOpen(false);
-                            setTicketSearch('');
-                          }}
-                          className={`w-full p-2.5 rounded-xl text-left transition-all flex items-center justify-between cursor-pointer ${
-                            isSelected
-                              ? 'bg-[#FF5A36]/15 border border-[#FF5A36]/30'
-                              : 'hover:bg-white/[0.06]'
-                          }`}
+                          onClick={() => handleToggleTicket(t)}
+                          className={`w-full p-2.5 rounded-xl text-left transition-all flex items-center justify-between cursor-pointer border ${isSelected
+                            ? 'bg-[#FF5A36]/15 border-[#FF5A36]/40 text-white'
+                            : 'border-transparent hover:bg-white/[0.06] text-zinc-300'
+                            }`}
                         >
-                          <div className="min-w-0 pr-2">
-                            <div className="font-mono font-bold text-xs text-[#FF5A36]">{code}</div>
-                            <div className="text-xs font-semibold text-white truncate">{t.eventName}</div>
-                            <div className="flex items-center gap-1.5 mt-0.5">
-                              <span className="text-[10px] text-[#8B929C] truncate">{t.tierName}</span>
-                              {(t.seatZone || t.tierName) && (
-                                <SeatAdjacencyBadge
-                                  seats={t.seatZone || t.tierName}
-                                  variant="subtle"
-                                  size="xs"
-                                  showSubtext={true}
-                                />
-                              )}
+                          <div className="flex items-center gap-3 min-w-0 pr-2">
+                            {/* Visual Checkbox */}
+                            <div
+                              className={`w-5 h-5 rounded-md flex items-center justify-center shrink-0 transition-colors ${isSelected
+                                ? 'bg-[#FF5A36] text-white shadow-sm'
+                                : 'border border-white/20 bg-white/5 hover:border-white/40'
+                                }`}
+                            >
+                              {isSelected && <Check className="w-3.5 h-3.5 stroke-[3]" />}
+                            </div>
+
+                            <div className="min-w-0">
+                              <div className="font-mono font-bold text-xs text-[#FF5A36]">{code}</div>
+                              <div className="text-xs font-semibold text-white truncate">{t.eventName}</div>
+                              <div className="flex items-center gap-1.5 mt-0.5">
+                                <span className="text-[10px] text-[#8B929C] truncate">{t.tierName}</span>
+                                {(t.seatZone || t.tierName) && (
+                                  <SeatAdjacencyBadge
+                                    seats={t.seatZone || t.tierName}
+                                    variant="subtle"
+                                    size="xs"
+                                    showSubtext={true}
+                                  />
+                                )}
+                              </div>
                             </div>
                           </div>
-                          {isSelected && <Check className="w-4 h-4 text-[#FF5A36] shrink-0" />}
-                        </button>
+
+                          <span className="text-[11px] font-mono text-[#8B929C] shrink-0">
+                            {isSelected ? 'Checked' : 'Select'}
+                          </span>
+                        </div>
                       );
                     });
                   })()}
                 </div>
+
+                {/* Fixed Action Footer at bottom of dropdown */}
+                <div className="p-3 bg-[#080A0E] border-t border-white/10 flex items-center justify-between gap-2">
+                  <div className="text-xs text-zinc-300">
+                    Đã chọn: <span className="text-[#FF5A36] font-bold font-mono">{selectedCodes.length}</span> vé
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {selectedCodes.length > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setTicketCode('');
+                          setEventMismatchError('');
+                        }}
+                        className="px-2.5 py-1.5 text-xs text-zinc-400 hover:text-white transition-colors cursor-pointer"
+                      >
+                        Bỏ chọn
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => setIsPurchasesDropdownOpen(false)}
+                      className="px-4 py-1.5 bg-[#FF5A36] hover:bg-[#FF7252] text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-[#FF5A36]/20 cursor-pointer"
+                    >
+                      Xác nhận chọn
+                    </button>
+                  </div>
+                </div>
               </div>
             )}
           </div>
+
+          {/* Selected Ticket Tags / Chips UI (Displayed when 2 or more tickets are selected for Combo/Bundle) */}
+          {selectedCodes.length > 1 && (
+            <div className="p-3.5 bg-[#05070A] border border-white/10 rounded-2xl space-y-2.5 animate-fade-in-up">
+              <div className="flex items-center justify-between text-xs font-semibold text-[#A3A8B3] uppercase tracking-wider font-display">
+                <span>Danh sách vé đã chọn ({selectedCodes.length})</span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setTicketCode('');
+                    setEventMismatchError('');
+                  }}
+                  className="text-[11px] text-zinc-500 hover:text-red-400 transition-colors cursor-pointer font-sans normal-case"
+                >
+                  Clear all
+                </button>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {selectedCodes.map((code) => {
+                  const matchingTicket = eligibleTickets.find(
+                    (t) => purchasedPassCode(t).toUpperCase() === code
+                  );
+                  return (
+                    <div
+                      key={code}
+                      className="inline-flex items-center gap-2 px-3 py-1.5 bg-[#FF5A36]/15 border border-[#FF5A36]/30 rounded-xl text-xs font-mono font-bold text-white shadow-sm"
+                    >
+                      <Ticket className="w-3.5 h-3.5 text-[#FF5A36]" />
+                      <span>{code}</span>
+                      {matchingTicket?.tierName && (
+                        <span className="text-[10px] text-zinc-400 font-sans font-normal truncate max-w-[120px]">
+                          ({matchingTicket.tierName})
+                        </span>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const next = selectedCodes.filter((c) => c !== code);
+                          setTicketCode(next.join(', '));
+                        }}
+                        className="p-0.5 text-zinc-400 hover:text-white hover:bg-white/10 rounded transition-colors cursor-pointer ml-1"
+                        title="Remove ticket"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Submit */}
         <button
           type="submit"
           disabled={isRequestingOtp || !ticketCode.trim()}
-          className={`w-full h-14 font-bold font-display uppercase tracking-widest text-sm rounded-2xl transition-all duration-200 flex items-center justify-center gap-2 ${
-            !ticketCode.trim() || isRequestingOtp
-              ? 'bg-white/[0.07] text-white/50 cursor-not-allowed border border-white/10'
-              : 'bg-[#FF5A36] hover:bg-[#FF7252] text-white shadow-lg shadow-[#FF5A36]/30 hover:shadow-xl hover:shadow-[#FF5A36]/50 hover:-translate-y-0.5 active:translate-y-0 cursor-pointer'
-          }`}
+          className={`w-full h-14 font-bold font-display uppercase tracking-widest text-sm rounded-2xl transition-all duration-200 flex items-center justify-center gap-2 ${!ticketCode.trim() || isRequestingOtp
+            ? 'bg-white/[0.07] text-white/50 cursor-not-allowed border border-white/10'
+            : 'bg-[#FF5A36] hover:bg-[#FF7252] text-white shadow-lg shadow-[#FF5A36]/30 hover:shadow-xl hover:shadow-[#FF5A36]/50 hover:-translate-y-0.5 active:translate-y-0 cursor-pointer'
+            }`}
         >
           {isRequestingOtp ? (
             <>
@@ -374,3 +534,4 @@ export const Step1EnterTicketCode: React.FC<Step1EnterTicketCodeProps> = ({
     </div>
   );
 };
+
