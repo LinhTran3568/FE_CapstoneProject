@@ -9,10 +9,12 @@ export const myListingsQueryKey = ['resale-listings', 'mine'] as const;
  * All listings of the signed-in seller (every status).
  * Filtering by status happens on the page so the per-status counts stay available.
  */
-export const useMyListings = () =>
+export const useMyListings = (refetchInterval?: number, enabled = true) =>
   useQuery({
     queryKey: myListingsQueryKey,
     queryFn: () => resaleListingsApi.getMyListings(),
+    refetchInterval,
+    enabled,
   });
 
 /**

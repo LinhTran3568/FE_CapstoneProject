@@ -10,6 +10,7 @@ import { ProfilePage } from '../pages/ProfilePage';
 import { MarketplacePage } from '../pages/MarketplacePage';
 import { SellTicketPage } from '../pages/SellTicketPage';
 import { MyListingsPage } from '../pages/MyListingsPage';
+import { RevenuePreviewPage } from '../pages/RevenuePreviewPage';
 import { MyTicketsPage } from '../pages/MyTicketsPage';
 import { OrganizerPortalPage } from '../pages/OrganizerPortalPage';
 import { PayoutAccountsPage } from '../pages/PayoutAccountsPage';
@@ -22,6 +23,7 @@ export const AppRoutes: React.FC = () => {
       <Route path="/" element={<HomePage />} />
       <Route path="/marketplace" element={<MarketplacePage />} />
       <Route path="/organizer" element={<OrganizerPortalPage />} />
+      {import.meta.env.DEV && <Route path="/preview/doanh-thu" element={<RevenuePreviewPage />} />}
 
       {/* Guest-only Pages (Cannot access when already authenticated) */}
       <Route element={<GuestRoute />}>

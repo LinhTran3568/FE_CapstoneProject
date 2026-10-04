@@ -22,6 +22,7 @@ import {
 import type { ListingStatus, SellerListingDto } from '@ticketshield/types';
 import { useUIStore } from '../stores/uiStore';
 import { useCancelListing, useMyListings } from '../hooks/useMyListings';
+import { RevenueTab } from '../components/seller/RevenueTab';
 import { ConfirmModal } from '../components/ui/ConfirmModal';
 import { formatEventDateTime, formatVND } from '../utils/formatters';
 import { buildPrivateShareLink, copyToClipboard } from '../utils/shareLink';
@@ -35,6 +36,11 @@ interface FilterTabOption {
   label: string;
 }
 
+const SELLER_SECTION_TABS = [
+  { key: 'listings' as const, label: 'My tickets' },
+  { key: 'revenue' as const, label: 'Revenue' },
+];
+
 const FILTER_TABS: FilterTabOption[] = [
   { key: 'all', label: 'ALL' },
   { key: 'Verified', label: 'ON SALE' },
@@ -47,7 +53,7 @@ const FILTER_TABS: FilterTabOption[] = [
 const TOAST_CANCEL_SUCCESS = 'Listing cancelled successfully. The original ticket has been unlocked by the Organizer.';
 const TOAST_CANCEL_ERROR = 'Could not contact the organizer to unlock the ticket. Please try again later.';
 const ESCROW_LOCKED_NOTICE =
-  'Giao dịch đang được bảo vệ an toàn — Tự động chuyển tiền sau đối soát';
+  'This sale is protected. The payout is sent after review.';
 
 /** Only listings nobody has bought yet can be cancelled (backend rule). */
 const canCancel = (listing: SellerListingDto) => listing.listingStatus === 'Verified';
@@ -82,6 +88,21 @@ export const MyListingsPage: React.FC = () => {
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [listingToCancel, setListingToCancel] = useState<SellerListingDto | null>(null);
   const [copiedListingId, setCopiedListingId] = useState<string | null>(null);
+  const [pageView, setPageView] = useState<'listings' | 'revenue'>('listings');
+
+  const moveSellerTab = (event: React.KeyboardEvent<HTMLButtonElement>, index: number) => {
+    const last = SELLER_SECTION_TABS.length - 1;
+    let next = index;
+    if (event.key === 'ArrowRight') next = index === last ? 0 : index + 1;
+    else if (event.key === 'ArrowLeft') next = index === 0 ? last : index - 1;
+    else if (event.key === 'Home') next = 0;
+    else if (event.key === 'End') next = last;
+    else return;
+    event.preventDefault();
+    const key = SELLER_SECTION_TABS[next].key;
+    setPageView(key);
+    queueMicrotask(() => document.getElementById(`seller-tab-${key}`)?.focus());
+  };
 
   const counts = useMemo(() => {
     const result: Record<StatusFilter, number> = {
@@ -220,6 +241,50 @@ export const MyListingsPage: React.FC = () => {
           </Link>
         </div>
 
+        <div
+          className="inline-flex w-full sm:w-auto items-center gap-1.5 p-1.5 bg-[#0B0E12] border border-white/[0.08] rounded-2xl shadow-xl"
+          role="tablist"
+          aria-label="Seller sections"
+        >
+          {SELLER_SECTION_TABS.map((tab, index) => {
+            const selected = pageView === tab.key;
+            return (
+              <button
+                key={tab.key}
+                id={`seller-tab-${tab.key}`}
+                type="button"
+                role="tab"
+                aria-selected={selected}
+                aria-controls={`seller-panel-${tab.key}`}
+                tabIndex={selected ? 0 : -1}
+                onClick={() => setPageView(tab.key)}
+                onKeyDown={(event) => moveSellerTab(event, index)}
+                className={`flex-1 sm:flex-none min-w-[140px] py-2.5 px-5 rounded-xl text-xs font-bold font-mono tracking-wider transition-all duration-200 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF5A36] focus-visible:ring-offset-2 focus-visible:ring-offset-[#05070A] ${
+                  selected
+                    ? 'bg-[#11151B] text-[#F5F5F5] border border-[#FF5A36] shadow-[0_0_15px_rgba(255,90,54,0.15)]'
+                    : 'text-[#8B929C] hover:text-[#F5F5F5] hover:bg-white/[0.03] border border-transparent'
+                }`}
+              >
+                {tab.label}
+              </button>
+            );
+          })}
+        </div>
+
+        <div
+          role="tabpanel"
+          id="seller-panel-revenue"
+          aria-labelledby="seller-tab-revenue"
+          hidden={pageView !== 'revenue'}
+        >
+          {pageView === 'revenue' && <RevenueTab />}
+        </div>
+        <div
+          role="tabpanel"
+          id="seller-panel-listings"
+          aria-labelledby="seller-tab-listings"
+          hidden={pageView !== 'listings'}
+        >
         {/* Status Filter — Unified Segmented Filter Container */}
         <div className="bg-[#0B0E12] border border-white/[0.08] rounded-2xl p-1.5 shadow-xl backdrop-blur-md">
           <div
@@ -519,6 +584,7 @@ export const MyListingsPage: React.FC = () => {
               </div>
             </div>
           )}
+        </div>
         </div>
       </div>
 
