@@ -529,10 +529,12 @@ export const Step1EnterTicketCode: React.FC<Step1EnterTicketCodeProps> = ({
                 return (
                   <div
                     key={code}
-                    className="flex items-center justify-between bg-[#0D121B] border border-white/10 hover:border-white/20 rounded-2xl h-14 pl-3.5 pr-2 gap-2 transition-colors shadow-md"
+                    onClick={() => handleStartEdit(code)}
+                    className="flex items-center justify-between bg-[#0D121B] border border-white/10 hover:border-white/25 hover:bg-[#121824] rounded-2xl h-14 pl-3.5 pr-2 gap-2 transition-colors shadow-md cursor-pointer group"
+                    title="Bấm vào để chỉnh sửa mã vé này"
                   >
                     <div className="flex items-center gap-2.5 min-w-0 flex-1">
-                      <div className="w-7 h-7 rounded-lg bg-[#FF5A36]/10 border border-[#FF5A36]/25 text-[#FF5A36] flex items-center justify-center shrink-0 font-mono font-bold text-xs">
+                      <div className="w-7 h-7 rounded-lg bg-[#FF5A36]/10 border border-[#FF5A36]/25 group-hover:border-[#FF5A36]/50 text-[#FF5A36] flex items-center justify-center shrink-0 font-mono font-bold text-xs transition-colors">
                         #{index + 1}
                       </div>
                       <div className="min-w-0 flex-1">
@@ -567,7 +569,7 @@ export const Step1EnterTicketCode: React.FC<Step1EnterTicketCodeProps> = ({
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-1.5 shrink-0">
+                    <div className="flex items-center gap-1.5 shrink-0" onClick={(e) => e.stopPropagation()}>
                       <button
                         type="button"
                         onClick={() => handleStartEdit(code)}
@@ -579,7 +581,10 @@ export const Step1EnterTicketCode: React.FC<Step1EnterTicketCodeProps> = ({
                       </button>
                       <button
                         type="button"
-                        onClick={() => handleRemoveTicket(code)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleRemoveTicket(code);
+                        }}
                         className="h-9 w-9 bg-white/5 hover:bg-rose-500/15 border border-white/10 hover:border-rose-500/30 text-zinc-400 hover:text-rose-400 rounded-xl transition-all cursor-pointer flex items-center justify-center"
                         title="Xóa vé này khỏi gói"
                       >
@@ -606,15 +611,22 @@ export const Step1EnterTicketCode: React.FC<Step1EnterTicketCodeProps> = ({
           )}
 
           {/* ========================================================================= */}
-          {/* THANH NHẬP MÃ VÉ CHÍNH + NÚT "VÉ CỦA TÔI" (LUÔN LUÔN HIỆN DIỆN)          */}
+          {/* THANH NHẬP MÃ VÉ CHÍNH + NÚT "VÉ CỦA TÔI" (GIỮ NGUYÊN VÀ VÔ HIỆU HÓA KHI SỬA) */}
           {/* ========================================================================= */}
-          {selectedCodes.length < MAX_BUNDLE_TICKETS && !editingCode && (
-            <div className="pt-1 space-y-1.5">
-              <div className="flex items-center bg-[#05070A] border border-white/15 focus-within:border-[#FF5A36] focus-within:ring-2 focus-within:ring-[#FF5A36]/20 rounded-2xl h-14 pl-3.5 pr-2 gap-2 transition-colors shadow-inner">
+          {selectedCodes.length < MAX_BUNDLE_TICKETS && (
+            <div className={`pt-1 space-y-1.5 transition-opacity ${editingCode ? 'opacity-35 pointer-events-none select-none' : ''}`}>
+              <div
+                className={`flex items-center bg-[#05070A] border rounded-2xl h-14 pl-3.5 pr-2 gap-2 transition-colors shadow-inner ${
+                  editingCode
+                    ? 'border-white/5 cursor-not-allowed'
+                    : 'border-white/15 focus-within:border-[#FF5A36] focus-within:ring-2 focus-within:ring-[#FF5A36]/20'
+                }`}
+              >
                 <Ticket className="w-5 h-5 text-[#FF5A36] shrink-0 pointer-events-none" />
                 <input
                   ref={directInputRef}
                   type="text"
+                  disabled={Boolean(editingCode)}
                   value={directInputCode}
                   onChange={(e) => {
                     setDirectInputCode(e.target.value.toUpperCase());
@@ -627,15 +639,17 @@ export const Step1EnterTicketCode: React.FC<Step1EnterTicketCodeProps> = ({
                     }
                   }}
                   placeholder={
-                    selectedCodes.length === 0
-                      ? 'Nhập mã vé (VD: ATSH-VIP-888)...'
-                      : `Nhập thêm mã vé thứ ${selectedCodes.length + 1}...`
+                    editingCode
+                      ? 'Đang chỉnh sửa vé ở trên...'
+                      : selectedCodes.length === 0
+                        ? 'Nhập mã vé (VD: ATSH-VIP-888)...'
+                        : `Nhập thêm mã vé thứ ${selectedCodes.length + 1}...`
                   }
-                  className="flex-1 bg-transparent border-0 outline-none text-sm sm:text-base font-mono font-bold text-white placeholder-zinc-500 tracking-wider min-w-0"
+                  className="flex-1 bg-transparent border-0 outline-none text-sm sm:text-base font-mono font-bold text-white placeholder-zinc-500 tracking-wider min-w-0 disabled:cursor-not-allowed"
                 />
 
                 {/* Nút Thêm vé khi đang gõ */}
-                {directInputCode.trim() && (
+                {directInputCode.trim() && !editingCode && (
                   <button
                     type="button"
                     onClick={handleAddDirectCode}
@@ -651,8 +665,9 @@ export const Step1EnterTicketCode: React.FC<Step1EnterTicketCodeProps> = ({
                 {/* Nút "Vé của tôi" (LUÔN LUÔN HIỆN DIỆN ĐỂ MỞ VÍ VÉ) */}
                 <button
                   type="button"
+                  disabled={Boolean(editingCode)}
                   onClick={handleOpenWalletModalForAdd}
-                  className="h-9 px-3 rounded-xl flex items-center gap-1.5 text-xs font-semibold shrink-0 transition-all cursor-pointer bg-[#151921] hover:bg-[#1C222C] text-zinc-200 hover:text-white border border-white/10"
+                  className="h-9 px-3 rounded-xl flex items-center gap-1.5 text-xs font-semibold shrink-0 transition-all cursor-pointer bg-[#151921] hover:bg-[#1C222C] text-zinc-200 hover:text-white border border-white/10 disabled:cursor-not-allowed"
                 >
                   <span className="whitespace-nowrap">
                     Vé của tôi {eligibleTickets.length > 0 ? `(${eligibleTickets.length})` : '(0)'}
