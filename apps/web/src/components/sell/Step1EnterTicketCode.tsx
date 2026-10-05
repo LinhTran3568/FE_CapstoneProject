@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { OrganizerDto } from '@ticketshield/api-client';
 import { PurchasedTicketDto, UserBankAccountDto } from '@ticketshield/types';
-import { Building2, ChevronDown, Check, Ticket, X, Loader2, ArrowRight, AlertCircle, Pencil } from 'lucide-react';
+import { Building2, ChevronDown, Check, Ticket, X, Loader2, ArrowRight, AlertCircle, Pencil, Plus } from 'lucide-react';
 import { SeatAdjacencyBadge } from '../ui/SeatAdjacencyBadge';
 
 /** Domain Law: một gói vé chỉ chứa từ 2 đến 3 vé (khớp ResaleListing.MaxBundleTickets ở BE). */
@@ -46,6 +46,7 @@ export const Step1EnterTicketCode: React.FC<Step1EnterTicketCodeProps> = ({
   const [eventMismatchError, setEventMismatchError] = useState<string>('');
   const [selectionNotice, setSelectionNotice] = useState<string>('');
   const purchasesDropdownRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   // Parse comma-separated ticket codes into an array of normalized uppercase codes
   const selectedCodes = ticketCode
@@ -108,43 +109,46 @@ export const Step1EnterTicketCode: React.FC<Step1EnterTicketCodeProps> = ({
   };
 
   const [inputCode, setInputCode] = useState('');
-
-  // Inline edit state cho từng thẻ vé đã chọn
   const [editingCode, setEditingCode] = useState<string | null>(null);
-  const [editInputText, setEditInputText] = useState<string>('');
 
   const handleStartEdit = (code: string) => {
     setEditingCode(code);
-    setEditInputText(code);
+    setInputCode(code);
     setSelectionNotice('');
     setEventMismatchError('');
+    setTimeout(() => {
+      inputRef.current?.focus();
+      inputRef.current?.select();
+    }, 50);
   };
 
-  const handleSaveEdit = (oldCode: string) => {
-    const clean = editInputText.trim().toUpperCase();
+  const handleSaveEdit = () => {
+    if (!editingCode) return;
+    const clean = inputCode.trim().toUpperCase();
     if (!clean) {
-      // Nếu xóa rỗng, coi như xóa vé đó
-      const nextCodes = selectedCodes.filter((c) => c !== oldCode);
+      // Nếu xóa rỗng, coi như xóa vé đó khỏi danh sách
+      const nextCodes = selectedCodes.filter((c) => c !== editingCode);
       setTicketCode(nextCodes.join(', '));
       setEditingCode(null);
+      setInputCode('');
       return;
     }
 
-    if (clean !== oldCode && selectedCodes.includes(clean)) {
+    if (clean !== editingCode && selectedCodes.includes(clean)) {
       setSelectionNotice(`Mã vé ${clean} đã tồn tại trong danh sách!`);
       return;
     }
 
-    const nextCodes = selectedCodes.map((c) => (c === oldCode ? clean : c));
+    const nextCodes = selectedCodes.map((c) => (c === editingCode ? clean : c));
     setTicketCode(nextCodes.join(', '));
     setEditingCode(null);
-    setEditInputText('');
+    setInputCode('');
     setSelectionNotice('');
   };
 
   const handleCancelEdit = () => {
     setEditingCode(null);
-    setEditInputText('');
+    setInputCode('');
   };
 
   const handleAddManualCode = () => {
@@ -170,6 +174,10 @@ export const Step1EnterTicketCode: React.FC<Step1EnterTicketCodeProps> = ({
 
   const handleFormSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (editingCode) {
+      handleSaveEdit();
+      return;
+    }
     if (inputCode.trim()) {
       const clean = inputCode.trim().toUpperCase();
       if (!selectedCodes.includes(clean) && selectedCodes.length < MAX_BUNDLE_TICKETS) {
@@ -302,18 +310,21 @@ export const Step1EnterTicketCode: React.FC<Step1EnterTicketCodeProps> = ({
             </div>
           </div>
 
-          {/* Ô nhập mã vé + nút Thêm + nút Vé của tôi */}
+          {/* Ô nhập mã vé DUY NHẤT trên toàn màn hình */}
           <div className="relative" ref={purchasesDropdownRef}>
             <div
               className={`flex items-center bg-[#05070A] border ${isPurchasesDropdownOpen
                 ? 'border-[#FF5A36] ring-4 ring-[#FF5A36]/20'
-                : selectedCodes.length > 0
-                  ? 'border-[#FF5A36]/40'
-                  : 'border-white/15 focus-within:border-[#FF5A36] focus-within:ring-4 focus-within:ring-[#FF5A36]/20'
+                : editingCode
+                  ? 'border-[#FF5A36] ring-4 ring-[#FF5A36]/25 bg-[#0D121B]'
+                  : selectedCodes.length > 0
+                    ? 'border-[#FF5A36]/40'
+                    : 'border-white/15 focus-within:border-[#FF5A36] focus-within:ring-4 focus-within:ring-[#FF5A36]/20'
                 } rounded-2xl transition-all duration-200 shadow-inner h-14 pl-4 pr-2 gap-2`}
             >
               <Ticket className="w-4.5 h-4.5 text-[#FF5A36] shrink-0 pointer-events-none" />
               <input
+                ref={inputRef}
                 id="sell-ticket-input"
                 type="text"
                 value={inputCode}
@@ -325,12 +336,23 @@ export const Step1EnterTicketCode: React.FC<Step1EnterTicketCodeProps> = ({
                 onKeyDown={(e) => {
                   if (e.key === 'Enter') {
                     e.preventDefault();
-                    handleAddManualCode();
+                    if (editingCode) {
+                      handleSaveEdit();
+                    } else if (inputCode.trim()) {
+                      handleAddManualCode();
+                    } else if (selectedCodes.length > 0) {
+                      handleStartVerification(e);
+                    }
+                  } else if (e.key === 'Escape' && editingCode) {
+                    e.preventDefault();
+                    handleCancelEdit();
                   }
                 }}
-                disabled={selectedCodes.length >= MAX_BUNDLE_TICKETS}
+                disabled={selectedCodes.length >= MAX_BUNDLE_TICKETS && !editingCode}
                 placeholder={
-                  selectedCodes.length === 0
+                  editingCode
+                    ? `Đang sửa vé ${editingCode} (Enter để lưu, Esc để hủy)...`
+                    : selectedCodes.length === 0
                     ? 'Nhập mã vé (VD: ATSH-VIP-888)...'
                     : selectedCodes.length < MAX_BUNDLE_TICKETS
                     ? `Nhập thêm mã vé thứ ${selectedCodes.length + 1}...`
@@ -339,15 +361,27 @@ export const Step1EnterTicketCode: React.FC<Step1EnterTicketCodeProps> = ({
                 className="flex-1 bg-transparent border-0 outline-none text-sm sm:text-base font-mono font-bold tracking-wider text-white placeholder-[#A3A8B3]/35 min-w-0 disabled:opacity-40"
               />
 
-              {/* Nút Thêm vé khi đang gõ */}
-              {inputCode.trim() && selectedCodes.length < MAX_BUNDLE_TICKETS && (
-                <button
-                  type="button"
-                  onClick={handleAddManualCode}
-                  className="px-3 py-1.5 bg-[#FF5A36] hover:bg-[#FF7252] text-white text-xs font-bold rounded-xl transition-all cursor-pointer shrink-0 shadow-sm shadow-[#FF5A36]/30 active:scale-95"
-                >
-                  + Thêm vé
-                </button>
+              {/* Nút thao tác khi đang sửa mã vé trên ô input chính */}
+              {editingCode && (
+                <div className="flex items-center gap-1.5 shrink-0 animate-in fade-in">
+                  <button
+                    type="button"
+                    onClick={handleSaveEdit}
+                    className="px-3 py-1.5 bg-[#FF5A36] hover:bg-[#FF7252] text-white text-xs font-bold rounded-xl transition-all cursor-pointer flex items-center gap-1 shadow-sm shadow-[#FF5A36]/30 active:scale-95"
+                    title="Lưu thay đổi (Enter)"
+                  >
+                    <Check className="w-3.5 h-3.5 stroke-[3]" />
+                    <span>Lưu</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleCancelEdit}
+                    className="px-2.5 py-1.5 bg-white/10 hover:bg-white/20 text-zinc-300 hover:text-white text-xs font-semibold rounded-xl transition-all cursor-pointer"
+                    title="Hủy sửa (Esc)"
+                  >
+                    Hủy
+                  </button>
+                </div>
               )}
 
               {/* Phân cách nhẹ */}
@@ -376,121 +410,172 @@ export const Step1EnterTicketCode: React.FC<Step1EnterTicketCodeProps> = ({
               </button>
             </div>
 
-            {/* Dòng thẻ vé đã chọn độc lập - Cho phép bấm vào để sửa inline trực tiếp */}
-            {selectedCodes.length > 0 && (
-              <div className="pt-2.5 space-y-2">
-                <div className="flex items-center justify-between px-0.5">
-                  <span className="text-[11px] font-mono text-zinc-400">
-                    Vé đã chọn ({selectedCodes.length}/{MAX_BUNDLE_TICKETS}) · <span className="text-zinc-500">Bấm vào mã để sửa</span>:
-                  </span>
-                  {selectedCodes.length > 1 && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setTicketCode('');
-                        setEditingCode(null);
-                      }}
-                      className="text-[11px] text-zinc-500 hover:text-rose-400 transition-colors cursor-pointer"
-                    >
-                      Xóa tất cả
-                    </button>
-                  )}
+            {/* Dòng thêm vé & danh sách vé trong gói — Luôn hiển thị từ đầu */}
+            <div className="pt-2">
+              {selectedCodes.length === 0 ? (
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 px-3.5 py-2.5 rounded-2xl bg-white/[0.02] border border-white/10 text-xs">
+                  <div className="flex items-center gap-2.5 text-zinc-400 min-w-0">
+                    <div className="w-6 h-6 rounded-lg bg-[#FF5A36]/10 flex items-center justify-center shrink-0">
+                      <Ticket className="w-3.5 h-3.5 text-[#FF5A36]" />
+                    </div>
+                    <span className="text-zinc-300 truncate">
+                      Bán gói combo (2 - 3 vé)? Nhập mã vé ở trên rồi bấm thêm vào gói.
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (inputCode.trim()) {
+                        handleAddManualCode();
+                      } else {
+                        inputRef.current?.focus();
+                      }
+                    }}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer flex items-center justify-center gap-1.5 shrink-0 self-end sm:self-auto ${
+                      inputCode.trim()
+                        ? 'bg-[#FF5A36] text-white hover:bg-[#FF7252] shadow-sm shadow-[#FF5A36]/30 active:scale-95'
+                        : 'bg-white/10 hover:bg-white/15 text-zinc-300 border border-white/10'
+                    }`}
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    <span>+ Thêm vé vào gói</span>
+                  </button>
                 </div>
+              ) : (
+                <div className="space-y-2 p-3 rounded-2xl bg-white/[0.02] border border-white/10">
+                  <div className="flex items-center justify-between px-0.5">
+                    <div className="flex items-center gap-2 text-xs">
+                      <span className="font-semibold text-white">Vé trong gói ({selectedCodes.length}/{MAX_BUNDLE_TICKETS})</span>
+                      <span className="text-[11px] text-zinc-500 hidden sm:inline">· Bấm mã vé để sửa ở ô trên</span>
+                    </div>
+                    {selectedCodes.length > 1 && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setTicketCode('');
+                          setEditingCode(null);
+                          setInputCode('');
+                          setSelectionNotice('');
+                          setEventMismatchError('');
+                        }}
+                        className="text-[11px] text-zinc-500 hover:text-rose-400 transition-colors cursor-pointer"
+                      >
+                        Xóa tất cả
+                      </button>
+                    )}
+                  </div>
 
-                <div className="flex flex-wrap gap-2">
-                  {selectedCodes.map((code) => {
-                    const matched = eligibleTickets.find(
-                      (t) => purchasedPassCode(t).toUpperCase() === code
-                    );
-                    const isEditing = editingCode === code;
+                  <div className="flex flex-wrap items-center gap-2">
+                    {selectedCodes.map((code) => {
+                      const matched = eligibleTickets.find(
+                        (t) => purchasedPassCode(t).toUpperCase() === code
+                      );
+                      const isBeingEdited = editingCode === code;
 
-                    if (isEditing) {
                       return (
                         <div
                           key={code}
-                          className="inline-flex items-center gap-1.5 p-1 pl-2.5 rounded-xl bg-[#0D121B] border-2 border-[#FF5A36] text-xs shadow-lg shadow-[#FF5A36]/20 animate-in fade-in zoom-in-95"
+                          className={`group inline-flex items-center gap-2 pl-3 pr-2 py-1.5 rounded-xl text-xs font-medium transition-all ${
+                            isBeingEdited
+                              ? 'bg-[#FF5A36]/15 border-2 border-[#FF5A36] text-[#FF5A36] shadow-sm shadow-[#FF5A36]/20'
+                              : 'bg-[#0D121B] hover:bg-[#121824] border border-white/15 hover:border-white/30 text-white shadow-sm'
+                          }`}
                         >
                           <Ticket className="w-3.5 h-3.5 text-[#FF5A36] shrink-0" />
-                          <input
-                            type="text"
-                            value={editInputText}
-                            onChange={(e) => setEditInputText(e.target.value.toUpperCase())}
-                            onKeyDown={(e) => {
-                              if (e.key === 'Enter') {
-                                e.preventDefault();
-                                handleSaveEdit(code);
-                              } else if (e.key === 'Escape') {
-                                handleCancelEdit();
+
+                          <button
+                            type="button"
+                            onClick={() => handleStartEdit(code)}
+                            className="font-mono font-bold tracking-wide hover:text-[#FF5A36] transition-colors cursor-pointer flex items-center gap-1.5 text-left"
+                            title="Bấm để sửa mã vé này ở ô nhập trên"
+                          >
+                            <span>{code}</span>
+                            <Pencil className="w-3 h-3 text-zinc-500 group-hover:text-[#FF5A36] transition-colors" />
+                          </button>
+
+                          {isBeingEdited && (
+                            <span className="text-[10px] bg-[#FF5A36]/25 text-[#FF5A36] px-1.5 py-0.5 rounded font-sans font-semibold animate-pulse">
+                              Đang sửa ở trên
+                            </span>
+                          )}
+
+                          {matched && !isBeingEdited && (
+                            <span className="text-[11px] text-white/50 border-l border-white/10 pl-2 max-w-[130px] truncate">
+                              {matched.tierName || matched.eventName}
+                            </span>
+                          )}
+
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const next = selectedCodes.filter((c) => c !== code);
+                              setTicketCode(next.join(', '));
+                              setSelectionNotice('');
+                              setEventMismatchError('');
+                              if (editingCode === code) {
+                                setEditingCode(null);
+                                setInputCode('');
                               }
                             }}
-                            autoFocus
-                            placeholder="MÃ VÉ..."
-                            className="w-36 bg-white/5 border border-white/20 rounded-lg px-2 py-1 text-xs font-mono font-bold tracking-wider text-white outline-none focus:border-[#FF5A36]"
-                          />
-                          <button
-                            type="button"
-                            onClick={() => handleSaveEdit(code)}
-                            className="p-1.5 bg-[#FF5A36] hover:bg-[#FF7252] text-white rounded-lg transition-colors cursor-pointer"
-                            title="Lưu (Enter)"
-                          >
-                            <Check className="w-3.5 h-3.5 stroke-[3]" />
-                          </button>
-                          <button
-                            type="button"
-                            onClick={handleCancelEdit}
-                            className="p-1.5 text-zinc-400 hover:text-white hover:bg-white/10 rounded-lg transition-colors cursor-pointer"
-                            title="Hủy (Esc)"
+                            className="p-1 text-white/40 hover:text-rose-400 hover:bg-white/10 rounded-md transition-colors cursor-pointer ml-0.5"
+                            title={`Xóa vé ${code}`}
                           >
                             <X className="w-3.5 h-3.5" />
                           </button>
                         </div>
                       );
-                    }
+                    })}
 
-                    return (
-                      <div
-                        key={code}
-                        className="group inline-flex items-center gap-2 pl-3 pr-2 py-1.5 rounded-xl bg-[#0D121B] hover:bg-[#121824] border border-white/15 hover:border-white/30 text-xs font-medium text-white shadow-sm transition-all animate-in fade-in zoom-in-95"
+                    {/* Nút thêm vé kế tiếp vào gói nếu chưa đủ 3 vé */}
+                    {selectedCodes.length < MAX_BUNDLE_TICKETS && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (inputCode.trim() && !editingCode) {
+                            handleAddManualCode();
+                          } else {
+                            inputRef.current?.focus();
+                          }
+                        }}
+                        className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+                          inputCode.trim() && !editingCode
+                            ? 'bg-[#FF5A36] text-white hover:bg-[#FF7252] shadow-sm shadow-[#FF5A36]/30 active:scale-95'
+                            : 'bg-white/5 hover:bg-white/10 text-zinc-300 border border-dashed border-white/20 hover:border-white/40'
+                        }`}
                       >
-                        <Ticket className="w-3.5 h-3.5 text-[#FF5A36] shrink-0" />
-                        
-                        {/* Bấm vào mã vé để sửa */}
-                        <button
-                          type="button"
-                          onClick={() => handleStartEdit(code)}
-                          className="font-mono font-bold tracking-wide hover:text-[#FF5A36] transition-colors cursor-pointer flex items-center gap-1.5 text-left"
-                          title="Bấm để sửa mã vé này"
-                        >
-                          <span>{code}</span>
-                          <Pencil className="w-3 h-3 text-zinc-500 group-hover:text-[#FF5A36] opacity-0 group-hover:opacity-100 transition-opacity" />
-                        </button>
-
-                        {matched && (
-                          <span className="text-[11px] text-white/50 border-l border-white/10 pl-2 max-w-[140px] truncate">
-                            {matched.tierName || matched.eventName}
-                          </span>
-                        )}
-
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const next = selectedCodes.filter((c) => c !== code);
-                            setTicketCode(next.join(', '));
-                            setSelectionNotice('');
-                            setEventMismatchError('');
-                            if (editingCode === code) setEditingCode(null);
-                          }}
-                          className="p-1 text-white/40 hover:text-rose-400 hover:bg-white/10 rounded-md transition-colors cursor-pointer ml-0.5"
-                          title={`Xóa vé ${code}`}
-                        >
-                          <X className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
-                    );
-                  })}
+                        <Plus className="w-3.5 h-3.5" />
+                        <span>Thêm vé thứ {selectedCodes.length + 1}</span>
+                      </button>
+                    )}
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
+
+              {/* Selection Notice / Error Banners */}
+              {selectionNotice && (
+                <div className="mt-2 p-2.5 bg-amber-500/10 border border-amber-500/25 rounded-xl text-xs text-amber-300 flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <AlertCircle className="w-4 h-4 text-amber-400 shrink-0" />
+                    <span className="truncate">{selectionNotice}</span>
+                  </div>
+                  <button type="button" onClick={() => setSelectionNotice('')} className="text-amber-400 hover:text-white">
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              )}
+
+              {eventMismatchError && (
+                <div className="mt-2 p-2.5 bg-amber-500/10 border border-amber-500/25 rounded-xl text-xs text-amber-300 flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <AlertCircle className="w-4 h-4 text-amber-400 shrink-0" />
+                    <span className="truncate">{eventMismatchError}</span>
+                  </div>
+                  <button type="button" onClick={() => setEventMismatchError('')} className="text-amber-400 hover:text-white">
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              )}
+            </div>
 
             {/* Dropdown panel: Multi-Select Checklist */}
             {isPurchasesDropdownOpen && (
