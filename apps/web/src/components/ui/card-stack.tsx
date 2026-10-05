@@ -92,20 +92,23 @@ export const CardStack = <T extends CardStackItem>({
           let topPos = 0;
           let zIndexVal = 10;
           let opacityVal = 1;
+          let scaleVal = 1;
 
           if (layoutMode === 'staggered') {
             // Chế độ so le (Staggered Tabs):
             // Thẻ active nằm ở đáy cascade, mở rộng toàn bộ thân thẻ
-            // Các thẻ phía sau nhô lên một khoảng `offset` để lộ thanh header
+            // Các thẻ phía sau nhô lên một khoảng `offset`, được làm tối và thu nhỏ nhẹ để tạo chiều sâu lớp phân tầng
             if (isTop) {
               topPos = inactiveIndices.length * offset;
               zIndexVal = 30;
               opacityVal = 1;
+              scaleVal = 1;
             } else {
               const inactivePos = inactiveIndices.indexOf(originalIndex);
               topPos = inactivePos * offset;
               zIndexVal = 10 + inactivePos;
-              opacityVal = 0.95;
+              opacityVal = 0.65;
+              scaleVal = 0.965;
             }
           } else {
             // Chế độ stack cổ điển
@@ -114,6 +117,7 @@ export const CardStack = <T extends CardStackItem>({
             topPos = relativeIndex * -14;
             zIndexVal = total - relativeIndex;
             opacityVal = isTop ? 1 : Math.max(0.35, 1 - relativeIndex * 0.28);
+            scaleVal = 1 - relativeIndex * scaleFactor;
           }
 
           return (
@@ -122,8 +126,8 @@ export const CardStack = <T extends CardStackItem>({
               className={cn(
                 'absolute w-full rounded-2xl transition-shadow duration-150',
                 isTop
-                  ? 'pointer-events-auto shadow-2xl shadow-black/80'
-                  : 'pointer-events-auto cursor-pointer shadow-md shadow-black/40 hover:brightness-105',
+                  ? 'pointer-events-auto shadow-2xl shadow-black/90'
+                  : 'pointer-events-auto cursor-pointer shadow-md shadow-black/50',
                 cardClassName
               )}
               style={{
@@ -133,7 +137,9 @@ export const CardStack = <T extends CardStackItem>({
                 top: topPos,
                 zIndex: zIndexVal,
                 opacity: opacityVal,
+                scale: scaleVal,
               }}
+              whileHover={!isTop ? { opacity: 0.85, scale: 0.98 } : undefined}
               transition={{
                 type: 'spring',
                 stiffness: 350,

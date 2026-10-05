@@ -257,20 +257,20 @@ export const Step2VerifyOtp: React.FC<Step2VerifyOtpProps> = ({
 
             return (
               <div
-                className={`w-full rounded-2xl transition-all duration-200 overflow-hidden text-left bg-[#0A0D14] ${
+                className={`w-full rounded-2xl transition-all duration-200 overflow-hidden text-left ${
                   isTop
                     ? t.locked
-                      ? 'border border-emerald-500/30 shadow-2xl shadow-black/80'
-                      : 'border border-white/15 shadow-2xl shadow-black/80'
-                    : 'border border-white/10 shadow-md shadow-black/50 hover:border-white/20'
+                      ? 'bg-[#0A0D14] border border-emerald-500/40 shadow-2xl shadow-black/90 ring-1 ring-emerald-500/20'
+                      : 'bg-[#0D121B] border border-white/20 shadow-2xl shadow-black/90 ring-1 ring-white/10'
+                    : 'bg-[#04060A] border border-white/[0.08] shadow-md shadow-black/60'
                 }`}
               >
-                {/* Header thẻ: Tinh gọn, không lạm dụng tag pills */}
+                {/* Header thẻ: Phân biệt rõ rệt độ sáng/tối giữa thẻ trước và thẻ sau */}
                 <div
                   className={`h-[44px] px-4 sm:px-5 flex items-center justify-between border-b ${
                     isTop
-                      ? 'border-white/10 bg-[#0A0D14]'
-                      : 'border-white/[0.08] bg-[#070A0F] cursor-pointer hover:bg-white/[0.03]'
+                      ? 'border-white/10 bg-[#0D121B]'
+                      : 'border-white/[0.06] bg-[#04060A] cursor-pointer hover:bg-white/[0.04]'
                   }`}
                   onClick={() => {
                     if (!isTop) setPage(originalIndex);
@@ -279,32 +279,54 @@ export const Step2VerifyOtp: React.FC<Step2VerifyOtpProps> = ({
                   {/* Cột trái: Biểu tượng + Mã vé */}
                   <div className="flex items-center gap-2">
                     {t.locked ? (
-                      <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                      <CheckCircle2
+                        className={`w-4 h-4 shrink-0 ${
+                          isTop ? 'text-emerald-400' : 'text-emerald-500/60'
+                        }`}
+                      />
                     ) : (
-                      <Ticket className="w-4 h-4 text-[#8A909B] shrink-0" />
+                      <Ticket
+                        className={`w-4 h-4 shrink-0 ${
+                          isTop ? 'text-[#FF5A36]' : 'text-white/30'
+                        }`}
+                      />
                     )}
-                    <span className="text-xs text-[#8A909B]">
+                    <span
+                      className={`text-xs ${
+                        isTop ? 'text-white/70' : 'text-white/40'
+                      }`}
+                    >
                       Vé {originalIndex + 1}:
                     </span>
-                    <span className="text-sm font-semibold text-white tracking-wide">
+                    <span
+                      className={`text-sm tracking-wide ${
+                        isTop ? 'font-bold text-white' : 'font-medium text-white/60'
+                      }`}
+                    >
                       {t.code}
                     </span>
                   </div>
 
-                  {/* Cột phải: Chỉ hiển thị 1 thông tin duy nhất (thời gian hoặc chữ Đã xác thực thanh lịch) */}
+                  {/* Cột phải: Thông tin trạng thái (nổi bật ở thẻ trước, trầm xuống ở thẻ sau) */}
                   <div>
                     {t.locked ? (
-                      <span className="text-xs text-emerald-400 font-medium">
+                      <span
+                        className={`text-xs font-medium ${
+                          isTop ? 'text-emerald-400' : 'text-emerald-500/60'
+                        }`}
+                      >
                         Đã xác thực
                       </span>
                     ) : (
                       <span
                         className={`text-xs font-mono font-medium ${
-                          isExpired
-                            ? 'text-rose-400'
-                            : tLeft <= 60
-                            ? 'text-rose-400 animate-pulse'
-                            : 'text-[#FF5A36]'
+                          isTop
+                            ? isExpired
+                              ? 'text-rose-400'
+                              : tLeft <= 60
+                              ? 'text-rose-400 animate-pulse'
+                              : 'text-[#FF5A36]'
+                            : 'text-white/40'
                         }`}
                       >
                         {isExpired ? 'Hết hạn' : formatTimer(tLeft)}
