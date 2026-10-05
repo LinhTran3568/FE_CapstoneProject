@@ -93,42 +93,66 @@ const DRAFT_STORAGE_KEY = 'ticketshield_sell_draft';
   const isBundle = sessions.length > 1;
   const perTicketFaceValue = Math.trunc(faceValue / ticketCount);
 
-  // Auto restore unfinished draft session from localStorage on load
+  // Auto restore unfinished draft session from localStorage on load with verification check
   useEffect(() => {
-    try {
-      const raw = localStorage.getItem(DRAFT_STORAGE_KEY);
-      if (raw) {
+    const restoreDraft = async () => {
+      try {
+        const raw = localStorage.getItem(DRAFT_STORAGE_KEY);
+        if (!raw) return;
         const d = JSON.parse(raw);
-        if (d.sessions?.length && d.currentStep > 1 && d.currentStep < 6) {
-          setTicketCode((d.ticketCodes || []).join(', '));
-          if (d.selectedOrganizerId) setSelectedOrganizerId(d.selectedOrganizerId);
-          setSessions(d.sessions);
-          if (d.ticketPrices && typeof d.ticketPrices === 'object') {
-            setTicketPrices(d.ticketPrices);
-          } else if (d.resalePrice) {
-            const fallback: Record<string, number> = {};
-            (d.sessions as any[]).forEach((s) => {
-              fallback[s.code] = d.resalePrice;
-            });
-            setTicketPrices(fallback);
-          }
-          if (typeof d.activeTicketIndex === 'number') {
-            setActiveTicketIndex(d.activeTicketIndex);
-          }
-          if (d.saleType === 'combo' || d.saleType === 'individual') {
-            setSaleType(d.saleType);
-          }
-          if (d.priceSubStep === 'pricing' || d.priceSubStep === 'confirm') {
-            setPriceSubStep(d.priceSubStep);
-          }
-          setCurrentStep(d.currentStep);
-          setResumeDraftAvailable(true);
+        if (!d.sessions?.length || d.currentStep <= 1 || d.currentStep >= 6) {
+          localStorage.removeItem(DRAFT_STORAGE_KEY);
+          return;
         }
+
+        // Kiểm tra xem các phiên xác thực trên backend có còn hiệu lực (Verified) hay không
+        const statusChecks = await Promise.allSettled(
+          d.sessions.map((s: any) => resaleApi.getVerificationStatus(s.verificationId))
+        );
+
+        const allValid = statusChecks.every(
+          (res) => res.status === 'fulfilled' && res.value?.status === 'Verified'
+        );
+
+        if (!allValid) {
+          localStorage.removeItem(DRAFT_STORAGE_KEY);
+          showToast('Phiên xác thực vé trước đó đã hết hạn. Vui lòng xác thực lại vé.', 'warning');
+          return;
+        }
+
+        setTicketCode((d.ticketCodes || []).join(', '));
+        if (d.selectedOrganizerId) setSelectedOrganizerId(d.selectedOrganizerId);
+        setSessions(d.sessions);
+        if (d.ticketPrices && typeof d.ticketPrices === 'object') {
+          setTicketPrices(d.ticketPrices);
+        } else if (d.resalePrice) {
+          const fallback: Record<string, number> = {};
+          (d.sessions as any[]).forEach((s) => {
+            fallback[s.code] = d.resalePrice;
+          });
+          setTicketPrices(fallback);
+        }
+        if (typeof d.activeTicketIndex === 'number') {
+          setActiveTicketIndex(d.activeTicketIndex);
+        }
+        if (d.saleType === 'combo' || d.saleType === 'individual') {
+          setSaleType(d.saleType);
+        }
+        if (d.priceSubStep === 'pricing' || d.priceSubStep === 'confirm') {
+          setPriceSubStep(d.priceSubStep);
+        }
+        setCurrentStep(d.currentStep);
+        setResumeDraftAvailable(true);
+      } catch (e) {
+        console.warn('Could not restore sell draft', e);
+        try {
+          localStorage.removeItem(DRAFT_STORAGE_KEY);
+        } catch {}
       }
-    } catch (e) {
-      console.warn('Could not restore sell draft', e);
-    }
-  }, []);
+    };
+
+    restoreDraft();
+  }, [showToast]);
 
   // Auto save draft session to localStorage on step change
   useEffect(() => {
@@ -247,6 +271,9 @@ const DRAFT_STORAGE_KEY = 'ticketshield_sell_draft';
       const ids = verificationIdsRef.current;
       if (ids.length > 0 && currentStepRef.current > 1 && currentStepRef.current < 6) {
         ids.forEach((id) => resaleApi.closeVerificationBeacon(id));
+        try {
+          localStorage.removeItem(DRAFT_STORAGE_KEY);
+        } catch {}
       }
     };
 
@@ -732,8 +759,23 @@ const DRAFT_STORAGE_KEY = 'ticketshield_sell_draft';
       fetchExistingListings();
       setCurrentStep(6);
     } catch (err: any) {
-      const msg = err?.response?.data?.message || err?.message || 'Could not publish listing. Please try again.';
-      showToast(msg, 'error');
+      const rawMsg = err?.response?.data?.message || err?.message || '';
+      const isExpiredSession =
+        err?.response?.status === 409 ||
+        rawMsg.includes('INVALID_VERIFICATION_STATE') ||
+        rawMsg.includes('VERIFICATION_NOT_FOUND') ||
+        rawMsg.includes('LOCK_NOT_HELD');
+
+      if (isExpiredSession) {
+        try {
+          localStorage.removeItem(DRAFT_STORAGE_KEY);
+        } catch {}
+        showToast('Phiên xác thực vé đã hết hạn hoặc không còn hiệu lực. Vui lòng xác thực lại vé để tiếp tục.', 'error');
+        setCurrentStep(1);
+      } else {
+        const msg = rawMsg || 'Could not publish listing. Please try again.';
+        showToast(msg, 'error');
+      }
     } finally {
       setIsPublishing(false);
     }
