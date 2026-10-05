@@ -67,7 +67,15 @@ export const MyTicketsPage: React.FC = () => {
       const venue = (ticket.eventVenue || '').toLowerCase();
       const code = (ticket.ticketPassCode || ticket.qrCodeData || '').toLowerCase();
       const zone = (ticket.seatZone || ticket.tierName || '').toLowerCase();
-      return name.includes(q) || venue.includes(q) || code.includes(q) || zone.includes(q);
+      const matchesMain = name.includes(q) || venue.includes(q) || code.includes(q) || zone.includes(q);
+      if (matchesMain) return true;
+
+      const matchesBundle = (ticket.bundleItems || []).some((item) => {
+        const itemCode = (item.ticketCode || item.qrCodeData || '').toLowerCase();
+        const itemZone = (item.seatZone || '').toLowerCase();
+        return itemCode.includes(q) || itemZone.includes(q);
+      });
+      return matchesBundle;
     }
     return true;
   });

@@ -556,7 +556,11 @@ export const ProfilePage: React.FC = () => {
                     <div className="flex-1 min-w-0">
                       <p className="font-bold text-white text-sm truncate">{listing.eventName}</p>
                       <div className="flex flex-wrap gap-3 mt-1 text-[11px] text-[#8B929C] font-mono">
-                        <span>{listing.tierName}</span>
+                        <span>
+                          {listing.bundleTotalTickets && listing.bundleTotalTickets >= 2
+                            ? `${listing.tierName} · Combo (${listing.bundleTotalTickets} vé)`
+                            : listing.tierName}
+                        </span>
                         <span className="flex items-center gap-1"><Calendar className="w-3 h-3" />{formatEventDateTime(listing.eventStartAt)}</span>
                       </div>
                     </div>

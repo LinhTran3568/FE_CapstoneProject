@@ -206,8 +206,14 @@ export const BuyTicketModal: React.FC<BuyTicketModalProps> = ({
   const effectiveBundleListings: MarketplaceListingDto[] =
     matchedBundleListings.length > 1 ? matchedBundleListings : [listing];
 
-  const isBundle = effectiveBundleListings.length > 1;
-  const bundleCount = effectiveBundleListings.length;
+  const isBundle =
+    effectiveBundleListings.length > 1 ||
+    Boolean(listing.bundleTotalTickets && listing.bundleTotalTickets >= 2) ||
+    Boolean(listing.bundleId);
+  const bundleCount =
+    listing.bundleTotalTickets && listing.bundleTotalTickets >= 2
+      ? listing.bundleTotalTickets
+      : effectiveBundleListings.length;
   const isOwner = Boolean(
     user?.id && (
       listing.sellerId?.toLowerCase() === user.id.toLowerCase() ||
@@ -215,7 +221,11 @@ export const BuyTicketModal: React.FC<BuyTicketModalProps> = ({
     )
   );
   // Tổng tiền tính trên đúng N listing thật của gói.
-  const baseTicketPrice = effectiveBundleListings.reduce((sum, l) => sum + l.resalePrice, 0);
+  const baseTicketPrice = effectiveBundleListings.length > 1
+    ? effectiveBundleListings.reduce((sum, l) => sum + l.resalePrice, 0)
+    : (listing.bundleTotalTickets && listing.bundleTotalTickets >= 2)
+      ? listing.resalePrice * listing.bundleTotalTickets
+      : listing.resalePrice;
 
   // Fee Calculation: 5% Buyer Fee (Min 10,000 VND)
   const buyerFeeRate = 0.05;

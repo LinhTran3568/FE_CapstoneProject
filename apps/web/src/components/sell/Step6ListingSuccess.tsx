@@ -21,8 +21,10 @@ export interface Step6ListingSuccessProps {
   existingListings: SellerListingDto[];
   /** Tổng giá gốc của cả gói. */
   faceValue: number;
-  /** Giá bán của MỘT vé. */
+  /** Giá bán của MỘT vé (hoặc vé đầu). */
   resalePrice: number;
+  /** Tổng giá bán thực tế của toàn bộ vé trong gói (nếu có). */
+  totalResalePrice?: number;
   isPrivateListing: boolean;
   getShareUrl: () => string;
   handleCopyLink: () => void;
@@ -40,6 +42,7 @@ export const Step6ListingSuccess: React.FC<Step6ListingSuccessProps> = ({
   existingListings,
   faceValue,
   resalePrice,
+  totalResalePrice: customTotalResalePrice,
   isPrivateListing,
   getShareUrl,
   handleCopyLink,
@@ -51,7 +54,7 @@ export const Step6ListingSuccess: React.FC<Step6ListingSuccessProps> = ({
   onNavigateMarketplace,
 }) => {
   const isCombo = ticketCodes.length > 1;
-  const totalResalePrice = resalePrice * Math.max(ticketCodes.length, 1);
+  const totalResalePrice = customTotalResalePrice ?? resalePrice * Math.max(ticketCodes.length, 1);
 
   // Chỉ dùng metadata từ listing thật vừa tạo — không bịa tên sự kiện/venue/tier khi chưa có.
   const matchedListing = existingListings.find(

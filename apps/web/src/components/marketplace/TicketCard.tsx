@@ -24,8 +24,6 @@ export const TicketCard: React.FC<TicketCardProps> = ({
 }) => {
   const { user } = useAuthStore();
   const queryClient = useQueryClient();
-  const formattedPrice = new Intl.NumberFormat('vi-VN').format(listing.resalePrice);
-  const formattedOriginalPrice = new Intl.NumberFormat('vi-VN').format(listing.originalPrice);
   const formattedDate = formatEventDateTime(listing.eventStartAt);
 
   // Status check: Verified, Transacting, Sold, Cancelled
@@ -68,8 +66,30 @@ export const TicketCard: React.FC<TicketCardProps> = ({
     ? bundleListings
     : [listing];
 
-  const isBundle = effectiveBundleListings.length > 1;
-  const bundleCount = effectiveBundleListings.length;
+  const isBundle =
+    effectiveBundleListings.length > 1 ||
+    Boolean(listing.bundleTotalTickets && listing.bundleTotalTickets >= 2) ||
+    Boolean(listing.bundleId);
+
+  const bundleCount =
+    listing.bundleTotalTickets && listing.bundleTotalTickets >= 2
+      ? listing.bundleTotalTickets
+      : effectiveBundleListings.length;
+
+  const totalBundleResalePrice = isBundle && effectiveBundleListings.length > 1
+    ? effectiveBundleListings.reduce((sum, item) => sum + (item.resalePrice || 0), 0)
+    : (listing.bundleTotalTickets && listing.bundleTotalTickets >= 2 && effectiveBundleListings.length === 1)
+      ? listing.resalePrice * listing.bundleTotalTickets
+      : listing.resalePrice;
+
+  const totalBundleOriginalPrice = isBundle && effectiveBundleListings.length > 1
+    ? effectiveBundleListings.reduce((sum, item) => sum + (item.originalPrice || 0), 0)
+    : (listing.bundleTotalTickets && listing.bundleTotalTickets >= 2 && effectiveBundleListings.length === 1)
+      ? listing.originalPrice * listing.bundleTotalTickets
+      : listing.originalPrice;
+
+  const formattedPrice = new Intl.NumberFormat('vi-VN').format(totalBundleResalePrice);
+  const formattedOriginalPrice = new Intl.NumberFormat('vi-VN').format(totalBundleOriginalPrice);
 
   // Dynamic Zone styling with high contrast dark glass and vibrant accents
   const getZoneStyle = (tierName: string) => {

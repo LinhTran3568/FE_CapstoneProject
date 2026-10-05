@@ -214,6 +214,9 @@ export interface SellerListingDto {
   payoutProcessedAt?: string | null;
   payoutBankInfo?: string | null;
   createdAt: string;
+  bundleId?: string | null;
+  bundleTotalTickets?: number | null;
+  isBundleAllOrNothing?: boolean;
 }
 
 /**

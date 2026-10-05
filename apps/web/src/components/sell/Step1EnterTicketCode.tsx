@@ -107,38 +107,6 @@ export const Step1EnterTicketCode: React.FC<Step1EnterTicketCodeProps> = ({
     }
   };
 
-  const handleSelectAllSameEvent = () => {
-    if (eligibleTickets.length === 0) return;
-    setEventMismatchError('');
-
-    let targetEventId = eligibleTickets[0].eventId;
-    if (selectedCodes.length > 0) {
-      const firstSelected = eligibleTickets.find((t) =>
-        selectedCodes.includes(purchasedPassCode(t).toUpperCase())
-      );
-      if (firstSelected?.eventId) {
-        targetEventId = firstSelected.eventId;
-      }
-    }
-
-    const sameEventCodes = eligibleTickets
-      .filter((t) => !targetEventId || t.eventId === targetEventId)
-      .map((t) => purchasedPassCode(t).toUpperCase())
-      .filter(Boolean);
-
-    if (sameEventCodes.length > MAX_BUNDLE_TICKETS) {
-      const truncated = sameEventCodes.slice(0, MAX_BUNDLE_TICKETS);
-      setTicketCode(truncated.join(', '));
-      setSelectionNotice(
-        `Only the first ${MAX_BUNDLE_TICKETS} tickets were selected because a combo can include at most ${MAX_BUNDLE_TICKETS} tickets.`
-      );
-      return;
-    }
-
-    setSelectionNotice('');
-    setTicketCode(sameEventCodes.join(', '));
-  };
-
   return (
     <div key={1} className="animate-fade-in-up max-w-2xl mx-auto space-y-6 text-center pt-4">
       {/* Bank Account Warning Banner */}
@@ -350,21 +318,6 @@ export const Step1EnterTicketCode: React.FC<Step1EnterTicketCodeProps> = ({
                       </button>
                     )}
                   </div>
-
-                  {eligibleTickets.length > 1 && (
-                    <div className="flex items-center justify-between px-1 text-[11px] text-[#8B929C]">
-                      <span>Chọn nhiều vé để bán dạng Gói / Vé đôi</span>
-                      <button
-                        type="button"
-                        onClick={handleSelectAllSameEvent}
-                        className="text-[#FF5A36] hover:underline font-semibold cursor-pointer"
-                      >
-                        {eligibleTickets.some((t) => (t.bundleTotalTickets && t.bundleTotalTickets >= 2) || t.bundleId)
-                          ? 'Chọn cả cặp vé đôi'
-                          : 'Select All (Same Event)'}
-                      </button>
-                    </div>
-                  )}
                 </div>
 
                 {/* Selection limit notice */}
@@ -418,9 +371,6 @@ export const Step1EnterTicketCode: React.FC<Step1EnterTicketCodeProps> = ({
                     return filtered.map((t) => {
                       const code = purchasedPassCode(t).toUpperCase();
                       const isSelected = selectedCodes.includes(code);
-                      const isComboTicket = Boolean(
-                        (t.bundleTotalTickets && t.bundleTotalTickets >= 2) || t.bundleId
-                      );
 
                       return (
                         <div
@@ -445,11 +395,6 @@ export const Step1EnterTicketCode: React.FC<Step1EnterTicketCodeProps> = ({
                             <div className="min-w-0">
                               <div className="flex items-center gap-2">
                                 <span className="font-mono font-bold text-xs text-[#FF5A36]">{code}</span>
-                                {isComboTicket && (
-                                  <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-amber-500/15 border border-amber-500/30 text-amber-300">
-                                    Vé đôi
-                                  </span>
-                                )}
                               </div>
                               <div className="text-xs font-semibold text-white truncate">{t.eventName}</div>
                               <div className="flex items-center gap-1.5 mt-0.5">
@@ -575,7 +520,7 @@ export const Step1EnterTicketCode: React.FC<Step1EnterTicketCodeProps> = ({
           ) : (
             <span>
               {selectedCodes.length > 1
-                ? `Verify ${selectedCodes.length} Tickets (Combo)`
+                ? `Verify ${selectedCodes.length} Tickets`
                 : 'Verify Ticket'}
             </span>
           )}

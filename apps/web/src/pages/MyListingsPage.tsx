@@ -575,6 +575,13 @@ export const MyListingsPage: React.FC = () => {
                           </span>
                         )}
 
+                        {/* Combo / Bundle Badge */}
+                        {Boolean(listing.bundleId || (listing.bundleTotalTickets && listing.bundleTotalTickets >= 2)) && (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold uppercase tracking-wider bg-purple-500/15 border border-purple-500/40 text-purple-300">
+                            <span>COMBO ({listing.bundleTotalTickets || 2} VÉ)</span>
+                          </span>
+                        )}
+
                         {/* Subtle Technical ID */}
                         <span className="text-[11px] text-[#8B929C]/70 font-mono pl-1">
                           ID · {listing.originalTicketCode}
@@ -767,6 +774,14 @@ export const MyListingsPage: React.FC = () => {
                 <Lock className="w-4 h-4 shrink-0 mt-0.5" />
                 <span>
                   Anyone opening the private share link will see this listing as cancelled and will no longer be able to purchase it.
+                </span>
+              </div>
+            )}
+            {Boolean(listingToCancel.bundleId || (listingToCancel.bundleTotalTickets && listingToCancel.bundleTotalTickets >= 2)) && (
+              <div className="p-3 bg-purple-500/10 border border-purple-500/30 rounded-xl text-purple-300 text-[11px] leading-relaxed flex gap-2">
+                <span className="font-bold text-xs uppercase text-purple-400 shrink-0">COMBO:</span>
+                <span>
+                  Vé này thuộc gói combo ({listingToCancel.bundleTotalTickets || 2} vé). Khi xác nhận hủy, toàn bộ các vé thuộc combo này sẽ được mở khóa và hủy bán cùng lúc.
                 </span>
               </div>
             )}

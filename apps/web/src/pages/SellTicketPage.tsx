@@ -975,6 +975,7 @@ const DRAFT_STORAGE_KEY = 'ticketshield_sell_draft';
             existingListings={existingListings}
             faceValue={faceValue}
             resalePrice={ticketPrices[sessions[0]?.code] ?? sessions[0]?.originalPrice ?? 0}
+            totalResalePrice={sessions.reduce((sum, s) => sum + (ticketPrices[s.code] ?? s.originalPrice ?? 0), 0)}
             isPrivateListing={isPrivateListing}
             getShareUrl={getShareUrl}
             handleCopyLink={handleCopyLink}

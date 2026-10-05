@@ -228,6 +228,11 @@ const HoldingTicket: React.FC<{ listing: SellerListingDto; now: number }> = ({ l
               <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-amber-400 motion-reduce:animate-none" aria-hidden="true" />
               <span>ON HOLD</span>
             </span>
+            {Boolean(listing.bundleId || (listing.bundleTotalTickets && listing.bundleTotalTickets >= 2)) && (
+              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold uppercase tracking-wider bg-purple-500/15 border border-purple-500/40 text-purple-300">
+                <span>COMBO ({listing.bundleTotalTickets || 2} VÉ)</span>
+              </span>
+            )}
             <span className="pl-1 font-mono text-[11px] text-[#8B929C]/70">ID · {listing.originalTicketCode}</span>
           </div>
         </div>
