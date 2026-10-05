@@ -428,6 +428,22 @@ export const Step5ReviewPublish: React.FC<Step5ReviewPublishProps> = ({
                     </div>
                   </button>
                 </div>
+                <div className="min-h-[20px] overflow-hidden">
+                  <AnimatePresence mode="wait">
+                    <motion.p
+                      key={saleType}
+                      initial={{ opacity: 0, y: -4 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: 4 }}
+                      transition={{ duration: 0.18 }}
+                      className="text-[11px] text-zinc-400 px-0.5"
+                    >
+                      {saleType === 'combo'
+                        ? 'Buyer must purchase all tickets together as a bundle.'
+                        : 'Buyers can purchase one or multiple tickets separately.'}
+                    </motion.p>
+                  </AnimatePresence>
+                </div>
               </div>
             )}
 
@@ -569,77 +585,105 @@ export const Step5ReviewPublish: React.FC<Step5ReviewPublishProps> = ({
               </div>
 
               {/* Nội dung tóm tắt chi tiết */}
-              <div className="p-3.5 bg-[#05070A] border border-white/10 rounded-xl space-y-2 text-xs font-mono">
+              <div className="p-4 bg-[#05070A] border border-white/10 rounded-xl space-y-3 text-xs font-mono">
+                {/* 1. Tên sự kiện */}
                 <div className="flex justify-between items-start gap-2">
-                  <span className="text-zinc-400">Event:</span>
-                  <span className="text-white font-medium text-right truncate max-w-[220px] font-sans">
+                  <span className="text-zinc-400 shrink-0">Event:</span>
+                  <span className="text-white font-medium text-right truncate max-w-[240px] font-sans">
                     {eventName}
                   </span>
                 </div>
 
-                <div className="flex justify-between items-center gap-2">
-                  <span className="text-zinc-400">Sell as:</span>
-                  <span className="text-zinc-200 font-semibold text-right">
-                    {ticketCount > 1 ? (
-                      <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${saleType === 'combo'
-                        ? 'text-[#FF7252] bg-[#FF5A36]/10 border border-[#FF5A36]/25'
-                        : 'text-blue-300 bg-blue-500/10 border border-blue-500/25'
-                        }`}>
-                        {saleType === 'combo' ? 'Bundle (Both tickets)' : 'Separately'}
+                {/* 2. Danh sách vé - Hiển thị đầy đủ từng mã vé, không bị cắt dấu ... */}
+                <div className="space-y-1.5 pt-2 border-t border-white/5">
+                  <div className="flex items-center justify-between text-zinc-400">
+                    <span>{ticketCount > 1 ? `Your tickets (${ticketCount}):` : 'Your ticket:'}</span>
+                    {ticketCount > 1 && (
+                      <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                        saleType === 'combo'
+                          ? 'text-[#FF7252] bg-[#FF5A36]/10 border border-[#FF5A36]/25'
+                          : 'text-blue-300 bg-blue-500/10 border border-blue-500/25'
+                      }`}>
+                        {saleType === 'combo' ? 'Bundle' : 'Separately'}
                       </span>
-                    ) : (
-                      'Single ticket'
                     )}
-                  </span>
+                  </div>
+
+                  <div className="space-y-1.5 pt-0.5">
+                    {tickets && tickets.length > 0 ? (
+                      tickets.map((t, idx) => (
+                        <div
+                          key={t.code}
+                          className="flex items-center justify-between py-1.5 px-2.5 rounded-lg bg-white/[0.03] border border-white/5 text-xs font-mono"
+                        >
+                          <div className="flex items-center gap-1.5 min-w-0">
+                            <span className="text-zinc-500 text-[10px]">#{idx + 1}</span>
+                            <span className="text-white font-semibold font-mono text-[11px] select-all">{t.code}</span>
+                            {t.seatZone && (
+                              <>
+                                <span className="text-zinc-600">·</span>
+                                <span className="text-zinc-400 text-[11px] truncate">{t.seatZone}</span>
+                              </>
+                            )}
+                          </div>
+                          <div className="font-bold text-zinc-200 tabular-nums shrink-0 text-xs">
+                            {t.resalePrice.toLocaleString('vi-VN')} <span className="text-[9px] text-zinc-500 font-normal">VND</span>
+                          </div>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="flex flex-wrap gap-1.5">
+                        {ticketCodes.map((code, idx) => (
+                          <span
+                            key={code}
+                            className="px-2.5 py-1 rounded-lg bg-white/[0.04] border border-white/10 text-xs font-mono text-zinc-200"
+                          >
+                            #{idx + 1} {code}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </div>
 
-                <div className="flex justify-between items-center gap-2">
-                  <span className="text-zinc-400">Ticket codes:</span>
-                  <span className="text-zinc-300 truncate max-w-[200px]">
-                    {ticketCodes.join(', ')}
-                  </span>
-                </div>
-
-                {seatZone && (
-                  <div className="flex justify-between items-center gap-2">
-                    <span className="text-zinc-400">Seat / Zone:</span>
-                    <span className="text-cyan-300 truncate max-w-[200px]">
-                      {seatZone}
+                {/* 3. Giá niêm yết & Bạn thực nhận */}
+                <div className="space-y-1.5 pt-2 border-t border-white/5">
+                  <div className="flex justify-between items-center">
+                    <span className="text-zinc-400">Listing price:</span>
+                    <span className="text-[#FF5A36] font-bold text-sm tabular-nums">
+                      {totalResalePrice.toLocaleString('vi-VN')} VND
                     </span>
                   </div>
-                )}
 
-                <div className="flex justify-between items-center gap-2 pt-1.5 border-t border-white/5">
-                  <span className="text-zinc-400">Listing price:</span>
-                  <span className="text-[#FF5A36] font-bold">
-                    {totalResalePrice.toLocaleString('vi-VN')} VND
-                  </span>
+                  <div className="flex justify-between items-center">
+                    <span className="text-zinc-400">You'll receive (after 3% fee):</span>
+                    <span className="text-emerald-400 font-bold text-sm tabular-nums">
+                      {totalYouReceive.toLocaleString('vi-VN')} VND
+                    </span>
+                  </div>
                 </div>
 
-                <div className="flex justify-between items-center gap-2">
-                  <span className="text-zinc-400">You'll receive (after 3% fee):</span>
-                  <span className="text-emerald-400 font-bold">
-                    {totalYouReceive.toLocaleString('vi-VN')} VND
-                  </span>
-                </div>
-
-                <div className="flex justify-between items-center gap-2 pt-1.5 border-t border-white/5">
-                  <span className="text-zinc-400">Payout bank account:</span>
-                  <span className="text-zinc-200 text-right truncate max-w-[200px]">
-                    {bankAccounts.length > 0
-                      ? `${bankAccounts[0].bankCode} • ${bankAccounts[0].bankAccountNumber}`
-                      : 'Not set yet (can add later)'}
-                  </span>
-                </div>
-
-                <div className="flex justify-between items-center gap-2">
-                  <span className="text-zinc-400">Visibility:</span>
-                  <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${isPrivateListing
-                    ? 'text-purple-300 bg-purple-500/10 border border-purple-500/25'
-                    : 'text-emerald-300 bg-emerald-500/10 border border-emerald-500/25'
+                {/* 4. Hình thức hiển thị & Tài khoản thanh toán */}
+                <div className="space-y-1.5 pt-2 border-t border-white/5">
+                  <div className="flex justify-between items-center gap-2">
+                    <span className="text-zinc-400">Visibility:</span>
+                    <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                      isPrivateListing
+                        ? 'text-purple-300 bg-purple-500/10 border border-purple-500/25'
+                        : 'text-emerald-300 bg-emerald-500/10 border border-emerald-500/25'
                     }`}>
-                    {isPrivateListing ? 'Private (Secret link)' : 'Public (Marketplace)'}
-                  </span>
+                      {isPrivateListing ? 'Private (Secret link)' : 'Public (Marketplace)'}
+                    </span>
+                  </div>
+
+                  <div className="flex justify-between items-center gap-2">
+                    <span className="text-zinc-400">Payout bank account:</span>
+                    <span className="text-zinc-200 text-right truncate max-w-[200px]">
+                      {bankAccounts.length > 0
+                        ? `${bankAccounts[0].bankCode} • ${bankAccounts[0].bankAccountNumber}`
+                        : 'Not set yet (can add later)'}
+                    </span>
+                  </div>
                 </div>
               </div>
 

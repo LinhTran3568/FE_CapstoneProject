@@ -1053,7 +1053,7 @@ const DRAFT_STORAGE_KEY = 'ticketshield_sell_draft';
             seatZone={
               allPurchasedTickets.find((t) => purchasedPassCode(t).toUpperCase() === sessions[0]?.code?.toUpperCase())?.seatZone ||
               (sessions[0] as any)?.seatZone ||
-              (sessions.length > 1 ? 'Khu VIP · Ghế Liền Kề' : 'Khu VIP')
+              undefined
             }
             eventName={
               allPurchasedTickets.find((t) => purchasedPassCode(t).toUpperCase() === sessions[0]?.code?.toUpperCase())?.eventName ||
