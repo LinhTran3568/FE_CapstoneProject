@@ -430,7 +430,7 @@ export const Step3ConfirmDetails: React.FC<Step3ConfirmDetailsProps> = ({
               className="text-xs sm:text-sm font-medium text-white/50 hover:text-rose-400 transition-colors inline-flex items-center gap-2 cursor-pointer disabled:opacity-30 py-1.5 px-3 rounded-lg hover:bg-rose-500/10 hover:border hover:border-rose-500/20"
             >
               <XCircle className="w-4 h-4" />
-              <span>{isCancelling ? 'Đang hủy...' : 'Hủy đăng bán & mở khóa vé'}</span>
+              <span>{isCancelling ? 'Đang hủy...' : 'Không bán nữa'}</span>
             </button>
           </div>
         )}
