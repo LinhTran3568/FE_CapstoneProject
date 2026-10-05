@@ -128,7 +128,7 @@ export const Step5ReviewPublish: React.FC<Step5ReviewPublishProps> = ({
 
           <div className="space-y-2.5 text-xs font-mono">
             {/* DÒNG 1: Resale Price - Hỗ trợ bung/thu */}
-            <div className="space-y-1">
+            <div>
               <div
                 onClick={() => tickets && tickets.length > 1 && setExpandPriceDetails(!expandPriceDetails)}
                 className={`flex justify-between items-center text-gray-300 select-none py-1 rounded transition-colors ${tickets && tickets.length > 1 ? 'cursor-pointer hover:text-white' : ''
@@ -174,83 +174,88 @@ export const Step5ReviewPublish: React.FC<Step5ReviewPublishProps> = ({
                     initial={{ height: 0, opacity: 0 }}
                     animate={{ height: 'auto', opacity: 1 }}
                     exit={{ height: 0, opacity: 0 }}
-                    transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
+                    transition={{
+                      height: { duration: 0.28, ease: [0.4, 0, 0.2, 1] },
+                      opacity: { duration: 0.2, ease: 'easeInOut' },
+                    }}
                     className="overflow-hidden"
                   >
-                    <div className="space-y-2.5 pl-3 py-2 border-l-2 border-[#FF5A36] bg-white/[0.015] rounded-r-xl my-1">
-                      {tickets.map((t, idx) => {
-                        const diff = t.originalPrice - t.resalePrice;
-                        const percent = Math.round((Math.abs(diff) / t.originalPrice) * 100);
-                        const isDeepDiscount = t.resalePrice > 0 && diff / t.originalPrice >= 0.5;
+                    <div className="pt-2 pb-0.5">
+                      <div className="space-y-2.5 pl-3 py-2 border-l-2 border-[#FF5A36] bg-white/[0.015] rounded-r-xl">
+                        {tickets.map((t, idx) => {
+                          const diff = t.originalPrice - t.resalePrice;
+                          const percent = Math.round((Math.abs(diff) / t.originalPrice) * 100);
+                          const isDeepDiscount = t.resalePrice > 0 && diff / t.originalPrice >= 0.5;
 
-                        return (
-                          <div key={t.code} className="space-y-1">
-                            <div className="flex items-center justify-between gap-2 text-xs">
-                              {/* Trái: Ticket 1 · ATSH-VIP-6578 · 15% off */}
-                              <div className="flex items-center gap-1.5 min-w-0">
-                                <span className="text-zinc-300 font-medium shrink-0">Ticket {idx + 1}</span>
-                                <span className="text-zinc-600">·</span>
-                                <span className="text-zinc-400 font-mono text-[11px] shrink-0">{t.code}</span>
-                                {t.seatZone && (
-                                  <>
-                                    <span className="text-zinc-600">·</span>
-                                    <span className="text-zinc-400 text-[11px] truncate">{t.seatZone}</span>
-                                  </>
-                                )}
+                          return (
+                            <div key={t.code} className="space-y-1">
+                              <div className="flex items-center justify-between gap-2 text-xs">
+                                {/* Trái: Ticket 1 · ATSH-VIP-6578 · 15% off */}
+                                <div className="flex items-center gap-1.5 min-w-0">
+                                  <span className="text-zinc-300 font-medium shrink-0">Ticket {idx + 1}</span>
+                                  <span className="text-zinc-600">·</span>
+                                  <span className="text-zinc-400 font-mono text-[11px] shrink-0">{t.code}</span>
+                                  {t.seatZone && (
+                                    <>
+                                      <span className="text-zinc-600">·</span>
+                                      <span className="text-zinc-400 text-[11px] truncate">{t.seatZone}</span>
+                                    </>
+                                  )}
 
-                                {diff > 0 && (
-                                  <>
-                                    <span className="text-zinc-600">·</span>
-                                    <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded border shrink-0 flex items-center gap-1 ${isDeepDiscount
-                                      ? 'text-amber-300 bg-amber-500/15 border-amber-500/30 font-mono'
-                                      : 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20'
-                                      }`}>
-                                      {isDeepDiscount && <AlertTriangle className="w-2.5 h-2.5 text-amber-300 shrink-0" />}
-                                      <span>{percent >= 100 ? '99.9%' : `${percent}%`} off</span>
-                                    </span>
-                                  </>
-                                )}
-                                {diff < 0 && (
-                                  <>
-                                    <span className="text-zinc-600">·</span>
-                                    <span className="text-[10px] font-bold text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded border border-amber-500/20 shrink-0">
-                                      +{percent}%
-                                    </span>
-                                  </>
-                                )}
-                              </div>
-
-                              {/* Phải: Giá bán của vé + Nút Edit */}
-                              <div className="flex items-center gap-2.5 shrink-0">
-                                <div className="text-right">
-                                  <span className="font-bold text-zinc-100 tabular-nums">
-                                    {t.resalePrice.toLocaleString('vi-VN')}
-                                  </span>
-                                  <span className="text-[9px] text-zinc-500 ml-1">VND</span>
+                                  {diff > 0 && (
+                                    <>
+                                      <span className="text-zinc-600">·</span>
+                                      <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded border shrink-0 flex items-center gap-1 ${isDeepDiscount
+                                        ? 'text-amber-300 bg-amber-500/15 border-amber-500/30 font-mono'
+                                        : 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20'
+                                        }`}>
+                                        {isDeepDiscount && <AlertTriangle className="w-2.5 h-2.5 text-amber-300 shrink-0" />}
+                                        <span>{percent >= 100 ? '99.9%' : `${percent}%`} off</span>
+                                      </span>
+                                    </>
+                                  )}
+                                  {diff < 0 && (
+                                    <>
+                                      <span className="text-zinc-600">·</span>
+                                      <span className="text-[10px] font-bold text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded border border-amber-500/20 shrink-0">
+                                        +{percent}%
+                                      </span>
+                                    </>
+                                  )}
                                 </div>
-                                {onEditTicketPrice && (
-                                  <button
-                                    type="button"
-                                    onClick={() => onEditTicketPrice(idx)}
-                                    className="text-[11px] text-[#FF5A36] hover:text-[#FF7252] hover:underline px-1 py-0.5 rounded cursor-pointer font-sans"
-                                    title="Edit price for this ticket"
-                                  >
-                                    Edit
-                                  </button>
-                                )}
-                              </div>
-                            </div>
 
-                            {/* Inline Warning thiết kế ngay dưới vé đó */}
-                            {isDeepDiscount && (
-                              <div className="text-[11px] text-amber-300/90 font-mono flex items-center gap-1.5 pl-1 py-0.5">
-                                <AlertTriangle className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-                                <span>Ticket {idx + 1} is priced way below face value.</span>
+                                {/* Phải: Giá bán của vé + Nút Edit */}
+                                <div className="flex items-center gap-2.5 shrink-0">
+                                  <div className="text-right">
+                                    <span className="font-bold text-zinc-100 tabular-nums">
+                                      {t.resalePrice.toLocaleString('vi-VN')}
+                                    </span>
+                                    <span className="text-[9px] text-zinc-500 ml-1">VND</span>
+                                  </div>
+                                  {onEditTicketPrice && (
+                                    <button
+                                      type="button"
+                                      onClick={() => onEditTicketPrice(idx)}
+                                      className="text-[11px] text-[#FF5A36] hover:text-[#FF7252] hover:underline px-1 py-0.5 rounded cursor-pointer font-sans"
+                                      title="Edit price for this ticket"
+                                    >
+                                      Edit
+                                    </button>
+                                  )}
+                                </div>
                               </div>
-                            )}
-                          </div>
-                        );
-                      })}
+
+                              {/* Inline Warning thiết kế ngay dưới vé đó */}
+                              {isDeepDiscount && (
+                                <div className="text-[11px] text-amber-300/90 font-mono flex items-center gap-1.5 pl-1 py-0.5">
+                                  <AlertTriangle className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                                  <span>Ticket {idx + 1} is priced way below face value.</span>
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
                     </div>
                   </motion.div>
                 )}
@@ -258,7 +263,7 @@ export const Step5ReviewPublish: React.FC<Step5ReviewPublishProps> = ({
             </div>
 
             {/* DÒNG 2: Seller Fee · 3% - Hỗ trợ bung/thu */}
-            <div className="space-y-1">
+            <div>
               <div
                 onClick={() => tickets && tickets.length > 1 && setExpandFeeDetails(!expandFeeDetails)}
                 className={`relative flex justify-between items-center text-gray-300 select-none py-0.5 rounded transition-colors ${tickets && tickets.length > 1 ? 'cursor-pointer hover:text-white' : ''
@@ -330,21 +335,26 @@ export const Step5ReviewPublish: React.FC<Step5ReviewPublishProps> = ({
                     initial={{ height: 0, opacity: 0 }}
                     animate={{ height: 'auto', opacity: 1 }}
                     exit={{ height: 0, opacity: 0 }}
-                    transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
+                    transition={{
+                      height: { duration: 0.28, ease: [0.4, 0, 0.2, 1] },
+                      opacity: { duration: 0.2, ease: 'easeInOut' },
+                    }}
                     className="overflow-hidden"
                   >
-                    <div className="space-y-1.5 pl-3 py-1.5 border-l-2 border-amber-500/40 bg-amber-500/[0.03] rounded-r-xl my-1 text-[11px]">
-                      {tickets.map((t, idx) => {
-                        const ticketFee = Math.max(Math.round((t.resalePrice || 0) * 0.03), 5000);
-                        return (
-                          <div key={t.code} className="flex justify-between items-center text-amber-300/80">
-                            <span>- Phí Vé #{idx + 1} ({t.code}):</span>
-                            <span className="text-amber-400 tabular-nums">
-                              -{ticketFee.toLocaleString('vi-VN')} <span className="text-[9px] text-zinc-500">VND</span>
-                            </span>
-                          </div>
-                        );
-                      })}
+                    <div className="pt-1.5 pb-0.5">
+                      <div className="space-y-1.5 pl-3 py-1.5 border-l-2 border-amber-500/40 bg-amber-500/[0.03] rounded-r-xl text-[11px]">
+                        {tickets.map((t, idx) => {
+                          const ticketFee = Math.max(Math.round((t.resalePrice || 0) * 0.03), 5000);
+                          return (
+                            <div key={t.code} className="flex justify-between items-center text-amber-300/80">
+                              <span>- Phí Vé #{idx + 1} ({t.code}):</span>
+                              <span className="text-amber-400 tabular-nums">
+                                -{ticketFee.toLocaleString('vi-VN')} <span className="text-[9px] text-zinc-500">VND</span>
+                              </span>
+                            </div>
+                          );
+                        })}
+                      </div>
                     </div>
                   </motion.div>
                 )}
