@@ -327,8 +327,14 @@ export const PrivateListingPage: React.FC = () => {
       {/* Buy Modal Integration */}
       {listing && (
         <BuyTicketModal
-          listing={listing}
-          allListings={bundleListings}
+          listing={{
+            ...listing,
+            privateAccessToken: listing.privateAccessToken || shareToken,
+          }}
+          allListings={bundleListings.map((b) => ({
+            ...b,
+            privateAccessToken: b.privateAccessToken || listing.privateAccessToken || shareToken,
+          }))}
           isOpen={isBuyModalOpen}
           onClose={() => setIsBuyModalOpen(false)}
           onSuccess={(orderData) => {
