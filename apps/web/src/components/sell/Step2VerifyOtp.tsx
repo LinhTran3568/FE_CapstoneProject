@@ -35,6 +35,45 @@ const formatTimer = (seconds: number) => {
   return `${m}:${s}`;
 };
 
+const TICKET_THEMES = [
+  {
+    bg: 'bg-[#0D1527]',
+    borderActive: 'border-sky-500/40 ring-1 ring-sky-500/30',
+    borderInactive: 'border-sky-500/25',
+    headerBg: 'bg-[#101C36]',
+    accentText: 'text-sky-400',
+    iconBox: 'bg-sky-500/15 border border-sky-500/30 text-sky-400',
+    btnBg: 'bg-sky-500 hover:bg-sky-400 text-white shadow-sky-500/25',
+  },
+  {
+    bg: 'bg-[#19111C]',
+    borderActive: 'border-[#FF5738]/50 ring-1 ring-[#FF5738]/30',
+    borderInactive: 'border-[#FF5738]/25',
+    headerBg: 'bg-[#251522]',
+    accentText: 'text-[#FF5738]',
+    iconBox: 'bg-[#FF5738]/15 border border-[#FF5738]/30 text-[#FF5738]',
+    btnBg: 'bg-[#FF5738] hover:bg-[#FF7054] text-white shadow-[#FF5738]/25',
+  },
+  {
+    bg: 'bg-[#0C1A1E]',
+    borderActive: 'border-cyan-500/40 ring-1 ring-cyan-500/30',
+    borderInactive: 'border-cyan-500/25',
+    headerBg: 'bg-[#10242B]',
+    accentText: 'text-cyan-400',
+    iconBox: 'bg-cyan-500/15 border border-cyan-500/30 text-cyan-400',
+    btnBg: 'bg-cyan-500 hover:bg-cyan-400 text-white shadow-cyan-500/25',
+  },
+  {
+    bg: 'bg-[#151024]',
+    borderActive: 'border-purple-500/40 ring-1 ring-purple-500/30',
+    borderInactive: 'border-purple-500/25',
+    headerBg: 'bg-[#201538]',
+    accentText: 'text-purple-400',
+    iconBox: 'bg-purple-500/15 border border-purple-500/30 text-purple-400',
+    btnBg: 'bg-purple-500 hover:bg-purple-400 text-white shadow-purple-500/25',
+  },
+];
+
 export const Step2VerifyOtp: React.FC<Step2VerifyOtpProps> = ({
   tickets,
   onVerifyTicket,
@@ -224,8 +263,6 @@ export const Step2VerifyOtp: React.FC<Step2VerifyOtpProps> = ({
 
   if (!current) return null;
 
-  const HEADER_OFFSET = 62;
-
   return (
     <div className="max-w-[530px] mx-auto space-y-4 pt-1 font-sans text-center">
       {/* Title Header */}
@@ -256,6 +293,7 @@ export const Step2VerifyOtp: React.FC<Step2VerifyOtpProps> = ({
             {tickets.map((t, idx) => {
               const isSelected = idx === safePage;
               const isLocked = t.locked;
+              const theme = TICKET_THEMES[idx % TICKET_THEMES.length];
 
               return (
                 <button
@@ -264,7 +302,7 @@ export const Step2VerifyOtp: React.FC<Step2VerifyOtpProps> = ({
                   onClick={() => setPage(idx)}
                   className={`px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
                     isSelected
-                      ? 'bg-[#FF5738]/15 border border-[#FF5738] text-white shadow-sm shadow-[#FF5738]/20'
+                      ? `${theme.headerBg} border ${theme.accentText} shadow-sm text-white`
                       : isLocked
                       ? 'bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/15'
                       : 'bg-white/[0.03] border border-white/[0.08] text-[#8A909B] hover:text-white hover:bg-white/[0.06]'
@@ -273,7 +311,7 @@ export const Step2VerifyOtp: React.FC<Step2VerifyOtpProps> = ({
                   {isLocked ? (
                     <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
                   ) : (
-                    <Ticket className={`w-3.5 h-3.5 shrink-0 ${isSelected ? 'text-[#FF5738]' : 'text-[#8A909B]'}`} />
+                    <Ticket className={`w-3.5 h-3.5 shrink-0 ${isSelected ? theme.accentText : 'text-[#8A909B]'}`} />
                   )}
                   <span>Vé {idx + 1}</span>
                   <span className="text-[10px] opacity-75 font-normal">({t.code.slice(-4)})</span>
@@ -294,14 +332,15 @@ export const Step2VerifyOtp: React.FC<Step2VerifyOtpProps> = ({
         </div>
       )}
 
-      {/* CardStack Container: Thẻ OTP dạng So Le (Staggered Cascade) */}
+      {/* CardStack Container: Thẻ OTP dạng So Le (Staggered Tabs Cascade) */}
       <div className="pt-1">
         <CardStack
           items={tickets.map((t) => ({ id: t.code, ...t }))}
           activeIndex={safePage}
           onActiveIndexChange={setPage}
           layoutMode="staggered"
-          offset={HEADER_OFFSET}
+          offset={48}
+          xOffset={10}
           renderCard={(t, isTop, originalIndex) => {
             const ticketDigits = digits[t.code] ?? emptyDigits();
             const filledCount = ticketDigits.filter((d) => Boolean(d && d.trim())).length;
@@ -310,48 +349,41 @@ export const Step2VerifyOtp: React.FC<Step2VerifyOtpProps> = ({
             const isFilled = filledCount === OTP_LENGTH;
             const errorMsg = errors[t.code];
             const isCurrentVerifying = isVerifying && verifyingCode === t.code;
+            const theme = TICKET_THEMES[originalIndex % TICKET_THEMES.length];
 
             return (
               <div
-                className={`w-full rounded-2xl transition-all duration-200 overflow-hidden text-left ${
+                className={`w-full rounded-2xl transition-all duration-200 overflow-hidden text-left ${theme.bg} ${
                   isTop
-                    ? 'bg-[#0E1422] border border-white/[0.14] shadow-2xl shadow-black/90 ring-1 ring-white/[0.06]'
-                    : 'bg-[#0B0F19] border border-white/[0.08] shadow-md shadow-black/50 hover:border-white/[0.18]'
+                    ? `${theme.borderActive} shadow-2xl shadow-black/95`
+                    : `${theme.borderInactive} shadow-lg shadow-black/50 hover:brightness-110`
                 }`}
               >
-                {/* Header thẻ vé: Luôn luôn hiển thị đầy đủ ngay cả khi thẻ nằm so le phía sau */}
+                {/* Header tab: Luôn hiển thị ở cả thẻ active và thẻ so le phía sau */}
                 <div
-                  className={`h-[62px] px-4 sm:px-5 flex items-center justify-between transition-colors ${
+                  className={`h-[48px] px-4 sm:px-5 flex items-center justify-between border-b ${
                     isTop
-                      ? 'border-b border-white/[0.08] bg-[#0E1422]'
-                      : 'cursor-pointer hover:bg-white/[0.03] bg-[#0B0F19]'
+                      ? `${theme.headerBg} border-white/[0.1]`
+                      : `${theme.headerBg} border-white/[0.06] cursor-pointer hover:bg-white/[0.04]`
                   }`}
                   onClick={() => {
                     if (!isTop) setPage(originalIndex);
                   }}
                 >
-                  {/* Cột trái: Mã vé */}
+                  {/* Cột trái: Biểu tượng + Mã vé */}
                   <div className="flex items-center gap-2.5">
-                    <div
-                      className={`p-2 rounded-xl border ${
-                        t.locked
-                          ? 'bg-emerald-500/10 border-emerald-500/25 text-emerald-400'
-                          : isTop
-                          ? 'bg-[#FF5738]/10 border-[#FF5738]/25 text-[#FF5738]'
-                          : 'bg-white/[0.04] border-white/[0.08] text-white/50'
-                      }`}
-                    >
+                    <div className={`p-1.5 rounded-lg ${theme.iconBox}`}>
                       {t.locked ? (
-                        <CheckCircle2 className="w-4 h-4" />
+                        <CheckCircle2 className="w-3.5 h-3.5" />
                       ) : (
-                        <Ticket className="w-4 h-4" />
+                        <Ticket className="w-3.5 h-3.5" />
                       )}
                     </div>
-                    <div>
-                      <span className="text-[10px] font-mono uppercase tracking-wider text-[#8A909B] block">
-                        Vé {originalIndex + 1}/{tickets.length}
+                    <div className="flex items-center gap-2 font-mono">
+                      <span className="text-xs uppercase tracking-wider text-white/60">
+                        Vé {originalIndex + 1}:
                       </span>
-                      <span className="text-sm sm:text-base font-bold font-mono text-white tracking-wide">
+                      <span className="text-sm font-bold text-white tracking-wide">
                         {t.code}
                       </span>
                     </div>
@@ -361,26 +393,26 @@ export const Step2VerifyOtp: React.FC<Step2VerifyOtpProps> = ({
                   <div className="flex items-center gap-2 sm:gap-2.5 font-mono text-xs">
                     {/* Badge đã nhập OTP chưa */}
                     {t.locked ? (
-                      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-emerald-500/15 border border-emerald-500/30 text-emerald-400">
-                        <CheckCircle2 className="w-3.5 h-3.5" /> Đã xác thực
+                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-500/15 border border-emerald-500/30 text-emerald-400">
+                        <CheckCircle2 className="w-3 h-3" /> Đã xác thực
                       </span>
                     ) : filledCount === OTP_LENGTH ? (
-                      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-amber-500/15 border border-amber-500/30 text-amber-300">
+                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-amber-500/15 border border-amber-500/30 text-amber-300">
                         Đã nhập 6 số
                       </span>
                     ) : filledCount > 0 ? (
-                      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-blue-500/10 border border-blue-500/20 text-blue-300">
+                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-blue-500/10 border border-blue-500/20 text-blue-300">
                         Đang nhập ({filledCount}/6)
                       </span>
                     ) : (
-                      <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-[11px] bg-white/[0.04] border border-white/[0.08] text-[#8A909B]">
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] bg-white/[0.04] border border-white/[0.08] text-[#8A909B]">
                         Chưa nhập
                       </span>
                     )}
 
                     {/* Badge thời gian còn lại */}
-                    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] bg-white/[0.04] border border-white/[0.08] text-[#8A909B]">
-                      <Clock className="w-3.5 h-3.5 text-[#FF5738]" />
+                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] bg-white/[0.04] border border-white/[0.08] text-[#8A909B]">
+                      <Clock className="w-3 h-3 text-[#FF5738]" />
                       <span
                         className={
                           t.locked
@@ -396,17 +428,21 @@ export const Step2VerifyOtp: React.FC<Step2VerifyOtpProps> = ({
                       </span>
                     </span>
 
-                    {/* Chỉ báo nhấn để chọn khi thẻ nằm so le phía sau */}
+                    {/* Nhãn click khi nằm ở sau */}
                     {!isTop && (
-                      <span className="text-[11px] text-[#FF5738] hover:underline hidden sm:inline-block font-sans font-medium pl-1">
-                        Nhập OTP →
+                      <span className="text-[11px] text-white/50 hover:text-white hidden sm:inline-block font-sans font-medium pl-1">
+                        Chọn →
                       </span>
                     )}
                   </div>
                 </div>
 
                 {/* Thân thẻ vé: Chỉ hiển thị đầy đủ khi thẻ đang active (isTop) */}
-                <div className={`p-5 sm:p-6 space-y-4 ${!isTop ? 'pointer-events-none opacity-0 select-none h-0 p-0 overflow-hidden' : ''}`}>
+                <div
+                  className={`p-5 sm:p-6 space-y-4 ${
+                    !isTop ? 'pointer-events-none opacity-0 select-none h-0 p-0 overflow-hidden' : ''
+                  }`}
+                >
                   {/* 6 OTP Input Slots */}
                   <div className="space-y-3">
                     <div className="flex items-center justify-center gap-2 pt-0.5">
@@ -489,7 +525,7 @@ export const Step2VerifyOtp: React.FC<Step2VerifyOtpProps> = ({
                           isCurrentVerifying
                             ? 'bg-[#FF5738]/50 text-white cursor-wait'
                             : isFilled
-                            ? 'bg-[#FF5738] hover:bg-[#FF7054] text-white shadow-md shadow-[#FF5738]/20 cursor-pointer'
+                            ? `${theme.btnBg} cursor-pointer`
                             : 'bg-white/[0.04] border border-white/[0.08] text-white/30 cursor-not-allowed'
                         }`}
                       >
