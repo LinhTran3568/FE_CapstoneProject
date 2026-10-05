@@ -11,7 +11,6 @@ import {
   ArrowRight,
   AlertCircle,
   Plus,
-  RefreshCw,
   Trash2,
   Search,
   Pencil,
@@ -62,21 +61,20 @@ export const Step1EnterTicketCode: React.FC<Step1EnterTicketCodeProps> = ({
     .map((c) => c.trim().toUpperCase())
     .filter(Boolean);
 
-  // Nhập trực tiếp trên trang chính (khi ví không có vé, hoặc gõ nhanh)
+  // Ô input thêm vé mới trên trang chính
   const [directInputCode, setDirectInputCode] = useState('');
-  const [editingCodeOnMain, setEditingCodeOnMain] = useState<string | null>(null);
   const [mainError, setMainError] = useState('');
   const directInputRef = useRef<HTMLInputElement>(null);
 
-  // Dialog chọn vé (Ticket Picker Modal - dành cho trường hợp tài khoản có vé trong ví)
-  const [isPickerModalOpen, setIsPickerModalOpen] = useState(false);
-  const [pickerMode, setPickerMode] = useState<'add' | 'replace'>('add');
-  const [targetReplaceCode, setTargetReplaceCode] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'wallet' | 'manual'>('wallet');
+  // Sửa trực tiếp NGAY TẠI VỊ TRÍ THẺ VÉ ĐÓ (In-Place Edit)
+  const [editingCode, setEditingCode] = useState<string | null>(null);
+  const [editInputText, setEditInputText] = useState('');
 
-  // Trạng thái tạm thời bên trong Modal
-  const [tempSelectedCodes, setTempSelectedCodes] = useState<string[]>([]);
-  const [manualModalInputCode, setManualModalInputCode] = useState('');
+  // Dialog chọn vé từ ví "Vé của tôi" (My Tickets Modal)
+  const [isWalletModalOpen, setIsWalletModalOpen] = useState(false);
+  const [walletModalMode, setWalletModalMode] = useState<'add' | 'replace'>('add');
+  const [targetReplaceCode, setTargetReplaceCode] = useState<string | null>(null);
+  const [tempSelectedWalletCodes, setTempSelectedWalletCodes] = useState<string[]>([]);
   const [ticketSearch, setTicketSearch] = useState('');
   const [modalNotice, setModalNotice] = useState('');
 
@@ -91,25 +89,10 @@ export const Step1EnterTicketCode: React.FC<Step1EnterTicketCodeProps> = ({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const hasWalletTickets = eligibleTickets.length > 0;
-
-  // Xử lý thêm mã vé trực tiếp trên trang chính
+  // Xử lý thêm mã vé trực tiếp từ thanh input
   const handleAddDirectCode = () => {
     const clean = directInputCode.trim().toUpperCase();
     if (!clean) return;
-
-    if (editingCodeOnMain) {
-      if (clean !== editingCodeOnMain && selectedCodes.includes(clean)) {
-        setMainError(`Mã vé ${clean} đã có trong gói bán.`);
-        return;
-      }
-      const nextCodes = selectedCodes.map((c) => (c === editingCodeOnMain ? clean : c));
-      setTicketCode(nextCodes.join(', '));
-      setEditingCodeOnMain(null);
-      setDirectInputCode('');
-      setMainError('');
-      return;
-    }
 
     if (selectedCodes.includes(clean)) {
       setMainError(`Mã vé ${clean} đã có trong gói bán.`);
@@ -127,68 +110,86 @@ export const Step1EnterTicketCode: React.FC<Step1EnterTicketCodeProps> = ({
     setMainError('');
   };
 
-  const handleStartEditDirect = (code: string) => {
-    setEditingCodeOnMain(code);
-    setDirectInputCode(code);
+  // Bắt đầu sửa NGAY TẠI THẺ VÉ ĐÓ
+  const handleStartEdit = (code: string) => {
+    setEditingCode(code);
+    setEditInputText(code);
     setMainError('');
-    setTimeout(() => {
-      directInputRef.current?.focus();
-      directInputRef.current?.select();
-    }, 50);
   };
 
-  const handleCancelEditDirect = () => {
-    setEditingCodeOnMain(null);
-    setDirectInputCode('');
+  // Lưu sửa đổi ngay tại vị trí thẻ vé đó
+  const handleSaveEdit = (oldCode: string) => {
+    const clean = editInputText.trim().toUpperCase();
+    if (!clean) {
+      handleRemoveTicket(oldCode);
+      setEditingCode(null);
+      setEditInputText('');
+      return;
+    }
+
+    if (clean !== oldCode && selectedCodes.includes(clean)) {
+      setMainError(`Mã vé ${clean} đã có trong gói bán.`);
+      return;
+    }
+
+    const nextCodes = selectedCodes.map((c) => (c === oldCode ? clean : c));
+    setTicketCode(nextCodes.join(', '));
+    setEditingCode(null);
+    setEditInputText('');
     setMainError('');
+  };
+
+  // Hủy sửa tại chỗ
+  const handleCancelEdit = () => {
+    setEditingCode(null);
+    setEditInputText('');
   };
 
   // Xóa một vé khỏi gói
   const handleRemoveTicket = (codeToRemove: string) => {
     const nextCodes = selectedCodes.filter((c) => c !== codeToRemove);
     setTicketCode(nextCodes.join(', '));
-    if (editingCodeOnMain === codeToRemove) {
-      handleCancelEditDirect();
+    if (editingCode === codeToRemove) {
+      handleCancelEdit();
     }
   };
 
-  // Mở Modal chọn vé (Dành cho tài khoản có vé trong ví)
-  const handleOpenAddModal = (defaultTab: 'wallet' | 'manual' = 'wallet') => {
-    setPickerMode('add');
+  // Xóa toàn bộ vé
+  const handleClearAll = () => {
+    setTicketCode('');
+    handleCancelEdit();
+  };
+
+  // Mở Modal "Vé của tôi" để thêm vé
+  const handleOpenWalletModalForAdd = () => {
+    setWalletModalMode('add');
     setTargetReplaceCode(null);
-    setTempSelectedCodes([...selectedCodes]);
-    setActiveTab(defaultTab);
-    setManualModalInputCode('');
+    setTempSelectedWalletCodes([...selectedCodes]);
     setTicketSearch('');
     setModalNotice('');
-    setIsPickerModalOpen(true);
+    setIsWalletModalOpen(true);
   };
 
-  const handleOpenReplaceModal = (codeToReplace: string) => {
-    if (!hasWalletTickets) {
-      // Nếu không có vé trong ví, sửa trực tiếp trên trang chính
-      handleStartEditDirect(codeToReplace);
-      return;
-    }
-    setPickerMode('replace');
+  // Mở Modal "Vé của tôi" để thay thế cho 1 vé đang sửa tại chỗ
+  const handleOpenWalletModalForReplace = (codeToReplace: string) => {
+    setWalletModalMode('replace');
     setTargetReplaceCode(codeToReplace);
-    setTempSelectedCodes([]);
-    setActiveTab('wallet');
-    setManualModalInputCode('');
+    setTempSelectedWalletCodes([]);
     setTicketSearch('');
     setModalNotice('');
-    setIsPickerModalOpen(true);
+    setIsWalletModalOpen(true);
   };
 
-  // Toggle vé trong Tab "Vé của tôi" (Modal)
+  // Toggle chọn vé trong Modal "Vé của tôi"
   const handleToggleWalletTicket = (ticket: PurchasedTicketDto) => {
     const code = purchasedPassCode(ticket).toUpperCase();
     if (!code) return;
 
-    if (pickerMode === 'replace') {
+    // Chế độ thay thế: click 1 phát đổi ngay và đóng Modal
+    if (walletModalMode === 'replace') {
       if (!targetReplaceCode) return;
       if (code === targetReplaceCode) {
-        setIsPickerModalOpen(false);
+        setIsWalletModalOpen(false);
         return;
       }
       const otherCodes = selectedCodes.filter((c) => c !== targetReplaceCode);
@@ -203,102 +204,66 @@ export const Step1EnterTicketCode: React.FC<Step1EnterTicketCodeProps> = ({
         );
         if (refTicket && refTicket.eventId && ticket.eventId && refTicket.eventId !== ticket.eventId) {
           setModalNotice(
-            `Vé này thuộc sự kiện (${ticket.eventName}), không thể ghép cùng sự kiện của các vé còn lại.`
+            `Vé này thuộc sự kiện (${ticket.eventName}), không cùng sự kiện với các vé còn lại.`
           );
           return;
         }
       }
       const nextCodes = selectedCodes.map((c) => (c === targetReplaceCode ? code : c));
       setTicketCode(nextCodes.join(', '));
-      setIsPickerModalOpen(false);
+      setEditingCode(null);
+      setEditInputText('');
+      setIsWalletModalOpen(false);
       return;
     }
 
     // Chế độ thêm vé: Checkbox đa chọn
-    if (tempSelectedCodes.includes(code)) {
-      setTempSelectedCodes(tempSelectedCodes.filter((c) => c !== code));
+    if (tempSelectedWalletCodes.includes(code)) {
+      setTempSelectedWalletCodes(tempSelectedWalletCodes.filter((c) => c !== code));
       setModalNotice('');
     } else {
-      if (tempSelectedCodes.length >= MAX_BUNDLE_TICKETS) {
+      if (tempSelectedWalletCodes.length >= MAX_BUNDLE_TICKETS) {
         setModalNotice(`Tối đa ${MAX_BUNDLE_TICKETS} vé trong một lượt đăng bán.`);
         return;
       }
       // Ràng buộc cùng sự kiện
-      if (tempSelectedCodes.length > 0) {
+      if (tempSelectedWalletCodes.length > 0) {
         const refTicket = eligibleTickets.find((t) =>
-          tempSelectedCodes.includes(purchasedPassCode(t).toUpperCase())
+          tempSelectedWalletCodes.includes(purchasedPassCode(t).toUpperCase())
         );
         if (refTicket && refTicket.eventId && ticket.eventId && refTicket.eventId !== ticket.eventId) {
           setModalNotice(`Tất cả các vé trong gói phải thuộc cùng sự kiện (${refTicket.eventName}).`);
           return;
         }
       }
-      setTempSelectedCodes([...tempSelectedCodes, code]);
+      setTempSelectedWalletCodes([...tempSelectedWalletCodes, code]);
       setModalNotice('');
     }
   };
 
   const handleConfirmWalletSelection = () => {
-    setTicketCode(tempSelectedCodes.join(', '));
-    setIsPickerModalOpen(false);
-  };
-
-  const handleConfirmManualModal = (e?: React.FormEvent) => {
-    if (e) e.preventDefault();
-    const clean = manualModalInputCode.trim().toUpperCase();
-    if (!clean) {
-      setModalNotice('Vui lòng nhập mã vé.');
-      return;
-    }
-
-    if (pickerMode === 'replace') {
-      if (!targetReplaceCode) return;
-      if (clean === targetReplaceCode) {
-        setIsPickerModalOpen(false);
-        return;
-      }
-      const otherCodes = selectedCodes.filter((c) => c !== targetReplaceCode);
-      if (otherCodes.includes(clean)) {
-        setModalNotice(`Mã vé ${clean} đã có trong gói bán.`);
-        return;
-      }
-      const nextCodes = selectedCodes.map((c) => (c === targetReplaceCode ? clean : c));
-      setTicketCode(nextCodes.join(', '));
-      setIsPickerModalOpen(false);
-      return;
-    }
-
-    if (selectedCodes.includes(clean)) {
-      setModalNotice(`Mã vé ${clean} đã có trong danh sách.`);
-      return;
-    }
-    if (selectedCodes.length >= MAX_BUNDLE_TICKETS) {
-      setModalNotice(`Tối đa ${MAX_BUNDLE_TICKETS} vé trong một lượt đăng bán.`);
-      return;
-    }
-    const nextCodes = [...selectedCodes, clean];
-    setTicketCode(nextCodes.join(', '));
-    setIsPickerModalOpen(false);
+    setTicketCode(tempSelectedWalletCodes.join(', '));
+    setIsWalletModalOpen(false);
   };
 
   // Xác định sự kiện tham chiếu để disabled các vé khác sự kiện trong Modal
   const activeEventId = (() => {
-    if (pickerMode === 'replace' && targetReplaceCode) {
+    if (walletModalMode === 'replace' && targetReplaceCode) {
       const otherCodes = selectedCodes.filter((c) => c !== targetReplaceCode);
       const ref = eligibleTickets.find((t) => otherCodes.includes(purchasedPassCode(t).toUpperCase()));
       return ref?.eventId || null;
     }
-    if (tempSelectedCodes.length > 0) {
-      const ref = eligibleTickets.find((t) => tempSelectedCodes.includes(purchasedPassCode(t).toUpperCase()));
+    if (tempSelectedWalletCodes.length > 0) {
+      const ref = eligibleTickets.find((t) => tempSelectedWalletCodes.includes(purchasedPassCode(t).toUpperCase()));
       return ref?.eventId || null;
     }
     return null;
   })();
 
-  // Form submit handler: Nếu người dùng đang gõ mã mà chưa bấm Thêm -> tự động nạp mã và gửi xác thực
+  // Form submit: nếu đang gõ mã mà chưa bấm Thêm -> tự động nạp mã và bắt đầu xác thực luôn
   const handleFormSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (directInputCode.trim() && !editingCodeOnMain) {
+    if (directInputCode.trim()) {
       const clean = directInputCode.trim().toUpperCase();
       if (!selectedCodes.includes(clean) && selectedCodes.length < MAX_BUNDLE_TICKETS) {
         const nextCodes = [...selectedCodes, clean];
@@ -456,258 +421,216 @@ export const Step1EnterTicketCode: React.FC<Step1EnterTicketCodeProps> = ({
             </div>
           )}
 
-          {/* ========================================================================= */}
-          {/* TRƯỜNG HỢP A: TÀI KHOẢN KHÔNG CÓ VÉ TRONG VÍ (0 VÉ) -> NHẬP TRỰC TIẾP     */}
-          {/* ========================================================================= */}
-          {!hasWalletTickets ? (
-            <div className="space-y-3">
-              {/* Danh sách các vé đã nhập (nếu có) */}
-              {selectedCodes.length > 0 && (
-                <div className="space-y-2">
-                  {selectedCodes.map((code, index) => {
-                    const isEditingThis = editingCodeOnMain === code;
+          {/* Danh sách các thẻ vé đã chọn — Hỗ trợ Sửa ngay tại chỗ (In-Place Edit) */}
+          {selectedCodes.length > 0 && (
+            <div className="space-y-2">
+              {selectedCodes.map((code, index) => {
+                const isEditingThis = editingCode === code;
+                const matched = eligibleTickets.find(
+                  (t) => purchasedPassCode(t).toUpperCase() === code
+                );
 
-                    return (
-                      <div
-                        key={code}
-                        className={`p-3.5 rounded-2xl border transition-all flex items-center justify-between gap-3 shadow-md ${
-                          isEditingThis
-                            ? 'bg-[#FF5A36]/10 border-[#FF5A36] ring-2 ring-[#FF5A36]/20'
-                            : 'bg-[#0D121B] border-white/10 hover:border-white/20'
-                        }`}
-                      >
-                        <div className="flex items-center gap-3 min-w-0">
-                          <div className="w-8 h-8 rounded-xl bg-[#FF5A36]/10 border border-[#FF5A36]/25 text-[#FF5A36] flex items-center justify-center shrink-0 font-mono font-bold text-xs">
-                            #{index + 1}
-                          </div>
-                          <div className="min-w-0">
-                            <span className="font-mono font-bold text-xs sm:text-sm text-white tracking-wide">
-                              {code}
-                            </span>
-                            {isEditingThis && (
-                              <span className="text-[10px] text-[#FF5A36] bg-[#FF5A36]/20 px-1.5 py-0.5 rounded font-semibold ml-2">
-                                Đang sửa ở dưới
-                              </span>
-                            )}
-                          </div>
+                // =========================================================
+                // CHẾ ĐỘ SỬA TRỰC TIẾP NGAY TẠI VỊ TRÍ THẺ VÉ NÀY
+                // =========================================================
+                if (isEditingThis) {
+                  return (
+                    <div
+                      key={code}
+                      className="p-2.5 sm:p-3 rounded-2xl bg-[#0D121B] border-2 border-[#FF5A36] flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 shadow-lg shadow-[#FF5A36]/20 animate-in fade-in"
+                    >
+                      <div className="flex items-center gap-2.5 flex-1 min-w-0">
+                        <div className="w-8 h-8 rounded-xl bg-[#FF5A36] text-white flex items-center justify-center shrink-0 font-mono font-bold text-xs shadow-sm">
+                          #{index + 1}
                         </div>
-
-                        <div className="flex items-center gap-1.5 shrink-0">
-                          <button
-                            type="button"
-                            onClick={() => handleStartEditDirect(code)}
-                            className="px-2.5 py-1.5 bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-semibold text-zinc-300 hover:text-white rounded-xl transition-all cursor-pointer flex items-center gap-1"
-                            title="Sửa mã vé này"
-                          >
-                            <Pencil className="w-3.5 h-3.5 text-zinc-400" />
-                            <span className="hidden sm:inline">Sửa</span>
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => handleRemoveTicket(code)}
-                            className="p-1.5 bg-white/5 hover:bg-rose-500/15 border border-white/10 hover:border-rose-500/30 text-zinc-400 hover:text-rose-400 rounded-xl transition-all cursor-pointer"
-                            title="Xóa vé này khỏi gói"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        </div>
+                        <input
+                          type="text"
+                          value={editInputText}
+                          onChange={(e) => setEditInputText(e.target.value.toUpperCase())}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              e.preventDefault();
+                              handleSaveEdit(code);
+                            } else if (e.key === 'Escape') {
+                              e.preventDefault();
+                              handleCancelEdit();
+                            }
+                          }}
+                          autoFocus
+                          placeholder="Nhập mã vé..."
+                          className="flex-1 bg-white/5 border border-white/20 focus:border-[#FF5A36] rounded-xl px-3 h-10 text-xs sm:text-sm font-mono font-bold text-white tracking-wider outline-none min-w-0"
+                        />
                       </div>
-                    );
-                  })}
-                </div>
-              )}
 
-              {/* Ô Input nhập mã trực tiếp trên trang chính (Không Modal) */}
-              {selectedCodes.length < MAX_BUNDLE_TICKETS && (
-                <div className="space-y-1.5">
-                  <div
-                    className={`flex items-center bg-[#05070A] border ${
-                      editingCodeOnMain
-                        ? 'border-[#FF5A36] ring-4 ring-[#FF5A36]/20 bg-[#0D121B]'
-                        : 'border-white/15 focus-within:border-[#FF5A36] focus-within:ring-4 focus-within:ring-[#FF5A36]/20'
-                    } rounded-2xl h-14 pl-4 pr-2 gap-2 transition-all shadow-inner`}
-                  >
-                    <Ticket className="w-5 h-5 text-[#FF5A36] shrink-0" />
-                    <input
-                      ref={directInputRef}
-                      type="text"
-                      value={directInputCode}
-                      onChange={(e) => {
-                        setDirectInputCode(e.target.value.toUpperCase());
-                        setMainError('');
-                      }}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') {
-                          e.preventDefault();
-                          handleAddDirectCode();
-                        } else if (e.key === 'Escape' && editingCodeOnMain) {
-                          e.preventDefault();
-                          handleCancelEditDirect();
-                        }
-                      }}
-                      placeholder={
-                        editingCodeOnMain
-                          ? `Sửa mã vé ${editingCodeOnMain}...`
-                          : selectedCodes.length === 0
-                          ? 'Nhập mã vé (VD: ATSH-VIP-888)...'
-                          : `Nhập thêm mã vé thứ ${selectedCodes.length + 1}...`
-                      }
-                      className="flex-1 bg-transparent border-0 outline-none text-sm sm:text-base font-mono font-bold text-white placeholder-zinc-500 tracking-wider min-w-0"
-                    />
-
-                    {editingCodeOnMain ? (
-                      <div className="flex items-center gap-1.5 shrink-0">
+                      <div className="flex items-center justify-end gap-1.5 shrink-0">
+                        {eligibleTickets.length > 0 && (
+                          <button
+                            type="button"
+                            onClick={() => handleOpenWalletModalForReplace(code)}
+                            className="px-2.5 py-2 bg-white/10 hover:bg-white/15 text-zinc-300 hover:text-white text-xs font-semibold rounded-xl transition-all cursor-pointer flex items-center gap-1"
+                            title="Chọn vé từ ví tài khoản để thay thế"
+                          >
+                            <Ticket className="w-3.5 h-3.5 text-[#FF5A36]" />
+                            <span className="hidden sm:inline">Ví vé</span>
+                          </button>
+                        )}
                         <button
                           type="button"
-                          onClick={handleAddDirectCode}
-                          className="px-3 py-1.5 bg-[#FF5A36] hover:bg-[#FF7252] text-white text-xs font-bold rounded-xl transition-all cursor-pointer flex items-center gap-1 shadow-sm shadow-[#FF5A36]/30"
+                          onClick={() => handleSaveEdit(code)}
+                          className="px-3.5 py-2 bg-[#FF5A36] hover:bg-[#FF7252] text-white text-xs font-bold rounded-xl transition-all cursor-pointer flex items-center gap-1 shadow-sm shadow-[#FF5A36]/30 active:scale-95"
+                          title="Lưu (Enter)"
                         >
                           <Check className="w-3.5 h-3.5 stroke-[3]" />
                           <span>Lưu</span>
                         </button>
                         <button
                           type="button"
-                          onClick={handleCancelEditDirect}
-                          className="px-2.5 py-1.5 bg-white/10 hover:bg-white/20 text-zinc-300 hover:text-white text-xs font-semibold rounded-xl transition-all cursor-pointer"
+                          onClick={handleCancelEdit}
+                          className="px-2.5 py-2 bg-white/10 hover:bg-white/15 text-zinc-300 hover:text-white text-xs font-semibold rounded-xl transition-all cursor-pointer"
+                          title="Hủy (Esc)"
                         >
                           Hủy
                         </button>
                       </div>
-                    ) : (
-                      directInputCode.trim() && (
-                        <button
-                          type="button"
-                          onClick={handleAddDirectCode}
-                          className="px-3.5 py-2 bg-[#FF5A36] hover:bg-[#FF7252] text-white text-xs font-bold rounded-xl transition-all shadow-sm shadow-[#FF5A36]/30 cursor-pointer shrink-0"
-                        >
-                          + Thêm
-                        </button>
-                      )
-                    )}
+                    </div>
+                  );
+                }
+
+                // =========================================================
+                // CHẾ ĐỘ HIỂN THỊ THẺ VÉ BÌNH THƯỜNG
+                // =========================================================
+                return (
+                  <div
+                    key={code}
+                    className="p-3.5 sm:p-4 rounded-2xl bg-[#0D121B] border border-white/10 hover:border-white/20 transition-all flex items-center justify-between gap-3 shadow-md"
+                  >
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-[#FF5A36]/10 border border-[#FF5A36]/25 text-[#FF5A36] flex items-center justify-center shrink-0 font-mono font-bold text-xs">
+                        #{index + 1}
+                      </div>
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="font-mono font-bold text-xs sm:text-sm text-white tracking-wide">
+                            {code}
+                          </span>
+                          {matched && (
+                            <span className="text-[10px] bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 px-1.5 py-0.2 rounded font-medium">
+                              Vé từ ví
+                            </span>
+                          )}
+                        </div>
+                        {matched ? (
+                          <div className="mt-1 flex items-center gap-2 text-xs text-zinc-400 truncate">
+                            <span className="font-medium text-zinc-200 truncate">{matched.eventName}</span>
+                            <span>·</span>
+                            <span>{matched.tierName}</span>
+                            {(matched.seatZone || matched.tierName) && (
+                              <SeatAdjacencyBadge
+                                seats={matched.seatZone || matched.tierName}
+                                variant="subtle"
+                                size="xs"
+                              />
+                            )}
+                          </div>
+                        ) : (
+                          <div className="text-[11px] text-zinc-400 mt-0.5">Mã vé nhập thủ công</div>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <button
+                        type="button"
+                        onClick={() => handleStartEdit(code)}
+                        className="px-2.5 py-1.5 bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-semibold text-zinc-300 hover:text-white rounded-xl transition-all cursor-pointer flex items-center gap-1"
+                        title="Sửa mã vé này ngay tại đây"
+                      >
+                        <Pencil className="w-3.5 h-3.5 text-zinc-400" />
+                        <span className="hidden sm:inline">Sửa</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveTicket(code)}
+                        className="p-1.5 bg-white/5 hover:bg-rose-500/15 border border-white/10 hover:border-rose-500/30 text-zinc-400 hover:text-rose-400 rounded-xl transition-all cursor-pointer"
+                        title="Xóa vé này khỏi gói"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
                   </div>
+                );
+              })}
+
+              {/* Tùy chọn xóa tất cả nếu có nhiều vé */}
+              {selectedCodes.length > 1 && !editingCode && (
+                <div className="flex justify-end pt-0.5">
+                  <button
+                    type="button"
+                    onClick={handleClearAll}
+                    className="text-[11px] text-zinc-500 hover:text-rose-400 transition-colors cursor-pointer"
+                  >
+                    Xóa tất cả {selectedCodes.length} vé
+                  </button>
                 </div>
               )}
             </div>
-          ) : (
-            /* ========================================================================= */
-            /* TRƯỜNG HỢP B: TÀI KHOẢN CÓ VÉ TRONG VÍ -> CHỌN TỪ VÍ HOẶC MODAL           */
-            /* ========================================================================= */
-            <div className="space-y-3">
-              {/* Khi chưa chọn vé nào */}
-              {selectedCodes.length === 0 ? (
-                <div className="p-6 border-2 border-dashed border-white/15 rounded-2xl bg-white/[0.02] text-center space-y-3.5">
-                  <div className="w-12 h-12 rounded-2xl bg-[#FF5A36]/10 border border-[#FF5A36]/20 text-[#FF5A36] flex items-center justify-center mx-auto shadow-sm">
-                    <Ticket className="w-6 h-6" />
-                  </div>
-                  <div>
-                    <h4 className="text-sm font-bold text-white">
-                      Bạn có {eligibleTickets.length} vé trong ví sẵn sàng đăng bán
-                    </h4>
-                    <p className="text-xs text-zinc-400 mt-0.5">
-                      Chọn nhanh vé từ tài khoản hoặc nhập mã từ Ban tổ chức
-                    </p>
-                  </div>
-                  <div className="flex flex-col sm:flex-row items-center justify-center gap-2 pt-1">
-                    <button
-                      type="button"
-                      onClick={() => handleOpenAddModal('wallet')}
-                      className="w-full sm:w-auto px-4 py-2.5 bg-[#FF5A36] hover:bg-[#FF7252] text-white text-xs font-bold rounded-xl transition-all shadow-md shadow-[#FF5A36]/30 cursor-pointer flex items-center justify-center gap-2"
-                    >
-                      <Ticket className="w-4 h-4" />
-                      <span>Chọn từ vé của tôi ({eligibleTickets.length})</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleOpenAddModal('manual')}
-                      className="w-full sm:w-auto px-4 py-2.5 bg-white/5 hover:bg-white/10 border border-white/10 text-zinc-300 hover:text-white text-xs font-semibold rounded-xl transition-all cursor-pointer"
-                    >
-                      Nhập mã vé khác
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                /* Danh sách các thẻ vé đã chọn */
-                <div className="space-y-2.5">
-                  {selectedCodes.map((code, index) => {
-                    const matched = eligibleTickets.find(
-                      (t) => purchasedPassCode(t).toUpperCase() === code
-                    );
+          )}
 
-                    return (
-                      <div
-                        key={code}
-                        className="p-3.5 sm:p-4 rounded-2xl bg-[#0D121B] border border-white/10 hover:border-white/20 transition-all flex items-center justify-between gap-3 shadow-md"
-                      >
-                        <div className="flex items-center gap-3 min-w-0">
-                          <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-[#FF5A36]/10 border border-[#FF5A36]/25 text-[#FF5A36] flex items-center justify-center shrink-0 font-mono font-bold text-xs">
-                            #{index + 1}
-                          </div>
-                          <div className="min-w-0">
-                            <div className="flex items-center gap-2">
-                              <span className="font-mono font-bold text-xs sm:text-sm text-white tracking-wide">
-                                {code}
-                              </span>
-                              {matched && (
-                                <span className="text-[10px] bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 px-1.5 py-0.2 rounded font-medium">
-                                  Vé từ ví
-                                </span>
-                              )}
-                            </div>
-                            {matched ? (
-                              <div className="mt-1 flex items-center gap-2 text-xs text-zinc-400 truncate">
-                                <span className="font-medium text-zinc-200 truncate">{matched.eventName}</span>
-                                <span>·</span>
-                                <span>{matched.tierName}</span>
-                                {(matched.seatZone || matched.tierName) && (
-                                  <SeatAdjacencyBadge
-                                    seats={matched.seatZone || matched.tierName}
-                                    variant="subtle"
-                                    size="xs"
-                                  />
-                                )}
-                              </div>
-                            ) : (
-                              <div className="text-[11px] text-zinc-400 mt-0.5">Mã vé nhập thủ công</div>
-                            )}
-                          </div>
-                        </div>
+          {/* ========================================================================= */}
+          {/* THANH NHẬP MÃ VÉ CHÍNH + NÚT "VÉ CỦA TÔI" (LUÔN LUÔN HIỆN DIỆN)          */}
+          {/* ========================================================================= */}
+          {selectedCodes.length < MAX_BUNDLE_TICKETS && !editingCode && (
+            <div className="pt-1 space-y-1.5">
+              <div className="flex items-center bg-[#05070A] border border-white/15 focus-within:border-[#FF5A36] focus-within:ring-4 focus-within:ring-[#FF5A36]/20 rounded-2xl h-14 pl-4 pr-2 gap-2 transition-all shadow-inner">
+                <Ticket className="w-5 h-5 text-[#FF5A36] shrink-0 pointer-events-none" />
+                <input
+                  ref={directInputRef}
+                  type="text"
+                  value={directInputCode}
+                  onChange={(e) => {
+                    setDirectInputCode(e.target.value.toUpperCase());
+                    setMainError('');
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      handleAddDirectCode();
+                    }
+                  }}
+                  placeholder={
+                    selectedCodes.length === 0
+                      ? 'Nhập mã vé (VD: ATSH-VIP-888)...'
+                      : `Nhập thêm mã vé thứ ${selectedCodes.length + 1}...`
+                  }
+                  className="flex-1 bg-transparent border-0 outline-none text-sm sm:text-base font-mono font-bold text-white placeholder-zinc-500 tracking-wider min-w-0"
+                />
 
-                        <div className="flex items-center gap-1.5 shrink-0">
-                          <button
-                            type="button"
-                            onClick={() => handleOpenReplaceModal(code)}
-                            className="px-2.5 py-1.5 bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-semibold text-zinc-300 hover:text-white rounded-xl transition-all cursor-pointer flex items-center gap-1"
-                            title="Đổi vé này sang vé khác"
-                          >
-                            <RefreshCw className="w-3.5 h-3.5 text-zinc-400" />
-                            <span className="hidden sm:inline">Đổi vé</span>
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => handleRemoveTicket(code)}
-                            className="p-1.5 bg-white/5 hover:bg-rose-500/15 border border-white/10 hover:border-rose-500/30 text-zinc-400 hover:text-rose-400 rounded-xl transition-all cursor-pointer"
-                            title="Xóa vé này khỏi gói"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        </div>
-                      </div>
-                    );
-                  })}
+                {/* Nút Thêm vé khi đang gõ */}
+                {directInputCode.trim() && (
+                  <button
+                    type="button"
+                    onClick={handleAddDirectCode}
+                    className="px-3.5 py-2 bg-[#FF5A36] hover:bg-[#FF7252] text-white text-xs font-bold rounded-xl transition-all shadow-sm shadow-[#FF5A36]/30 cursor-pointer shrink-0 active:scale-95"
+                  >
+                    + Thêm
+                  </button>
+                )}
 
-                  {/* Nút Thêm vé nhỏ gọn dưới danh sách */}
-                  {selectedCodes.length < MAX_BUNDLE_TICKETS && (
-                    <button
-                      type="button"
-                      onClick={() => handleOpenAddModal('wallet')}
-                      className="w-full py-3 border border-dashed border-white/15 hover:border-[#FF5A36]/60 rounded-2xl bg-white/[0.02] hover:bg-[#FF5A36]/5 text-zinc-300 hover:text-white text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer"
-                    >
-                      <Plus className="w-4 h-4 text-[#FF5A36]" />
-                      <span>+ Thêm vé thứ {selectedCodes.length + 1} vào gói (Tối đa 3 vé)</span>
-                    </button>
-                  )}
-                </div>
-              )}
+                {/* Phân cách nhẹ */}
+                <div className="h-6 w-px bg-white/10 shrink-0" />
+
+                {/* Nút "Vé của tôi" (LUÔN LUÔN HIỆN DIỆN ĐỂ MỞ VÍ VÉ) */}
+                <button
+                  type="button"
+                  onClick={handleOpenWalletModalForAdd}
+                  className="h-9 px-3 rounded-xl flex items-center gap-1.5 text-xs font-semibold shrink-0 transition-all cursor-pointer bg-[#151921] hover:bg-[#1C222C] text-zinc-200 hover:text-white border border-white/10"
+                >
+                  <span className="whitespace-nowrap">
+                    Vé của tôi {eligibleTickets.length > 0 ? `(${eligibleTickets.length})` : '(0)'}
+                  </span>
+                  <ChevronDown className="w-3.5 h-3.5 text-zinc-400" />
+                </button>
+              </div>
             </div>
           )}
         </div>
@@ -738,9 +661,9 @@ export const Step1EnterTicketCode: React.FC<Step1EnterTicketCodeProps> = ({
       </form>
 
       {/* ========================================================================= */}
-      {/* DIALOG CHỌN VÉ (Chỉ dùng khi người dùng có vé trong ví)                   */}
+      {/* MODAL "VÉ CỦA TÔI" (DÙNG ĐỂ CHỌN VÉ CÓ SẴN TRONG TÀI KHOẢN)                */}
       {/* ========================================================================= */}
-      {isPickerModalOpen && (
+      {isWalletModalOpen && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in">
           <div className="w-full max-w-lg bg-[#0A0D12] border border-white/15 rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[85vh] animate-in zoom-in-95">
             {/* Header Dialog */}
@@ -751,55 +674,22 @@ export const Step1EnterTicketCode: React.FC<Step1EnterTicketCodeProps> = ({
                 </div>
                 <div>
                   <h3 className="text-sm sm:text-base font-bold text-white">
-                    {pickerMode === 'add' ? 'Thêm vé vào gói bán' : `Đổi vé ${targetReplaceCode}`}
+                    {walletModalMode === 'add' ? 'Vé trong tài khoản của bạn' : `Đổi vé ${targetReplaceCode}`}
                   </h3>
                   <p className="text-xs text-zinc-400">
-                    {pickerMode === 'add' ? 'Chọn vé từ ví hoặc nhập mã vé khác' : 'Chọn 1 vé thay thế bên dưới'}
+                    {walletModalMode === 'add'
+                      ? `Chọn tối đa ${MAX_BUNDLE_TICKETS} vé để đăng bán combo`
+                      : 'Chọn 1 vé từ ví để thay thế'}
                   </p>
                 </div>
               </div>
               <button
                 type="button"
-                onClick={() => setIsPickerModalOpen(false)}
+                onClick={() => setIsWalletModalOpen(false)}
                 className="w-8 h-8 rounded-xl bg-white/5 hover:bg-white/10 text-zinc-400 hover:text-white flex items-center justify-center transition-colors cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
-            </div>
-
-            {/* Segmented Control Tabs */}
-            <div className="p-3 bg-[#05070A] border-b border-white/10">
-              <div className="grid grid-cols-2 p-1 bg-white/5 rounded-xl border border-white/10 gap-1">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setActiveTab('wallet');
-                    setModalNotice('');
-                  }}
-                  className={`py-2 text-xs font-bold rounded-lg transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
-                    activeTab === 'wallet'
-                      ? 'bg-[#FF5A36] text-white shadow-sm'
-                      : 'text-zinc-400 hover:text-white hover:bg-white/5'
-                  }`}
-                >
-                  <Ticket className="w-3.5 h-3.5" />
-                  <span>Vé của tôi ({eligibleTickets.length})</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setActiveTab('manual');
-                    setModalNotice('');
-                  }}
-                  className={`py-2 text-xs font-bold rounded-lg transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
-                    activeTab === 'manual'
-                      ? 'bg-[#FF5A36] text-white shadow-sm'
-                      : 'text-zinc-400 hover:text-white hover:bg-white/5'
-                  }`}
-                >
-                  <span>Nhập mã thủ công</span>
-                </button>
-              </div>
             </div>
 
             {/* Modal Error Notice */}
@@ -817,7 +707,26 @@ export const Step1EnterTicketCode: React.FC<Step1EnterTicketCodeProps> = ({
 
             {/* Modal Body */}
             <div className="p-4 overflow-y-auto flex-1 space-y-3">
-              {activeTab === 'wallet' ? (
+              {eligibleTickets.length === 0 ? (
+                <div className="py-10 text-center space-y-3">
+                  <div className="w-12 h-12 rounded-2xl bg-white/5 border border-white/10 text-zinc-400 flex items-center justify-center mx-auto">
+                    <Ticket className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-bold text-white">Chưa có vé nào trong ví</h4>
+                    <p className="text-xs text-zinc-400 mt-1 max-w-sm mx-auto leading-relaxed">
+                      Tài khoản của bạn hiện chưa sở hữu vé sự kiện nào trên TicketShield. Bạn có thể nhập mã vé Ban tổ chức cấp ở ô bên ngoài.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setIsWalletModalOpen(false)}
+                    className="px-4 py-2 bg-white/10 hover:bg-white/15 text-white text-xs font-semibold rounded-xl transition-all cursor-pointer"
+                  >
+                    Đã hiểu, quay lại
+                  </button>
+                </div>
+              ) : (
                 <>
                   {/* Search Bar */}
                   <div className="flex items-center gap-2.5 bg-[#05070A] border border-white/10 rounded-xl px-3 h-10 focus-within:border-[#FF5A36]/60 transition-colors">
@@ -840,7 +749,7 @@ export const Step1EnterTicketCode: React.FC<Step1EnterTicketCodeProps> = ({
                     )}
                   </div>
 
-                  {/* Ticket List from Wallet */}
+                  {/* Danh sách vé */}
                   <div className="space-y-2 pt-1">
                     {(() => {
                       const filtered = eligibleTickets.filter((t) => {
@@ -856,19 +765,17 @@ export const Step1EnterTicketCode: React.FC<Step1EnterTicketCodeProps> = ({
                       if (filtered.length === 0) {
                         return (
                           <div className="py-8 text-center text-xs text-zinc-500">
-                            {ticketSearch
-                              ? 'Không tìm thấy vé phù hợp.'
-                              : 'Bạn chưa có vé nào hợp lệ trong ví.'}
+                            Không tìm thấy vé phù hợp với từ khóa.
                           </div>
                         );
                       }
 
                       return filtered.map((t) => {
                         const code = purchasedPassCode(t).toUpperCase();
-                        const isCurrentTarget = pickerMode === 'replace' && targetReplaceCode === code;
+                        const isCurrentTarget = walletModalMode === 'replace' && targetReplaceCode === code;
                         const isOtherSelectedInMain =
-                          pickerMode === 'replace' && selectedCodes.includes(code) && code !== targetReplaceCode;
-                        const isCheckedInAdd = pickerMode === 'add' && tempSelectedCodes.includes(code);
+                          walletModalMode === 'replace' && selectedCodes.includes(code) && code !== targetReplaceCode;
+                        const isCheckedInAdd = walletModalMode === 'add' && tempSelectedWalletCodes.includes(code);
 
                         // Ràng buộc cùng sự kiện
                         const isDiffEvent = Boolean(activeEventId && t.eventId && t.eventId !== activeEventId);
@@ -902,7 +809,7 @@ export const Step1EnterTicketCode: React.FC<Step1EnterTicketCodeProps> = ({
                                 }`}
                               >
                                 {isCheckedInAdd && <Check className="w-3.5 h-3.5 stroke-[3]" />}
-                                {isCurrentTarget && <RefreshCw className="w-3 h-3 text-white" />}
+                                {isCurrentTarget && <Check className="w-3.5 h-3.5 text-white" />}
                               </div>
 
                               <div className="min-w-0">
@@ -934,7 +841,7 @@ export const Step1EnterTicketCode: React.FC<Step1EnterTicketCodeProps> = ({
                             </div>
 
                             <div className="shrink-0 text-right">
-                              {pickerMode === 'replace' ? (
+                              {walletModalMode === 'replace' ? (
                                 isCurrentTarget ? (
                                   <span className="text-[11px] font-mono text-[#FF5A36] font-bold">Vé đang sửa</span>
                                 ) : isOtherSelectedInMain ? (
@@ -959,51 +866,20 @@ export const Step1EnterTicketCode: React.FC<Step1EnterTicketCodeProps> = ({
                     })()}
                   </div>
                 </>
-              ) : (
-                /* Tab Nhập mã thủ công */
-                <div className="space-y-4 py-2">
-                  <div className="space-y-1.5">
-                    <input
-                      type="text"
-                      value={manualModalInputCode}
-                      onChange={(e) => {
-                        setManualModalInputCode(e.target.value.toUpperCase());
-                        setModalNotice('');
-                      }}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') {
-                          e.preventDefault();
-                          handleConfirmManualModal();
-                        }
-                      }}
-                      placeholder="Nhập mã vé (VD: ATSH-VIP-888)..."
-                      className="w-full h-12 bg-[#05070A] border border-white/15 focus:border-[#FF5A36] rounded-xl px-4 text-sm font-mono font-bold text-white outline-none tracking-wider placeholder-zinc-500 shadow-inner"
-                      autoFocus
-                    />
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={handleConfirmManualModal}
-                    className="w-full h-12 bg-[#FF5A36] hover:bg-[#FF7252] text-white font-bold text-xs uppercase tracking-wider rounded-xl transition-all shadow-md shadow-[#FF5A36]/30 cursor-pointer"
-                  >
-                    {pickerMode === 'replace' ? 'Xác nhận đổi' : 'Thêm mã vé'}
-                  </button>
-                </div>
               )}
             </div>
 
-            {/* Modal Footer (Chỉ cho Tab Wallet ở chế độ Add) */}
-            {activeTab === 'wallet' && pickerMode === 'add' && (
+            {/* Modal Footer (Chỉ cho chế độ Add khi có vé) */}
+            {eligibleTickets.length > 0 && walletModalMode === 'add' && (
               <div className="p-4 bg-[#05070A] border-t border-white/10 flex items-center justify-between gap-3">
                 <div className="text-xs text-zinc-400">
-                  Đã chọn: <span className="text-[#FF5A36] font-bold font-mono">{tempSelectedCodes.length}</span>/
+                  Đã chọn: <span className="text-[#FF5A36] font-bold font-mono">{tempSelectedWalletCodes.length}</span>/
                   {MAX_BUNDLE_TICKETS} vé
                 </div>
                 <div className="flex items-center gap-2">
                   <button
                     type="button"
-                    onClick={() => setIsPickerModalOpen(false)}
+                    onClick={() => setIsWalletModalOpen(false)}
                     className="px-3.5 py-2 bg-white/10 hover:bg-white/15 text-white rounded-xl text-xs font-semibold transition-all cursor-pointer"
                   >
                     Hủy
@@ -1013,7 +889,7 @@ export const Step1EnterTicketCode: React.FC<Step1EnterTicketCodeProps> = ({
                     onClick={handleConfirmWalletSelection}
                     className="px-4 py-2 bg-[#FF5A36] hover:bg-[#FF7252] text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-[#FF5A36]/20 cursor-pointer"
                   >
-                    Xác nhận thêm ({tempSelectedCodes.length})
+                    Xác nhận chọn ({tempSelectedWalletCodes.length})
                   </button>
                 </div>
               </div>
