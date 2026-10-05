@@ -65,12 +65,12 @@ export const Step5ReviewPublish: React.FC<Step5ReviewPublishProps> = ({
   const totalSellerFee = Math.max(Math.round(totalResalePrice * 0.03), 5000 * ticketCount);
   const totalYouReceive = Math.max(totalResalePrice - totalSellerFee, 0);
 
-  // Kiểm tra xem có vé nào bị giảm sâu > 50% không
+  // Kiểm tra xem có vé nào bị giảm sâu >= 70% không
   const hasDeepDiscount = Boolean(
-    tickets && tickets.some((t) => t.resalePrice > 0 && (t.originalPrice - t.resalePrice) / t.originalPrice >= 0.5)
+    tickets && tickets.some((t) => t.resalePrice > 0 && (t.originalPrice - t.resalePrice) / t.originalPrice >= 0.7)
   );
 
-  // Nếu có vé bị giảm sâu > 50%: Tự động bung dropdown; nếu không: mặc định thu gọn
+  // Nếu có vé bị giảm sâu >= 70%: Tự động bung dropdown; nếu không: mặc định thu gọn
   const [expandPriceDetails, setExpandPriceDetails] = useState<boolean>(hasDeepDiscount);
   const [expandFeeDetails, setExpandFeeDetails] = useState<boolean>(false);
 
@@ -185,7 +185,7 @@ export const Step5ReviewPublish: React.FC<Step5ReviewPublishProps> = ({
                         {tickets.map((t, idx) => {
                           const diff = t.originalPrice - t.resalePrice;
                           const percent = Math.round((Math.abs(diff) / t.originalPrice) * 100);
-                          const isDeepDiscount = t.resalePrice > 0 && diff / t.originalPrice >= 0.5;
+                          const isDeepDiscount = t.resalePrice > 0 && diff / t.originalPrice >= 0.7;
 
                           return (
                             <div key={t.code} className="space-y-1">

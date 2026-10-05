@@ -65,9 +65,9 @@ export const Step4SetPrice: React.FC<Step4SetPriceProps> = ({
   }, [code, resalePrice]);
 
   const updateCurrentPrice = (val: number) => {
-    const clamped = Math.max(0, Math.min(val, priceCeiling));
-    onUpdateTicketPrice(code, clamped);
-    setPriceInputText(clamped > 0 ? clamped.toLocaleString('vi-VN') : '');
+    const raw = Math.max(0, val);
+    onUpdateTicketPrice(code, raw);
+    setPriceInputText(raw > 0 ? raw.toLocaleString('vi-VN') : '');
   };
 
   const handlePriceInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -111,11 +111,8 @@ export const Step4SetPrice: React.FC<Step4SetPriceProps> = ({
   };
 
   const handlePriceInputBlur = () => {
-    if (resalePrice <= 0) {
-      updateCurrentPrice(faceValue > 0 ? faceValue : 1000);
-    } else if (resalePrice > priceCeiling) {
-      updateCurrentPrice(priceCeiling);
-    }
+    // Không tự động ép giá về giá trần hoặc giá gốc khi blur ra ngoài.
+    // Nếu giá <= 0 hoặc vượt trần (> priceCeiling), giữ nguyên để hiển thị cảnh báo đỏ và vô hiệu hóa nút Tiếp tục.
   };
 
   const handleStepPrice = (delta: number) => {
@@ -153,7 +150,7 @@ export const Step4SetPrice: React.FC<Step4SetPriceProps> = ({
   // =========================================================================
   const currentDiff = faceValue - resalePrice;
   const currentDiscountPercent = faceValue > 0 ? Math.round((currentDiff / faceValue) * 100) : 0;
-  const isCurrentDeepDiscount = resalePrice > 0 && currentDiff / faceValue >= 0.5;
+  const isCurrentDeepDiscount = resalePrice > 0 && currentDiff / faceValue >= 0.7;
 
   return (
     <div key="step-4-pricing" className="animate-fade-in-up max-w-xl mx-auto space-y-4 pt-1">
@@ -190,7 +187,7 @@ export const Step4SetPrice: React.FC<Step4SetPriceProps> = ({
                 <div className="flex items-center justify-between text-[11px] font-mono">
                   <span className="font-bold text-white">Vé #{idx + 1}</span>
                   <span className={`text-[10px] font-bold ${isExceeded ? 'text-rose-400' : hasPrice ? 'text-[#FF5A36]' : 'text-zinc-500'}`}>
-                    {hasPrice ? `${(t.resalePrice / 1000).toLocaleString('vi-VN')}k` : 'Chưa đặt'}
+                    {isExceeded ? 'Vượt trần' : hasPrice ? `${(t.resalePrice / 1000).toLocaleString('vi-VN')}k` : 'Chưa đặt'}
                   </span>
                 </div>
                 <div className="text-[10px] text-zinc-500 font-mono truncate">{t.code}</div>

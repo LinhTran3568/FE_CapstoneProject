@@ -261,16 +261,12 @@ const DRAFT_STORAGE_KEY = 'ticketshield_sell_draft';
 
 
   const handleUpdateTicketPrice = useCallback((code: string, newPrice: number) => {
-    const targetSession = sessions.find((s) => s.code === code);
-    const ceiling = targetSession?.priceCeiling && targetSession.priceCeiling > 0
-      ? targetSession.priceCeiling
-      : Number.MAX_SAFE_INTEGER;
-    const clamped = Math.max(0, Math.min(newPrice, ceiling));
+    // Lưu đúng giá trị người bán nhập (không ép clamp về ceiling) để hiển thị lỗi và kiểm tra hợp lệ
     setTicketPrices((prev) => ({
       ...prev,
-      [code]: clamped,
+      [code]: Math.max(0, newPrice),
     }));
-  }, [sessions]);
+  }, []);
 
   const ticketsPriceList = useMemo<TicketPriceItem[]>(() => {
     return sessions.map((s) => {
@@ -1034,7 +1030,11 @@ const DRAFT_STORAGE_KEY = 'ticketshield_sell_draft';
             activeTicketIndex={activeTicketIndex}
             setActiveTicketIndex={setActiveTicketIndex}
             onUpdateTicketPrice={handleUpdateTicketPrice}
-            onContinue={() => setCurrentStep(5)}
+            onContinue={() => {
+              const allValid = ticketsPriceList.every((t) => t.resalePrice > 0 && t.resalePrice <= t.priceCeiling);
+              if (!allValid) return;
+              setCurrentStep(5);
+            }}
             onCancel={handleAbandonSession}
             isCancelling={isCancellingSession}
             saleType={saleType}
