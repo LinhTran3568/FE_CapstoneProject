@@ -13,12 +13,16 @@ export interface Step3ConfirmDetailsProps {
   tickets: Step3Ticket[];
   markupPercent: number;
   onContinue: () => void;
+  eventName?: string;
+  eventVenue?: string;
 }
 
 export const Step3ConfirmDetails: React.FC<Step3ConfirmDetailsProps> = ({
   tickets,
   markupPercent,
   onContinue,
+  eventName = 'Official Concert Event',
+  eventVenue = 'Official Event Venue',
 }) => {
   const totalFaceValue = tickets.reduce((sum, t) => sum + t.originalPrice, 0);
   const totalCeiling = tickets.reduce((sum, t) => sum + t.priceCeiling, 0);
@@ -69,7 +73,7 @@ export const Step3ConfirmDetails: React.FC<Step3ConfirmDetailsProps> = ({
                   OFFICIAL DIGITAL TICKET PASS
                 </span>
                 <h3 className="text-2xl font-extrabold font-display text-white group-hover:text-[#FF7252] transition-colors duration-300 leading-tight">
-                  Anh Trai Say Hi Concert 2026
+                  {eventName}
                 </h3>
               </div>
 
@@ -99,7 +103,7 @@ export const Step3ConfirmDetails: React.FC<Step3ConfirmDetailsProps> = ({
                 <span className="text-[10px] text-[#8F96A3] font-mono font-bold uppercase tracking-[0.08em] block">
                   VENUE
                 </span>
-                <p className="font-bold text-white text-sm">Van Hanh Mall Stadium, TP.HCM</p>
+                <p className="font-bold text-white text-sm">{eventVenue}</p>
               </div>
             </div>
 

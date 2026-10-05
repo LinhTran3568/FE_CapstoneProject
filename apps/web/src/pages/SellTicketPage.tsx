@@ -370,6 +370,19 @@ const DRAFT_STORAGE_KEY = 'ticketshield_sell_draft';
       }
     }
 
+    if (codes.length > 1) {
+      const matched = codes
+        .map((c) => allPurchasedTickets.find((t) => purchasedPassCode(t).toUpperCase() === c))
+        .filter(Boolean);
+      if (matched.length > 1) {
+        const firstEventId = matched[0]?.eventId;
+        if (firstEventId && matched.some((m) => m?.eventId && m.eventId !== firstEventId)) {
+          showToast('Tất cả các vé trong gói bán phải thuộc cùng một sự kiện!', 'error');
+          return;
+        }
+      }
+    }
+
     let created: TicketSession[] = [];
 
     try {
@@ -931,6 +944,8 @@ const DRAFT_STORAGE_KEY = 'ticketshield_sell_draft';
               seatZone: allPurchasedTickets.find((t) => purchasedPassCode(t).toUpperCase() === s.code.toUpperCase())?.seatZone,
             }))}
             markupPercent={markupPercent}
+            eventName={allPurchasedTickets.find((t) => purchasedPassCode(t).toUpperCase() === sessions[0]?.code?.toUpperCase())?.eventName}
+            eventVenue={allPurchasedTickets.find((t) => purchasedPassCode(t).toUpperCase() === sessions[0]?.code?.toUpperCase())?.eventVenue}
             onContinue={() => setCurrentStep(4)}
           />
         )}
@@ -955,6 +970,8 @@ const DRAFT_STORAGE_KEY = 'ticketshield_sell_draft';
             resalePrice={ticketPrices[sessions[0]?.code] ?? sessions[0]?.originalPrice ?? 0}
             bankAccounts={bankAccounts}
             seatZone={allPurchasedTickets.find((t) => purchasedPassCode(t).toUpperCase() === sessions[0]?.code?.toUpperCase())?.seatZone}
+            eventName={allPurchasedTickets.find((t) => purchasedPassCode(t).toUpperCase() === sessions[0]?.code?.toUpperCase())?.eventName}
+            eventVenue={allPurchasedTickets.find((t) => purchasedPassCode(t).toUpperCase() === sessions[0]?.code?.toUpperCase())?.eventVenue}
             isPrivateListing={isPrivateListing}
             setIsPrivateListing={setIsPrivateListing}
             agreedTerms={agreedTerms}

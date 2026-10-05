@@ -28,6 +28,8 @@ export interface Step5ReviewPublishProps {
   activeFeeTooltip: 'seller' | 'buyer' | null;
   setActiveFeeTooltip: React.Dispatch<React.SetStateAction<'seller' | 'buyer' | null>>;
   onManageBankAccounts: () => void;
+  eventName?: string;
+  eventVenue?: string;
 }
 
 export const Step5ReviewPublish: React.FC<Step5ReviewPublishProps> = ({
@@ -46,6 +48,8 @@ export const Step5ReviewPublish: React.FC<Step5ReviewPublishProps> = ({
   activeFeeTooltip,
   setActiveFeeTooltip,
   onManageBankAccounts,
+  eventName = 'Official Concert Event',
+  eventVenue = 'Official Event Venue',
 }) => {
   const ticketCount = Math.max(tickets?.length || ticketCodes.length, 1);
   const totalResalePrice = tickets && tickets.length > 0
@@ -71,7 +75,7 @@ export const Step5ReviewPublish: React.FC<Step5ReviewPublishProps> = ({
         <div className="flex items-start justify-between gap-4 pb-4 border-b border-gray-800/80">
           <div className="space-y-1.5">
             <h3 className="text-lg font-bold text-white tracking-wide">
-              Anh Trai Say Hi Concert 2026
+              {eventName}
             </h3>
             <div className="flex items-center gap-2.5 flex-wrap text-xs text-gray-400 font-mono">
               <div className="flex items-center gap-1.5">
