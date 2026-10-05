@@ -51,8 +51,8 @@ export const Step5ReviewPublish: React.FC<Step5ReviewPublishProps> = ({
   activeFeeTooltip,
   setActiveFeeTooltip,
   onManageBankAccounts,
-  eventName = 'Official Concert Event',
-  eventVenue = 'Official Event Venue',
+  eventName = 'Anh Trai Say Hi - Concert 2024',
+  eventVenue = 'Sân vận động Quốc gia Mỹ Đình, Hà Nội',
   saleType = 'combo',
   setSaleType,
   onEditTicketPrice,
@@ -96,7 +96,7 @@ export const Step5ReviewPublish: React.FC<Step5ReviewPublishProps> = ({
             <div className="flex items-center gap-2.5 flex-wrap text-xs text-gray-400 font-mono">
               <div className="flex items-center gap-1.5">
                 <Ticket className="w-3.5 h-3.5 text-cyan-400" />
-                <span>{ticketCount > 1 ? `Mã vé (${ticketCount} vé):` : 'Mã vé:'}</span>
+                <span>{ticketCount > 1 ? `Your tickets (${ticketCount})` : 'Your ticket'}</span>
               </div>
               {seatZone && (
                 <SeatAdjacencyBadge
@@ -121,39 +121,33 @@ export const Step5ReviewPublish: React.FC<Step5ReviewPublishProps> = ({
               ))}
             </div>
           </div>
-          <span className="px-2.5 py-1 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[11px] font-semibold font-mono rounded-full shrink-0 uppercase">
-            VERIFIED
+          <span className="px-2.5 py-1 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[11px] font-semibold font-mono rounded-full shrink-0">
+            Verified
           </span>
         </div>
 
-        {/* 2. BẢNG TÍNH GIÁ & DOANH THU (PRICE BREAKDOWN) - HỖ TRỢ DROPDOWN THÔNG MINH */}
+        {/* 2. BẢNG TÍNH GIÁ & DOANH THU (PRICE BREAKDOWN) */}
         <div className="space-y-3 pb-4 border-b border-gray-800/80">
           <div className="flex items-center justify-between">
             <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider block font-mono">
-              PRICE BREAKDOWN
+              Your prices
             </span>
-            {hasDeepDiscount && (
-              <span className="text-[10px] font-mono text-amber-300 bg-amber-500/15 border border-amber-500/30 px-2 py-0.5 rounded-full inline-flex items-center gap-1 font-semibold">
-                <AlertTriangle className="w-3 h-3 text-amber-300" />
-                Có vé giảm sâu hơn 50%
-              </span>
-            )}
           </div>
 
           <div className="space-y-2.5 text-xs font-mono">
-            {/* DÒNG 1: Resale Price (Tổng giá bán) - Hỗ trợ bung/thu */}
+            {/* DÒNG 1: Resale Price - Hỗ trợ bung/thu */}
             <div className="space-y-1">
               <div
                 onClick={() => tickets && tickets.length > 1 && setExpandPriceDetails(!expandPriceDetails)}
                 className={`flex justify-between items-center text-gray-300 select-none py-1 rounded transition-colors ${
                   tickets && tickets.length > 1 ? 'cursor-pointer hover:text-white' : ''
                 }`}
-                title={tickets && tickets.length > 1 ? (expandPriceDetails ? 'Thu gọn danh sách vé' : 'Bung xem chi tiết từng vé') : undefined}
+                title={tickets && tickets.length > 1 ? (expandPriceDetails ? 'Collapse ticket details' : 'Expand ticket details') : undefined}
               >
                 <div className="flex items-center gap-1.5">
-                  <span className="font-semibold text-zinc-200">Resale Price (Tổng giá bán)</span>
+                  <span className="font-semibold text-zinc-200">Resale Price</span>
                   {hasDeepDiscount && (
-                    <span className="text-[11px] text-amber-400 font-bold" title="Có vé giảm hơn 50% so với giá gốc">⚠️</span>
+                    <AlertTriangle className="w-3.5 h-3.5 text-amber-400 shrink-0" />
                   )}
                   {tickets && tickets.length > 1 && (
                     <button
@@ -163,7 +157,7 @@ export const Step5ReviewPublish: React.FC<Step5ReviewPublishProps> = ({
                         setExpandPriceDetails(!expandPriceDetails);
                       }}
                       className="p-0.5 rounded hover:bg-white/10 text-zinc-400 hover:text-white transition-colors cursor-pointer"
-                      title={expandPriceDetails ? 'Thu gọn' : 'Bung xem chi tiết từng vé'}
+                      title={expandPriceDetails ? 'Collapse' : 'Expand'}
                     >
                       {expandPriceDetails ? (
                         <ChevronUp className="w-3.5 h-3.5 text-zinc-300" />
@@ -181,7 +175,7 @@ export const Step5ReviewPublish: React.FC<Step5ReviewPublishProps> = ({
                 </div>
               </div>
 
-              {/* CÁC DÒNG VÉ CON VIỀN CAM DỌC - CHÚ THÍCH CỤ THỂ TỪNG VÉ KÈM INLINE WARNING NẾU GIẢM SÂU */}
+              {/* CÁC DÒNG VÉ CON VIỀN CAM DỌC */}
               {expandPriceDetails && tickets && tickets.length > 1 && (
                 <div className="space-y-2.5 pl-3 py-2 border-l-2 border-[#FF5A36] bg-white/[0.015] rounded-r-xl my-1 animate-in fade-in duration-150">
                   {tickets.map((t, idx) => {
@@ -192,34 +186,42 @@ export const Step5ReviewPublish: React.FC<Step5ReviewPublishProps> = ({
                     return (
                       <div key={t.code} className="space-y-1">
                         <div className="flex items-center justify-between gap-2 text-xs">
-                          {/* Trái: Vé #1 · VIP (ATSH-VIP-6578) */}
+                          {/* Trái: Ticket 1 · ATSH-VIP-6578 · 15% off */}
                           <div className="flex items-center gap-1.5 min-w-0">
-                            <span className="text-zinc-400 font-semibold shrink-0">Vé #{idx + 1}</span>
-                            {t.seatZone ? (
+                            <span className="text-zinc-300 font-medium shrink-0">Ticket {idx + 1}</span>
+                            <span className="text-zinc-600">·</span>
+                            <span className="text-zinc-400 font-mono text-[11px] shrink-0">{t.code}</span>
+                            {t.seatZone && (
                               <>
                                 <span className="text-zinc-600">·</span>
-                                <span className="text-zinc-200 font-medium truncate">{t.seatZone}</span>
+                                <span className="text-zinc-400 text-[11px] truncate">{t.seatZone}</span>
                               </>
-                            ) : null}
-                            <span className="text-zinc-500 font-mono text-[11px] shrink-0">({t.code})</span>
+                            )}
 
                             {diff > 0 && (
-                              <span className={`text-[9px] font-bold px-1.5 py-0.2 rounded border shrink-0 ${
-                                isDeepDiscount
-                                  ? 'text-amber-300 bg-amber-500/15 border-amber-500/30 font-mono'
-                                  : 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20'
-                              }`}>
-                                {isDeepDiscount ? `⚠️ -${percent}%` : `-${percent}%`}
-                              </span>
+                              <>
+                                <span className="text-zinc-600">·</span>
+                                <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded border shrink-0 flex items-center gap-1 ${
+                                  isDeepDiscount
+                                    ? 'text-amber-300 bg-amber-500/15 border-amber-500/30 font-mono'
+                                    : 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20'
+                                }`}>
+                                  {isDeepDiscount && <AlertTriangle className="w-2.5 h-2.5 text-amber-300 shrink-0" />}
+                                  <span>{percent >= 100 ? '99.9%' : `${percent}%`} off</span>
+                                </span>
+                              </>
                             )}
                             {diff < 0 && (
-                              <span className="text-[9px] font-bold text-amber-400 bg-amber-500/10 px-1.5 py-0.2 rounded border border-amber-500/20 shrink-0">
-                                +{percent}%
-                              </span>
+                              <>
+                                <span className="text-zinc-600">·</span>
+                                <span className="text-[10px] font-bold text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded border border-amber-500/20 shrink-0">
+                                  +{percent}%
+                                </span>
+                              </>
                             )}
                           </div>
 
-                          {/* Phải: Giá bán của vé + Nút Sửa */}
+                          {/* Phải: Giá bán của vé + Nút Edit */}
                           <div className="flex items-center gap-2.5 shrink-0">
                             <div className="text-right">
                               <span className="font-bold text-zinc-100 tabular-nums">
@@ -232,9 +234,9 @@ export const Step5ReviewPublish: React.FC<Step5ReviewPublishProps> = ({
                                 type="button"
                                 onClick={() => onEditTicketPrice(idx)}
                                 className="text-[11px] text-[#FF5A36] hover:text-[#FF7252] hover:underline px-1 py-0.5 rounded cursor-pointer font-sans"
-                                title="Quay lại Bước 4 để chỉnh giá vé này"
+                                title="Edit price for this ticket"
                               >
-                                Sửa
+                                Edit
                               </button>
                             )}
                           </div>
@@ -242,8 +244,9 @@ export const Step5ReviewPublish: React.FC<Step5ReviewPublishProps> = ({
 
                         {/* Inline Warning thiết kế ngay dưới vé đó */}
                         {isDeepDiscount && (
-                          <div className="text-[11px] text-amber-300 font-mono flex items-center gap-1.5 pl-1 py-0.5">
-                            <span>⚠️ Vé #{idx + 1} ({t.code}) giảm hơn 50% giá gốc — kiểm tra lại nếu nhầm giá.</span>
+                          <div className="text-[11px] text-amber-300/90 font-mono flex items-center gap-1.5 pl-1 py-0.5">
+                            <AlertTriangle className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                            <span>Ticket {idx + 1} is priced way below face value. Double-check that's what you meant.</span>
                           </div>
                         )}
                       </div>
@@ -330,9 +333,9 @@ export const Step5ReviewPublish: React.FC<Step5ReviewPublishProps> = ({
               )}
             </div>
 
-            {/* DÒNG 3: Bạn thực nhận */}
+            {/* DÒNG 3: You'll receive */}
             <div className="flex justify-between items-baseline pt-2 border-t border-white/10 text-sm font-bold">
-              <span className="text-white">Bạn thực nhận:</span>
+              <span className="text-white">You'll receive</span>
               <div className="text-right">
                 <span className="text-base sm:text-lg font-extrabold text-emerald-400 font-display tabular-nums tracking-tight">
                   {totalYouReceive.toLocaleString('vi-VN')}
@@ -343,18 +346,18 @@ export const Step5ReviewPublish: React.FC<Step5ReviewPublishProps> = ({
           </div>
         </div>
 
-        {/* 3. THIẾT LẬP TIN ĐĂNG (LISTING SETTINGS) - GOM CHẾ ĐỘ BÁN & PHẠM VI HIỂN THỊ */}
+        {/* 3. THIẾT LẬP TIN ĐĂNG (How to sell) */}
         <div className="bg-[#05070A] border border-white/10 p-4 sm:p-5 rounded-2xl space-y-4 text-left">
           <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider block font-mono">
-            LISTING SETTINGS
+            How to sell
           </span>
 
           <div className="space-y-4">
-            {/* Hàng 1: Chế độ bán gói (chỉ hiện khi combo >= 2 vé) */}
+            {/* Hàng 1: Sell as (chỉ hiện khi combo >= 2 vé) */}
             {ticketCount > 1 && (
               <div className="space-y-2">
                 <div className="text-xs font-mono text-zinc-300 font-medium">
-                  Hình thức bán ({ticketCount} vé):
+                  Sell as
                 </div>
                 <div className="grid grid-cols-2 gap-2.5">
                   <button
@@ -370,8 +373,10 @@ export const Step5ReviewPublish: React.FC<Step5ReviewPublishProps> = ({
                       <Layers className="w-4 h-4" />
                     </div>
                     <div className="min-w-0">
-                      <div className="font-semibold text-xs text-white">Bán trọn gói combo</div>
-                      <div className="text-[10px] text-zinc-400 truncate">Buộc mua cả {ticketCount} vé</div>
+                      <div className="font-semibold text-xs text-white">Bundle</div>
+                      <div className="text-[10px] text-zinc-400 truncate">
+                        {ticketCount > 2 ? `Buyer takes all ${ticketCount} tickets` : 'Buyer takes both tickets'}
+                      </div>
                     </div>
                   </button>
 
@@ -388,23 +393,20 @@ export const Step5ReviewPublish: React.FC<Step5ReviewPublishProps> = ({
                       <Split className="w-4 h-4" />
                     </div>
                     <div className="min-w-0">
-                      <div className="font-semibold text-xs text-white">Cho phép mua lẻ</div>
-                      <div className="text-[10px] text-zinc-400 truncate">Mua 1 hoặc nhiều vé</div>
+                      <div className="font-semibold text-xs text-white">Separately</div>
+                      <div className="text-[10px] text-zinc-400 truncate">
+                        {ticketCount > 2 ? 'Buyer can take one or more' : 'Buyer can take one or both'}
+                      </div>
                     </div>
                   </button>
                 </div>
-                <p className="text-[11px] text-zinc-400 leading-relaxed font-mono px-0.5">
-                  {saleType === 'combo'
-                    ? `Người mua bắt buộc mua trọn bộ ${ticketCount} vé trong một giao dịch.`
-                    : 'Người mua có thể chọn mua 1 hoặc nhiều vé tùy nhu cầu.'}
-                </p>
               </div>
             )}
 
-            {/* Hàng 2: Phạm vi hiển thị (Visibility) */}
+            {/* Hàng 2: Who can see it */}
             <div className={`space-y-2 ${ticketCount > 1 ? 'pt-3 border-t border-white/5' : ''}`}>
               <div className="text-xs font-mono text-zinc-300 font-medium">
-                Phạm vi hiển thị:
+                Who can see it
               </div>
               <div className="grid grid-cols-2 gap-2.5">
                 <button
@@ -420,8 +422,8 @@ export const Step5ReviewPublish: React.FC<Step5ReviewPublishProps> = ({
                     <Globe className="w-4 h-4" />
                   </div>
                   <div className="min-w-0">
-                    <div className="font-semibold text-xs text-white">Public (Công khai)</div>
-                    <div className="text-[10px] text-zinc-400 truncate">Hiện trên Marketplace</div>
+                    <div className="font-semibold text-xs text-white">Public</div>
+                    <div className="text-[10px] text-zinc-400 truncate">Shown on the Marketplace</div>
                   </div>
                 </button>
 
@@ -438,15 +440,15 @@ export const Step5ReviewPublish: React.FC<Step5ReviewPublishProps> = ({
                     <Lock className="w-4 h-4" />
                   </div>
                   <div className="min-w-0">
-                    <div className="font-semibold text-xs text-white">Private (Riêng tư)</div>
-                    <div className="text-[10px] text-zinc-400 truncate">Chỉ mua qua link ẩn</div>
+                    <div className="font-semibold text-xs text-white">Private</div>
+                    <div className="text-[10px] text-zinc-400 truncate">Only people with your link</div>
                   </div>
                 </button>
               </div>
               <p className="text-[11px] text-zinc-400 px-0.5">
                 {!isPrivateListing
-                  ? 'Niêm yết công khai trên Marketplace. Bất kỳ ai cũng có thể tìm kiếm và mua vé.'
-                  : 'Ẩn khỏi Marketplace. Chỉ người có liên kết bí mật hoặc mã QR mới mua được.'}
+                  ? 'Anyone can find and buy these tickets on the Marketplace.'
+                  : 'Only people you share the link with can see and buy these tickets.'}
               </p>
             </div>
           </div>
@@ -461,11 +463,13 @@ export const Step5ReviewPublish: React.FC<Step5ReviewPublishProps> = ({
             className="rounded border-gray-700 bg-black text-[#FF5A36] focus:ring-0 w-4 h-4 cursor-pointer"
           />
           <span className="group-hover:text-white transition-colors">
-            I certify that I am the authentic owner of {ticketCount > 1 ? 'all ' + ticketCount + ' tickets' : 'this ticket'} and agree to list on TicketShield Marketplace
+            {ticketCount > 1
+              ? "I own these tickets and I'm allowed to resell them on TicketShield."
+              : "I own this ticket and I'm allowed to resell it on TicketShield."}
           </span>
         </label>
 
-        {/* 7. Publish Button (Mở Confirm Modal trước khi xuất bản) */}
+        {/* 7. Publish Button */}
         <button
           type="button"
           onClick={() => setIsConfirmModalOpen(true)}
@@ -475,16 +479,10 @@ export const Step5ReviewPublish: React.FC<Step5ReviewPublishProps> = ({
           {isPublishing ? (
             <>
               <Loader2 className="w-4 h-4 animate-spin" />
-              <span>ĐANG XUẤT BẢN...</span>
+              <span>Publishing...</span>
             </>
           ) : (
-            <span>
-              {ticketCount > 1
-                ? saleType === 'combo'
-                  ? `XUẤT BẢN GÓI COMBO (${ticketCount} VÉ)`
-                  : `XUẤT BẢN BÁN LẺ (${ticketCount} VÉ)`
-                : 'XUẤT BẢN TIN ĐĂNG BÁN'}
-            </span>
+            <span>Publish</span>
           )}
         </button>
       </div>
@@ -503,12 +501,12 @@ export const Step5ReviewPublish: React.FC<Step5ReviewPublishProps> = ({
             <div className="flex items-start justify-between gap-3 border-b border-white/10 pb-3">
               <div className="space-y-1">
                 <h3 className="text-lg font-bold font-display text-white">
-                  Xác nhận xuất bản tin đăng
+                  Confirm &amp; Publish Listing
                 </h3>
                 <p className="text-xs text-zinc-400 leading-relaxed font-sans">
                   {isPrivateListing
-                    ? 'Tin đăng bán vé sẽ được kích hoạt ở chế độ liên kết riêng tư.'
-                    : 'Tin đăng bán vé sẽ được niêm yết công khai trên sàn TicketShield Marketplace.'}
+                    ? 'Your ticket listing will be created with a secret link.'
+                    : 'Your ticket listing will be published publicly on TicketShield Marketplace.'}
                 </p>
               </div>
               <button
@@ -523,25 +521,25 @@ export const Step5ReviewPublish: React.FC<Step5ReviewPublishProps> = ({
             {/* Nội dung tóm tắt chi tiết */}
             <div className="p-3.5 bg-[#05070A] border border-white/10 rounded-xl space-y-2 text-xs font-mono">
               <div className="flex justify-between items-start gap-2">
-                <span className="text-zinc-400">Sự kiện:</span>
+                <span className="text-zinc-400">Event:</span>
                 <span className="text-white font-medium text-right truncate max-w-[220px] font-sans">
                   {eventName}
                 </span>
               </div>
 
               <div className="flex justify-between items-center gap-2">
-                <span className="text-zinc-400">Hình thức bán:</span>
+                <span className="text-zinc-400">Sell as:</span>
                 <span className="text-zinc-200 font-semibold text-right">
                   {ticketCount > 1
                     ? saleType === 'combo'
-                      ? `${ticketCount} vé trong combo: Trọn gói (Buộc mua cả cặp)`
-                      : `${ticketCount} vé bán lẻ riêng biệt`
-                    : '1 vé đơn lẻ'}
+                      ? 'Bundle (Buyer takes both tickets)'
+                      : 'Separately (Buyer can take one or both)'
+                    : 'Single ticket'}
                 </span>
               </div>
 
               <div className="flex justify-between items-center gap-2">
-                <span className="text-zinc-400">Mã vé:</span>
+                <span className="text-zinc-400">Ticket codes:</span>
                 <span className="text-zinc-300 truncate max-w-[200px]">
                   {ticketCodes.join(', ')}
                 </span>
@@ -549,7 +547,7 @@ export const Step5ReviewPublish: React.FC<Step5ReviewPublishProps> = ({
 
               {seatZone && (
                 <div className="flex justify-between items-center gap-2">
-                  <span className="text-zinc-400">Khu vực / Chỗ ngồi:</span>
+                  <span className="text-zinc-400">Seat / Zone:</span>
                   <span className="text-cyan-300 truncate max-w-[200px]">
                     {seatZone}
                   </span>
@@ -557,36 +555,36 @@ export const Step5ReviewPublish: React.FC<Step5ReviewPublishProps> = ({
               )}
 
               <div className="flex justify-between items-center gap-2 pt-1.5 border-t border-white/5">
-                <span className="text-zinc-400">Tổng giá niêm yết:</span>
+                <span className="text-zinc-400">Listing price:</span>
                 <span className="text-[#FF5A36] font-bold">
                   {totalResalePrice.toLocaleString('vi-VN')} VND
                 </span>
               </div>
 
               <div className="flex justify-between items-center gap-2">
-                <span className="text-zinc-400">Thực nhận (sau phí 3%):</span>
+                <span className="text-zinc-400">You'll receive (after 3% fee):</span>
                 <span className="text-emerald-400 font-bold">
                   {totalYouReceive.toLocaleString('vi-VN')} VND
                 </span>
               </div>
 
               <div className="flex justify-between items-center gap-2 pt-1.5 border-t border-white/5">
-                <span className="text-zinc-400">Tài khoản nhận tiền:</span>
+                <span className="text-zinc-400">Payout bank account:</span>
                 <span className="text-zinc-200 text-right truncate max-w-[200px]">
                   {bankAccounts.length > 0
                     ? `${bankAccounts[0].bankCode} • ${bankAccounts[0].bankAccountNumber}`
-                    : 'Chưa cập nhật (Bổ sung sau)'}
+                    : 'Not set yet (can add later)'}
                 </span>
               </div>
 
               <div className="flex justify-between items-center gap-2">
-                <span className="text-zinc-400">Chế độ hiển thị:</span>
+                <span className="text-zinc-400">Visibility:</span>
                 <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
                   isPrivateListing
                     ? 'text-purple-300 bg-purple-500/10 border border-purple-500/20'
                     : 'text-cyan-300 bg-cyan-500/10 border border-cyan-500/20'
                 }`}>
-                  {isPrivateListing ? 'Riêng tư (Link ẩn)' : 'Công khai trên sàn'}
+                  {isPrivateListing ? 'Private (Secret link)' : 'Public (Marketplace)'}
                 </span>
               </div>
             </div>
@@ -599,7 +597,7 @@ export const Step5ReviewPublish: React.FC<Step5ReviewPublishProps> = ({
                 disabled={isPublishing}
                 className="flex-1 py-3 px-4 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-zinc-300 hover:text-white text-xs font-semibold transition-all cursor-pointer disabled:opacity-50"
               >
-                Kiểm tra lại
+                Go back
               </button>
 
               <button
@@ -611,10 +609,10 @@ export const Step5ReviewPublish: React.FC<Step5ReviewPublishProps> = ({
                 {isPublishing ? (
                   <>
                     <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                    <span>Đang xuất bản...</span>
+                    <span>Publishing...</span>
                   </>
                 ) : (
-                  <span>Xác nhận xuất bản</span>
+                  <span>Publish</span>
                 )}
               </button>
             </div>

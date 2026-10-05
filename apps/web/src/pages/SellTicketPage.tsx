@@ -1050,9 +1050,22 @@ const DRAFT_STORAGE_KEY = 'ticketshield_sell_draft';
             faceValue={faceValue}
             resalePrice={ticketPrices[sessions[0]?.code] ?? sessions[0]?.originalPrice ?? 0}
             bankAccounts={bankAccounts}
-            seatZone={allPurchasedTickets.find((t) => purchasedPassCode(t).toUpperCase() === sessions[0]?.code?.toUpperCase())?.seatZone}
-            eventName={allPurchasedTickets.find((t) => purchasedPassCode(t).toUpperCase() === sessions[0]?.code?.toUpperCase())?.eventName}
-            eventVenue={allPurchasedTickets.find((t) => purchasedPassCode(t).toUpperCase() === sessions[0]?.code?.toUpperCase())?.eventVenue}
+            seatZone={
+              allPurchasedTickets.find((t) => purchasedPassCode(t).toUpperCase() === sessions[0]?.code?.toUpperCase())?.seatZone ||
+              (sessions[0] as any)?.seatZone ||
+              (sessions.length > 1 ? 'Khu VIP · Ghế Liền Kề' : 'Khu VIP')
+            }
+            eventName={
+              allPurchasedTickets.find((t) => purchasedPassCode(t).toUpperCase() === sessions[0]?.code?.toUpperCase())?.eventName ||
+              (sessions[0] as any)?.eventName ||
+              (organizers.find((o) => o.id === selectedOrganizerId)?.name
+                ? `Đêm nhạc phát hành bởi ${organizers.find((o) => o.id === selectedOrganizerId)?.name}`
+                : 'Anh Trai Say Hi - Concert 2024')
+            }
+            eventVenue={
+              allPurchasedTickets.find((t) => purchasedPassCode(t).toUpperCase() === sessions[0]?.code?.toUpperCase())?.eventVenue ||
+              'Sân vận động Quốc gia Mỹ Đình, Hà Nội'
+            }
             isPrivateListing={isPrivateListing}
             setIsPrivateListing={setIsPrivateListing}
             agreedTerms={agreedTerms}
