@@ -133,7 +133,7 @@ export const Step5ReviewPublish: React.FC<Step5ReviewPublishProps> = ({
               PRICE BREAKDOWN
             </span>
             {hasDeepDiscount && (
-              <span className="text-[10px] font-mono text-amber-300 bg-amber-500/15 border border-amber-500/30 px-2 py-0.5 rounded-full inline-flex items-center gap-1 font-semibold animate-pulse">
+              <span className="text-[10px] font-mono text-amber-300 bg-amber-500/15 border border-amber-500/30 px-2 py-0.5 rounded-full inline-flex items-center gap-1 font-semibold">
                 <AlertTriangle className="w-3 h-3 text-amber-300" />
                 Có vé giảm sâu hơn 50%
               </span>
@@ -243,7 +243,7 @@ export const Step5ReviewPublish: React.FC<Step5ReviewPublishProps> = ({
                         {/* Inline Warning thiết kế ngay dưới vé đó */}
                         {isDeepDiscount && (
                           <div className="text-[11px] text-amber-300 font-mono flex items-center gap-1.5 pl-1 py-0.5">
-                            <span>⚠️ Có vé giảm hơn 50% so với giá gốc. Vui lòng kiểm tra lại để tránh nhầm lẫn.</span>
+                            <span>⚠️ Vé #{idx + 1} ({t.code}) giảm hơn 50% giá gốc — kiểm tra lại nếu nhầm giá.</span>
                           </div>
                         )}
                       </div>
@@ -352,34 +352,45 @@ export const Step5ReviewPublish: React.FC<Step5ReviewPublishProps> = ({
           <div className="space-y-4">
             {/* Hàng 1: Chế độ bán gói (chỉ hiện khi combo >= 2 vé) */}
             {ticketCount > 1 && (
-              <div className="space-y-1.5">
+              <div className="space-y-2">
                 <div className="text-xs font-mono text-zinc-300 font-medium">
                   Hình thức bán ({ticketCount} vé):
                 </div>
-                <div className="p-1 rounded-xl bg-black/40 border border-white/10 flex gap-1 text-xs font-mono">
+                <div className="grid grid-cols-2 gap-2.5">
                   <button
                     type="button"
                     onClick={() => setSaleType?.('combo')}
-                    className={`flex-1 py-2 px-3 rounded-lg font-semibold transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+                    className={`p-3 rounded-xl border text-left transition-all cursor-pointer flex items-center gap-2.5 ${
                       saleType === 'combo'
-                        ? 'bg-[#FF5A36] text-white shadow-md shadow-[#FF5A36]/30'
-                        : 'text-zinc-400 hover:text-white'
+                        ? 'bg-[#FF5A36]/15 border-[#FF5A36] text-white shadow-sm shadow-[#FF5A36]/20'
+                        : 'bg-black/40 border-white/10 text-zinc-400 hover:border-white/20 hover:text-zinc-200'
                     }`}
                   >
-                    <Layers className="w-3.5 h-3.5" />
-                    <span>Bán trọn gói combo</span>
+                    <div className={`p-2 rounded-lg shrink-0 ${saleType === 'combo' ? 'bg-[#FF5A36] text-white' : 'bg-white/5 text-zinc-400'}`}>
+                      <Layers className="w-4 h-4" />
+                    </div>
+                    <div className="min-w-0">
+                      <div className="font-semibold text-xs text-white">Bán trọn gói combo</div>
+                      <div className="text-[10px] text-zinc-400 truncate">Buộc mua cả {ticketCount} vé</div>
+                    </div>
                   </button>
+
                   <button
                     type="button"
                     onClick={() => setSaleType?.('individual')}
-                    className={`flex-1 py-2 px-3 rounded-lg font-semibold transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+                    className={`p-3 rounded-xl border text-left transition-all cursor-pointer flex items-center gap-2.5 ${
                       saleType === 'individual'
-                        ? 'bg-[#FF5A36] text-white shadow-md shadow-[#FF5A36]/30'
-                        : 'text-zinc-400 hover:text-white'
+                        ? 'bg-[#FF5A36]/15 border-[#FF5A36] text-white shadow-sm shadow-[#FF5A36]/20'
+                        : 'bg-black/40 border-white/10 text-zinc-400 hover:border-white/20 hover:text-zinc-200'
                     }`}
                   >
-                    <Split className="w-3.5 h-3.5" />
-                    <span>Cho phép mua lẻ</span>
+                    <div className={`p-2 rounded-lg shrink-0 ${saleType === 'individual' ? 'bg-[#FF5A36] text-white' : 'bg-white/5 text-zinc-400'}`}>
+                      <Split className="w-4 h-4" />
+                    </div>
+                    <div className="min-w-0">
+                      <div className="font-semibold text-xs text-white">Cho phép mua lẻ</div>
+                      <div className="text-[10px] text-zinc-400 truncate">Mua 1 hoặc nhiều vé</div>
+                    </div>
                   </button>
                 </div>
                 <p className="text-[11px] text-zinc-400 leading-relaxed font-mono px-0.5">
@@ -391,35 +402,45 @@ export const Step5ReviewPublish: React.FC<Step5ReviewPublishProps> = ({
             )}
 
             {/* Hàng 2: Phạm vi hiển thị (Visibility) */}
-            <div className={`space-y-1.5 ${ticketCount > 1 ? 'pt-2 border-t border-white/5' : ''}`}>
+            <div className={`space-y-2 ${ticketCount > 1 ? 'pt-3 border-t border-white/5' : ''}`}>
               <div className="text-xs font-mono text-zinc-300 font-medium">
                 Phạm vi hiển thị:
               </div>
-              <div className="grid grid-cols-2 p-1 bg-black/40 border border-white/10 rounded-xl gap-1">
+              <div className="grid grid-cols-2 gap-2.5">
                 <button
                   type="button"
                   onClick={() => setIsPrivateListing(false)}
-                  className={`py-2 px-3 rounded-lg text-xs font-semibold transition-all flex items-center justify-center gap-2 cursor-pointer ${
+                  className={`p-3 rounded-xl border text-left transition-all cursor-pointer flex items-center gap-2.5 ${
                     !isPrivateListing
-                      ? 'bg-white/10 text-white font-bold shadow-sm'
-                      : 'text-[#8F96A3] hover:text-white hover:bg-white/[0.03]'
+                      ? 'bg-[#FF5A36]/15 border-[#FF5A36] text-white shadow-sm shadow-[#FF5A36]/20'
+                      : 'bg-black/40 border-white/10 text-zinc-400 hover:border-white/20 hover:text-zinc-200'
                   }`}
                 >
-                  <Globe className="w-3.5 h-3.5 text-[#FF5A36]" />
-                  <span>Public (Công khai)</span>
+                  <div className={`p-2 rounded-lg shrink-0 ${!isPrivateListing ? 'bg-[#FF5A36] text-white' : 'bg-white/5 text-zinc-400'}`}>
+                    <Globe className="w-4 h-4" />
+                  </div>
+                  <div className="min-w-0">
+                    <div className="font-semibold text-xs text-white">Public (Công khai)</div>
+                    <div className="text-[10px] text-zinc-400 truncate">Hiện trên Marketplace</div>
+                  </div>
                 </button>
 
                 <button
                   type="button"
                   onClick={() => setIsPrivateListing(true)}
-                  className={`py-2 px-3 rounded-lg text-xs font-semibold transition-all flex items-center justify-center gap-2 cursor-pointer ${
+                  className={`p-3 rounded-xl border text-left transition-all cursor-pointer flex items-center gap-2.5 ${
                     isPrivateListing
-                      ? 'bg-purple-950/60 border border-purple-500/40 text-purple-200 font-bold shadow-sm'
-                      : 'text-[#8F96A3] hover:text-white hover:bg-white/[0.03]'
+                      ? 'bg-purple-950/60 border-purple-500/60 text-purple-200 shadow-sm shadow-purple-500/20'
+                      : 'bg-black/40 border-white/10 text-zinc-400 hover:border-white/20 hover:text-zinc-200'
                   }`}
                 >
-                  <Lock className="w-3.5 h-3.5 text-purple-400" />
-                  <span>Private (Riêng tư)</span>
+                  <div className={`p-2 rounded-lg shrink-0 ${isPrivateListing ? 'bg-purple-500 text-white' : 'bg-white/5 text-zinc-400'}`}>
+                    <Lock className="w-4 h-4" />
+                  </div>
+                  <div className="min-w-0">
+                    <div className="font-semibold text-xs text-white">Private (Riêng tư)</div>
+                    <div className="text-[10px] text-zinc-400 truncate">Chỉ mua qua link ẩn</div>
+                  </div>
                 </button>
               </div>
               <p className="text-[11px] text-zinc-400 px-0.5">
