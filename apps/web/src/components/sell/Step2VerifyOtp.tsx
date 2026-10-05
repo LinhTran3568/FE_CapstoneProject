@@ -245,7 +245,7 @@ export const Step2VerifyOtp: React.FC<Step2VerifyOtpProps> = ({
           onActiveIndexChange={setPage}
           layoutMode="staggered"
           offset={42}
-          containerHeight={`${(tickets.length - 1) * 42 + 210}px`}
+          containerHeight={`${(tickets.length - 1) * 42 + 245}px`}
           renderCard={(t, isTop, originalIndex) => {
             const ticketDigits = digits[t.code] ?? emptyDigits();
             const filledCount = ticketDigits.filter((d) => Boolean(d && d.trim())).length;
@@ -442,26 +442,26 @@ export const Step2VerifyOtp: React.FC<Step2VerifyOtpProps> = ({
         />
       </div>
 
-      {/* Dấu mũi tên & Paging trực quan ngay sát dưới card */}
+      {/* Dấu mũi tên & Paging trực quan rõ ràng, có khoảng đệm thoải mái */}
       {tickets.length > 1 && (
-        <div className="flex items-center justify-center gap-2 mt-3">
+        <div className="flex items-center justify-center gap-3 mt-5">
           {/* Mũi tên lùi vé trước */}
           <button
             type="button"
             onClick={() => setPage((prev) => Math.max(0, prev - 1))}
             disabled={safePage === 0}
             aria-label="Vé trước"
-            className="w-7 h-7 rounded-lg border border-white/10 bg-[#0A0D14] hover:bg-white/[0.08] text-white/70 hover:text-white flex items-center justify-center disabled:opacity-20 disabled:cursor-not-allowed transition-all cursor-pointer active:scale-95"
+            className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl border border-white/15 bg-[#0A0D14] hover:bg-white/[0.08] hover:border-white/25 text-white/80 hover:text-white flex items-center justify-center disabled:opacity-20 disabled:cursor-not-allowed transition-all cursor-pointer shadow-sm active:scale-95"
           >
-            <ChevronLeft className="w-3.5 h-3.5" />
+            <ChevronLeft className="w-4 h-4 sm:w-5 sm:h-5" />
           </button>
 
-          {/* Cụm Paging: Vé X/Y + Dots tinh gọn */}
-          <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-[#0A0D14] border border-white/10 text-xs font-medium text-white/80">
-            <span>
+          {/* Cụm Paging: Vé X/Y + Dots rõ ràng, to và dễ nhìn */}
+          <div className="flex items-center gap-3 px-4 py-2 rounded-full bg-[#0A0D14] border border-white/15 text-sm font-semibold text-white/90 shadow-sm">
+            <span className="tracking-wide">
               Vé {safePage + 1}/{tickets.length}
             </span>
-            <div className="flex items-center gap-1.5 pl-0.5">
+            <div className="flex items-center gap-2 pl-1">
               {tickets.map((t, idx) => {
                 const isActive = idx === safePage;
                 const isLocked = t.locked;
@@ -471,12 +471,12 @@ export const Step2VerifyOtp: React.FC<Step2VerifyOtpProps> = ({
                     key={t.code}
                     type="button"
                     onClick={() => setPage(idx)}
-                    className={`transition-all duration-150 cursor-pointer ${
+                    className={`transition-all duration-200 cursor-pointer ${
                       isActive
-                        ? 'w-5 h-1.5 rounded-full bg-[#FF5A36]'
+                        ? 'w-6 h-2 rounded-full bg-[#FF5A36] shadow-sm shadow-[#FF5A36]/40'
                         : isLocked
-                        ? 'w-1.5 h-1.5 rounded-full bg-emerald-400'
-                        : 'w-1.5 h-1.5 rounded-full bg-white/25 hover:bg-white/45'
+                        ? 'w-2 h-2 rounded-full bg-emerald-400 shadow-sm shadow-emerald-400/40'
+                        : 'w-2 h-2 rounded-full bg-white/30 hover:bg-white/50'
                     }`}
                     title={`Vé ${idx + 1}: ${t.code}`}
                   />
@@ -491,22 +491,22 @@ export const Step2VerifyOtp: React.FC<Step2VerifyOtpProps> = ({
             onClick={() => setPage((prev) => Math.min(tickets.length - 1, prev + 1))}
             disabled={safePage === tickets.length - 1}
             aria-label="Vé kế tiếp"
-            className="w-7 h-7 rounded-lg border border-white/10 bg-[#0A0D14] hover:bg-white/[0.08] text-white/70 hover:text-white flex items-center justify-center disabled:opacity-20 disabled:cursor-not-allowed transition-all cursor-pointer active:scale-95"
+            className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl border border-white/15 bg-[#0A0D14] hover:bg-white/[0.08] hover:border-white/25 text-white/80 hover:text-white flex items-center justify-center disabled:opacity-20 disabled:cursor-not-allowed transition-all cursor-pointer shadow-sm active:scale-95"
           >
-            <ChevronRight className="w-3.5 h-3.5" />
+            <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5" />
           </button>
         </div>
       )}
 
-      {/* Nút hủy phiên: Đặt ngay dưới paging, tối giản, thanh lịch */}
-      <div className="mt-2.5">
+      {/* Nút hủy phiên: Đặt thoáng đãng, to rõ ràng hơn */}
+      <div className="mt-4">
         <button
           type="button"
           onClick={onAbandon}
           disabled={isCancelling}
-          className="text-xs text-white/40 hover:text-rose-400 transition-colors inline-flex items-center gap-1.5 cursor-pointer disabled:opacity-30"
+          className="text-sm font-medium text-white/50 hover:text-rose-400 transition-colors inline-flex items-center gap-2 cursor-pointer disabled:opacity-30 py-1.5 px-3 rounded-lg hover:bg-rose-500/10 hover:border hover:border-rose-500/20"
         >
-          <XCircle className="w-3.5 h-3.5" />
+          <XCircle className="w-4 h-4" />
           <span>{isCancelling ? 'Đang hủy...' : 'Hủy phiên xác thực'}</span>
         </button>
       </div>

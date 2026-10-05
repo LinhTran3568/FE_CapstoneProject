@@ -73,11 +73,11 @@ export const CardStack = <T extends CardStackItem>({
   const total = items.length;
   const inactiveIndices = items.map((_, i) => i).filter((i) => i !== currentIndex);
 
-  // Chiều cao vừa khít thẻ theo số lượng thẻ so le (không khoảng trống thừa)
+  // Chiều cao vừa khít thẻ theo số lượng thẻ so le (đủ chỗ cho cả thẻ đang chờ nhập OTP)
   const calculatedHeight =
     containerHeight ??
     (layoutMode === 'staggered'
-      ? `${(total - 1) * offset + 205}px`
+      ? `${(total - 1) * offset + 245}px`
       : '22rem');
 
   return (
