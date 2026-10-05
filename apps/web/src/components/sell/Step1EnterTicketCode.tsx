@@ -72,6 +72,50 @@ export const Step1EnterTicketCode: React.FC<Step1EnterTicketCodeProps> = ({
     const code = purchasedPassCode(t).toUpperCase();
     if (!code) return;
 
+    // KHI ĐANG Ở CHẾ ĐỘ SỬA VÉ (REPLACE MODE): Đổi trực tiếp vé đang sửa thành vé mới
+    if (editingCode) {
+      if (code === editingCode) {
+        // Click vào chính nó -> hủy chế độ sửa
+        handleCancelEdit();
+        setIsPurchasesDropdownOpen(false);
+        return;
+      }
+
+      // Không cho phép chọn vé trùng với các vé còn lại trong gói
+      const otherCodes = selectedCodes.filter((c) => c !== editingCode);
+      if (otherCodes.includes(code)) {
+        setSelectionNotice(`Vé ${code} đã có trong gói bán!`);
+        return;
+      }
+
+      // Domain Law: Kiểm tra cùng sự kiện (eventId) với các vé còn lại trong gói
+      if (otherCodes.length > 0) {
+        const remainingTickets = eligibleTickets.filter((item) =>
+          otherCodes.includes(purchasedPassCode(item).toUpperCase())
+        );
+        const diffEvent = remainingTickets.find(
+          (item) => item.eventId && t.eventId && item.eventId !== t.eventId
+        );
+        if (diffEvent) {
+          setEventMismatchError(
+            `Vé này thuộc sự kiện (${t.eventName}), không cùng sự kiện với các vé còn lại trong gói (${diffEvent.eventName}).`
+          );
+          return;
+        }
+      }
+
+      // Thay thế vé tức thì (Instant In-Place Replacement)
+      const nextCodes = selectedCodes.map((c) => (c === editingCode ? code : c));
+      setTicketCode(nextCodes.join(', '));
+      setEditingCode(null);
+      setInputCode('');
+      setSelectionNotice('');
+      setEventMismatchError('');
+      setIsPurchasesDropdownOpen(false);
+      return;
+    }
+
+    // CHẾ ĐỘ BÌNH THƯỜNG (CHECKLIST TOGGLE)
     const isAlreadySelected = selectedCodes.includes(code);
 
     if (isAlreadySelected) {
@@ -395,17 +439,21 @@ export const Step1EnterTicketCode: React.FC<Step1EnterTicketCodeProps> = ({
                   setTicketSearch('');
                   setEventMismatchError('');
                 }}
-                className={`h-9 px-3 rounded-xl flex items-center gap-1.5 text-xs font-semibold shrink-0 transition-all cursor-pointer ${isPurchasesDropdownOpen || selectedCodes.length > 0
-                  ? 'bg-white/10 hover:bg-white/15 text-white border border-white/20'
-                  : 'bg-[#151921] hover:bg-[#1C222C] text-zinc-200 border border-white/10'
-                  }`}
+                className={`h-9 px-3 rounded-xl flex items-center gap-1.5 text-xs font-semibold shrink-0 transition-all cursor-pointer ${
+                  editingCode
+                    ? 'bg-[#FF5A36]/20 border-2 border-[#FF5A36] text-[#FF5A36] shadow-sm shadow-[#FF5A36]/30'
+                    : isPurchasesDropdownOpen || selectedCodes.length > 0
+                    ? 'bg-white/10 hover:bg-white/15 text-white border border-white/20'
+                    : 'bg-[#151921] hover:bg-[#1C222C] text-zinc-200 border border-white/10'
+                }`}
               >
                 <span className="whitespace-nowrap">
-                  Vé của tôi {eligibleTickets.length > 0 && `(${eligibleTickets.length})`}
+                  {editingCode ? 'Đổi từ vé của tôi' : `Vé của tôi ${eligibleTickets.length > 0 ? `(${eligibleTickets.length})` : ''}`}
                 </span>
                 <ChevronDown
-                  className={`w-3.5 h-3.5 transition-transform duration-200 ${isPurchasesDropdownOpen ? 'rotate-180 text-[#FF5A36]' : 'text-zinc-400'
-                    }`}
+                  className={`w-3.5 h-3.5 transition-transform duration-200 ${
+                    isPurchasesDropdownOpen ? 'rotate-180 text-[#FF5A36]' : editingCode ? 'text-[#FF5A36]' : 'text-zinc-400'
+                  }`}
                 />
               </button>
             </div>
@@ -494,9 +542,25 @@ export const Step1EnterTicketCode: React.FC<Step1EnterTicketCodeProps> = ({
                           </button>
 
                           {isBeingEdited && (
-                            <span className="text-[10px] bg-[#FF5A36]/25 text-[#FF5A36] px-1.5 py-0.5 rounded font-sans font-semibold animate-pulse">
-                              Đang sửa ở trên
-                            </span>
+                            <div className="flex items-center gap-1.5 animate-in fade-in">
+                              <span className="text-[10px] bg-[#FF5A36]/25 text-[#FF5A36] px-1.5 py-0.5 rounded font-sans font-semibold">
+                                Đang sửa ở trên
+                              </span>
+                              {eligibleTickets.length > 0 && (
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setIsPurchasesDropdownOpen(true);
+                                  }}
+                                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-[#FF5A36] hover:bg-[#FF7252] text-white text-[11px] font-bold transition-all shadow-sm shadow-[#FF5A36]/30 active:scale-95 cursor-pointer"
+                                  title="Mở danh sách vé đã mua để đổi"
+                                >
+                                  <span>Đổi từ ví vé</span>
+                                  <ChevronDown className="w-3 h-3" />
+                                </button>
+                              )}
+                            </div>
                           )}
 
                           {matched && !isBeingEdited && (
@@ -577,9 +641,28 @@ export const Step1EnterTicketCode: React.FC<Step1EnterTicketCodeProps> = ({
               )}
             </div>
 
-            {/* Dropdown panel: Multi-Select Checklist */}
+            {/* Dropdown panel: Multi-Select Checklist / Quick Replace */}
             {isPurchasesDropdownOpen && (
               <div className="absolute top-full left-0 right-0 mt-2 bg-[#0A0D12] border border-white/15 rounded-2xl shadow-2xl z-50 animate-in fade-in zoom-in-95 overflow-hidden">
+                {/* Header banner khi đang ở chế độ thay thế vé */}
+                {editingCode && (
+                  <div className="p-3 bg-[#FF5A36]/15 border-b border-[#FF5A36]/30 flex items-center justify-between gap-2 animate-in fade-in">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <div className="w-2 h-2 rounded-full bg-[#FF5A36] animate-ping" />
+                      <span className="text-xs text-white truncate font-medium">
+                        Đang đổi vé <span className="font-mono font-bold text-[#FF5A36]">{editingCode}</span>: Nhấp vé bên dưới để thay thế ngay
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => handleCancelEdit()}
+                      className="px-2.5 py-1 text-[11px] bg-white/10 hover:bg-white/20 text-zinc-300 hover:text-white rounded-lg transition-colors cursor-pointer shrink-0 font-semibold"
+                    >
+                      Hủy đổi
+                    </button>
+                  </div>
+                )}
+
                 {/* Search bar & quick select controls inside dropdown */}
                 <div className="p-2 border-b border-white/[0.06] space-y-2">
                   <div className="flex items-center gap-2.5 bg-[#05070A] border border-white/10 rounded-xl px-3 h-9 focus-within:border-[#FF5A36]/50 transition-colors">
@@ -657,25 +740,52 @@ export const Step1EnterTicketCode: React.FC<Step1EnterTicketCodeProps> = ({
                     return filtered.map((t) => {
                       const code = purchasedPassCode(t).toUpperCase();
                       const isSelected = selectedCodes.includes(code);
+                      const isCurrentEditing = editingCode === code;
+                      const isOtherSelected = isSelected && !isCurrentEditing;
 
                       return (
                         <div
                           key={t.escrowId}
-                          onClick={() => handleToggleTicket(t)}
-                          className={`w-full p-2.5 rounded-xl text-left transition-all flex items-center justify-between cursor-pointer border ${isSelected
-                            ? 'bg-[#FF5A36]/15 border-[#FF5A36]/40 text-white'
-                            : 'border-transparent hover:bg-white/[0.06] text-zinc-300'
-                            }`}
+                          onClick={() => {
+                            if (isOtherSelected) return;
+                            handleToggleTicket(t);
+                          }}
+                          className={`w-full p-2.5 rounded-xl text-left transition-all flex items-center justify-between border ${
+                            isCurrentEditing
+                              ? 'bg-[#FF5A36]/20 border-[#FF5A36] text-white ring-1 ring-[#FF5A36]/30 cursor-pointer'
+                              : isOtherSelected
+                              ? 'opacity-35 bg-white/[0.02] border-transparent cursor-not-allowed text-zinc-500'
+                              : editingCode
+                              ? 'hover:bg-[#FF5A36]/10 hover:border-[#FF5A36]/40 border-transparent cursor-pointer text-zinc-200'
+                              : isSelected
+                              ? 'bg-[#FF5A36]/15 border-[#FF5A36]/40 text-white cursor-pointer'
+                              : 'border-transparent hover:bg-white/[0.06] text-zinc-300 cursor-pointer'
+                          }`}
                         >
                           <div className="flex items-center gap-3 min-w-0 pr-2">
-                            {/* Visual Checkbox */}
+                            {/* Visual Indicator */}
                             <div
-                              className={`w-5 h-5 rounded-md flex items-center justify-center shrink-0 transition-colors ${isSelected
-                                ? 'bg-[#FF5A36] text-white shadow-sm'
-                                : 'border border-white/20 bg-white/5 hover:border-white/40'
-                                }`}
+                              className={`w-5 h-5 rounded-md flex items-center justify-center shrink-0 transition-colors ${
+                                isCurrentEditing
+                                  ? 'bg-[#FF5A36] text-white'
+                                  : isOtherSelected
+                                  ? 'border border-white/10 bg-white/5 text-zinc-600'
+                                  : editingCode
+                                  ? 'border border-[#FF5A36]/40 bg-[#FF5A36]/5'
+                                  : isSelected
+                                  ? 'bg-[#FF5A36] text-white shadow-sm'
+                                  : 'border border-white/20 bg-white/5 hover:border-white/40'
+                              }`}
                             >
-                              {isSelected && <Check className="w-3.5 h-3.5 stroke-[3]" />}
+                              {isCurrentEditing ? (
+                                <Pencil className="w-3 h-3 text-white" />
+                              ) : isOtherSelected ? (
+                                <Check className="w-3.5 h-3.5 stroke-[2] text-zinc-500" />
+                              ) : editingCode ? (
+                                <ArrowRight className="w-3 h-3 text-[#FF5A36]" />
+                              ) : isSelected ? (
+                                <Check className="w-3.5 h-3.5 stroke-[3]" />
+                              ) : null}
                             </div>
 
                             <div className="min-w-0">
@@ -697,9 +807,24 @@ export const Step1EnterTicketCode: React.FC<Step1EnterTicketCodeProps> = ({
                             </div>
                           </div>
 
-                          <span className="text-[11px] font-mono text-[#8B929C] shrink-0">
-                            {isSelected ? 'Checked' : 'Select'}
-                          </span>
+                          <div className="flex items-center gap-1.5 shrink-0">
+                            {editingCode ? (
+                              isCurrentEditing ? (
+                                <span className="text-[11px] font-mono text-[#FF5A36] font-bold">Đang sửa</span>
+                              ) : isOtherSelected ? (
+                                <span className="text-[11px] font-mono text-zinc-500">Đã trong gói</span>
+                              ) : (
+                                <span className="text-[11px] font-mono text-white bg-[#FF5A36] hover:bg-[#FF7252] px-2.5 py-1 rounded-lg font-bold shadow-sm shadow-[#FF5A36]/30 transition-all flex items-center gap-1">
+                                  <span>Đổi vé này</span>
+                                  <ArrowRight className="w-3 h-3" />
+                                </span>
+                              )
+                            ) : (
+                              <span className="text-[11px] font-mono text-[#8B929C]">
+                                {isSelected ? 'Checked' : 'Select'}
+                              </span>
+                            )}
+                          </div>
                         </div>
                       );
                     });
@@ -707,32 +832,50 @@ export const Step1EnterTicketCode: React.FC<Step1EnterTicketCodeProps> = ({
                 </div>
 
                 {/* Fixed Action Footer at bottom of dropdown */}
-                <div className="p-3 bg-[#080A0E] border-t border-white/10 flex items-center justify-between gap-2">
-                  <div className="text-xs text-zinc-300">
-                    Đã chọn: <span className="text-[#FF5A36] font-bold font-mono">{selectedCodes.length}</span> vé
-                  </div>
-                  <div className="flex items-center gap-2">
-                    {selectedCodes.length > 0 && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setTicketCode('');
-                          setEventMismatchError('');
-                        }}
-                        className="px-2.5 py-1.5 text-xs text-zinc-400 hover:text-white transition-colors cursor-pointer"
-                      >
-                        Bỏ chọn
-                      </button>
-                    )}
+                {editingCode ? (
+                  <div className="p-3 bg-[#080A0E] border-t border-white/10 flex items-center justify-between gap-2">
+                    <div className="text-xs text-zinc-400">
+                      Bấm <span className="text-white font-semibold">Đổi vé này</span> để thay thế cho <span className="font-mono text-[#FF5A36] font-bold">{editingCode}</span>
+                    </div>
                     <button
                       type="button"
-                      onClick={() => setIsPurchasesDropdownOpen(false)}
-                      className="px-4 py-1.5 bg-[#FF5A36] hover:bg-[#FF7252] text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-[#FF5A36]/20 cursor-pointer"
+                      onClick={() => {
+                        setIsPurchasesDropdownOpen(false);
+                        handleCancelEdit();
+                      }}
+                      className="px-3.5 py-1.5 bg-white/10 hover:bg-white/20 text-white rounded-xl text-xs font-semibold transition-all cursor-pointer"
                     >
-                      Xác nhận chọn
+                      Hủy đổi
                     </button>
                   </div>
-                </div>
+                ) : (
+                  <div className="p-3 bg-[#080A0E] border-t border-white/10 flex items-center justify-between gap-2">
+                    <div className="text-xs text-zinc-300">
+                      Đã chọn: <span className="text-[#FF5A36] font-bold font-mono">{selectedCodes.length}</span> vé
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {selectedCodes.length > 0 && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setTicketCode('');
+                            setEventMismatchError('');
+                          }}
+                          className="px-2.5 py-1.5 text-xs text-zinc-400 hover:text-white transition-colors cursor-pointer"
+                        >
+                          Bỏ chọn
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => setIsPurchasesDropdownOpen(false)}
+                        className="px-4 py-1.5 bg-[#FF5A36] hover:bg-[#FF7252] text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-[#FF5A36]/20 cursor-pointer"
+                      >
+                        Xác nhận chọn
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </div>
