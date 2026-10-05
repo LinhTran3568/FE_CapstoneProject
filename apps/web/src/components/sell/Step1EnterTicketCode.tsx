@@ -107,6 +107,42 @@ export const Step1EnterTicketCode: React.FC<Step1EnterTicketCodeProps> = ({
     }
   };
 
+  const [inputCode, setInputCode] = useState('');
+
+  const handleAddManualCode = () => {
+    const clean = inputCode.trim().toUpperCase();
+    if (!clean) return;
+
+    if (selectedCodes.includes(clean)) {
+      setSelectionNotice(`Vé ${clean} đã có trong danh sách.`);
+      return;
+    }
+
+    if (selectedCodes.length >= MAX_BUNDLE_TICKETS) {
+      setSelectionNotice(`Tối đa ${MAX_BUNDLE_TICKETS} vé trong một lượt đăng bán.`);
+      return;
+    }
+
+    const nextCodes = [...selectedCodes, clean];
+    setTicketCode(nextCodes.join(', '));
+    setInputCode('');
+    setEventMismatchError('');
+    setSelectionNotice('');
+  };
+
+  const handleFormSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (inputCode.trim()) {
+      const clean = inputCode.trim().toUpperCase();
+      if (!selectedCodes.includes(clean) && selectedCodes.length < MAX_BUNDLE_TICKETS) {
+        const nextCodes = [...selectedCodes, clean];
+        setTicketCode(nextCodes.join(', '));
+        setInputCode('');
+      }
+    }
+    handleStartVerification(e);
+  };
+
   return (
     <div key={1} className="animate-fade-in-up max-w-2xl mx-auto space-y-6 text-center pt-4">
       {/* Bank Account Optional Notice */}
@@ -134,7 +170,7 @@ export const Step1EnterTicketCode: React.FC<Step1EnterTicketCodeProps> = ({
         </div>
       )}
 
-      <form onSubmit={handleStartVerification} className="space-y-6 text-left bg-[#0A0D12]/90 backdrop-blur-md border border-white/10 p-6 sm:p-8 rounded-3xl shadow-2xl hover:border-white/20 transition-all duration-300">
+      <form onSubmit={handleFormSubmit} className="space-y-6 text-left bg-[#0A0D12]/90 backdrop-blur-md border border-white/10 p-6 sm:p-8 rounded-3xl shadow-2xl hover:border-white/20 transition-all duration-300">
         {/* 1. Ticketing Platform (Organizer) — Custom CSS Dropdown */}
         <div className="space-y-2">
           <label
@@ -215,25 +251,26 @@ export const Step1EnterTicketCode: React.FC<Step1EnterTicketCodeProps> = ({
           </div>
         </div>
 
-        {/* 2. Ticket Code Input with Embedded 'My Tickets' Multi-Select Checklist */}
-        <div className="space-y-2">
+        {/* 2. Ticket Code Input with Tag/Chip System & 'My Tickets' Multi-Select */}
+        <div className="space-y-2.5">
           <div className="flex items-center justify-between">
             <label className="text-xs font-semibold uppercase tracking-wider text-[#A3A8B3] font-display block">
-              Original Ticket Code
+              Mã vé gốc
             </label>
-            {eligibleTickets.length > 0 && (
-              <span className="text-xs font-mono text-[#8F96A3]">
-                {eligibleTickets.length} {eligibleTickets.length === 1 ? 'ticket' : 'tickets'} in wallet
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-mono text-white/60">
+                Đã chọn: {selectedCodes.length}/{MAX_BUNDLE_TICKETS} vé
               </span>
-            )}
+            </div>
           </div>
 
+          {/* Ô nhập mã vé + nút Thêm + nút Vé của tôi */}
           <div className="relative" ref={purchasesDropdownRef}>
             <div
               className={`flex items-center bg-[#05070A] border ${isPurchasesDropdownOpen
                 ? 'border-[#FF5A36] ring-4 ring-[#FF5A36]/20'
-                : ticketCode
-                  ? 'border-[#FF5A36]/50'
+                : selectedCodes.length > 0
+                  ? 'border-[#FF5A36]/40'
                   : 'border-white/15 focus-within:border-[#FF5A36] focus-within:ring-4 focus-within:ring-[#FF5A36]/20'
                 } rounded-2xl transition-all duration-200 shadow-inner h-14 pl-4 pr-2 gap-2`}
             >
@@ -241,34 +278,44 @@ export const Step1EnterTicketCode: React.FC<Step1EnterTicketCodeProps> = ({
               <input
                 id="sell-ticket-input"
                 type="text"
-                value={ticketCode}
+                value={inputCode}
                 onChange={(e) => {
-                  setTicketCode(e.target.value.toUpperCase());
+                  setInputCode(e.target.value.toUpperCase());
                   setEventMismatchError('');
+                  setSelectionNotice('');
                 }}
-                placeholder="e.g. ATSH-VIP-888"
-                className="flex-1 bg-transparent border-0 outline-none text-base font-mono font-bold tracking-widest text-white placeholder-[#A3A8B3]/30 min-w-0"
-                required
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    handleAddManualCode();
+                  }
+                }}
+                disabled={selectedCodes.length >= MAX_BUNDLE_TICKETS}
+                placeholder={
+                  selectedCodes.length === 0
+                    ? 'Nhập mã vé (VD: ATSH-VIP-888)...'
+                    : selectedCodes.length < MAX_BUNDLE_TICKETS
+                    ? `Nhập thêm mã vé thứ ${selectedCodes.length + 1}...`
+                    : 'Đã chọn đủ 3 vé tối đa'
+                }
+                className="flex-1 bg-transparent border-0 outline-none text-sm sm:text-base font-mono font-bold tracking-wider text-white placeholder-[#A3A8B3]/35 min-w-0 disabled:opacity-40"
               />
 
-              {ticketCode && (
+              {/* Nút Thêm vé khi đang gõ */}
+              {inputCode.trim() && selectedCodes.length < MAX_BUNDLE_TICKETS && (
                 <button
                   type="button"
-                  onClick={() => {
-                    setTicketCode('');
-                    setEventMismatchError('');
-                  }}
-                  className="p-1.5 text-[#8F96A3] hover:text-white hover:bg-white/10 rounded-lg transition-colors cursor-pointer shrink-0"
-                  title="Clear code"
+                  onClick={handleAddManualCode}
+                  className="px-3 py-1.5 bg-[#FF5A36] hover:bg-[#FF7252] text-white text-xs font-bold rounded-xl transition-all cursor-pointer shrink-0 shadow-sm shadow-[#FF5A36]/30 active:scale-95"
                 >
-                  <X className="w-4 h-4" />
+                  + Thêm vé
                 </button>
               )}
 
-              {/* Subtle vertical separator */}
+              {/* Phân cách nhẹ */}
               <div className="h-6 w-px bg-white/10 shrink-0" />
 
-              {/* 'My Tickets' button inside input */}
+              {/* Nút 'Vé của tôi' mở danh sách ví */}
               <button
                 type="button"
                 onClick={() => {
@@ -277,19 +324,59 @@ export const Step1EnterTicketCode: React.FC<Step1EnterTicketCodeProps> = ({
                   setEventMismatchError('');
                 }}
                 className={`h-9 px-3 rounded-xl flex items-center gap-1.5 text-xs font-semibold shrink-0 transition-all cursor-pointer ${isPurchasesDropdownOpen || selectedCodes.length > 0
-                  ? 'bg-[#FF5A36] text-white shadow-md shadow-[#FF5A36]/30'
+                  ? 'bg-white/10 hover:bg-white/15 text-white border border-white/20'
                   : 'bg-[#151921] hover:bg-[#1C222C] text-zinc-200 border border-white/10'
                   }`}
               >
                 <span className="whitespace-nowrap">
-                  My Tickets {eligibleTickets.length > 0 && `(${eligibleTickets.length})`}
+                  Vé của tôi {eligibleTickets.length > 0 && `(${eligibleTickets.length})`}
                 </span>
                 <ChevronDown
-                  className={`w-3.5 h-3.5 transition-transform duration-200 ${isPurchasesDropdownOpen ? 'rotate-180' : 'text-zinc-400'
+                  className={`w-3.5 h-3.5 transition-transform duration-200 ${isPurchasesDropdownOpen ? 'rotate-180 text-[#FF5A36]' : 'text-zinc-400'
                     }`}
                 />
               </button>
             </div>
+
+            {/* Dải Chips hiển thị trực quan các vé đã chọn */}
+            {selectedCodes.length > 0 && (
+              <div className="space-y-1.5 pt-2">
+                <div className="flex flex-wrap gap-2">
+                  {selectedCodes.map((code) => {
+                    const matched = eligibleTickets.find(
+                      (t) => purchasedPassCode(t).toUpperCase() === code
+                    );
+                    return (
+                      <div
+                        key={code}
+                        className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-[#0D121B] border border-white/15 text-xs font-medium text-white shadow-sm animate-in fade-in zoom-in-95"
+                      >
+                        <Ticket className="w-3.5 h-3.5 text-[#FF5A36] shrink-0" />
+                        <span className="font-mono font-bold tracking-wide">{code}</span>
+                        {matched && (
+                          <span className="text-[11px] text-white/50 border-l border-white/10 pl-2 max-w-[150px] truncate">
+                            {matched.tierName || matched.eventName}
+                          </span>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const next = selectedCodes.filter((c) => c !== code);
+                            setTicketCode(next.join(', '));
+                            setSelectionNotice('');
+                            setEventMismatchError('');
+                          }}
+                          className="p-0.5 text-white/40 hover:text-rose-400 hover:bg-white/10 rounded transition-colors cursor-pointer"
+                          title={`Xóa vé ${code}`}
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
 
             {/* Dropdown panel: Multi-Select Checklist */}
             {isPurchasesDropdownOpen && (
@@ -450,78 +537,28 @@ export const Step1EnterTicketCode: React.FC<Step1EnterTicketCodeProps> = ({
               </div>
             )}
           </div>
-
-          {/* Selected Ticket Tags / Chips UI (Displayed when 2 or more tickets are selected for Combo/Bundle) */}
-          {selectedCodes.length > 1 && (
-            <div className="p-3.5 bg-[#05070A] border border-white/10 rounded-2xl space-y-2.5 animate-fade-in-up">
-              <div className="flex items-center justify-between text-xs font-semibold text-[#A3A8B3] uppercase tracking-wider font-display">
-                <span>Danh sách vé đã chọn ({selectedCodes.length})</span>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setTicketCode('');
-                    setEventMismatchError('');
-                  }}
-                  className="text-[11px] text-zinc-500 hover:text-red-400 transition-colors cursor-pointer font-sans normal-case"
-                >
-                  Clear all
-                </button>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {selectedCodes.map((code) => {
-                  const matchingTicket = eligibleTickets.find(
-                    (t) => purchasedPassCode(t).toUpperCase() === code
-                  );
-                  return (
-                    <div
-                      key={code}
-                      className="inline-flex items-center gap-2 px-3 py-1.5 bg-[#FF5A36]/15 border border-[#FF5A36]/30 rounded-xl text-xs font-mono font-bold text-white shadow-sm"
-                    >
-                      <Ticket className="w-3.5 h-3.5 text-[#FF5A36]" />
-                      <span>{code}</span>
-                      {matchingTicket?.tierName && (
-                        <span className="text-[10px] text-zinc-400 font-sans font-normal truncate max-w-[120px]">
-                          ({matchingTicket.tierName})
-                        </span>
-                      )}
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const next = selectedCodes.filter((c) => c !== code);
-                          setTicketCode(next.join(', '));
-                        }}
-                        className="p-0.5 text-zinc-400 hover:text-white hover:bg-white/10 rounded transition-colors cursor-pointer ml-1"
-                        title="Remove ticket"
-                      >
-                        <X className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          )}
         </div>
 
         {/* Submit */}
         <button
           type="submit"
-          disabled={isRequestingOtp || !ticketCode.trim()}
-          className={`w-full h-14 font-bold font-display uppercase tracking-widest text-sm rounded-2xl transition-all duration-200 flex items-center justify-center gap-2 ${!ticketCode.trim() || isRequestingOtp
-            ? 'bg-white/[0.07] text-white/50 cursor-not-allowed border border-white/10'
-            : 'bg-[#FF5A36] hover:bg-[#FF7252] text-white shadow-lg shadow-[#FF5A36]/30 hover:shadow-xl hover:shadow-[#FF5A36]/50 hover:-translate-y-0.5 active:translate-y-0 cursor-pointer'
-            }`}
+          disabled={isRequestingOtp || (selectedCodes.length === 0 && !inputCode.trim())}
+          className={`w-full h-14 font-bold font-display uppercase tracking-widest text-sm rounded-2xl transition-all duration-200 flex items-center justify-center gap-2 ${
+            (selectedCodes.length === 0 && !inputCode.trim()) || isRequestingOtp
+              ? 'bg-white/[0.07] text-white/50 cursor-not-allowed border border-white/10'
+              : 'bg-[#FF5A36] hover:bg-[#FF7252] text-white shadow-lg shadow-[#FF5A36]/30 hover:shadow-xl hover:shadow-[#FF5A36]/50 hover:-translate-y-0.5 active:translate-y-0 cursor-pointer'
+          }`}
         >
           {isRequestingOtp ? (
             <>
               <Loader2 className="w-5 h-5 animate-spin" />
-              <span>Verifying...</span>
+              <span>Đang gửi mã OTP...</span>
             </>
           ) : (
             <span>
               {selectedCodes.length > 1
-                ? `Verify ${selectedCodes.length} Tickets`
-                : 'Verify Ticket'}
+                ? `Xác thực ${selectedCodes.length} vé`
+                : 'Xác thực vé'}
             </span>
           )}
         </button>

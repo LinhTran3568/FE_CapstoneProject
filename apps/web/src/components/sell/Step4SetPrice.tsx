@@ -16,6 +16,8 @@ export interface Step4SetPriceProps {
   setActiveTicketIndex: (index: number) => void;
   onUpdateTicketPrice: (code: string, newPrice: number) => void;
   onContinue: () => void;
+  saleType?: 'combo' | 'individual';
+  setSaleType?: (type: 'combo' | 'individual') => void;
 }
 
 export const Step4SetPrice: React.FC<Step4SetPriceProps> = ({
@@ -24,6 +26,8 @@ export const Step4SetPrice: React.FC<Step4SetPriceProps> = ({
   setActiveTicketIndex,
   onUpdateTicketPrice,
   onContinue,
+  saleType = 'combo',
+  setSaleType,
 }) => {
   const isCombo = tickets.length > 1;
   const currentTicket = tickets[activeTicketIndex] || tickets[0] || {
@@ -145,6 +149,59 @@ export const Step4SetPrice: React.FC<Step4SetPriceProps> = ({
             : `Slide or type a price up to the event ceiling (${priceCeiling.toLocaleString('vi-VN')} VND${markupPercent > 0 ? `, face value + ${markupPercent}%` : ''}).`}
         </p>
       </div>
+
+      {/* Lựa chọn hình thức bán: Bán trọn gói Combo vs Bán lẻ từng vé */}
+      {isCombo && (
+        <div className="p-4 sm:p-4.5 rounded-2xl bg-[#0A0D14] border border-white/10 space-y-2.5 text-left">
+          <div className="flex items-center justify-between text-xs font-semibold uppercase tracking-wider text-[#A3A8B3] font-display">
+            <span>Hình thức đăng bán ({tickets.length} vé)</span>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+            {/* Option 1: Combo trọn gói (Mua full) */}
+            <button
+              type="button"
+              onClick={() => setSaleType?.('combo')}
+              className={`p-3.5 rounded-xl border text-left transition-all cursor-pointer ${
+                saleType === 'combo'
+                  ? 'bg-[#FF5A36]/15 border-[#FF5A36] text-white ring-1 ring-[#FF5A36]/40'
+                  : 'bg-[#05070A] border-white/10 text-white/60 hover:text-white hover:border-white/20'
+              }`}
+            >
+              <div className="flex items-center justify-between mb-1">
+                <span className="font-bold text-xs text-white">Bán trọn gói Combo (Mua full)</span>
+                {saleType === 'combo' && (
+                  <span className="w-2 h-2 rounded-full bg-[#FF5A36]" />
+                )}
+              </div>
+              <p className="text-[11px] text-[#8F96A3] leading-relaxed">
+                Người mua bắt buộc thanh toán trọn bộ cả {tickets.length} vé cùng lúc. Không có phần tick chọn từng vé.
+              </p>
+            </button>
+
+            {/* Option 2: Bán lẻ từng vé (Tick chọn linh hoạt) */}
+            <button
+              type="button"
+              onClick={() => setSaleType?.('individual')}
+              className={`p-3.5 rounded-xl border text-left transition-all cursor-pointer ${
+                saleType === 'individual'
+                  ? 'bg-[#FF5A36]/15 border-[#FF5A36] text-white ring-1 ring-[#FF5A36]/40'
+                  : 'bg-[#05070A] border-white/10 text-white/60 hover:text-white hover:border-white/20'
+              }`}
+            >
+              <div className="flex items-center justify-between mb-1">
+                <span className="font-bold text-xs text-white">Bán lẻ từng vé (Tick chọn)</span>
+                {saleType === 'individual' && (
+                  <span className="w-2 h-2 rounded-full bg-[#FF5A36]" />
+                )}
+              </div>
+              <p className="text-[11px] text-[#8F96A3] leading-relaxed">
+                Tạo {tickets.length} tin đăng độc lập. Khi mua, người mua có thể tick chọn từng vé hoặc tick 'Chọn tất cả'.
+              </p>
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Tách trang / Tab chọn vé khi bán Combo */}
       {isCombo && (

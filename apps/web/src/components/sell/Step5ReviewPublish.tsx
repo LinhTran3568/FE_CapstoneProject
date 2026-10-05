@@ -30,6 +30,7 @@ export interface Step5ReviewPublishProps {
   onManageBankAccounts: () => void;
   eventName?: string;
   eventVenue?: string;
+  saleType?: 'combo' | 'individual';
 }
 
 export const Step5ReviewPublish: React.FC<Step5ReviewPublishProps> = ({
@@ -50,6 +51,7 @@ export const Step5ReviewPublish: React.FC<Step5ReviewPublishProps> = ({
   onManageBankAccounts,
   eventName = 'Official Concert Event',
   eventVenue = 'Official Event Venue',
+  saleType = 'combo',
 }) => {
   const ticketCount = Math.max(tickets?.length || ticketCodes.length, 1);
   const totalResalePrice = tickets && tickets.length > 0
@@ -81,7 +83,11 @@ export const Step5ReviewPublish: React.FC<Step5ReviewPublishProps> = ({
               <div className="flex items-center gap-1.5">
                 <Ticket className="w-3.5 h-3.5 text-cyan-400" />
                 <span>
-                  {ticketCount > 1 ? `${ticketCount} Tickets in this combo:` : 'Ticket Code:'}
+                  {ticketCount > 1
+                    ? saleType === 'combo'
+                      ? `${ticketCount} Vé trong combo:`
+                      : `${ticketCount} Vé bán lẻ riêng biệt:`
+                    : 'Ticket Code:'}
                 </span>
               </div>
               {seatZone && (
@@ -106,6 +112,20 @@ export const Step5ReviewPublish: React.FC<Step5ReviewPublishProps> = ({
                 </span>
               ))}
             </div>
+
+            {/* Sale Type Badge */}
+            {ticketCount > 1 && (
+              <div className="flex items-center gap-2 pt-1 text-xs">
+                <span className="text-gray-400">Hình thức:</span>
+                <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold font-mono border ${
+                  saleType === 'combo'
+                    ? 'bg-[#FF5A36]/15 border-[#FF5A36]/40 text-[#FF5A36]'
+                    : 'bg-cyan-500/15 border-cyan-500/40 text-cyan-300'
+                }`}>
+                  {saleType === 'combo' ? 'Combo trọn gói (Mua full)' : 'Bán lẻ từng vé (Tick chọn)'}
+                </span>
+              </div>
+            )}
           </div>
           <span className="px-2.5 py-1 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[11px] font-semibold font-mono rounded-full shrink-0 uppercase">
             VERIFIED
@@ -324,7 +344,13 @@ export const Step5ReviewPublish: React.FC<Step5ReviewPublishProps> = ({
               <span>PUBLISHING...</span>
             </>
           ) : (
-            <span>{ticketCount > 1 ? `PUBLISH COMBO (${ticketCount} TICKETS)` : 'PUBLISH LISTING'}</span>
+            <span>
+              {ticketCount > 1
+                ? saleType === 'combo'
+                  ? `PUBLISH COMBO (${ticketCount} TICKETS)`
+                  : `PUBLISH ${ticketCount} SEPARATE LISTINGS`
+                : 'PUBLISH LISTING'}
+            </span>
           )}
         </button>
       </div>

@@ -8,6 +8,7 @@ import {
   ChevronRight,
   XCircle,
   Lock,
+  X,
 } from 'lucide-react';
 import { CardStack } from '../ui/card-stack';
 
@@ -28,6 +29,8 @@ export interface Step2VerifyOtpProps {
   onComplete: () => void;
   onResend: (code: string) => Promise<void>;
   onAbandon: () => void;
+  /** Hủy / gỡ 1 vé đơn lẻ khỏi danh sách xác thực */
+  onRemoveTicket?: (code: string) => Promise<void>;
   isVerifying: boolean;
   resendingCode: string | null;
   isCancelling: boolean;
@@ -50,6 +53,7 @@ export const Step2VerifyOtp: React.FC<Step2VerifyOtpProps> = ({
   onComplete,
   onResend,
   onAbandon,
+  onRemoveTicket,
   isVerifying,
   resendingCode,
   isCancelling,
@@ -59,6 +63,7 @@ export const Step2VerifyOtp: React.FC<Step2VerifyOtpProps> = ({
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [page, setPage] = useState(0);
   const [verifyingCode, setVerifyingCode] = useState<string | null>(null);
+  const [removingCode, setRemovingCode] = useState<string | null>(null);
 
   const inputRefs = useRef<Record<string, HTMLInputElement | null>>({});
 
@@ -307,8 +312,8 @@ export const Step2VerifyOtp: React.FC<Step2VerifyOtpProps> = ({
                     </span>
                   </div>
 
-                  {/* Cột phải: Thông tin trạng thái (nổi bật ở thẻ trước, trầm xuống ở thẻ sau) */}
-                  <div>
+                  {/* Cột phải: Thông tin trạng thái + Nút gỡ riêng vé này */}
+                  <div className="flex items-center gap-2">
                     {t.locked ? (
                       <span
                         className={`text-xs font-medium ${
@@ -331,6 +336,32 @@ export const Step2VerifyOtp: React.FC<Step2VerifyOtpProps> = ({
                       >
                         {isExpired ? 'Hết hạn' : formatTimer(tLeft)}
                       </span>
+                    )}
+
+                    {/* Nút gỡ vé này (chỉ hiện khi có từ 2 vé trở lên) */}
+                    {tickets.length > 1 && onRemoveTicket && (
+                      <button
+                        type="button"
+                        onClick={async (e) => {
+                          e.stopPropagation();
+                          if (removingCode || isCancelling) return;
+                          setRemovingCode(t.code);
+                          try {
+                            await onRemoveTicket(t.code);
+                          } finally {
+                            setRemovingCode(null);
+                          }
+                        }}
+                        disabled={removingCode === t.code || isCancelling}
+                        className="p-1 text-white/30 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition-colors cursor-pointer disabled:opacity-40"
+                        title={`Gỡ vé ${t.code} khỏi danh sách bán`}
+                      >
+                        {removingCode === t.code ? (
+                          <Loader2 className="w-3.5 h-3.5 animate-spin text-rose-400" />
+                        ) : (
+                          <X className="w-3.5 h-3.5" />
+                        )}
+                      </button>
                     )}
                   </div>
                 </div>

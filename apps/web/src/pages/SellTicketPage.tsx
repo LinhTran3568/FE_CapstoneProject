@@ -69,6 +69,8 @@ const DRAFT_STORAGE_KEY = 'ticketshield_sell_draft';
   // Step 4 Pricing state: lưu giá bán của từng vé (theo mã vé)
   const [ticketPrices, setTicketPrices] = useState<Record<string, number>>({});
   const [activeTicketIndex, setActiveTicketIndex] = useState<number>(0);
+  // Hình thức bán: 'combo' (mua full) vs 'individual' (bán lẻ từng vé)
+  const [saleType, setSaleType] = useState<'combo' | 'individual'>('combo');
 
   const markupPercent = sessions[0]?.markupPercent ?? 0;
   const faceValue = sessions.reduce((sum, s) => sum + s.originalPrice, 0);
@@ -111,6 +113,9 @@ const DRAFT_STORAGE_KEY = 'ticketshield_sell_draft';
           if (typeof d.activeTicketIndex === 'number') {
             setActiveTicketIndex(d.activeTicketIndex);
           }
+          if (d.saleType === 'combo' || d.saleType === 'individual') {
+            setSaleType(d.saleType);
+          }
           setCurrentStep(d.currentStep);
           setResumeDraftAvailable(true);
         }
@@ -132,11 +137,12 @@ const DRAFT_STORAGE_KEY = 'ticketshield_sell_draft';
           currentStep,
           ticketPrices,
           activeTicketIndex,
+          saleType,
           savedAt: Date.now(),
         })
       );
     }
-  }, [sessions, currentStep, ticketCodes, selectedOrganizerId, ticketPrices, activeTicketIndex]);
+  }, [sessions, currentStep, ticketCodes, selectedOrganizerId, ticketPrices, activeTicketIndex, saleType]);
 
   const [existingListings, setExistingListings] = useState<SellerListingDto[]>([]);
   const [isLoadingListings, setIsLoadingListings] = useState<boolean>(true);
@@ -565,8 +571,40 @@ const DRAFT_STORAGE_KEY = 'ticketshield_sell_draft';
     setTicketCode(keepCodes ?? '');
     setTicketPrices({});
     setActiveTicketIndex(0);
+    setSaleType('combo');
     setCurrentStep(1);
     setResumeDraftAvailable(false);
+  };
+
+  // Gỡ bỏ 1 vé lẻ khi đang ở Bước 2 xác thực OTP và mở khóa vé đó tại BTC
+  const handleRemoveSingleTicket = async (code: string) => {
+    const target = sessions.find((s) => s.code === code);
+    if (!target) return;
+
+    try {
+      showToast(`Đang hủy phiên và mở khóa vé ${code} tại Ban tổ chức...`, 'info');
+      await resaleApi.closeVerification(target.verificationId);
+
+      const remainingSessions = sessions.filter((s) => s.code !== code);
+      const remainingPrices = { ...ticketPrices };
+      delete remainingPrices[code];
+
+      setSessions(remainingSessions);
+      setTicketPrices(remainingPrices);
+      setTicketCode(remainingSessions.map((s) => s.code).join(', '));
+      setActiveTicketIndex(0);
+
+      showToast(`Đã gỡ vé ${code} thành công và mở khóa tại BTC.`, 'success');
+
+      if (remainingSessions.length === 0) {
+        resetToStep1();
+      } else if (remainingSessions.length === 1) {
+        setSaleType('combo');
+      }
+    } catch (err: any) {
+      console.warn('Could not close single verification session', err);
+      showToast(`Không thể gỡ vé ${code}. Vui lòng thử lại!`, 'error');
+    }
   };
 
   // Close abandoned sessions and release ALL ticket locks at Organizer
@@ -649,6 +687,21 @@ const DRAFT_STORAGE_KEY = 'ticketshield_sell_draft';
         );
         setPublishedListingId(result.listingId ?? '');
         setPublishedPrivateToken(result.privateAccessToken ?? '');
+      } else if (saleType === 'individual') {
+        // Đăng bán lẻ từng vé độc lập trên Marketplace
+        const results = await Promise.all(
+          sessions.map((s) =>
+            resaleApi.publishListing(
+              s.verificationId,
+              ticketPrices[s.code] ?? s.originalPrice,
+              isPrivateListing
+            )
+          )
+        );
+        setPublishedListingId(results[0]?.listingId ?? '');
+        if (isPrivateListing) {
+          setPublishedPrivateToken(results[0]?.privateAccessToken ?? '');
+        }
       } else {
         // BE tạo N listing thật trong 1 transaction; mỗi vé mang giá bán riêng của chính nó
         const result = await resaleApi.bulkPublishListing(
@@ -918,6 +971,7 @@ const DRAFT_STORAGE_KEY = 'ticketshield_sell_draft';
             onComplete={handleOtpVerified}
             onResend={handleResendOtp}
             onAbandon={handleAbandonSession}
+            onRemoveTicket={handleRemoveSingleTicket}
             isVerifying={isVerifyingOtp}
             resendingCode={resendingCode}
             isCancelling={isCancellingSession}
@@ -948,6 +1002,8 @@ const DRAFT_STORAGE_KEY = 'ticketshield_sell_draft';
             setActiveTicketIndex={setActiveTicketIndex}
             onUpdateTicketPrice={handleUpdateTicketPrice}
             onContinue={() => setCurrentStep(5)}
+            saleType={saleType}
+            setSaleType={setSaleType}
           />
         )}
 
@@ -971,6 +1027,7 @@ const DRAFT_STORAGE_KEY = 'ticketshield_sell_draft';
             activeFeeTooltip={activeFeeTooltip}
             setActiveFeeTooltip={setActiveFeeTooltip}
             onManageBankAccounts={() => navigate('/payout-accounts?returnUrl=/sell-ticket')}
+            saleType={saleType}
           />
         )}
 
