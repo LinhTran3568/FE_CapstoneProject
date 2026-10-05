@@ -5,12 +5,14 @@ interface StageMapModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSelectZone: (zone: string) => void;
+  title?: string;
 }
 
 export const StageMapModal: React.FC<StageMapModalProps> = ({
   isOpen,
   onClose,
   onSelectZone,
+  title,
 }) => {
   if (!isOpen) return null;
 
@@ -73,7 +75,7 @@ export const StageMapModal: React.FC<StageMapModalProps> = ({
           <div>
             <h2 className="text-lg font-bold text-white flex items-center gap-2 font-display">
               <MapPin className="w-5 h-5 text-[#FF5A36]" />
-              Seating Map • Van Hanh Mall Stadium / My Dinh
+              {title ? `Seating Map • ${title}` : 'Seating Map'}
             </h2>
             <p className="text-xs text-zinc-400">
               Click any zone to filter corresponding listings on the marketplace

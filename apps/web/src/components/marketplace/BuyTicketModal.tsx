@@ -233,11 +233,11 @@ export const BuyTicketModal: React.FC<BuyTicketModalProps> = ({
   const estimatedBuyerFee = Math.max(Math.round(baseTicketPrice * buyerFeeRate), minBuyerFee);
   const totalBuyerPaidEstimated = Math.max(0, baseTicketPrice + estimatedBuyerFee - discountAmount);
 
-  // Dynamic QR Code fallback URL
+  // Dynamic QR Code URL directly from backend VietQR service or dynamic construct
   const displayQrUrl =
     holdData?.qrImageUrl ||
-    (holdData
-      ? `https://img.vietqr.io/image/${holdData.bankBin || '970422'}-${holdData.accountNumber || '0938434102'}-compact2.png?amount=${holdData.totalBuyerPaid}&addInfo=${encodeURIComponent(holdData.paymentReference)}&accountName=${encodeURIComponent(holdData.accountName || 'TICKETSHIELD ESCROW')}`
+    (holdData && holdData.bankBin && holdData.accountNumber
+      ? `https://img.vietqr.io/image/${holdData.bankBin}-${holdData.accountNumber}-compact2.png?amount=${holdData.totalBuyerPaid}&addInfo=${encodeURIComponent(holdData.paymentReference)}&accountName=${encodeURIComponent(holdData.accountName || '')}`
       : '');
 
   const handleApplyCoupon = () => {
@@ -762,10 +762,10 @@ export const BuyTicketModal: React.FC<BuyTicketModalProps> = ({
                   {/* Right Column (6/12): Bank Account & Exact Transfer Reference */}
                   <div className="lg:col-span-6 h-full flex flex-col justify-between">
                     <BankTransferDetails
-                      bankBin={holdData.bankBin || '970422'}
-                      bankName="MB Bank (Ngân hàng Quân Đội)"
-                      accountNumber={holdData.accountNumber || '0938434102'}
-                      accountName={holdData.accountName || 'TICKETSHIELD ESCROW'}
+                      bankBin={holdData.bankBin}
+                      bankName={holdData.bankBin === '970422' ? 'MB Bank (Ngân hàng Quân Đội)' : holdData.bankBin}
+                      accountNumber={holdData.accountNumber}
+                      accountName={holdData.accountName}
                       amount={holdData.totalBuyerPaid}
                       paymentReference={holdData.paymentReference}
                     />

@@ -167,16 +167,14 @@ const ListingFinancialBreakdown: React.FC<{
 
   const grossAmount = listing.totalBuyerPaid
     ? listing.totalBuyerPaid - (listing.buyerFee || 0)
-    : netPayout > singlePrice && isBundle
-      ? Math.max(singlePrice * bundleTotal, Math.round(netPayout / 0.95))
-      : netPayout > singlePrice
-        ? Math.round(netPayout / 0.95)
-        : isBundle && bundleTotal > 1
-          ? singlePrice * bundleTotal
-          : singlePrice;
+    : listing.sellerFee != null && listing.netSellerPayout != null
+      ? listing.netSellerPayout + listing.sellerFee
+      : isBundle && bundleTotal > 1
+        ? singlePrice * bundleTotal
+        : singlePrice;
 
   const feeAmount = listing.sellerFee ?? Math.max(0, grossAmount - netPayout);
-  const feePercent = grossAmount > 0 ? Math.round((feeAmount / grossAmount) * 100) : 5;
+  const feePercent = grossAmount > 0 ? Math.round((feeAmount / grossAmount) * 100) : 0;
 
   return (
     <div className="mt-2 p-3 sm:p-3.5 rounded-xl bg-[#080B10] border border-white/10 space-y-2 text-xs font-mono text-left animate-fade-in-up">
