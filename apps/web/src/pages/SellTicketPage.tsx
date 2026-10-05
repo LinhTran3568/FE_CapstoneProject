@@ -687,30 +687,18 @@ const DRAFT_STORAGE_KEY = 'ticketshield_sell_draft';
         );
         setPublishedListingId(result.listingId ?? '');
         setPublishedPrivateToken(result.privateAccessToken ?? '');
-      } else if (saleType === 'individual') {
-        // Đăng bán lẻ từng vé độc lập trên Marketplace
-        const results = await Promise.all(
-          sessions.map((s) =>
-            resaleApi.publishListing(
-              s.verificationId,
-              ticketPrices[s.code] ?? s.originalPrice,
-              isPrivateListing
-            )
-          )
-        );
-        setPublishedListingId(results[0]?.listingId ?? '');
-        if (isPrivateListing) {
-          setPublishedPrivateToken(results[0]?.privateAccessToken ?? '');
-        }
       } else {
-        // BE tạo N listing thật trong 1 transaction; mỗi vé mang giá bán riêng của chính nó
+        // Gói vé luôn chung 1 bundleId trên sàn (hiển thị 1 card). 
+        // allOrNothing = true: Bắt buộc mua full cả gói.
+        // allOrNothing = false: Không buộc bán theo cặp, người mua được tick chọn lẻ từng vé.
+        const isAllOrNothing = saleType === 'combo';
         const result = await resaleApi.bulkPublishListing(
           sessions.map((s) => ({
             verificationId: s.verificationId,
             resalePrice: ticketPrices[s.code] ?? s.originalPrice,
             isPrivate: isPrivateListing,
           })),
-          true
+          isAllOrNothing
         );
         setPublishedListingId(result.listings?.[0]?.listingId ?? '');
         if (isPrivateListing) {

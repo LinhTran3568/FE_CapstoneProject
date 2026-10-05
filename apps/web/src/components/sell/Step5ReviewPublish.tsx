@@ -122,7 +122,7 @@ export const Step5ReviewPublish: React.FC<Step5ReviewPublishProps> = ({
                     ? 'bg-[#FF5A36]/15 border-[#FF5A36]/40 text-[#FF5A36]'
                     : 'bg-cyan-500/15 border-cyan-500/40 text-cyan-300'
                 }`}>
-                  {saleType === 'combo' ? 'Combo trọn gói (Mua full)' : 'Bán lẻ từng vé (Tick chọn)'}
+                  {saleType === 'combo' ? 'Trọn gói (Buộc mua cả cặp)' : 'Cho phép mua lẻ (Không buộc theo cặp)'}
                 </span>
               </div>
             )}
@@ -348,7 +348,7 @@ export const Step5ReviewPublish: React.FC<Step5ReviewPublishProps> = ({
               {ticketCount > 1
                 ? saleType === 'combo'
                   ? `PUBLISH COMBO (${ticketCount} TICKETS)`
-                  : `PUBLISH ${ticketCount} SEPARATE LISTINGS`
+                  : `PUBLISH BUNDLE (${ticketCount} TICKETS - CHO PHÉP MUA LẺ)`
                 : 'PUBLISH LISTING'}
             </span>
           )}

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   X,
@@ -7,6 +7,7 @@ import {
   Ticket,
   Layers,
   CheckCircle2,
+  Check,
   Clock,
   ArrowRight,
   User,
@@ -51,25 +52,61 @@ export const TicketDetailModal: React.FC<TicketDetailModalProps> = ({
     Boolean(listing.bundleTotalTickets && listing.bundleTotalTickets >= 2) ||
     Boolean(listing.bundleId);
 
+  // Gói vé có bắt buộc mua cả cặp/combo (all-or-nothing) hay cho phép tick chọn mua lẻ?
+  const isAllOrNothing = listing.isBundleAllOrNothing !== false;
+
+  const [selectedListingIds, setSelectedListingIds] = useState<string[]>([]);
+
+  useEffect(() => {
+    if (isOpen && effectiveBundleListings.length > 0) {
+      setSelectedListingIds(effectiveBundleListings.map((l) => l.listingId));
+    }
+  }, [isOpen, listing?.listingId, effectiveBundleListings.length]);
+
+  const handleToggleTicket = (listingId: string) => {
+    setSelectedListingIds((prev) => {
+      if (prev.includes(listingId)) {
+        if (prev.length <= 1) return prev; // Giữ tối thiểu 1 vé được chọn
+        return prev.filter((id) => id !== listingId);
+      } else {
+        return [...prev, listingId];
+      }
+    });
+  };
+
+  const handleToggleAll = () => {
+    if (selectedListingIds.length === effectiveBundleListings.length) {
+      setSelectedListingIds([effectiveBundleListings[0].listingId]);
+    } else {
+      setSelectedListingIds(effectiveBundleListings.map((l) => l.listingId));
+    }
+  };
+
+  const activeBundleListings = isBundle && !isAllOrNothing
+    ? effectiveBundleListings.filter((l) => selectedListingIds.includes(l.listingId))
+    : effectiveBundleListings;
+
   const bundleCount =
     listing.bundleTotalTickets && listing.bundleTotalTickets >= 2
       ? listing.bundleTotalTickets
       : effectiveBundleListings.length;
 
+  const activeCount = isBundle && !isAllOrNothing ? activeBundleListings.length : bundleCount;
+
   const totalResalePrice = isBundle && effectiveBundleListings.length > 1
-    ? effectiveBundleListings.reduce((sum, item) => sum + (item.resalePrice || 0), 0)
+    ? activeBundleListings.reduce((sum, item) => sum + (item.resalePrice || 0), 0)
     : (listing.bundleTotalTickets && listing.bundleTotalTickets >= 2 && effectiveBundleListings.length === 1)
       ? listing.resalePrice * listing.bundleTotalTickets
       : listing.resalePrice;
 
   const totalOriginalPrice = isBundle && effectiveBundleListings.length > 1
-    ? effectiveBundleListings.reduce((sum, item) => sum + (item.originalPrice || 0), 0)
+    ? activeBundleListings.reduce((sum, item) => sum + (item.originalPrice || 0), 0)
     : (listing.bundleTotalTickets && listing.bundleTotalTickets >= 2 && effectiveBundleListings.length === 1)
       ? listing.originalPrice * listing.bundleTotalTickets
       : listing.originalPrice;
 
-  const perTicketResalePrice = Math.round(totalResalePrice / (bundleCount || 1));
-  const perTicketOriginalPrice = Math.round(totalOriginalPrice / (bundleCount || 1));
+  const perTicketResalePrice = Math.round(totalResalePrice / (activeCount || 1));
+  const perTicketOriginalPrice = Math.round(totalOriginalPrice / (activeCount || 1));
 
   // Adjacency detection for all seats in combo
   const allSeatZones = effectiveBundleListings
@@ -141,7 +178,9 @@ export const TicketDetailModal: React.FC<TicketDetailModalProps> = ({
               {isBundle && (
                 <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#FF5A36]/20 border border-[#FF5A36]/60 text-[#FF8A65] text-xs font-bold tracking-wider uppercase backdrop-blur-md">
                   <Layers className="w-3.5 h-3.5" />
-                  <span>Combo · {bundleCount} vé</span>
+                  <span>
+                    {isAllOrNothing ? `Combo · ${bundleCount} vé` : `Gói ${bundleCount} vé (Mua lẻ được)`}
+                  </span>
                 </span>
               )}
 
@@ -197,7 +236,13 @@ export const TicketDetailModal: React.FC<TicketDetailModalProps> = ({
               <div className="flex items-center justify-between">
                 <span className="text-xs font-bold uppercase tracking-wider text-zinc-400 flex items-center gap-1.5">
                   <Ticket className="w-3.5 h-3.5 text-[#FF5A36]" />
-                  <span>{isBundle ? `Danh sách ghế trong Combo (${bundleCount} vé)` : 'Chi tiết vị trí ghế'}</span>
+                  <span>
+                    {isBundle
+                      ? isAllOrNothing
+                        ? `Danh sách ghế trong Combo (${bundleCount} vé)`
+                        : `Danh sách ghế (${activeCount}/${effectiveBundleListings.length} vé đã chọn)`
+                      : 'Chi tiết vị trí ghế'}
+                  </span>
                 </span>
                 {listing.organizerName && (
                   <span className="text-[11px] text-zinc-400 flex items-center gap-1">
@@ -207,34 +252,74 @@ export const TicketDetailModal: React.FC<TicketDetailModalProps> = ({
                 )}
               </div>
 
+              {isBundle && effectiveBundleListings.length > 1 && !isAllOrNothing && (
+                <div className="flex items-center justify-between px-1 text-xs">
+                  <span className="text-zinc-400">
+                    Tick chọn vé bạn muốn mua:
+                  </span>
+                  <button
+                    type="button"
+                    onClick={handleToggleAll}
+                    className="text-xs font-semibold text-[#FF5A36] hover:text-[#FF7252] transition-colors cursor-pointer"
+                  >
+                    {selectedListingIds.length === effectiveBundleListings.length ? 'Bỏ chọn bớt' : 'Chọn tất cả'}
+                  </button>
+                </div>
+              )}
+
               {isBundle && effectiveBundleListings.length > 1 ? (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                  {effectiveBundleListings.map((item, idx) => (
-                    <div
-                      key={item.listingId || idx}
-                      className="p-3.5 rounded-xl bg-[#05070A] border border-white/10 flex items-center justify-between gap-3"
-                    >
-                      <div className="space-y-0.5 min-w-0">
-                        <div className="flex items-center gap-1.5">
-                          <span className="text-[10px] font-mono font-bold text-[#FF5A36] bg-[#FF5A36]/10 px-1.5 py-0.5 rounded border border-[#FF5A36]/25">
-                            Vé #{idx + 1}
-                          </span>
-                          <span className="text-xs font-bold text-white truncate">
-                            {item.seatZone || item.tierName || 'Khu vực chính'}
-                          </span>
+                  {effectiveBundleListings.map((item, idx) => {
+                    const isSelected = selectedListingIds.includes(item.listingId);
+                    return (
+                      <div
+                        key={item.listingId || idx}
+                        onClick={() => !isAllOrNothing && handleToggleTicket(item.listingId)}
+                        className={`p-3.5 rounded-xl border flex items-center justify-between gap-3 transition-all ${
+                          !isAllOrNothing ? 'cursor-pointer hover:border-white/25' : ''
+                        } ${
+                          !isAllOrNothing
+                            ? isSelected
+                              ? 'bg-[#0D121B] border-[#FF5A36]/50 shadow-sm ring-1 ring-[#FF5A36]/20'
+                              : 'bg-[#05070A] border-white/10 opacity-55'
+                            : 'bg-[#05070A] border-white/10'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          {!isAllOrNothing && (
+                            <div
+                              className={`w-4 h-4 rounded flex items-center justify-center shrink-0 transition-colors ${
+                                isSelected
+                                  ? 'bg-[#FF5A36] text-white'
+                                  : 'border border-white/30 bg-white/5'
+                              }`}
+                            >
+                              {isSelected && <Check className="w-3 h-3 stroke-[3]" />}
+                            </div>
+                          )}
+                          <div className="space-y-0.5 min-w-0">
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-[10px] font-mono font-bold text-[#FF5A36] bg-[#FF5A36]/10 px-1.5 py-0.5 rounded border border-[#FF5A36]/25">
+                                Vé #{idx + 1}
+                              </span>
+                              <span className="text-xs font-bold text-white truncate">
+                                {item.seatZone || item.tierName || 'Khu vực chính'}
+                              </span>
+                            </div>
+                            <p className="text-[11px] font-mono text-zinc-400">
+                              Mã vé: {item.maskedTicketCode || 'AT*********'}
+                            </p>
+                          </div>
                         </div>
-                        <p className="text-[11px] font-mono text-zinc-400">
-                          Mã vé: {item.maskedTicketCode || 'AT*********'}
-                        </p>
+                        <div className="text-right shrink-0">
+                          <span className="text-xs font-mono font-bold text-white block">
+                            {formatVND(item.resalePrice || perTicketResalePrice)}
+                          </span>
+                          <span className="text-[10px] text-zinc-500">giá bán</span>
+                        </div>
                       </div>
-                      <div className="text-right shrink-0">
-                        <span className="text-xs font-mono font-bold text-white block">
-                          {formatVND(item.resalePrice || perTicketResalePrice)}
-                        </span>
-                        <span className="text-[10px] text-zinc-500">giá bán lại</span>
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               ) : (
                 <div className="p-4 rounded-xl bg-[#05070A] border border-white/10 flex items-center justify-between">
@@ -300,7 +385,11 @@ export const TicketDetailModal: React.FC<TicketDetailModalProps> = ({
               <div className="pt-2 border-t border-white/10 flex items-baseline justify-between">
                 <div>
                   <span className="text-sm font-bold text-white block">
-                    {isBundle ? `Tổng thanh toán (${bundleCount} vé)` : 'Tổng thanh toán'}
+                    {isBundle
+                      ? isAllOrNothing
+                        ? `Tổng thanh toán (${bundleCount} vé)`
+                        : `Tổng thanh toán (${activeCount} vé đã chọn)`
+                      : 'Tổng thanh toán'}
                   </span>
                   <span className="text-[11px] text-zinc-400">Đã bao gồm phí bảo vệ giao dịch</span>
                 </div>
@@ -355,11 +444,18 @@ export const TicketDetailModal: React.FC<TicketDetailModalProps> = ({
                 type="button"
                 onClick={() => {
                   onClose();
-                  onBuy(listing);
+                  const target = activeBundleListings[0] || listing;
+                  onBuy(target);
                 }}
                 className="px-6 py-3 bg-[#FF5A36] hover:bg-[#FF7252] text-white rounded-xl text-xs sm:text-sm font-bold tracking-wider uppercase transition-all shadow-lg shadow-[#FF5A36]/30 flex items-center gap-2 cursor-pointer hover:-translate-y-0.5 active:translate-y-0"
               >
-                <span>{isBundle ? `Mua Combo (${bundleCount} Vé)` : 'Tiến hành mua vé'}</span>
+                <span>
+                  {isBundle
+                    ? isAllOrNothing
+                      ? `Mua Combo (${bundleCount} Vé)`
+                      : `Mua ${activeCount} Vé (${formatVND(totalResalePrice)})`
+                    : 'Tiến hành mua vé'}
+                </span>
                 <ArrowRight className="w-4 h-4" />
               </button>
             )}

@@ -158,7 +158,7 @@ export const Step4SetPrice: React.FC<Step4SetPriceProps> = ({
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-            {/* Option 1: Combo trọn gói (Mua full) */}
+            {/* Option 1: Combo trọn gói (Buộc mua theo cặp/gói) */}
             <button
               type="button"
               onClick={() => setSaleType?.('combo')}
@@ -169,7 +169,7 @@ export const Step4SetPrice: React.FC<Step4SetPriceProps> = ({
               }`}
             >
               <div className="flex items-center justify-between mb-1">
-                <span className="font-bold text-xs text-white">Bán trọn gói Combo (Mua full)</span>
+                <span className="font-bold text-xs text-white">Bán trọn gói (Buộc mua cả cặp)</span>
                 {saleType === 'combo' && (
                   <span className="w-2 h-2 rounded-full bg-[#FF5A36]" />
                 )}
@@ -179,7 +179,7 @@ export const Step4SetPrice: React.FC<Step4SetPriceProps> = ({
               </p>
             </button>
 
-            {/* Option 2: Bán lẻ từng vé (Tick chọn linh hoạt) */}
+            {/* Option 2: Cho phép mua lẻ (Không buộc theo cặp) */}
             <button
               type="button"
               onClick={() => setSaleType?.('individual')}
@@ -190,13 +190,13 @@ export const Step4SetPrice: React.FC<Step4SetPriceProps> = ({
               }`}
             >
               <div className="flex items-center justify-between mb-1">
-                <span className="font-bold text-xs text-white">Bán lẻ từng vé (Tick chọn)</span>
+                <span className="font-bold text-xs text-white">Cho phép mua lẻ (Không buộc theo cặp)</span>
                 {saleType === 'individual' && (
                   <span className="w-2 h-2 rounded-full bg-[#FF5A36]" />
                 )}
               </div>
               <p className="text-[11px] text-[#8F96A3] leading-relaxed">
-                Tạo {tickets.length} tin đăng độc lập. Khi mua, người mua có thể tick chọn từng vé hoặc tick 'Chọn tất cả'.
+                Vẫn hiển thị chung 1 tin đăng trên sàn. Người mua khi vào xem có thể tick chọn mua từng vé lẻ hoặc tick 'Chọn tất cả'.
               </p>
             </button>
           </div>
