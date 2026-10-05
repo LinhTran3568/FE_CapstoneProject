@@ -16,10 +16,11 @@ export interface CardStackProps<T extends CardStackItem = CardStackItem> {
   scaleFactor?: number;
   activeIndex?: number;
   onActiveIndexChange?: (index: number) => void;
-  renderCard?: (item: T, relativeIndex: number, isTop: boolean) => React.ReactNode;
+  renderCard?: (item: T, isTop: boolean, originalIndex: number) => React.ReactNode;
   className?: string;
   cardClassName?: string;
   containerHeight?: string | number;
+  layoutMode?: 'staggered' | 'stack';
 }
 
 // Utility to highlight specific sections of content
@@ -44,14 +45,15 @@ export const Highlight = ({
 
 export const CardStack = <T extends CardStackItem>({
   items,
-  offset = 12,
+  offset = 64,
   scaleFactor = 0.04,
   activeIndex,
   onActiveIndexChange,
   renderCard,
   className,
   cardClassName,
-  containerHeight = '22rem',
+  containerHeight,
+  layoutMode = 'staggered',
 }: CardStackProps<T>) => {
   const [internalIndex, setInternalIndex] = useState(0);
 
@@ -67,21 +69,55 @@ export const CardStack = <T extends CardStackItem>({
   if (!items || items.length === 0) return null;
 
   const total = items.length;
+  const inactiveIndices = items.map((_, i) => i).filter((i) => i !== currentIndex);
+
+  // Tính chiều cao container tự động nếu dùng chế độ so le
+  const calculatedHeight = containerHeight ?? (
+    layoutMode === 'staggered'
+      ? `${(total - 1) * offset + 295}px`
+      : '22rem'
+  );
 
   return (
     <div
-      className={cn('relative w-full flex items-center justify-center', className)}
-      style={{ height: containerHeight }}
+      className={cn('relative w-full flex items-start justify-center', className)}
+      style={{ height: calculatedHeight }}
     >
       <AnimatePresence initial={false}>
         {items.map((item, originalIndex) => {
-          // Tính relativeIndex so với currentIndex theo vòng tròn
-          const relativeIndex = (originalIndex - currentIndex + total) % total;
+          const isTop = originalIndex === currentIndex;
 
-          // Chỉ render tối đa 3-4 thẻ trên stack để tối ưu hiệu năng
-          if (relativeIndex > 3) return null;
+          let topPos = 0;
+          let scaleVal = 1;
+          let zIndexVal = 10;
+          let opacityVal = 1;
 
-          const isTop = relativeIndex === 0;
+          if (layoutMode === 'staggered') {
+            // Chế độ so le (staggered cascade):
+            // Thẻ active nằm ở đáy của cascade để mở rộng toàn bộ thân thẻ (inputs, actions)
+            // Các thẻ ở sau (inactive) được xếp so le phía trên, thò ra đúng phần header chứa mã vé, trạng thái và timer
+            if (isTop) {
+              topPos = inactiveIndices.length * offset;
+              zIndexVal = 30;
+              scaleVal = 1;
+              opacityVal = 1;
+            } else {
+              const inactivePos = inactiveIndices.indexOf(originalIndex);
+              topPos = inactivePos * offset;
+              zIndexVal = 10 + inactivePos;
+              scaleVal = 1;
+              opacityVal = 0.95;
+            }
+          } else {
+            // Chế độ stack cổ điển
+            const relativeIndex = (originalIndex - currentIndex + total) % total;
+            if (relativeIndex > 3) return null;
+
+            topPos = relativeIndex * -14;
+            scaleVal = 1 - relativeIndex * scaleFactor;
+            zIndexVal = total - relativeIndex;
+            opacityVal = isTop ? 1 : Math.max(0.35, 1 - relativeIndex * 0.28);
+          }
 
           return (
             <motion.div
@@ -89,23 +125,23 @@ export const CardStack = <T extends CardStackItem>({
               className={cn(
                 'absolute w-full rounded-2xl transition-shadow duration-200',
                 isTop
-                  ? 'pointer-events-auto shadow-2xl shadow-black/60'
-                  : 'pointer-events-auto cursor-pointer shadow-lg shadow-black/40 hover:brightness-110',
+                  ? 'pointer-events-auto shadow-2xl shadow-black/80'
+                  : 'pointer-events-auto cursor-pointer shadow-lg shadow-black/40 hover:brightness-105',
                 cardClassName
               )}
               style={{
                 transformOrigin: 'top center',
               }}
               animate={{
-                top: relativeIndex * -offset,
-                scale: 1 - relativeIndex * scaleFactor,
-                zIndex: total - relativeIndex,
-                opacity: isTop ? 1 : Math.max(0.35, 1 - relativeIndex * 0.28),
+                top: topPos,
+                scale: scaleVal,
+                zIndex: zIndexVal,
+                opacity: opacityVal,
               }}
               transition={{
                 type: 'spring',
                 stiffness: 300,
-                damping: 26,
+                damping: 28,
               }}
               onClick={() => {
                 if (!isTop) {
@@ -114,7 +150,7 @@ export const CardStack = <T extends CardStackItem>({
               }}
             >
               {renderCard ? (
-                renderCard(item, relativeIndex, isTop)
+                renderCard(item, isTop, originalIndex)
               ) : (
                 <div className="bg-[#0E131F] border border-white/[0.08] rounded-2xl p-6 h-full flex flex-col justify-between">
                   <div className="text-white text-sm">{item.content}</div>
