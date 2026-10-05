@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { OrganizerDto } from '@ticketshield/api-client';
 import { PurchasedTicketDto, UserBankAccountDto } from '@ticketshield/types';
-import { Building2, ChevronDown, Check, Ticket, X, Loader2, ArrowRight, AlertCircle } from 'lucide-react';
+import { Building2, ChevronDown, Check, Ticket, X, Loader2, ArrowRight, AlertCircle, Pencil } from 'lucide-react';
 import { SeatAdjacencyBadge } from '../ui/SeatAdjacencyBadge';
 
 /** Domain Law: một gói vé chỉ chứa từ 2 đến 3 vé (khớp ResaleListing.MaxBundleTickets ở BE). */
@@ -108,6 +108,44 @@ export const Step1EnterTicketCode: React.FC<Step1EnterTicketCodeProps> = ({
   };
 
   const [inputCode, setInputCode] = useState('');
+
+  // Inline edit state cho từng thẻ vé đã chọn
+  const [editingCode, setEditingCode] = useState<string | null>(null);
+  const [editInputText, setEditInputText] = useState<string>('');
+
+  const handleStartEdit = (code: string) => {
+    setEditingCode(code);
+    setEditInputText(code);
+    setSelectionNotice('');
+    setEventMismatchError('');
+  };
+
+  const handleSaveEdit = (oldCode: string) => {
+    const clean = editInputText.trim().toUpperCase();
+    if (!clean) {
+      // Nếu xóa rỗng, coi như xóa vé đó
+      const nextCodes = selectedCodes.filter((c) => c !== oldCode);
+      setTicketCode(nextCodes.join(', '));
+      setEditingCode(null);
+      return;
+    }
+
+    if (clean !== oldCode && selectedCodes.includes(clean)) {
+      setSelectionNotice(`Mã vé ${clean} đã tồn tại trong danh sách!`);
+      return;
+    }
+
+    const nextCodes = selectedCodes.map((c) => (c === oldCode ? clean : c));
+    setTicketCode(nextCodes.join(', '));
+    setEditingCode(null);
+    setEditInputText('');
+    setSelectionNotice('');
+  };
+
+  const handleCancelEdit = () => {
+    setEditingCode(null);
+    setEditInputText('');
+  };
 
   const handleAddManualCode = () => {
     const clean = inputCode.trim().toUpperCase();
@@ -338,26 +376,101 @@ export const Step1EnterTicketCode: React.FC<Step1EnterTicketCodeProps> = ({
               </button>
             </div>
 
-            {/* Dải Chips hiển thị trực quan các vé đã chọn */}
+            {/* Dòng thẻ vé đã chọn độc lập - Cho phép bấm vào để sửa inline trực tiếp */}
             {selectedCodes.length > 0 && (
-              <div className="space-y-1.5 pt-2">
+              <div className="pt-2.5 space-y-2">
+                <div className="flex items-center justify-between px-0.5">
+                  <span className="text-[11px] font-mono text-zinc-400">
+                    Vé đã chọn ({selectedCodes.length}/{MAX_BUNDLE_TICKETS}) · <span className="text-zinc-500">Bấm vào mã để sửa</span>:
+                  </span>
+                  {selectedCodes.length > 1 && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setTicketCode('');
+                        setEditingCode(null);
+                      }}
+                      className="text-[11px] text-zinc-500 hover:text-rose-400 transition-colors cursor-pointer"
+                    >
+                      Xóa tất cả
+                    </button>
+                  )}
+                </div>
+
                 <div className="flex flex-wrap gap-2">
                   {selectedCodes.map((code) => {
                     const matched = eligibleTickets.find(
                       (t) => purchasedPassCode(t).toUpperCase() === code
                     );
+                    const isEditing = editingCode === code;
+
+                    if (isEditing) {
+                      return (
+                        <div
+                          key={code}
+                          className="inline-flex items-center gap-1.5 p-1 pl-2.5 rounded-xl bg-[#0D121B] border-2 border-[#FF5A36] text-xs shadow-lg shadow-[#FF5A36]/20 animate-in fade-in zoom-in-95"
+                        >
+                          <Ticket className="w-3.5 h-3.5 text-[#FF5A36] shrink-0" />
+                          <input
+                            type="text"
+                            value={editInputText}
+                            onChange={(e) => setEditInputText(e.target.value.toUpperCase())}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') {
+                                e.preventDefault();
+                                handleSaveEdit(code);
+                              } else if (e.key === 'Escape') {
+                                handleCancelEdit();
+                              }
+                            }}
+                            autoFocus
+                            placeholder="MÃ VÉ..."
+                            className="w-36 bg-white/5 border border-white/20 rounded-lg px-2 py-1 text-xs font-mono font-bold tracking-wider text-white outline-none focus:border-[#FF5A36]"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => handleSaveEdit(code)}
+                            className="p-1.5 bg-[#FF5A36] hover:bg-[#FF7252] text-white rounded-lg transition-colors cursor-pointer"
+                            title="Lưu (Enter)"
+                          >
+                            <Check className="w-3.5 h-3.5 stroke-[3]" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={handleCancelEdit}
+                            className="p-1.5 text-zinc-400 hover:text-white hover:bg-white/10 rounded-lg transition-colors cursor-pointer"
+                            title="Hủy (Esc)"
+                          >
+                            <X className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      );
+                    }
+
                     return (
                       <div
                         key={code}
-                        className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-[#0D121B] border border-white/15 text-xs font-medium text-white shadow-sm animate-in fade-in zoom-in-95"
+                        className="group inline-flex items-center gap-2 pl-3 pr-2 py-1.5 rounded-xl bg-[#0D121B] hover:bg-[#121824] border border-white/15 hover:border-white/30 text-xs font-medium text-white shadow-sm transition-all animate-in fade-in zoom-in-95"
                       >
                         <Ticket className="w-3.5 h-3.5 text-[#FF5A36] shrink-0" />
-                        <span className="font-mono font-bold tracking-wide">{code}</span>
+                        
+                        {/* Bấm vào mã vé để sửa */}
+                        <button
+                          type="button"
+                          onClick={() => handleStartEdit(code)}
+                          className="font-mono font-bold tracking-wide hover:text-[#FF5A36] transition-colors cursor-pointer flex items-center gap-1.5 text-left"
+                          title="Bấm để sửa mã vé này"
+                        >
+                          <span>{code}</span>
+                          <Pencil className="w-3 h-3 text-zinc-500 group-hover:text-[#FF5A36] opacity-0 group-hover:opacity-100 transition-opacity" />
+                        </button>
+
                         {matched && (
-                          <span className="text-[11px] text-white/50 border-l border-white/10 pl-2 max-w-[150px] truncate">
+                          <span className="text-[11px] text-white/50 border-l border-white/10 pl-2 max-w-[140px] truncate">
                             {matched.tierName || matched.eventName}
                           </span>
                         )}
+
                         <button
                           type="button"
                           onClick={() => {
@@ -365,8 +478,9 @@ export const Step1EnterTicketCode: React.FC<Step1EnterTicketCodeProps> = ({
                             setTicketCode(next.join(', '));
                             setSelectionNotice('');
                             setEventMismatchError('');
+                            if (editingCode === code) setEditingCode(null);
                           }}
-                          className="p-0.5 text-white/40 hover:text-rose-400 hover:bg-white/10 rounded transition-colors cursor-pointer"
+                          className="p-1 text-white/40 hover:text-rose-400 hover:bg-white/10 rounded-md transition-colors cursor-pointer ml-0.5"
                           title={`Xóa vé ${code}`}
                         >
                           <X className="w-3.5 h-3.5" />
