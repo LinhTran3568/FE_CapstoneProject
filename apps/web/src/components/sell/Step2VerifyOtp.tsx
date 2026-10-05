@@ -244,7 +244,8 @@ export const Step2VerifyOtp: React.FC<Step2VerifyOtpProps> = ({
           activeIndex={safePage}
           onActiveIndexChange={setPage}
           layoutMode="staggered"
-          offset={48}
+          offset={42}
+          containerHeight={`${(tickets.length - 1) * 42 + 210}px`}
           renderCard={(t, isTop, originalIndex) => {
             const ticketDigits = digits[t.code] ?? emptyDigits();
             const filledCount = ticketDigits.filter((d) => Boolean(d && d.trim())).length;
@@ -259,108 +260,68 @@ export const Step2VerifyOtp: React.FC<Step2VerifyOtpProps> = ({
                 className={`w-full rounded-2xl transition-all duration-200 overflow-hidden text-left bg-[#0A0D14] ${
                   isTop
                     ? t.locked
-                      ? 'border border-emerald-500/40 shadow-2xl shadow-black/80 ring-1 ring-emerald-500/20'
-                      : 'border border-white/20 shadow-2xl shadow-black/80 ring-1 ring-white/10'
+                      ? 'border border-emerald-500/30 shadow-2xl shadow-black/80'
+                      : 'border border-white/15 shadow-2xl shadow-black/80'
                     : 'border border-white/10 shadow-md shadow-black/50 hover:border-white/20'
                 }`}
               >
-                {/* Header thẻ: Luôn hiển thị ở cả thẻ active và thẻ so le phía sau */}
+                {/* Header thẻ: Tinh gọn, không lạm dụng tag pills */}
                 <div
-                  className={`h-[48px] px-4 sm:px-5 flex items-center justify-between border-b ${
+                  className={`h-[44px] px-4 sm:px-5 flex items-center justify-between border-b ${
                     isTop
-                      ? t.locked
-                        ? 'border-emerald-500/30 bg-[#0A0D14]'
-                        : 'border-white/10 bg-[#0A0D14]'
-                      : 'border-white/[0.08] bg-[#070A0F] cursor-pointer hover:bg-white/[0.04]'
+                      ? 'border-white/10 bg-[#0A0D14]'
+                      : 'border-white/[0.08] bg-[#070A0F] cursor-pointer hover:bg-white/[0.03]'
                   }`}
                   onClick={() => {
                     if (!isTop) setPage(originalIndex);
                   }}
                 >
                   {/* Cột trái: Biểu tượng + Mã vé */}
-                  <div className="flex items-center gap-2.5">
-                    <div
-                      className={`p-1.5 rounded-lg border ${
-                        t.locked
-                          ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-400'
-                          : isTop
-                          ? 'bg-[#FF5A36]/15 border-[#FF5A36]/30 text-[#FF5A36]'
-                          : 'bg-white/[0.04] border-white/10 text-[#8A909B]'
-                      }`}
-                    >
-                      {t.locked ? (
-                        <CheckCircle2 className="w-4 h-4" />
-                      ) : (
-                        <Ticket className="w-4 h-4" />
-                      )}
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs text-[#8A909B]">
-                        Vé {originalIndex + 1}:
-                      </span>
-                      <span className="text-sm font-semibold text-white tracking-wide">
-                        {t.code}
-                      </span>
-                    </div>
+                  <div className="flex items-center gap-2">
+                    {t.locked ? (
+                      <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                    ) : (
+                      <Ticket className="w-4 h-4 text-[#8A909B] shrink-0" />
+                    )}
+                    <span className="text-xs text-[#8A909B]">
+                      Vé {originalIndex + 1}:
+                    </span>
+                    <span className="text-sm font-semibold text-white tracking-wide">
+                      {t.code}
+                    </span>
                   </div>
 
-                  {/* Cột phải: Trạng thái nhập OTP + Thời gian còn lại */}
-                  <div className="flex items-center gap-2 text-xs">
-                    {/* Badge đã nhập OTP chưa */}
+                  {/* Cột phải: Chỉ hiển thị 1 thông tin duy nhất (thời gian hoặc chữ Đã xác thực thanh lịch) */}
+                  <div>
                     {t.locked ? (
-                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-500/15 border border-emerald-500/30 text-emerald-400">
-                        <CheckCircle2 className="w-3 h-3" /> Đã xác thực
-                      </span>
-                    ) : filledCount === OTP_LENGTH ? (
-                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-amber-500/15 border border-amber-500/30 text-amber-300">
-                        Đã nhập 6 số
-                      </span>
-                    ) : filledCount > 0 ? (
-                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-[#FF5A36]/15 border border-[#FF5A36]/30 text-[#FF5A36]">
-                        Đang nhập ({filledCount}/6)
+                      <span className="text-xs text-emerald-400 font-medium">
+                        Đã xác thực
                       </span>
                     ) : (
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] bg-white/[0.04] border border-white/10 text-[#8A909B]">
-                        Chưa nhập
+                      <span
+                        className={`text-xs font-mono font-medium ${
+                          isExpired
+                            ? 'text-rose-400'
+                            : tLeft <= 60
+                            ? 'text-rose-400 animate-pulse'
+                            : 'text-[#FF5A36]'
+                        }`}
+                      >
+                        {isExpired ? 'Hết hạn' : formatTimer(tLeft)}
                       </span>
                     )}
-
-                    {/* Badge thời gian còn lại */}
-                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] bg-white/[0.04] border border-white/10">
-                      {t.locked ? (
-                        <>
-                          <Lock className="w-3 h-3 text-emerald-400" />
-                          <span className="text-emerald-400 font-semibold">Đã khóa</span>
-                        </>
-                      ) : (
-                        <>
-                          <Clock className={`w-3 h-3 ${isExpired || tLeft <= 60 ? 'text-rose-400' : 'text-[#FF5A36]'}`} />
-                          <span
-                            className={
-                              isExpired
-                                ? 'text-rose-400 font-semibold'
-                                : tLeft <= 60
-                                ? 'text-rose-400 font-semibold animate-pulse'
-                                : 'text-[#FF5A36] font-semibold'
-                            }
-                          >
-                            {isExpired ? 'Hết hạn' : formatTimer(tLeft)}
-                          </span>
-                        </>
-                      )}
-                    </span>
                   </div>
                 </div>
 
-                {/* Thân thẻ vé: Chỉ hiển thị đầy đủ khi thẻ đang active (isTop) */}
+                {/* Thân thẻ vé */}
                 <div
-                  className={`p-5 sm:p-6 space-y-4 bg-[#0A0D14] ${
+                  className={`p-4 sm:p-5 space-y-3 bg-[#0A0D14] ${
                     !isTop ? 'pointer-events-none opacity-0 select-none h-0 p-0 overflow-hidden' : ''
                   }`}
                 >
-                  {/* 6 ô nhập OTP (Khóa lại rõ ràng khi đã xác thực) */}
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-center gap-2 pt-0.5">
+                  {/* 6 ô nhập OTP */}
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-center gap-2">
                       {ticketDigits.map((digit, slot) => (
                         <input
                           key={slot}
@@ -379,24 +340,19 @@ export const Step2VerifyOtp: React.FC<Step2VerifyOtpProps> = ({
                           onChange={(e) => handleDigitChange(t.code, slot, e.target.value)}
                           onKeyDown={(e) => handleKeyDown(t.code, slot, e)}
                           onPaste={(e) => handlePaste(t.code, e)}
-                          className={`w-[44px] h-[50px] sm:w-[48px] sm:h-[54px] border rounded-xl text-center font-mono font-bold text-xl transition-all duration-150 focus:outline-none ${
+                          className={`w-[42px] h-[48px] sm:w-[46px] sm:h-[50px] border rounded-xl text-center font-mono font-bold text-lg sm:text-xl transition-all duration-150 focus:outline-none ${
                             t.locked
-                              ? 'border-emerald-500/40 bg-[#05070A] text-emerald-400 cursor-not-allowed select-none opacity-90'
+                              ? 'border-white/10 bg-[#05070A] text-emerald-400 cursor-not-allowed select-none opacity-90'
                               : digit
-                              ? 'border-[#FF5A36] bg-[#FF5A36]/10 text-white ring-1 ring-[#FF5A36]/40'
-                              : 'border-white/15 bg-[#05070A] text-white focus:border-[#FF5A36] focus:ring-2 focus:ring-[#FF5A36]/30'
+                              ? 'border-[#FF5A36] bg-[#FF5A36]/5 text-white ring-1 ring-[#FF5A36]/30'
+                              : 'border-white/10 bg-[#05070A] text-white focus:border-[#FF5A36] focus:ring-1 focus:ring-[#FF5A36]/30'
                           }`}
                         />
                       ))}
                     </div>
 
-                    {/* Dòng hiển thị trạng thái đếm ngược hoặc đã khóa */}
-                    {t.locked ? (
-                      <div className="flex items-center justify-center gap-1.5 text-xs text-emerald-400/90 font-medium py-0.5">
-                        <Lock className="w-3.5 h-3.5 text-emerald-400" />
-                        <span>Vé đã được Ban tổ chức xác thực và khóa an toàn</span>
-                      </div>
-                    ) : (
+                    {/* Dòng gửi lại OTP (chỉ hiện khi vé CHƯA xác thực, bỏ hoàn toàn text thuyết minh rác) */}
+                    {!t.locked && (
                       <div className="flex items-center justify-between text-xs px-1 text-[#8A909B]">
                         <span>
                           {isExpired ? 'Mã đã hết hạn' : `Hết hạn sau ${formatTimer(tLeft)}`}
@@ -427,24 +383,40 @@ export const Step2VerifyOtp: React.FC<Step2VerifyOtpProps> = ({
 
                   {/* Thông báo lỗi nếu có */}
                   {errorMsg && (
-                    <div className="p-2.5 bg-rose-500/10 border border-rose-500/25 rounded-xl text-xs text-rose-300 text-center">
+                    <div className="p-2 bg-rose-500/10 border border-rose-500/20 rounded-xl text-xs text-rose-300 text-center">
                       {errorMsg}
                     </div>
                   )}
 
                   {/* Nút hành động */}
-                  <div className="pt-0.5">
+                  <div>
                     {t.locked ? (
-                      <div className="w-full h-[46px] rounded-xl font-bold text-sm bg-emerald-500/15 border border-emerald-500/35 text-emerald-400 flex items-center justify-center gap-2 cursor-default shadow-sm">
-                        <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-                        <span>Đã xác thực vé thành công ✓</span>
-                      </div>
+                      allLocked ? (
+                        <button
+                          type="button"
+                          onClick={onComplete}
+                          className="w-full h-11 rounded-xl text-xs font-bold uppercase tracking-wider text-white bg-[#FF5A36] hover:bg-[#FF7252] shadow-lg shadow-[#FF5A36]/30 transition-all cursor-pointer active:scale-[0.99]"
+                        >
+                          Tiếp tục bước tiếp theo →
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const nextIdx = tickets.findIndex((item) => !item.locked);
+                            if (nextIdx !== -1) setPage(nextIdx);
+                          }}
+                          className="w-full h-10 rounded-xl text-xs font-semibold text-white/80 hover:text-white bg-white/[0.05] hover:bg-white/10 border border-white/10 transition-all cursor-pointer"
+                        >
+                          Chuyển sang vé chưa xác thực →
+                        </button>
+                      )
                     ) : (
                       <button
                         type="button"
                         onClick={() => handleVerifyOneTicket(t)}
                         disabled={!isTop || isCurrentVerifying || !isFilled}
-                        className={`w-full h-[46px] rounded-xl font-bold text-sm transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer ${
+                        className={`w-full h-11 rounded-xl text-xs font-bold uppercase tracking-wider text-white transition-all duration-150 flex items-center justify-center gap-2 cursor-pointer ${
                           isCurrentVerifying
                             ? 'bg-[#FF5A36]/60 text-white cursor-wait'
                             : isFilled
@@ -455,7 +427,7 @@ export const Step2VerifyOtp: React.FC<Step2VerifyOtpProps> = ({
                         {isCurrentVerifying ? (
                           <>
                             <Loader2 className="w-4 h-4 animate-spin" />
-                            <span>Đang xác thực vé...</span>
+                            <span>Đang xác thực...</span>
                           </>
                         ) : (
                           <span>Xác thực vé {t.code} →</span>
@@ -470,26 +442,26 @@ export const Step2VerifyOtp: React.FC<Step2VerifyOtpProps> = ({
         />
       </div>
 
-      {/* Dấu mũi tên & Paging rõ ràng ở phía dưới (khi có nhiều vé) */}
+      {/* Dấu mũi tên & Paging trực quan ngay sát dưới card */}
       {tickets.length > 1 && (
-        <div className="flex items-center justify-center gap-2.5 pt-1.5">
+        <div className="flex items-center justify-center gap-2 mt-3">
           {/* Mũi tên lùi vé trước */}
           <button
             type="button"
             onClick={() => setPage((prev) => Math.max(0, prev - 1))}
             disabled={safePage === 0}
             aria-label="Vé trước"
-            className="w-8 h-8 rounded-xl border border-white/10 bg-[#0A0D14] hover:bg-white/[0.08] hover:border-white/25 text-white/80 hover:text-white flex items-center justify-center disabled:opacity-25 disabled:cursor-not-allowed transition-all cursor-pointer shadow-sm active:scale-95"
+            className="w-7 h-7 rounded-lg border border-white/10 bg-[#0A0D14] hover:bg-white/[0.08] text-white/70 hover:text-white flex items-center justify-center disabled:opacity-20 disabled:cursor-not-allowed transition-all cursor-pointer active:scale-95"
           >
-            <ChevronLeft className="w-4 h-4" />
+            <ChevronLeft className="w-3.5 h-3.5" />
           </button>
 
-          {/* Cụm Paging: Tên vé + Dots trực quan */}
-          <div className="flex items-center gap-2.5 px-3.5 py-1.5 rounded-full bg-[#0A0D14] border border-white/10 shadow-sm">
-            <span className="text-xs font-semibold text-white/80 tracking-wide">
+          {/* Cụm Paging: Vé X/Y + Dots tinh gọn */}
+          <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-[#0A0D14] border border-white/10 text-xs font-medium text-white/80">
+            <span>
               Vé {safePage + 1}/{tickets.length}
             </span>
-            <div className="flex items-center gap-1.5">
+            <div className="flex items-center gap-1.5 pl-0.5">
               {tickets.map((t, idx) => {
                 const isActive = idx === safePage;
                 const isLocked = t.locked;
@@ -499,14 +471,14 @@ export const Step2VerifyOtp: React.FC<Step2VerifyOtpProps> = ({
                     key={t.code}
                     type="button"
                     onClick={() => setPage(idx)}
-                    className={`transition-all duration-200 cursor-pointer ${
+                    className={`transition-all duration-150 cursor-pointer ${
                       isActive
-                        ? 'w-6 h-2 rounded-full bg-[#FF5A36] shadow-sm shadow-[#FF5A36]/50'
+                        ? 'w-5 h-1.5 rounded-full bg-[#FF5A36]'
                         : isLocked
-                        ? 'w-2 h-2 rounded-full bg-emerald-400 shadow-sm shadow-emerald-400/50'
-                        : 'w-2 h-2 rounded-full bg-white/25 hover:bg-white/45'
+                        ? 'w-1.5 h-1.5 rounded-full bg-emerald-400'
+                        : 'w-1.5 h-1.5 rounded-full bg-white/25 hover:bg-white/45'
                     }`}
-                    title={`Vé ${idx + 1}: ${t.code} ${isLocked ? '(Đã xác thực)' : ''}`}
+                    title={`Vé ${idx + 1}: ${t.code}`}
                   />
                 );
               })}
@@ -519,47 +491,24 @@ export const Step2VerifyOtp: React.FC<Step2VerifyOtpProps> = ({
             onClick={() => setPage((prev) => Math.min(tickets.length - 1, prev + 1))}
             disabled={safePage === tickets.length - 1}
             aria-label="Vé kế tiếp"
-            className="w-8 h-8 rounded-xl border border-white/10 bg-[#0A0D14] hover:bg-white/[0.08] hover:border-white/25 text-white/80 hover:text-white flex items-center justify-center disabled:opacity-25 disabled:cursor-not-allowed transition-all cursor-pointer shadow-sm active:scale-95"
+            className="w-7 h-7 rounded-lg border border-white/10 bg-[#0A0D14] hover:bg-white/[0.08] text-white/70 hover:text-white flex items-center justify-center disabled:opacity-20 disabled:cursor-not-allowed transition-all cursor-pointer active:scale-95"
           >
-            <ChevronRight className="w-4 h-4" />
+            <ChevronRight className="w-3.5 h-3.5" />
           </button>
         </div>
       )}
 
-      {/* Hành động hoàn tất & Nút hủy phiên nổi bật */}
-      <div className="space-y-3 pt-2">
-        {/* Nút hoàn tất khi tất cả vé đã xác thực */}
-        {allLocked && (
-          <button
-            type="button"
-            onClick={onComplete}
-            className="w-full h-[48px] rounded-xl font-bold text-sm bg-emerald-500 hover:bg-emerald-600 text-white shadow-lg shadow-emerald-500/25 flex items-center justify-center gap-2 cursor-pointer transition-all active:scale-[0.99]"
-          >
-            <span>Tất cả vé đã xác thực - Tiếp tục →</span>
-          </button>
-        )}
-
-        {/* Nút hủy phiên xác thực: Làm nổi bật dạng secondary button */}
-        <div>
-          <button
-            type="button"
-            onClick={onAbandon}
-            disabled={isCancelling}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold text-rose-400 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/25 hover:border-rose-500/40 transition-all cursor-pointer disabled:opacity-40 shadow-sm active:scale-98"
-          >
-            {isCancelling ? (
-              <>
-                <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                <span>Đang hủy phiên...</span>
-              </>
-            ) : (
-              <>
-                <XCircle className="w-3.5 h-3.5" />
-                <span>Hủy phiên xác thực</span>
-              </>
-            )}
-          </button>
-        </div>
+      {/* Nút hủy phiên: Đặt ngay dưới paging, tối giản, thanh lịch */}
+      <div className="mt-2.5">
+        <button
+          type="button"
+          onClick={onAbandon}
+          disabled={isCancelling}
+          className="text-xs text-white/40 hover:text-rose-400 transition-colors inline-flex items-center gap-1.5 cursor-pointer disabled:opacity-30"
+        >
+          <XCircle className="w-3.5 h-3.5" />
+          <span>{isCancelling ? 'Đang hủy...' : 'Hủy phiên xác thực'}</span>
+        </button>
       </div>
     </div>
   );

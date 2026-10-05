@@ -45,7 +45,7 @@ export const Highlight = ({
 
 export const CardStack = <T extends CardStackItem>({
   items,
-  offset = 48,
+  offset = 42,
   scaleFactor = 0.04,
   activeIndex,
   onActiveIndexChange,
@@ -73,11 +73,11 @@ export const CardStack = <T extends CardStackItem>({
   const total = items.length;
   const inactiveIndices = items.map((_, i) => i).filter((i) => i !== currentIndex);
 
-  // Chiều cao tự động tính toán theo số lượng thẻ so le
+  // Chiều cao vừa khít thẻ theo số lượng thẻ so le (không khoảng trống thừa)
   const calculatedHeight =
     containerHeight ??
     (layoutMode === 'staggered'
-      ? `${(total - 1) * offset + 300}px`
+      ? `${(total - 1) * offset + 205}px`
       : '22rem');
 
   return (
