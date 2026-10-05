@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { UserBankAccountDto } from '@ticketshield/types';
 import { Ticket, Globe, Lock, Check, AlertCircle, Loader2, X, Layers, Split, ChevronDown, ChevronUp, AlertTriangle } from 'lucide-react';
-import { SeatAdjacencyBadge } from '../ui/SeatAdjacencyBadge';
 
 export interface Step5ReviewPublishProps {
   /** Mã của từng vé thật trong gói (1–3 vé). */
@@ -98,14 +97,6 @@ export const Step5ReviewPublish: React.FC<Step5ReviewPublishProps> = ({
                 <Ticket className="w-3.5 h-3.5 text-cyan-400" />
                 <span>{ticketCount > 1 ? `Your tickets (${ticketCount})` : 'Your ticket'}</span>
               </div>
-              {seatZone && (
-                <SeatAdjacencyBadge
-                  seats={seatZone}
-                  variant="glass"
-                  size="xs"
-                  showSubtext={true}
-                />
-              )}
             </div>
             <div className="flex flex-wrap gap-1.5 pt-0.5">
               {ticketCodes.length === 0 && (
@@ -360,6 +351,7 @@ export const Step5ReviewPublish: React.FC<Step5ReviewPublishProps> = ({
                   Sell as
                 </div>
                 <div className="grid grid-cols-2 gap-2.5">
+                  {/* 1. Bundle: Cam (Orange #FF5A36) */}
                   <button
                     type="button"
                     onClick={() => setSaleType?.('combo')}
@@ -380,16 +372,17 @@ export const Step5ReviewPublish: React.FC<Step5ReviewPublishProps> = ({
                     </div>
                   </button>
 
+                  {/* 2. Separately: Xanh dương (Blue blue-500) */}
                   <button
                     type="button"
                     onClick={() => setSaleType?.('individual')}
                     className={`p-3 rounded-xl border text-left transition-all cursor-pointer flex items-center gap-2.5 ${
                       saleType === 'individual'
-                        ? 'bg-[#FF5A36]/15 border-[#FF5A36] text-white shadow-sm shadow-[#FF5A36]/20'
+                        ? 'bg-blue-500/15 border-blue-500 text-white shadow-sm shadow-blue-500/20'
                         : 'bg-black/40 border-white/10 text-zinc-400 hover:border-white/20 hover:text-zinc-200'
                     }`}
                   >
-                    <div className={`p-2 rounded-lg shrink-0 ${saleType === 'individual' ? 'bg-[#FF5A36] text-white' : 'bg-white/5 text-zinc-400'}`}>
+                    <div className={`p-2 rounded-lg shrink-0 ${saleType === 'individual' ? 'bg-blue-500 text-white' : 'bg-white/5 text-zinc-400'}`}>
                       <Split className="w-4 h-4" />
                     </div>
                     <div className="min-w-0">
@@ -409,16 +402,17 @@ export const Step5ReviewPublish: React.FC<Step5ReviewPublishProps> = ({
                 Who can see it
               </div>
               <div className="grid grid-cols-2 gap-2.5">
+                {/* 3. Public: Xanh lá (Emerald Green emerald-500) */}
                 <button
                   type="button"
                   onClick={() => setIsPrivateListing(false)}
                   className={`p-3 rounded-xl border text-left transition-all cursor-pointer flex items-center gap-2.5 ${
                     !isPrivateListing
-                      ? 'bg-[#FF5A36]/15 border-[#FF5A36] text-white shadow-sm shadow-[#FF5A36]/20'
+                      ? 'bg-emerald-500/15 border-emerald-500 text-white shadow-sm shadow-emerald-500/20'
                       : 'bg-black/40 border-white/10 text-zinc-400 hover:border-white/20 hover:text-zinc-200'
                   }`}
                 >
-                  <div className={`p-2 rounded-lg shrink-0 ${!isPrivateListing ? 'bg-[#FF5A36] text-white' : 'bg-white/5 text-zinc-400'}`}>
+                  <div className={`p-2 rounded-lg shrink-0 ${!isPrivateListing ? 'bg-emerald-500 text-white' : 'bg-white/5 text-zinc-400'}`}>
                     <Globe className="w-4 h-4" />
                   </div>
                   <div className="min-w-0">
@@ -427,6 +421,7 @@ export const Step5ReviewPublish: React.FC<Step5ReviewPublishProps> = ({
                   </div>
                 </button>
 
+                {/* 4. Private: Tím (Purple purple-500) */}
                 <button
                   type="button"
                   onClick={() => setIsPrivateListing(true)}
@@ -530,11 +525,17 @@ export const Step5ReviewPublish: React.FC<Step5ReviewPublishProps> = ({
               <div className="flex justify-between items-center gap-2">
                 <span className="text-zinc-400">Sell as:</span>
                 <span className="text-zinc-200 font-semibold text-right">
-                  {ticketCount > 1
-                    ? saleType === 'combo'
-                      ? 'Bundle (Buyer takes both tickets)'
-                      : 'Separately (Buyer can take one or both)'
-                    : 'Single ticket'}
+                  {ticketCount > 1 ? (
+                    <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                      saleType === 'combo'
+                        ? 'text-[#FF7252] bg-[#FF5A36]/10 border border-[#FF5A36]/25'
+                        : 'text-blue-300 bg-blue-500/10 border border-blue-500/25'
+                    }`}>
+                      {saleType === 'combo' ? 'Bundle (Both tickets)' : 'Separately'}
+                    </span>
+                  ) : (
+                    'Single ticket'
+                  )}
                 </span>
               </div>
 
@@ -581,8 +582,8 @@ export const Step5ReviewPublish: React.FC<Step5ReviewPublishProps> = ({
                 <span className="text-zinc-400">Visibility:</span>
                 <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
                   isPrivateListing
-                    ? 'text-purple-300 bg-purple-500/10 border border-purple-500/20'
-                    : 'text-cyan-300 bg-cyan-500/10 border border-cyan-500/20'
+                    ? 'text-purple-300 bg-purple-500/10 border border-purple-500/25'
+                    : 'text-emerald-300 bg-emerald-500/10 border border-emerald-500/25'
                 }`}>
                   {isPrivateListing ? 'Private (Secret link)' : 'Public (Marketplace)'}
                 </span>
