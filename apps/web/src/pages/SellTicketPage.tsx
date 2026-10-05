@@ -71,6 +71,8 @@ const DRAFT_STORAGE_KEY = 'ticketshield_sell_draft';
   const [activeTicketIndex, setActiveTicketIndex] = useState<number>(0);
   // Hình thức bán: 'combo' (mua full) vs 'individual' (bán lẻ từng vé)
   const [saleType, setSaleType] = useState<'combo' | 'individual'>('combo');
+  // Màn con của Step 4: 'pricing' (đặt giá) vs 'confirm' (chốt giá & chế độ bán)
+  const [priceSubStep, setPriceSubStep] = useState<'pricing' | 'confirm'>('pricing');
 
   const markupPercent = sessions[0]?.markupPercent ?? 0;
   const faceValue = sessions.reduce((sum, s) => sum + s.originalPrice, 0);
@@ -116,6 +118,9 @@ const DRAFT_STORAGE_KEY = 'ticketshield_sell_draft';
           if (d.saleType === 'combo' || d.saleType === 'individual') {
             setSaleType(d.saleType);
           }
+          if (d.priceSubStep === 'pricing' || d.priceSubStep === 'confirm') {
+            setPriceSubStep(d.priceSubStep);
+          }
           setCurrentStep(d.currentStep);
           setResumeDraftAvailable(true);
         }
@@ -138,11 +143,12 @@ const DRAFT_STORAGE_KEY = 'ticketshield_sell_draft';
           ticketPrices,
           activeTicketIndex,
           saleType,
+          priceSubStep,
           savedAt: Date.now(),
         })
       );
     }
-  }, [sessions, currentStep, ticketCodes, selectedOrganizerId, ticketPrices, activeTicketIndex, saleType]);
+  }, [sessions, currentStep, ticketCodes, selectedOrganizerId, ticketPrices, activeTicketIndex, saleType, priceSubStep]);
 
   const [existingListings, setExistingListings] = useState<SellerListingDto[]>([]);
   const [isLoadingListings, setIsLoadingListings] = useState<boolean>(true);
@@ -935,6 +941,8 @@ const DRAFT_STORAGE_KEY = 'ticketshield_sell_draft';
           ticketCode={ticketCode}
           isCancellingSession={isCancellingSession}
           isPublishing={isPublishing}
+          priceSubStep={priceSubStep}
+          setPriceSubStep={setPriceSubStep}
         />
 
         {/* STEP 1: ENTER TICKET CODE */}
@@ -1010,7 +1018,10 @@ const DRAFT_STORAGE_KEY = 'ticketshield_sell_draft';
               )?.eventStartAt
             }
             organizerName={organizers.find((o) => o.id === selectedOrganizerId)?.name || 'Ban tổ chức'}
-            onContinue={() => setCurrentStep(4)}
+            onContinue={() => {
+              setPriceSubStep('pricing');
+              setCurrentStep(4);
+            }}
             onCancel={handleAbandonSession}
             isCancelling={isCancellingSession}
           />
@@ -1028,6 +1039,8 @@ const DRAFT_STORAGE_KEY = 'ticketshield_sell_draft';
             isCancelling={isCancellingSession}
             saleType={saleType}
             setSaleType={setSaleType}
+            subStep={priceSubStep}
+            setSubStep={setPriceSubStep}
           />
         )}
 

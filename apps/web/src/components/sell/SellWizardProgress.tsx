@@ -9,6 +9,8 @@ export interface SellWizardProgressProps {
   ticketCode: string;
   isCancellingSession: boolean;
   isPublishing?: boolean;
+  priceSubStep?: 'pricing' | 'confirm';
+  setPriceSubStep?: (sub: 'pricing' | 'confirm') => void;
 }
 
 export const SellWizardProgress: React.FC<SellWizardProgressProps> = ({
@@ -19,11 +21,13 @@ export const SellWizardProgress: React.FC<SellWizardProgressProps> = ({
   ticketCode,
   isCancellingSession,
   isPublishing = false,
+  priceSubStep = 'pricing',
+  setPriceSubStep,
 }) => {
   // Điều kiện hiển thị nút Back:
   // - Bước 6 (Đã publish): KHÔNG cho quay lại bất kỳ bước nào (tránh lỗi).
   // - Bước 2 & 3: Bấm quay lại sẽ hủy phiên & giải phóng khóa vé tại BTC.
-  // - Bước 4: Cho phép quay lại Bước 3.
+  // - Bước 4: Cho phép quay lại Bước 3 hoặc quay lại màn 4.1 nếu đang ở 4.2.
   // - Bước 5: Cho phép quay lại Bước 4 (chỉnh giá bán).
   const canGoBack =
     !isPublishing &&
@@ -34,7 +38,11 @@ export const SellWizardProgress: React.FC<SellWizardProgressProps> = ({
     if (currentStep === 2 || currentStep === 3) {
       handleAbandonSession();
     } else if (currentStep === 4) {
-      setCurrentStep(3);
+      if (priceSubStep === 'confirm' && setPriceSubStep) {
+        setPriceSubStep('pricing');
+      } else {
+        setCurrentStep(3);
+      }
     } else if (currentStep === 5) {
       setCurrentStep(4);
     }
@@ -68,6 +76,8 @@ export const SellWizardProgress: React.FC<SellWizardProgressProps> = ({
               title={
                 currentStep === 2
                   ? 'Hủy phiên xác thực & mở khóa vé'
+                  : currentStep === 4 && priceSubStep === 'confirm'
+                  ? 'Quay lại chỉnh giá vé'
                   : currentStep === 5
                   ? 'Quay lại Bước 4 (Chỉnh giá bán)'
                   : 'Quay lại bước trước'
@@ -80,7 +90,7 @@ export const SellWizardProgress: React.FC<SellWizardProgressProps> = ({
             {currentStep === 1 && 'Step 1: Enter Ticket Code'}
             {currentStep === 2 && 'Step 2: Organizer Verification'}
             {currentStep === 3 && 'Step 3: Confirm Ticket Details'}
-            {currentStep === 4 && 'Step 4: Set Resale Price'}
+            {currentStep === 4 && (priceSubStep === 'confirm' ? 'Step 4: Confirm Price & Mode' : 'Step 4: Set Resale Price')}
             {currentStep === 5 && 'Step 5: Review & Publish'}
             {currentStep === 6 && 'Step 6: Listing Complete'}
           </span>

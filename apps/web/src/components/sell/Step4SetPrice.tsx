@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ShieldCheck, ArrowRight, ArrowLeft, XCircle, Minus, Plus } from 'lucide-react';
+import { ShieldCheck, ArrowRight, ArrowLeft, XCircle, Minus, Plus, Edit3, Layers, Split } from 'lucide-react';
 
 export interface TicketPriceItem {
   code: string;
@@ -20,6 +20,8 @@ export interface Step4SetPriceProps {
   isCancelling?: boolean;
   saleType?: 'combo' | 'individual';
   setSaleType?: (type: 'combo' | 'individual') => void;
+  subStep?: 'pricing' | 'confirm';
+  setSubStep?: (sub: 'pricing' | 'confirm') => void;
 }
 
 export const Step4SetPrice: React.FC<Step4SetPriceProps> = ({
@@ -32,8 +34,17 @@ export const Step4SetPrice: React.FC<Step4SetPriceProps> = ({
   isCancelling = false,
   saleType = 'combo',
   setSaleType,
+  subStep,
+  setSubStep,
 }) => {
   const isCombo = tickets.length > 1;
+  const [internalSubStep, setInternalSubStep] = useState<'pricing' | 'confirm'>('pricing');
+  const currentSubStep = subStep ?? internalSubStep;
+  const changeSubStep = (s: 'pricing' | 'confirm') => {
+    if (setSubStep) setSubStep(s);
+    else setInternalSubStep(s);
+  };
+
   const currentTicket = tickets[activeTicketIndex] || tickets[0] || {
     code: '',
     originalPrice: 0,
@@ -141,46 +152,267 @@ export const Step4SetPrice: React.FC<Step4SetPriceProps> = ({
   const allTicketsValid = tickets.every((t) => t.resalePrice > 0 && t.resalePrice <= t.priceCeiling);
   const isCurrentTicketValid = resalePrice > 0 && resalePrice <= priceCeiling;
 
+  // =========================================================================
+  // MÀN 4.2: CHỐT GIÁ & CHẾ ĐỘ BÁN (CHO GÓI COMBO >= 2 VÉ)
+  // =========================================================================
+  if (isCombo && currentSubStep === 'confirm') {
+    return (
+      <div key="step-4-confirm" className="animate-fade-in-up max-w-xl mx-auto space-y-4 pt-1">
+        <div className="space-y-1 text-center">
+          <h2 className="text-2xl sm:text-3xl font-bold font-display text-white tracking-tight">
+            Chốt giá &amp; Chế độ bán
+          </h2>
+          <p className="text-xs text-[#A3A8B3]">
+            Kiểm tra lại giá từng vé và lựa chọn hình thức phát hành gói combo của bạn.
+          </p>
+        </div>
+
+        {/* 1. Thẻ danh sách vé đã đặt giá */}
+        <div className="bg-[#0A0D12]/90 backdrop-blur-md border border-white/10 p-4 sm:p-5 rounded-2xl space-y-3 shadow-xl">
+          <div className="flex items-center justify-between pb-2 border-b border-white/10">
+            <span className="text-xs font-mono font-bold uppercase tracking-wider text-zinc-300">
+              Danh sách vé trong gói ({tickets.length} vé)
+            </span>
+            <span className="text-[11px] text-zinc-500 font-mono">
+              Bấm "Sửa" để đổi giá
+            </span>
+          </div>
+
+          <div className="space-y-2">
+            {tickets.map((t, idx) => {
+              const diff = t.originalPrice - t.resalePrice;
+              const percent = Math.round((Math.abs(diff) / t.originalPrice) * 100);
+
+              return (
+                <div
+                  key={t.code}
+                  className="p-3 sm:p-3.5 rounded-xl bg-white/[0.03] border border-white/5 flex items-center justify-between gap-3 hover:border-white/15 transition-all"
+                >
+                  <div className="space-y-0.5 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="font-bold text-white text-xs font-mono">Vé #{idx + 1}</span>
+                      <span className="text-[11px] font-mono text-zinc-400 truncate max-w-[120px] sm:max-w-[160px]">{t.code}</span>
+                    </div>
+                    {t.seatZone && (
+                      <div className="text-[10px] font-mono text-zinc-500">{t.seatZone}</div>
+                    )}
+                  </div>
+
+                  <div className="flex items-center gap-3 shrink-0">
+                    <div className="text-right">
+                      <div className="text-xs font-mono text-zinc-500 line-through">
+                        {t.originalPrice.toLocaleString('vi-VN')} đ
+                      </div>
+                      <div className="text-sm sm:text-base font-extrabold font-display text-[#FF5A36] tabular-nums">
+                        {t.resalePrice.toLocaleString('vi-VN')} <span className="text-[10px] font-mono">VND</span>
+                      </div>
+                      <div className="text-[10px] font-mono">
+                        {diff > 0 ? (
+                          <span className="text-emerald-400">-{percent}% dưới giá gốc</span>
+                        ) : diff < 0 ? (
+                          <span className="text-amber-400">+{percent}% trên giá gốc</span>
+                        ) : (
+                          <span className="text-zinc-400">Bằng giá gốc</span>
+                        )}
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setActiveTicketIndex(idx);
+                        changeSubStep('pricing');
+                      }}
+                      className="p-1.5 sm:px-2.5 sm:py-1.5 bg-white/5 hover:bg-white/10 text-zinc-300 hover:text-white border border-white/10 rounded-lg text-xs font-mono flex items-center gap-1 transition-all cursor-pointer"
+                      title={`Sửa giá Vé #${idx + 1}`}
+                    >
+                      <Edit3 className="w-3.5 h-3.5" />
+                      <span className="hidden sm:inline">Sửa</span>
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* 2. Thẻ lựa chọn chế độ bán */}
+        <div className="bg-[#0A0D12]/90 backdrop-blur-md border border-white/10 p-4 sm:p-5 rounded-2xl space-y-3 shadow-xl text-left">
+          <div className="pb-1 border-b border-white/10">
+            <span className="text-xs font-mono font-bold uppercase tracking-wider text-zinc-300">
+              Chế độ bán gói
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {/* Option 1: Bán trọn gói combo */}
+            <button
+              type="button"
+              onClick={() => setSaleType?.('combo')}
+              className={`p-4 rounded-xl border text-left transition-all cursor-pointer relative flex flex-col justify-between ${
+                saleType === 'combo'
+                  ? 'bg-[#FF5A36]/10 border-[#FF5A36] ring-1 ring-[#FF5A36] shadow-lg shadow-[#FF5A36]/10'
+                  : 'bg-white/[0.02] border-white/10 hover:border-white/20 hover:bg-white/[0.04]'
+              }`}
+            >
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Layers className={`w-4 h-4 ${saleType === 'combo' ? 'text-[#FF5A36]' : 'text-zinc-400'}`} />
+                    <span className={`text-xs font-bold font-mono ${saleType === 'combo' ? 'text-[#FF5A36]' : 'text-white'}`}>
+                      Bán trọn gói combo
+                    </span>
+                  </div>
+                  <div className={`w-4 h-4 rounded-full border flex items-center justify-center ${
+                    saleType === 'combo' ? 'border-[#FF5A36] bg-[#FF5A36]' : 'border-white/30'
+                  }`}>
+                    {saleType === 'combo' && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
+                  </div>
+                </div>
+                <p className="text-[11px] text-zinc-400 leading-relaxed">
+                  Người mua bắt buộc mua trọn bộ {tickets.length} vé trong một giao dịch. Đảm bảo toàn bộ vé được bán cùng lúc.
+                </p>
+              </div>
+              <div className="mt-2.5 pt-2 border-t border-white/5 flex items-center justify-between text-[10px] font-mono text-zinc-400">
+                <span>Khuyên dùng</span>
+                <span className={saleType === 'combo' ? 'text-[#FF5A36] font-bold' : ''}>1 người mua hết</span>
+              </div>
+            </button>
+
+            {/* Option 2: Cho phép mua lẻ */}
+            <button
+              type="button"
+              onClick={() => setSaleType?.('individual')}
+              className={`p-4 rounded-xl border text-left transition-all cursor-pointer relative flex flex-col justify-between ${
+                saleType === 'individual'
+                  ? 'bg-[#FF5A36]/10 border-[#FF5A36] ring-1 ring-[#FF5A36] shadow-lg shadow-[#FF5A36]/10'
+                  : 'bg-white/[0.02] border-white/10 hover:border-white/20 hover:bg-white/[0.04]'
+              }`}
+            >
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Split className={`w-4 h-4 ${saleType === 'individual' ? 'text-[#FF5A36]' : 'text-zinc-400'}`} />
+                    <span className={`text-xs font-bold font-mono ${saleType === 'individual' ? 'text-[#FF5A36]' : 'text-white'}`}>
+                      Cho phép mua lẻ
+                    </span>
+                  </div>
+                  <div className={`w-4 h-4 rounded-full border flex items-center justify-center ${
+                    saleType === 'individual' ? 'border-[#FF5A36] bg-[#FF5A36]' : 'border-white/30'
+                  }`}>
+                    {saleType === 'individual' && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
+                  </div>
+                </div>
+                <p className="text-[11px] text-zinc-400 leading-relaxed">
+                  Người mua có thể chọn mua 1 hoặc nhiều vé tùy nhu cầu. Hệ thống tự động tách giao dịch độc lập cho từng vé.
+                </p>
+              </div>
+              <div className="mt-2.5 pt-2 border-t border-white/5 flex items-center justify-between text-[10px] font-mono text-zinc-400">
+                <span>Linh hoạt</span>
+                <span className={saleType === 'individual' ? 'text-[#FF5A36] font-bold' : ''}>Dễ thanh khoản</span>
+              </div>
+            </button>
+          </div>
+        </div>
+
+        {/* 3. Bảng tài chính tổng kết */}
+        <div className="p-4 sm:p-5 bg-[#080B11]/90 backdrop-blur-sm border border-emerald-500/20 rounded-2xl space-y-2.5 text-left shadow-xl">
+          <div className="flex items-center justify-between pb-2 border-b border-white/10">
+            <div className="flex items-center gap-1.5 text-xs font-semibold text-zinc-200">
+              <ShieldCheck className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+              <span>Chi tiết thanh toán dự kiến</span>
+            </div>
+            <span className="text-[10px] font-mono text-emerald-300 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
+              3% phí dịch vụ
+            </span>
+          </div>
+
+          <div className="space-y-1.5 text-xs font-mono">
+            <div className="flex justify-between items-center text-zinc-400">
+              <span>Tổng giá niêm yết ({tickets.length} vé):</span>
+              <span className="font-bold text-white tabular-nums">
+                {totalComboPrice.toLocaleString('vi-VN')} VND
+              </span>
+            </div>
+            <div className="flex justify-between items-center text-zinc-400">
+              <span>Phí dịch vụ sàn (3%):</span>
+              <span className="text-amber-400 tabular-nums">
+                - {totalSellerFee.toLocaleString('vi-VN')} VND
+              </span>
+            </div>
+          </div>
+
+          <div className="flex justify-between items-baseline pt-2.5 border-t border-white/10">
+            <span className="text-xs font-bold text-emerald-400 font-mono">
+              Thực nhận vào tài khoản:
+            </span>
+            <div className="text-right">
+              <span className="text-lg sm:text-xl font-extrabold text-emerald-400 font-display tabular-nums tracking-tight">
+                {totalYouReceive.toLocaleString('vi-VN')}
+              </span>
+              <span className="ml-1 text-xs font-bold text-emerald-400 font-mono">VND</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Nút điều hướng của Màn 4.2 */}
+        <div className="space-y-2.5 pt-1">
+          <button
+            type="button"
+            onClick={onContinue}
+            disabled={!allTicketsValid}
+            className={`w-full py-4 font-bold font-display uppercase tracking-widest text-xs rounded-xl transition-all duration-200 flex items-center justify-center gap-2 ${
+              !allTicketsValid
+                ? 'bg-white/5 text-white/30 border border-white/5 cursor-not-allowed opacity-50'
+                : 'bg-[#FF5A36] hover:bg-[#FF7252] text-white shadow-lg shadow-[#FF5A36]/30 hover:shadow-xl hover:shadow-[#FF5A36]/50 hover:-translate-y-0.5 active:translate-y-0 cursor-pointer'
+            }`}
+          >
+            <span>Tiếp tục: Xem lại &amp; Xuất bản tin</span>
+            <ArrowRight className="w-4 h-4" />
+          </button>
+
+          <button
+            type="button"
+            onClick={() => changeSubStep('pricing')}
+            className="w-full py-3 rounded-xl bg-white/5 hover:bg-white/10 text-zinc-300 hover:text-white border border-white/10 font-mono text-xs transition-all cursor-pointer flex items-center justify-center gap-2"
+          >
+            <ArrowLeft className="w-3.5 h-3.5" />
+            <span>Quay lại chỉnh giá vé</span>
+          </button>
+
+          {onCancel && (
+            <div className="text-center pt-1">
+              <button
+                type="button"
+                onClick={onCancel}
+                disabled={isCancelling}
+                className="text-xs sm:text-sm font-medium text-white/50 hover:text-rose-400 transition-colors inline-flex items-center gap-2 cursor-pointer disabled:opacity-30 py-1.5 px-3 rounded-lg hover:bg-rose-500/10 hover:border hover:border-rose-500/20"
+              >
+                <XCircle className="w-4 h-4" />
+                <span>{isCancelling ? 'Đang hủy...' : 'Hủy đăng bán & mở khóa vé'}</span>
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // =========================================================================
+  // MÀN 4.1: THIẾT LẬP GIÁ BÁN TỪNG VÉ (PRICING)
+  // =========================================================================
   return (
-    <div key={4} className="animate-fade-in-up max-w-xl mx-auto space-y-4 pt-1">
+    <div key="step-4-pricing" className="animate-fade-in-up max-w-xl mx-auto space-y-4 pt-1">
       <div className="space-y-1 text-center">
         <h2 className="text-2xl sm:text-3xl font-bold font-display text-white tracking-tight">
           Thiết lập giá bán
         </h2>
         <p className="text-xs text-[#A3A8B3]">
           {isCombo
-            ? `Nhập giá bán cho từng vé trong combo (${tickets.length} vé). Giá mỗi vé không vượt trần quy định.`
+            ? `Đặt giá bán cho từng vé trong combo (${tickets.length} vé). Giá mỗi vé không vượt trần quy định.`
             : `Nhập giá bán bạn mong muốn (tối đa ${priceCeiling.toLocaleString('vi-VN')} VND).`}
         </p>
       </div>
-
-      {/* Lựa chọn hình thức bán: Segmented Control 1 hàng tinh gọn */}
-      {isCombo && (
-        <div className="p-1 rounded-2xl bg-[#0A0D14] border border-white/10 flex gap-1 text-xs">
-          <button
-            type="button"
-            onClick={() => setSaleType?.('combo')}
-            className={`flex-1 py-2 px-3 rounded-xl font-semibold transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
-              saleType === 'combo'
-                ? 'bg-[#FF5A36] text-white shadow-md shadow-[#FF5A36]/30'
-                : 'text-zinc-400 hover:text-white'
-            }`}
-          >
-            <span>Bán trọn gói ({tickets.length} vé)</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => setSaleType?.('individual')}
-            className={`flex-1 py-2 px-3 rounded-xl font-semibold transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
-              saleType === 'individual'
-                ? 'bg-[#FF5A36] text-white shadow-md shadow-[#FF5A36]/30'
-                : 'text-zinc-400 hover:text-white'
-            }`}
-          >
-            <span>Cho phép mua lẻ</span>
-          </button>
-        </div>
-      )}
 
       {/* Tab chọn vé khi bán Combo dạng Pills ngang gọn nhẹ */}
       {isCombo && (
@@ -203,7 +435,7 @@ export const Step4SetPrice: React.FC<Step4SetPriceProps> = ({
               >
                 <div className="flex items-center justify-between text-[11px] font-mono">
                   <span className="font-bold text-white">Vé #{idx + 1}</span>
-                  <span className={`text-[10px] font-bold ${isExceeded ? 'text-rose-400' : 'text-[#FF5A36]'}`}>
+                  <span className={`text-[10px] font-bold ${isExceeded ? 'text-rose-400' : hasPrice ? 'text-[#FF5A36]' : 'text-zinc-500'}`}>
                     {hasPrice ? `${(t.resalePrice / 1000).toLocaleString('vi-VN')}k` : 'Chưa đặt'}
                   </span>
                 </div>
@@ -391,91 +623,120 @@ export const Step4SetPrice: React.FC<Step4SetPriceProps> = ({
           </div>
         </div>
 
-        {/* Tổng kết cả gói / Fee Breakdown Box: Mỏng nhẹ, tinh gọn */}
-        <div className="p-3.5 sm:p-4 bg-[#080B11]/90 backdrop-blur-sm border border-emerald-500/20 rounded-xl space-y-2 text-left">
-          <div className="flex items-center justify-between pb-2 border-b border-white/10">
-            <div className="flex items-center gap-1.5 text-xs font-semibold text-zinc-200">
-              <ShieldCheck className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-              <span>{isCombo ? 'Tổng kết gói bán' : 'Chi tiết thanh toán'}</span>
-            </div>
-            <span className="text-[10px] font-mono text-emerald-300 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
-              3% phí dịch vụ
-            </span>
-          </div>
-
-          <div className="space-y-1.5 text-xs font-mono">
-            <div className="flex justify-between items-center text-zinc-400">
-              <span>{isCombo ? `Tổng giá bán (${tickets.length} vé):` : 'Giá niêm yết:'}</span>
-              <span className="font-bold text-white tabular-nums">
-                {(isCombo ? totalComboPrice : resalePrice).toLocaleString('vi-VN')} VND
+        {/* ĐỐI VỚI VÉ ĐƠN (1 VÉ): Hiển thị chi tiết thanh toán nhỏ gọn ngay tại đây */}
+        {!isCombo && (
+          <div className="p-3.5 sm:p-4 bg-[#080B11]/90 backdrop-blur-sm border border-emerald-500/20 rounded-xl space-y-2 text-left">
+            <div className="flex items-center justify-between pb-2 border-b border-white/10">
+              <div className="flex items-center gap-1.5 text-xs font-semibold text-zinc-200">
+                <ShieldCheck className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                <span>Chi tiết thanh toán</span>
+              </div>
+              <span className="text-[10px] font-mono text-emerald-300 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
+                3% phí dịch vụ
               </span>
             </div>
-            <div className="flex justify-between items-center text-zinc-400">
-              <span>Phí dịch vụ sàn (3%):</span>
-              <span className="text-amber-400 tabular-nums">
-                - {totalSellerFee.toLocaleString('vi-VN')} VND
+
+            <div className="space-y-1.5 text-xs font-mono">
+              <div className="flex justify-between items-center text-zinc-400">
+                <span>Giá niêm yết:</span>
+                <span className="font-bold text-white tabular-nums">
+                  {resalePrice.toLocaleString('vi-VN')} VND
+                </span>
+              </div>
+              <div className="flex justify-between items-center text-zinc-400">
+                <span>Phí dịch vụ sàn (3%):</span>
+                <span className="text-amber-400 tabular-nums">
+                  - {totalSellerFee.toLocaleString('vi-VN')} VND
+                </span>
+              </div>
+            </div>
+
+            <div className="flex justify-between items-baseline pt-2 border-t border-white/10">
+              <span className="text-xs font-bold text-emerald-400 font-mono">
+                Thực nhận:
               </span>
+              <div className="text-right">
+                <span className="text-base sm:text-lg font-extrabold text-emerald-400 font-display tabular-nums tracking-tight">
+                  {totalYouReceive.toLocaleString('vi-VN')}
+                </span>
+                <span className="ml-1 text-xs font-bold text-emerald-400 font-mono">VND</span>
+              </div>
             </div>
           </div>
+        )}
 
-          <div className="flex justify-between items-baseline pt-2 border-t border-white/10">
-            <span className="text-xs font-bold text-emerald-400 font-mono">
-              Thực nhận:
-            </span>
-            <div className="text-right">
-              <span className="text-base sm:text-lg font-extrabold text-emerald-400 font-display tabular-nums tracking-tight">
-                {totalYouReceive.toLocaleString('vi-VN')}
-              </span>
-              <span className="ml-1 text-xs font-bold text-emerald-400 font-mono">VND</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Nút điều hướng chuyển vé hoặc Tiếp tục sang Step 5 */}
+        {/* Nút điều hướng chuyển vé hoặc Tiếp tục sang Chốt giá / Step 5 */}
         <div className="space-y-2 pt-2">
-          {isCombo && activeTicketIndex < tickets.length - 1 ? (
-            <div className="flex items-center gap-3">
-              <button
-                type="button"
-                onClick={() => setActiveTicketIndex(activeTicketIndex + 1)}
-                disabled={!isCurrentTicketValid}
-                className={`w-full py-4 font-bold font-display uppercase tracking-widest text-xs rounded-xl transition-all duration-200 flex items-center justify-center gap-2 ${
-                  !isCurrentTicketValid
-                    ? 'bg-white/5 text-white/30 border border-white/5 cursor-not-allowed opacity-50'
-                    : 'bg-[#FF5A36] hover:bg-[#FF7252] text-white shadow-lg shadow-[#FF5A36]/30 hover:shadow-xl hover:shadow-[#FF5A36]/50 cursor-pointer'
-                }`}
-              >
-                <span>Sang chỉnh vé tiếp theo (#{activeTicketIndex + 2})</span>
-                <ArrowRight className="w-4 h-4" />
-              </button>
-            </div>
-          ) : (
-            <div className="flex items-center gap-3">
-              {isCombo && (
+          {isCombo ? (
+            activeTicketIndex < tickets.length - 1 ? (
+              <div className="flex items-center gap-3">
+                {activeTicketIndex > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => setActiveTicketIndex(activeTicketIndex - 1)}
+                    className="px-4 py-4 rounded-xl bg-white/5 hover:bg-white/10 text-white border border-white/10 transition-all flex items-center gap-1.5 cursor-pointer font-mono text-xs"
+                  >
+                    <ArrowLeft className="w-4 h-4" />
+                    <span>Vé #{activeTicketIndex}</span>
+                  </button>
+                )}
+
                 <button
                   type="button"
-                  onClick={() => setActiveTicketIndex(Math.max(0, activeTicketIndex - 1))}
-                  className="px-4 py-4 rounded-xl bg-white/5 hover:bg-white/10 text-white border border-white/10 transition-all flex items-center gap-1.5 cursor-pointer font-mono text-xs"
+                  onClick={() => setActiveTicketIndex(activeTicketIndex + 1)}
+                  disabled={!isCurrentTicketValid}
+                  className={`flex-1 py-4 font-bold font-display uppercase tracking-widest text-xs rounded-xl transition-all duration-200 flex items-center justify-center gap-2 ${
+                    !isCurrentTicketValid
+                      ? 'bg-white/5 text-white/30 border border-white/5 cursor-not-allowed opacity-50'
+                      : 'bg-[#FF5A36] hover:bg-[#FF7252] text-white shadow-lg shadow-[#FF5A36]/30 hover:shadow-xl hover:shadow-[#FF5A36]/50 cursor-pointer'
+                  }`}
                 >
-                  <ArrowLeft className="w-4 h-4" />
-                  <span>Vé #{activeTicketIndex}</span>
+                  <span>Sang chỉnh vé tiếp theo (#{activeTicketIndex + 2})</span>
+                  <ArrowRight className="w-4 h-4" />
                 </button>
-              )}
+              </div>
+            ) : (
+              <div className="flex items-center gap-3">
+                {activeTicketIndex > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => setActiveTicketIndex(activeTicketIndex - 1)}
+                    className="px-4 py-4 rounded-xl bg-white/5 hover:bg-white/10 text-white border border-white/10 transition-all flex items-center gap-1.5 cursor-pointer font-mono text-xs"
+                  >
+                    <ArrowLeft className="w-4 h-4" />
+                    <span>Vé #{activeTicketIndex}</span>
+                  </button>
+                )}
 
-              <button
-                type="button"
-                onClick={onContinue}
-                disabled={!allTicketsValid}
-                className={`flex-1 py-4 font-bold font-display uppercase tracking-widest text-xs rounded-xl transition-all duration-200 flex items-center justify-center gap-2 ${
-                  !allTicketsValid
-                    ? 'bg-white/5 text-white/30 border border-white/5 cursor-not-allowed opacity-50'
-                    : 'bg-[#FF5A36] hover:bg-[#FF7252] text-white shadow-lg shadow-[#FF5A36]/30 hover:shadow-xl hover:shadow-[#FF5A36]/50 hover:-translate-y-0.5 active:translate-y-0 cursor-pointer'
-                }`}
-              >
-                <span>{isCombo ? 'Tiếp tục sang Bước 5' : 'Continue'}</span>
-                <ArrowRight className="w-4 h-4" />
-              </button>
-            </div>
+                <button
+                  type="button"
+                  onClick={() => changeSubStep('confirm')}
+                  disabled={!allTicketsValid}
+                  className={`flex-1 py-4 font-bold font-display uppercase tracking-widest text-xs rounded-xl transition-all duration-200 flex items-center justify-center gap-2 ${
+                    !allTicketsValid
+                      ? 'bg-white/5 text-white/30 border border-white/5 cursor-not-allowed opacity-50'
+                      : 'bg-[#FF5A36] hover:bg-[#FF7252] text-white shadow-lg shadow-[#FF5A36]/30 hover:shadow-xl hover:shadow-[#FF5A36]/50 hover:-translate-y-0.5 active:translate-y-0 cursor-pointer'
+                  }`}
+                >
+                  <span>Tiếp tục: Chốt giá &amp; Chế độ bán</span>
+                  <ArrowRight className="w-4 h-4" />
+                </button>
+              </div>
+            )
+          ) : (
+            <button
+              type="button"
+              onClick={onContinue}
+              disabled={!allTicketsValid}
+              className={`w-full py-4 font-bold font-display uppercase tracking-widest text-xs rounded-xl transition-all duration-200 flex items-center justify-center gap-2 ${
+                !allTicketsValid
+                  ? 'bg-white/5 text-white/30 border border-white/5 cursor-not-allowed opacity-50'
+                  : 'bg-[#FF5A36] hover:bg-[#FF7252] text-white shadow-lg shadow-[#FF5A36]/30 hover:shadow-xl hover:shadow-[#FF5A36]/50 hover:-translate-y-0.5 active:translate-y-0 cursor-pointer'
+              }`}
+            >
+              <span>Tiếp tục sang Bước 5</span>
+              <ArrowRight className="w-4 h-4" />
+            </button>
           )}
 
           {/* Nút hủy phiên mở khóa vé ở Bước 4 */}
@@ -497,3 +758,4 @@ export const Step4SetPrice: React.FC<Step4SetPriceProps> = ({
     </div>
   );
 };
+
