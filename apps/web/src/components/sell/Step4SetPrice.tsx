@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ShieldCheck, ArrowRight, ArrowLeft, XCircle, Minus, Plus, Edit3, Layers, Split } from 'lucide-react';
+import { ShieldCheck, ArrowRight, ArrowLeft, XCircle, Minus, Plus, Edit3, Layers, Split, ChevronDown, ChevronUp } from 'lucide-react';
 
 export interface TicketPriceItem {
   code: string;
@@ -44,6 +44,12 @@ export const Step4SetPrice: React.FC<Step4SetPriceProps> = ({
     if (setSubStep) setSubStep(s);
     else setInternalSubStep(s);
   };
+
+  const [expandPriceDetails, setExpandPriceDetails] = useState<boolean>(false);
+  const [expandFeeDetails, setExpandFeeDetails] = useState<boolean>(false);
+  const [showFeeTooltip, setShowFeeTooltip] = useState<boolean>(false);
+
+  const getTicketSellerFee = (price: number) => Math.max(Math.round(price * 0.03), 5000);
 
   const currentTicket = tickets[activeTicketIndex] || tickets[0] || {
     code: '',
@@ -305,8 +311,8 @@ export const Step4SetPrice: React.FC<Step4SetPriceProps> = ({
             </div>
           )}
 
-          {/* Bảng tài chính tổng kết (Bạn sẽ nhận được) */}
-          <div className="p-3.5 sm:p-4 bg-[#080B11]/90 border border-emerald-500/20 rounded-xl space-y-2 text-left">
+          {/* BẢNG TÀI CHÍNH TỔNG KẾT (BẠN SẼ NHẬN ĐƯỢC) - HỖ TRỢ BUNG CHI TIẾT TỪNG VÉ */}
+          <div className="p-3.5 sm:p-4 bg-[#080B11]/90 border border-emerald-500/20 rounded-xl space-y-2.5 text-left relative">
             <div className="flex items-center justify-between pb-1.5 border-b border-white/10">
               <div className="flex items-center gap-1.5 text-xs font-semibold text-zinc-200">
                 <ShieldCheck className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
@@ -317,27 +323,150 @@ export const Step4SetPrice: React.FC<Step4SetPriceProps> = ({
               </span>
             </div>
 
-            <div className="space-y-1 text-xs font-mono">
-              <div className="flex justify-between items-center text-zinc-400">
-                <span>Tổng giá bán ({tickets.length} vé):</span>
-                <div>
-                  <span className="font-bold text-white tabular-nums">
-                    {totalComboPrice.toLocaleString('vi-VN')}
-                  </span>
-                  <span className="text-[10px] text-zinc-500 ml-1">VND</span>
+            <div className="space-y-2 text-xs font-mono">
+              {/* DÒNG 1: TỔNG GIÁ BÁN KÈM MŨI TÊN BUNG RA / THU VÀO */}
+              <div className="space-y-1">
+                <div
+                  onClick={() => setExpandPriceDetails(!expandPriceDetails)}
+                  className="flex justify-between items-center text-zinc-300 select-none py-0.5 rounded transition-colors cursor-pointer hover:text-white"
+                  title="Nhấn để xem giá từng vé"
+                >
+                  <div className="flex items-center gap-1.5">
+                    <span>Tổng giá bán ({tickets.length} vé):</span>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setExpandPriceDetails(!expandPriceDetails);
+                      }}
+                      className="p-0.5 rounded hover:bg-white/10 text-zinc-400 hover:text-white transition-colors cursor-pointer"
+                      title={expandPriceDetails ? 'Thu gọn' : 'Bung xem từng vé'}
+                    >
+                      {expandPriceDetails ? (
+                        <ChevronUp className="w-3.5 h-3.5 text-zinc-300" />
+                      ) : (
+                        <ChevronDown className="w-3.5 h-3.5 text-zinc-400" />
+                      )}
+                    </button>
+                  </div>
+                  <div>
+                    <span className="font-bold text-white tabular-nums">
+                      + {totalComboPrice.toLocaleString('vi-VN')}
+                    </span>
+                    <span className="text-[10px] text-zinc-500 ml-1">VND</span>
+                  </div>
                 </div>
+
+                {/* Chi tiết từng vé khi bung ra */}
+                {expandPriceDetails && (
+                  <div className="pl-3.5 pr-2 py-1.5 space-y-1 bg-white/[0.02] border-l-2 border-[#FF5A36]/60 rounded-r text-[11px] text-zinc-400 animate-in fade-in duration-150">
+                    {tickets.map((t, idx) => (
+                      <div key={t.code} className="flex justify-between items-center">
+                        <span className="truncate text-zinc-400">
+                          + Vé #{idx + 1} ({t.seatZone ? `${t.seatZone} · ` : ''}{t.code}):
+                        </span>
+                        <span className="text-zinc-200 tabular-nums">
+                          + {t.resalePrice.toLocaleString('vi-VN')} <span className="text-[9px] text-zinc-500">VND</span>
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
-              <div className="flex justify-between items-center text-zinc-400">
-                <span>Phí nền tảng (3%):</span>
-                <div>
-                  <span className="text-amber-400 tabular-nums">
-                    - {totalSellerFee.toLocaleString('vi-VN')}
-                  </span>
-                  <span className="text-[10px] text-zinc-500 ml-1">VND</span>
+
+              {/* DÒNG 2: PHÍ NỀN TẢNG KÈM NÚT '?' VÀ MŨI TÊN BUNG RA / THU VÀO */}
+              <div className="space-y-1">
+                <div
+                  onClick={() => setExpandFeeDetails(!expandFeeDetails)}
+                  className="flex justify-between items-center text-zinc-300 select-none py-0.5 rounded transition-colors cursor-pointer hover:text-white"
+                  title="Nhấn để xem phí từng vé"
+                >
+                  <div className="flex items-center gap-1.5 relative">
+                    <span>Phí nền tảng (3%):</span>
+
+                    {/* Nút '?' giải thích phí nền tảng */}
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setShowFeeTooltip(!showFeeTooltip);
+                      }}
+                      className="w-4 h-4 rounded-full bg-white/10 hover:bg-white/20 text-zinc-300 hover:text-white text-[10px] font-bold flex items-center justify-center transition-colors cursor-pointer shrink-0"
+                      title="Thông tin phí nền tảng"
+                    >
+                      ?
+                    </button>
+
+                    {/* Popover giải thích phí */}
+                    {showFeeTooltip && (
+                      <div
+                        onClick={(e) => e.stopPropagation()}
+                        className="absolute left-0 top-full mt-1.5 w-72 p-3 bg-[#0E131F] border border-white/20 rounded-xl shadow-2xl text-[11px] text-zinc-200 z-50 animate-in fade-in zoom-in-95 duration-150 space-y-1.5"
+                      >
+                        <div className="flex items-center justify-between font-bold text-white pb-1 border-b border-white/10">
+                          <span>Phí nền tảng người bán (3%)</span>
+                          <button
+                            type="button"
+                            onClick={() => setShowFeeTooltip(false)}
+                            className="text-zinc-400 hover:text-white cursor-pointer text-xs"
+                          >
+                            ✕
+                          </button>
+                        </div>
+                        <p className="text-zinc-300 leading-relaxed font-sans">
+                          Phí nền tảng 3% được khấu trừ tự động khi vé bán thành công, dùng để duy trì hệ thống bảo vệ giao dịch và đối soát vé với Ban tổ chức (tối thiểu 5.000đ/vé).
+                        </p>
+                      </div>
+                    )}
+
+                    {/* Mũi tên bung phí từng vé */}
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setExpandFeeDetails(!expandFeeDetails);
+                      }}
+                      className="p-0.5 rounded hover:bg-white/10 text-zinc-400 hover:text-white transition-colors cursor-pointer"
+                      title={expandFeeDetails ? 'Thu gọn' : 'Bung xem phí từng vé'}
+                    >
+                      {expandFeeDetails ? (
+                        <ChevronUp className="w-3.5 h-3.5 text-zinc-300" />
+                      ) : (
+                        <ChevronDown className="w-3.5 h-3.5 text-zinc-400" />
+                      )}
+                    </button>
+                  </div>
+
+                  <div>
+                    <span className="text-amber-400 tabular-nums">
+                      - {totalSellerFee.toLocaleString('vi-VN')}
+                    </span>
+                    <span className="text-[10px] text-zinc-500 ml-1">VND</span>
+                  </div>
                 </div>
+
+                {/* Chi tiết phí từng vé khi bung ra */}
+                {expandFeeDetails && (
+                  <div className="pl-3.5 pr-2 py-1.5 space-y-1 bg-amber-500/[0.03] border-l-2 border-amber-500/40 rounded-r text-[11px] text-amber-300/80 animate-in fade-in duration-150">
+                    {tickets.map((t, idx) => {
+                      const ticketFee = getTicketSellerFee(t.resalePrice || 0);
+                      return (
+                        <div key={t.code} className="flex justify-between items-center">
+                          <span className="truncate text-amber-300/80">
+                            - Phí Vé #{idx + 1} ({t.code}):
+                          </span>
+                          <span className="text-amber-400 tabular-nums">
+                            - {ticketFee.toLocaleString('vi-VN')} <span className="text-[9px] text-zinc-500">VND</span>
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
             </div>
 
+            {/* DÒNG 3: BẠN NHẬN VỀ */}
             <div className="flex justify-between items-baseline pt-2 border-t border-white/10">
               <span className="text-xs font-bold text-emerald-400 font-mono">
                 Bạn nhận về:
@@ -628,7 +757,7 @@ export const Step4SetPrice: React.FC<Step4SetPriceProps> = ({
 
         {/* ĐỐI VỚI VÉ ĐƠN (1 VÉ): Hiển thị chi tiết thanh toán nhỏ gọn ngay tại đây */}
         {!isCombo && (
-          <div className="p-3.5 sm:p-4 bg-[#080B11]/90 backdrop-blur-sm border border-emerald-500/20 rounded-xl space-y-2 text-left">
+          <div className="p-3.5 sm:p-4 bg-[#080B11]/90 backdrop-blur-sm border border-emerald-500/20 rounded-xl space-y-2 text-left relative">
             <div className="flex items-center justify-between pb-2 border-b border-white/10">
               <div className="flex items-center gap-1.5 text-xs font-semibold text-zinc-200">
                 <ShieldCheck className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
@@ -644,13 +773,43 @@ export const Step4SetPrice: React.FC<Step4SetPriceProps> = ({
                 <span>Giá bán:</span>
                 <div>
                   <span className="font-bold text-white tabular-nums">
-                    {resalePrice.toLocaleString('vi-VN')}
+                    + {resalePrice.toLocaleString('vi-VN')}
                   </span>
                   <span className="text-[10px] text-zinc-500 ml-1">VND</span>
                 </div>
               </div>
-              <div className="flex justify-between items-center text-zinc-400">
-                <span>Phí nền tảng (3%):</span>
+              <div className="flex justify-between items-center text-zinc-400 relative">
+                <div className="flex items-center gap-1.5">
+                  <span>Phí nền tảng (3%):</span>
+                  <button
+                    type="button"
+                    onClick={() => setShowFeeTooltip(!showFeeTooltip)}
+                    className="w-4 h-4 rounded-full bg-white/10 hover:bg-white/20 text-zinc-300 hover:text-white text-[10px] font-bold flex items-center justify-center transition-colors cursor-pointer"
+                    title="Thông tin phí nền tảng"
+                  >
+                    ?
+                  </button>
+                  {showFeeTooltip && (
+                    <div
+                      onClick={(e) => e.stopPropagation()}
+                      className="absolute left-0 top-full mt-1.5 w-72 p-3 bg-[#0E131F] border border-white/20 rounded-xl shadow-2xl text-[11px] text-zinc-200 z-50 animate-in fade-in zoom-in-95 duration-150 space-y-1.5"
+                    >
+                      <div className="flex items-center justify-between font-bold text-white pb-1 border-b border-white/10">
+                        <span>Phí nền tảng người bán (3%)</span>
+                        <button
+                          type="button"
+                          onClick={() => setShowFeeTooltip(false)}
+                          className="text-zinc-400 hover:text-white cursor-pointer text-xs"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                      <p className="text-zinc-300 leading-relaxed font-sans">
+                        Phí nền tảng 3% được khấu trừ tự động khi vé bán thành công, dùng để duy trì hệ thống bảo vệ giao dịch và đối soát vé với Ban tổ chức (tối thiểu 5.000đ/vé).
+                      </p>
+                    </div>
+                  )}
+                </div>
                 <div>
                   <span className="text-amber-400 tabular-nums">
                     - {totalSellerFee.toLocaleString('vi-VN')}
