@@ -91,6 +91,9 @@ export const TicketCard: React.FC<TicketCardProps> = ({
   const formattedPrice = new Intl.NumberFormat('vi-VN').format(totalBundleResalePrice);
   const formattedOriginalPrice = new Intl.NumberFormat('vi-VN').format(totalBundleOriginalPrice);
 
+  const perTicketPrice = Math.round(totalBundleResalePrice / (bundleCount || 1));
+  const formattedPerTicketPrice = new Intl.NumberFormat('vi-VN').format(perTicketPrice);
+
   // Dynamic Zone styling with high contrast dark glass and vibrant accents
   const getZoneStyle = (tierName: string) => {
     const lower = (tierName || '').toLowerCase();
@@ -158,7 +161,9 @@ export const TicketCard: React.FC<TicketCardProps> = ({
           ? 'border-amber-500/40 shadow-[0_8px_30px_rgba(245,158,11,0.15)]'
           : isSold
             ? 'border-zinc-700/50 opacity-75'
-            : 'border-white/10 hover:border-[#FF5A36] hover:shadow-[0_12px_36px_rgba(255,90,54,0.2)] hover:-translate-y-1'
+            : isBundle
+              ? 'border-white/20 hover:border-[#FF5A36] hover:shadow-[0_12px_36px_rgba(255,90,54,0.25)] hover:-translate-y-1'
+              : 'border-white/10 hover:border-[#FF5A36] hover:shadow-[0_12px_36px_rgba(255,90,54,0.2)] hover:-translate-y-1'
         }`}
       onClick={() => {
         if (!isTransacting && onViewDetails) {
@@ -166,6 +171,21 @@ export const TicketCard: React.FC<TicketCardProps> = ({
         }
       }}
     >
+      {/* Layered Stacked Deck Visual Effect for Combo Bundles (2–4 tickets) */}
+      {isBundle && (
+        <>
+          <div
+            className="absolute -top-1.5 -right-1.5 -left-1.5 h-full rounded-2xl bg-[#131722] border border-white/10 -z-10 opacity-75 pointer-events-none transition-transform duration-200 group-hover:-translate-y-1"
+            aria-hidden="true"
+          />
+          {bundleCount >= 3 && (
+            <div
+              className="absolute -top-3 -right-3 -left-3 h-full rounded-2xl bg-[#090b10] border border-white/5 -z-20 opacity-45 pointer-events-none"
+              aria-hidden="true"
+            />
+          )}
+        </>
+      )}
       {/* ================= REALTIME TRANSACTING BLURRED OVERLAY ================= */}
       {isTransacting && (
         <div
@@ -299,39 +319,24 @@ export const TicketCard: React.FC<TicketCardProps> = ({
 
           {/* Metadata with subtle icons */}
           <div className="flex flex-wrap items-center gap-x-3.5 gap-y-1 text-[11px] sm:text-xs text-zinc-300">
-            {/* Seat Position from DB — Full Multi-Ticket List for combos */}
-            {isBundle && effectiveBundleListings.length > 1 ? (
-              <div className="w-full bg-[#05070A]/90 border border-white/15 rounded-xl p-2 my-0.5 space-y-1 shadow-inner">
-                <div className="flex items-center justify-between text-[10px] font-extrabold uppercase tracking-wider text-[#FF5A36]">
-                  <span className="flex items-center gap-1">
-                    <Layers className="w-3 h-3 text-[#FF5A36] shrink-0" />
-                    <span>COMBO PACKAGE ({effectiveBundleListings.length} TICKETS)</span>
+            {/* Seat Position from DB — Clean presentation for combos and single tickets */}
+            {isBundle ? (
+              <div className="flex items-center gap-1.5 flex-wrap my-0.5" title="Bấm vào vé để xem chi tiết từng ghế">
+                <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-[#FF5A36]/15 border border-[#FF5A36]/35 text-[#FF8A65] text-[10px] font-bold">
+                  <Ticket className="w-3 h-3 text-[#FF5A36]" />
+                  <span>{bundleCount} Ghế:</span>
+                </div>
+                {effectiveBundleListings.slice(0, 3).map((item, idx) => (
+                  <span
+                    key={item.listingId || idx}
+                    className="px-1.5 py-0.5 rounded bg-white/10 border border-white/10 text-white font-mono text-[10px] font-semibold truncate max-w-[90px]"
+                  >
+                    {item.seatZone || item.tierName || `Ghế #${idx + 1}`}
                   </span>
-                  {effectiveBundleListings.length > 2 && (
-                    <span className="text-zinc-400 font-normal text-[9px] font-sans">Scroll to view</span>
-                  )}
-                </div>
-
-                <div className="max-h-[58px] overflow-y-auto space-y-1 pr-0.5 [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-[#FF5A36]/40 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-[#FF5A36] [scrollbar-width:thin] [scrollbar-color:rgba(255,90,54,0.4)_transparent]">
-                  {effectiveBundleListings.map((item, idx) => (
-                    <div
-                      key={item.listingId || idx}
-                      className="flex items-center justify-between gap-2 px-2 py-0.5 rounded bg-white/[0.05] border border-white/10 hover:bg-white/10 transition-colors text-[11px]"
-                    >
-                      <div className="flex items-center gap-1.5 min-w-0 truncate">
-                        <span className="font-mono text-[10px] font-bold text-[#FF5A36] bg-[#FF5A36]/15 px-1 py-0.2 rounded border border-[#FF5A36]/30 shrink-0">
-                          {item.maskedTicketCode || `Ticket #${idx + 1}`}
-                        </span>
-                        <span className="text-zinc-200 font-semibold truncate text-[11px]">
-                          {item.seatZone || item.tierName || `Seat #${idx + 1}`}
-                        </span>
-                      </div>
-                      <span className="text-[10px] font-mono text-amber-300 font-bold shrink-0">
-                        Ticket #{idx + 1}
-                      </span>
-                    </div>
-                  ))}
-                </div>
+                ))}
+                {effectiveBundleListings.length > 3 && (
+                  <span className="text-[10px] text-zinc-400 font-mono">+{effectiveBundleListings.length - 3}</span>
+                )}
               </div>
             ) : listing.seatZone ? (
               <div className="flex items-center gap-1.5 shrink-0" title={`Vị trí ghế: ${listing.seatZone}`}>
@@ -498,7 +503,11 @@ export const TicketCard: React.FC<TicketCardProps> = ({
             <span className="ml-1 text-xs font-bold text-slate-700">VND</span>
           </div>
 
-          {listing.discountPercentage > 0 ? (
+          {isBundle ? (
+            <div className="text-[10px] font-mono text-slate-600 font-semibold mt-0.5">
+              ~{formattedPerTicketPrice} đ/vé
+            </div>
+          ) : listing.discountPercentage > 0 ? (
             <div className="flex items-center gap-1.5 mt-0.5">
               <span className="text-[11px] text-slate-400 line-through font-medium">
                 {formattedOriginalPrice} VND
@@ -566,11 +575,15 @@ export const TicketCard: React.FC<TicketCardProps> = ({
               type="button"
               onClick={(e) => {
                 e.stopPropagation();
-                onBuy(listing);
+                if (onViewDetails) {
+                  onViewDetails(listing);
+                } else {
+                  onBuy(listing);
+                }
               }}
               className="w-full py-2 px-3 bg-[#ff5722] hover:bg-[#f4511e] active:scale-[0.98] transition-all duration-150 rounded-xl font-bold text-[11px] sm:text-xs text-white tracking-wide shadow-[0_4px_14px_rgba(255,87,34,0.35)] flex items-center justify-center gap-1.5 cursor-pointer group/btn"
             >
-              <span className="whitespace-nowrap">{isBundle ? 'BUY COMBO' : 'BUY TICKET'}</span>
+              <span className="whitespace-nowrap">{isBundle ? 'XEM & MUA' : 'XEM & MUA'}</span>
               <span className="transition-transform duration-150 group-hover/btn:translate-x-1">→</span>
             </button>
           )}

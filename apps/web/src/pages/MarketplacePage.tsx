@@ -20,6 +20,7 @@ import { useMarketplaceListings } from '../hooks/useMarketplaceListings';
 import { QuickFilterBar, QuickFilterState } from '../components/marketplace/QuickFilterBar';
 import { TicketCard } from '../components/marketplace/TicketCard';
 import { BuyTicketModal } from '../components/marketplace/BuyTicketModal';
+import { TicketDetailModal } from '../components/marketplace/TicketDetailModal';
 import { StageMapModal } from '../components/marketplace/StageMapModal';
 import { MarketplaceListingDto } from '@ticketshield/types';
 
@@ -228,6 +229,7 @@ export const MarketplacePage: React.FC = () => {
 
   // Modals inherited from user design
   const [buyingListing, setBuyingListing] = useState<MarketplaceListingDto | null>(null);
+  const [inspectingListing, setInspectingListing] = useState<MarketplaceListingDto | null>(null);
   const [isStageMapOpen, setIsStageMapOpen] = useState(false);
 
   // Resume buying flow if returning after login with ?buy=listingId
@@ -678,6 +680,7 @@ export const MarketplacePage: React.FC = () => {
                   key={listing.listingId}
                   listing={listing}
                   onBuy={handleBuy}
+                  onViewDetails={(target) => setInspectingListing(target)}
                   bundleListings={listing.bundleId ? bundleMap.get(listing.bundleId) : undefined}
                 />
               ))}
@@ -742,6 +745,28 @@ export const MarketplacePage: React.FC = () => {
           setFilters((prev) => ({ ...prev, keyword: zone }));
           showToast(`Filtered tickets by zone: ${zone}`, 'info');
         }}
+      />
+
+      {/* Ticket Details Inspection Modal */}
+      <TicketDetailModal
+        listing={inspectingListing}
+        isOpen={Boolean(inspectingListing)}
+        onClose={() => setInspectingListing(null)}
+        onBuy={(target) => {
+          setInspectingListing(null);
+          handleBuy(target);
+        }}
+        bundleListings={
+          inspectingListing?.bundleId
+            ? bundleMap.get(inspectingListing.bundleId)
+            : undefined
+        }
+        isOwner={Boolean(
+          user?.id && inspectingListing && (
+            inspectingListing.sellerId?.toLowerCase() === user.id.toLowerCase() ||
+            (inspectingListing.bundleId && listings.some((l) => l.bundleId === inspectingListing.bundleId && l.sellerId?.toLowerCase() === user.id.toLowerCase()))
+          )
+        )}
       />
     </div>
   );

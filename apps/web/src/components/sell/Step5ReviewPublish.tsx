@@ -239,17 +239,22 @@ export const Step5ReviewPublish: React.FC<Step5ReviewPublishProps> = ({
               </div>
             </div>
           ) : (
-            <div className="p-4 rounded-2xl bg-amber-500/5 border border-amber-500/25 flex items-center justify-between gap-3">
-              <span className="text-xs text-amber-300 flex items-center gap-2">
-                <AlertCircle className="w-4 h-4 text-amber-400 shrink-0" />
-                <span>Chưa có tài khoản nhận tiền</span>
-              </span>
+            <div className="p-4 rounded-2xl bg-white/[0.02] border border-white/10 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="space-y-0.5">
+                <span className="text-xs text-zinc-300 font-medium flex items-center gap-1.5">
+                  <AlertCircle className="w-4 h-4 text-zinc-400 shrink-0" />
+                  <span>Chưa liên kết tài khoản ngân hàng</span>
+                </span>
+                <p className="text-[11px] text-zinc-500 pl-5.5">
+                  Bạn có thể đăng bán vé ngay bây giờ và cập nhật tài khoản sau khi vé được mua.
+                </p>
+              </div>
               <button
                 type="button"
                 onClick={onManageBankAccounts}
-                className="px-3.5 py-1.5 bg-amber-400 hover:bg-amber-300 text-black text-xs font-bold rounded-xl transition-all shadow-sm cursor-pointer shrink-0"
+                className="self-start sm:self-auto px-3.5 py-1.5 bg-white/10 hover:bg-white/15 border border-white/15 text-white text-xs font-semibold rounded-xl transition-all shadow-sm cursor-pointer shrink-0"
               >
-                Liên kết ngay
+                + Thêm tài khoản
               </button>
             </div>
           )}

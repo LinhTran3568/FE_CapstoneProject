@@ -323,13 +323,6 @@ const DRAFT_STORAGE_KEY = 'ticketshield_sell_draft';
 
     if (isRequestingOtp) return;
 
-    // Enforce Seller Bank Account requirement before starting resale verification
-    if (bankAccounts.length === 0) {
-      showToast('⚠️ Vui lòng liên kết tài khoản ngân hàng nhận tiền trước khi đăng bán vé!', 'warning');
-      navigate('/payout-accounts?returnUrl=/sell-ticket');
-      return;
-    }
-
     const codes = ticketCode
       .split(',')
       .map((c) => c.trim().toUpperCase())
@@ -610,13 +603,6 @@ const DRAFT_STORAGE_KEY = 'ticketshield_sell_draft';
 
   // Step 5: Publish Resale Listing (1 vé = publish, 2–3 vé = bulk all-or-nothing)
   const handlePublishListing = async () => {
-    // Enforce Seller Bank Account requirement before publishing
-    if (bankAccounts.length === 0) {
-      showToast('⚠️ Vui lòng liên kết tài khoản ngân hàng nhận tiền trước khi hoàn tất đăng bán!', 'warning');
-      navigate('/payout-accounts?returnUrl=/sell-ticket');
-      return;
-    }
-
     if (!agreedTerms) {
       showToast('Please agree to the authentic ticket listing terms!', 'warning');
       return;

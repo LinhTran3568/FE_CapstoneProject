@@ -109,27 +109,27 @@ export const Step1EnterTicketCode: React.FC<Step1EnterTicketCodeProps> = ({
 
   return (
     <div key={1} className="animate-fade-in-up max-w-2xl mx-auto space-y-6 text-center pt-4">
-      {/* Bank Account Warning Banner */}
+      {/* Bank Account Optional Notice */}
       {bankAccounts.length === 0 && !isLoadingBankAccounts && (
-        <div className="p-4 sm:p-4.5 bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-transparent border border-amber-500/25 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-left animate-fade-in-up">
+        <div className="p-4 sm:p-4.5 bg-gradient-to-r from-white/[0.04] via-white/[0.02] to-transparent border border-white/10 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-left animate-fade-in-up">
           <div className="flex items-center gap-3.5 min-w-0">
-            <div className="w-12 h-12 rounded-xl bg-amber-500/15 border border-amber-500/20 text-amber-400 flex items-center justify-center shrink-0">
-              <Building2 className="w-6 h-6" />
+            <div className="w-10 h-10 rounded-xl bg-white/10 border border-white/15 text-zinc-300 flex items-center justify-center shrink-0">
+              <Building2 className="w-5 h-5" />
             </div>
             <div className="space-y-0.5">
-              <h4 className="text-sm font-semibold text-white">Link your payout account</h4>
-              <p className="text-xs text-[#A3A8B3] leading-relaxed">
-                Receive money automatically once your ticket is verified and sold.
+              <h4 className="text-xs sm:text-sm font-semibold text-white">Payout account (Optional)</h4>
+              <p className="text-[11px] sm:text-xs text-[#A3A8B3] leading-relaxed">
+                You can link a bank account now or add it after selling to receive payout.
               </p>
             </div>
           </div>
           <button
             type="button"
             onClick={onAddBankAccount}
-            className="self-start sm:self-auto px-4 py-2.5 bg-[#F59E0B] hover:bg-[#F59E0B]/90 text-black rounded-xl text-xs sm:text-sm font-bold transition-all shadow-md shadow-amber-400/20 shrink-0 cursor-pointer flex items-center gap-1.5"
+            className="self-start sm:self-auto px-3.5 py-2 bg-white/10 hover:bg-white/15 border border-white/20 text-white rounded-xl text-xs font-semibold transition-all shrink-0 cursor-pointer flex items-center gap-1.5"
           >
-            <span>Link Bank Account</span>
-            <ArrowRight className="w-4 h-4" />
+            <span>Link account</span>
+            <ArrowRight className="w-3.5 h-3.5" />
           </button>
         </div>
       )}
