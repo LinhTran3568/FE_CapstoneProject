@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { UserBankAccountDto } from '@ticketshield/types';
-import { Ticket, Globe, Lock, Check, AlertCircle, Loader2, X } from 'lucide-react';
+import { Ticket, Globe, Lock, Check, AlertCircle, Loader2, X, Layers, Split } from 'lucide-react';
 import { SeatAdjacencyBadge } from '../ui/SeatAdjacencyBadge';
 
 export interface Step5ReviewPublishProps {
@@ -31,6 +31,8 @@ export interface Step5ReviewPublishProps {
   eventName?: string;
   eventVenue?: string;
   saleType?: 'combo' | 'individual';
+  setSaleType?: (type: 'combo' | 'individual') => void;
+  onEditTicketPrice?: (index: number) => void;
 }
 
 export const Step5ReviewPublish: React.FC<Step5ReviewPublishProps> = ({
@@ -52,6 +54,8 @@ export const Step5ReviewPublish: React.FC<Step5ReviewPublishProps> = ({
   eventName = 'Official Concert Event',
   eventVenue = 'Official Event Venue',
   saleType = 'combo',
+  setSaleType,
+  onEditTicketPrice,
 }) => {
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState<boolean>(false);
   const ticketCount = Math.max(tickets?.length || ticketCodes.length, 1);
@@ -133,30 +137,133 @@ export const Step5ReviewPublish: React.FC<Step5ReviewPublishProps> = ({
           </span>
         </div>
 
-        {/* 2. TỔNG KẾT TÀI CHÍNH (FINANCIAL SUMMARY) TINH GỌN */}
+        {/* 2. CHỌN CHẾ ĐỘ BÁN (CHO GÓI >= 2 VÉ) */}
+        {ticketCount > 1 && (
+          <div className="bg-[#05070A] border border-white/10 p-3 sm:p-3.5 rounded-2xl space-y-2 text-left">
+            <div className="text-[11px] font-mono text-zinc-400 font-bold uppercase tracking-wider">
+              Chế độ bán gói
+            </div>
+
+            {/* Segmented Control 2 nút ngang */}
+            <div className="p-1 rounded-xl bg-black/40 border border-white/10 flex gap-1 text-xs font-mono">
+              <button
+                type="button"
+                onClick={() => setSaleType?.('combo')}
+                className={`flex-1 py-2 px-3 rounded-lg font-semibold transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+                  saleType === 'combo'
+                    ? 'bg-[#FF5A36] text-white shadow-md shadow-[#FF5A36]/30'
+                    : 'text-zinc-400 hover:text-white'
+                }`}
+              >
+                <Layers className="w-3.5 h-3.5" />
+                <span>Bán trọn gói combo ({ticketCount} vé)</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setSaleType?.('individual')}
+                className={`flex-1 py-2 px-3 rounded-lg font-semibold transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+                  saleType === 'individual'
+                    ? 'bg-[#FF5A36] text-white shadow-md shadow-[#FF5A36]/30'
+                    : 'text-zinc-400 hover:text-white'
+                }`}
+              >
+                <Split className="w-3.5 h-3.5" />
+                <span>Cho phép mua lẻ</span>
+              </button>
+            </div>
+
+            <p className="text-xs text-zinc-400 leading-relaxed font-mono px-1">
+              {saleType === 'combo'
+                ? `Người mua bắt buộc mua trọn bộ ${ticketCount} vé trong một giao dịch.`
+                : 'Người mua có thể chọn mua 1 hoặc nhiều vé tùy nhu cầu.'}
+            </p>
+          </div>
+        )}
+
+        {/* 3. BẢNG TÍNH GIÁ & DOANH THU (PRICE BREAKDOWN) VIỀN CAM DỌC MỎNG */}
         <div className="space-y-3 pb-3 border-b border-gray-800/80">
           <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider block font-mono">
-            FINANCIAL SUMMARY
+            PRICE BREAKDOWN
           </span>
 
-          <div className="space-y-2 text-xs font-mono">
+          <div className="space-y-2.5 text-xs font-mono">
+            {/* DÒNG 1: Resale Price (Tổng giá bán) */}
             <div className="flex justify-between items-center text-gray-300">
-              <span className="text-zinc-400">Giá gốc từ Ban tổ chức:</span>
-              <span className="text-zinc-300 font-medium">
-                {faceValue.toLocaleString('vi-VN')} VND
-              </span>
+              <span className="font-semibold text-zinc-200">Resale Price (Tổng giá bán)</span>
+              <div>
+                <span className="font-bold text-white text-sm sm:text-base tabular-nums">
+                  {totalResalePrice.toLocaleString('vi-VN')}
+                </span>
+                <span className="text-[10px] text-zinc-500 ml-1">VND</span>
+              </div>
             </div>
 
-            <div className="flex justify-between items-center text-gray-300">
-              <span className="font-semibold text-white">Tổng giá bán niêm yết ({ticketCount} vé):</span>
-              <span className="font-bold text-[#FF5A36] text-sm">
-                {totalResalePrice.toLocaleString('vi-VN')} VND
-              </span>
-            </div>
+            {/* CÁC DÒNG VÉ CON VIỀN CAM DỌC - CHÚ THÍCH CỤ THỂ TỪNG VÉ */}
+            {tickets && tickets.length > 1 && (
+              <div className="space-y-2 pl-3 py-1.5 border-l-2 border-[#FF5A36] bg-white/[0.015] rounded-r-xl my-1.5">
+                {tickets.map((t, idx) => {
+                  const diff = t.originalPrice - t.resalePrice;
+                  const percent = Math.round((Math.abs(diff) / t.originalPrice) * 100);
+                  const isDeepDiscount = t.resalePrice > 0 && diff / t.originalPrice >= 0.5;
 
-            <div className="relative flex justify-between items-center text-gray-300">
+                  return (
+                    <div key={t.code} className="flex items-center justify-between gap-2 text-xs">
+                      {/* Trái: Vé #1 · VIP (ATSH-VIP-6578) */}
+                      <div className="flex items-center gap-1.5 min-w-0">
+                        <span className="text-zinc-400 font-semibold shrink-0">Vé #{idx + 1}</span>
+                        {t.seatZone ? (
+                          <>
+                            <span className="text-zinc-600">·</span>
+                            <span className="text-zinc-200 font-medium truncate">{t.seatZone}</span>
+                          </>
+                        ) : null}
+                        <span className="text-zinc-500 font-mono text-[11px] shrink-0">({t.code})</span>
+
+                        {diff > 0 && (
+                          <span className={`text-[9px] font-bold px-1.5 py-0.2 rounded border shrink-0 ${
+                            isDeepDiscount
+                              ? 'text-amber-300 bg-amber-500/15 border-amber-500/30'
+                              : 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20'
+                          }`}>
+                            -{percent}%
+                          </span>
+                        )}
+                        {diff < 0 && (
+                          <span className="text-[9px] font-bold text-amber-400 bg-amber-500/10 px-1.5 py-0.2 rounded border border-amber-500/20 shrink-0">
+                            +{percent}%
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Phải: Giá bán của vé + Nút Sửa */}
+                      <div className="flex items-center gap-2.5 shrink-0">
+                        <div className="text-right">
+                          <span className="font-bold text-zinc-100 tabular-nums">
+                            {t.resalePrice.toLocaleString('vi-VN')}
+                          </span>
+                          <span className="text-[9px] text-zinc-500 ml-1">VND</span>
+                        </div>
+                        {onEditTicketPrice && (
+                          <button
+                            type="button"
+                            onClick={() => onEditTicketPrice(idx)}
+                            className="text-[11px] text-[#FF5A36] hover:text-[#FF7252] hover:underline px-1 py-0.5 rounded cursor-pointer font-sans"
+                            title="Quay lại Bước 4 để chỉnh giá vé này"
+                          >
+                            Sửa
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* DÒNG 2: Seller Fee · 3% */}
+            <div className="relative flex justify-between items-center text-gray-300 pt-0.5">
               <div className="flex items-center gap-1.5">
-                <span className="text-zinc-400">Phí nền tảng (3%):</span>
+                <span>Seller Fee · 3%</span>
                 <button
                   type="button"
                   onClick={(e) => {
@@ -177,20 +284,33 @@ export const Step5ReviewPublish: React.FC<Step5ReviewPublishProps> = ({
                   </div>
                 )}
               </div>
-              <span className="text-amber-400 font-medium">
-                -{totalSellerFee.toLocaleString('vi-VN')} VND
-              </span>
+              <div>
+                <span className="text-amber-400 font-medium tabular-nums">
+                  -{totalSellerFee.toLocaleString('vi-VN')}
+                </span>
+                <span className="text-[10px] text-zinc-500 ml-1">VND</span>
+              </div>
             </div>
 
-            <div className="flex justify-between items-center pt-2 border-t border-white/10 text-sm font-bold">
+            {/* DÒNG 3: Bạn thực nhận */}
+            <div className="flex justify-between items-baseline pt-2 border-t border-white/10 text-sm font-bold">
               <span className="text-white">Bạn thực nhận:</span>
-              <span className={`font-mono text-base ${totalResalePrice < 5000 ? 'text-rose-400' : 'text-emerald-400'}`}>
-                {totalResalePrice < 5000
-                  ? 'Dưới mức phí tối thiểu'
-                  : `${totalYouReceive.toLocaleString('vi-VN')} VND`}
-              </span>
+              <div className="text-right">
+                <span className="text-base sm:text-lg font-extrabold text-emerald-400 font-display tabular-nums tracking-tight">
+                  {totalYouReceive.toLocaleString('vi-VN')}
+                </span>
+                <span className="text-[10px] font-normal text-zinc-500 ml-1 font-mono">VND</span>
+              </div>
             </div>
           </div>
+
+          {/* Cảnh báo vàng nếu có vé giảm sâu > 50% */}
+          {tickets && tickets.some((t) => t.resalePrice > 0 && (t.originalPrice - t.resalePrice) / t.originalPrice >= 0.5) && (
+            <div className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/25 flex items-center gap-2 text-xs text-amber-300 font-mono mt-2">
+              <span className="shrink-0 text-base">⚠️</span>
+              <span>Có vé giảm hơn 50% so với giá gốc. Vui lòng kiểm tra lại để tránh nhầm lẫn.</span>
+            </div>
+          )}
         </div>
 
         {/* 4. Payout Destination Account */}

@@ -1039,8 +1039,6 @@ const DRAFT_STORAGE_KEY = 'ticketshield_sell_draft';
             isCancelling={isCancellingSession}
             saleType={saleType}
             setSaleType={setSaleType}
-            subStep={priceSubStep}
-            setSubStep={setPriceSubStep}
           />
         )}
 
@@ -1065,6 +1063,11 @@ const DRAFT_STORAGE_KEY = 'ticketshield_sell_draft';
             setActiveFeeTooltip={setActiveFeeTooltip}
             onManageBankAccounts={() => navigate('/payout-accounts?returnUrl=/sell-ticket')}
             saleType={saleType}
+            setSaleType={setSaleType}
+            onEditTicketPrice={(idx) => {
+              setActiveTicketIndex(idx);
+              setCurrentStep(4);
+            }}
           />
         )}
 

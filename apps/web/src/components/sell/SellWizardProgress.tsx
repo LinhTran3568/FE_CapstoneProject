@@ -38,11 +38,7 @@ export const SellWizardProgress: React.FC<SellWizardProgressProps> = ({
     if (currentStep === 2 || currentStep === 3) {
       handleAbandonSession();
     } else if (currentStep === 4) {
-      if (priceSubStep === 'confirm' && setPriceSubStep) {
-        setPriceSubStep('pricing');
-      } else {
-        setCurrentStep(3);
-      }
+      setCurrentStep(3);
     } else if (currentStep === 5) {
       setCurrentStep(4);
     }
@@ -76,8 +72,8 @@ export const SellWizardProgress: React.FC<SellWizardProgressProps> = ({
               title={
                 currentStep === 2
                   ? 'Hủy phiên xác thực & mở khóa vé'
-                  : currentStep === 4 && priceSubStep === 'confirm'
-                  ? 'Quay lại chỉnh giá vé'
+                  : currentStep === 4
+                  ? 'Quay lại Bước 3'
                   : currentStep === 5
                   ? 'Quay lại Bước 4 (Chỉnh giá bán)'
                   : 'Quay lại bước trước'
@@ -90,7 +86,7 @@ export const SellWizardProgress: React.FC<SellWizardProgressProps> = ({
             {currentStep === 1 && 'Step 1: Enter Ticket Code'}
             {currentStep === 2 && 'Step 2: Organizer Verification'}
             {currentStep === 3 && 'Step 3: Confirm Ticket Details'}
-            {currentStep === 4 && (priceSubStep === 'confirm' ? 'Step 4: Confirm Price & Mode' : 'Step 4: Set Resale Price')}
+            {currentStep === 4 && 'Step 4: Set Resale Price'}
             {currentStep === 5 && 'Step 5: Review & Publish'}
             {currentStep === 6 && 'Step 6: Listing Complete'}
           </span>
