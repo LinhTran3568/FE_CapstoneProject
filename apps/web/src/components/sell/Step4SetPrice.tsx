@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ShieldCheck, ArrowRight, ArrowLeft, XCircle } from 'lucide-react';
+import { ShieldCheck, ArrowRight, ArrowLeft, XCircle, Minus, Plus } from 'lucide-react';
 
 export interface TicketPriceItem {
   code: string;
@@ -235,36 +235,67 @@ export const Step4SetPrice: React.FC<Step4SetPriceProps> = ({
           </div>
         </div>
 
-        {/* Ô INPUT CHỮ SỐ LỚN ĐƯỢC EDIT TRỰC TIẾP */}
+        {/* Ô INPUT CHỮ SỐ LỚN KÈM 2 NÚT - VÀ + TINH GỌN HAI BÊN */}
         <div className="py-2 flex flex-col items-center justify-center">
-          <div
-            className={`relative inline-flex items-baseline justify-center border-b-2 transition-all duration-200 px-3 pb-1 cursor-text ${
-              resalePrice > priceCeiling
-                ? 'border-rose-500'
-                : 'border-white/20 hover:border-white/40 focus-within:border-[#FF5A36]'
-            }`}
-          >
-            <input
-              id="resale-price-large-input"
-              type="text"
-              inputMode="numeric"
-              value={priceInputText}
-              onChange={handlePriceInputChange}
-              onFocus={(e) => e.target.select()}
-              onBlur={handlePriceInputBlur}
-              className={`bg-transparent text-right font-extrabold font-display text-4xl sm:text-6xl tracking-tight focus:outline-none transition-colors ${
-                resalePrice > priceCeiling ? 'text-rose-400' : 'text-white'
+          <div className="flex items-center justify-center gap-2 sm:gap-3.5 max-w-full">
+            {/* Nút giảm (-) */}
+            <button
+              type="button"
+              onClick={() => handleStepPrice(-10000)}
+              disabled={resalePrice <= 1000}
+              aria-label="Giảm 10.000 VND"
+              className="w-9 h-9 sm:w-10 sm:h-10 rounded-full border border-white/15 bg-white/5 hover:bg-white/10 hover:border-white/30 text-white/80 hover:text-white flex items-center justify-center transition-all active:scale-95 disabled:opacity-20 disabled:cursor-not-allowed shrink-0 cursor-pointer shadow-sm"
+              title="Giảm 10.000 VND"
+            >
+              <Minus className="w-4 h-4 stroke-[2.5]" />
+            </button>
+
+            {/* Khối nhập số lớn ở giữa */}
+            <div
+              className={`inline-flex items-baseline justify-center border-b-2 transition-all duration-200 px-2 pb-1 max-w-[calc(100%-88px)] cursor-text ${
+                resalePrice > priceCeiling
+                  ? 'border-rose-500'
+                  : 'border-white/20 hover:border-white/40 focus-within:border-[#FF5A36]'
               }`}
-              style={{
-                width: `${Math.max((priceInputText || '').length + 1.2, 5)}ch`,
-                minWidth: '4.5ch',
-              }}
-              placeholder="0"
-              autoComplete="off"
-            />
-            <span className="text-xl sm:text-2xl font-bold font-display text-[#FF5A36] ml-2.5 select-none">
-              VND
-            </span>
+            >
+              <input
+                id="resale-price-large-input"
+                type="text"
+                inputMode="numeric"
+                value={priceInputText}
+                onChange={handlePriceInputChange}
+                onFocus={(e) => e.target.select()}
+                onBlur={handlePriceInputBlur}
+                className={`bg-transparent text-right font-extrabold font-display tracking-tight focus:outline-none transition-all duration-150 ${
+                  (priceInputText || '').length > 9
+                    ? 'text-2xl sm:text-3xl'
+                    : (priceInputText || '').length > 6
+                    ? 'text-3xl sm:text-5xl'
+                    : 'text-4xl sm:text-5xl'
+                } ${resalePrice > priceCeiling ? 'text-rose-400' : 'text-white'}`}
+                style={{
+                  width: `${Math.max((priceInputText || '').length + 0.8, 3.5)}ch`,
+                  maxWidth: '100%',
+                }}
+                placeholder="0"
+                autoComplete="off"
+              />
+              <span className="text-sm sm:text-lg font-bold font-display text-[#FF5A36] ml-2 select-none shrink-0">
+                VND
+              </span>
+            </div>
+
+            {/* Nút tăng (+) */}
+            <button
+              type="button"
+              onClick={() => handleStepPrice(10000)}
+              disabled={resalePrice >= priceCeiling}
+              aria-label="Tăng 10.000 VND"
+              className="w-9 h-9 sm:w-10 sm:h-10 rounded-full border border-white/15 bg-white/5 hover:bg-white/10 hover:border-white/30 text-white/80 hover:text-white flex items-center justify-center transition-all active:scale-95 disabled:opacity-20 disabled:cursor-not-allowed shrink-0 cursor-pointer shadow-sm"
+              title={resalePrice >= priceCeiling ? 'Đã đạt trần giá' : 'Tăng 10.000 VND'}
+            >
+              <Plus className="w-4 h-4 stroke-[2.5]" />
+            </button>
           </div>
 
           {/* Validation hint ngay dưới ô số lớn */}
