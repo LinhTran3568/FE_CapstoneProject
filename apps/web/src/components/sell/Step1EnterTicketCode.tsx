@@ -431,53 +431,44 @@ export const Step1EnterTicketCode: React.FC<Step1EnterTicketCodeProps> = ({
                 );
 
                 // =========================================================
-                // CHẾ ĐỘ SỬA TRỰC TIẾP NGAY TẠI VỊ TRÍ THẺ VÉ NÀY
+                // CHẾ ĐỘ SỬA TRỰC TIẾP TÁI SỬ DỤNG HOÀN TOÀN THANH INPUT CHÍNH (HÌNH 1)
                 // =========================================================
                 if (isEditingThis) {
                   return (
                     <div
                       key={code}
-                      className="p-2.5 sm:p-3 rounded-2xl bg-[#0D121B] border-2 border-[#FF5A36] flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 shadow-lg shadow-[#FF5A36]/20 animate-in fade-in"
+                      className="flex items-center bg-[#05070A] border border-[#FF5A36] ring-4 ring-[#FF5A36]/20 rounded-2xl h-14 pl-3.5 pr-2 gap-2 transition-all shadow-inner animate-in fade-in"
                     >
-                      <div className="flex items-center gap-2.5 flex-1 min-w-0">
-                        <div className="w-8 h-8 rounded-xl bg-[#FF5A36] text-white flex items-center justify-center shrink-0 font-mono font-bold text-xs shadow-sm">
-                          #{index + 1}
-                        </div>
-                        <input
-                          type="text"
-                          value={editInputText}
-                          onChange={(e) => setEditInputText(e.target.value.toUpperCase())}
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter') {
-                              e.preventDefault();
-                              handleSaveEdit(code);
-                            } else if (e.key === 'Escape') {
-                              e.preventDefault();
-                              handleCancelEdit();
-                            }
-                          }}
-                          autoFocus
-                          placeholder="Nhập mã vé..."
-                          className="flex-1 bg-white/5 border border-white/20 focus:border-[#FF5A36] rounded-xl px-3 h-10 text-xs sm:text-sm font-mono font-bold text-white tracking-wider outline-none min-w-0"
-                        />
+                      {/* Badge số thứ tự vé */}
+                      <div className="w-7 h-7 rounded-lg bg-[#FF5A36]/15 border border-[#FF5A36]/30 text-[#FF5A36] flex items-center justify-center shrink-0 font-mono font-bold text-xs">
+                        #{index + 1}
                       </div>
 
-                      <div className="flex items-center justify-end gap-1.5 shrink-0">
-                        {eligibleTickets.length > 0 && (
-                          <button
-                            type="button"
-                            onClick={() => handleOpenWalletModalForReplace(code)}
-                            className="px-2.5 py-2 bg-white/10 hover:bg-white/15 text-zinc-300 hover:text-white text-xs font-semibold rounded-xl transition-all cursor-pointer flex items-center gap-1"
-                            title="Chọn vé từ ví tài khoản để thay thế"
-                          >
-                            <Ticket className="w-3.5 h-3.5 text-[#FF5A36]" />
-                            <span className="hidden sm:inline">Ví vé</span>
-                          </button>
-                        )}
+                      {/* Input trong suốt không viền con */}
+                      <input
+                        type="text"
+                        value={editInputText}
+                        onChange={(e) => setEditInputText(e.target.value.toUpperCase())}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            handleSaveEdit(code);
+                          } else if (e.key === 'Escape') {
+                            e.preventDefault();
+                            handleCancelEdit();
+                          }
+                        }}
+                        autoFocus
+                        placeholder="Nhập mã vé..."
+                        className="flex-1 bg-transparent border-0 outline-none text-sm sm:text-base font-mono font-bold text-white placeholder-zinc-500 tracking-wider min-w-0"
+                      />
+
+                      {/* Cụm nút Lưu & Hủy */}
+                      <div className="flex items-center gap-1.5 shrink-0">
                         <button
                           type="button"
                           onClick={() => handleSaveEdit(code)}
-                          className="px-3.5 py-2 bg-[#FF5A36] hover:bg-[#FF7252] text-white text-xs font-bold rounded-xl transition-all cursor-pointer flex items-center gap-1 shadow-sm shadow-[#FF5A36]/30 active:scale-95"
+                          className="h-9 px-3.5 bg-[#FF5A36] hover:bg-[#FF7252] text-white text-xs font-bold rounded-xl transition-all shadow-sm shadow-[#FF5A36]/30 cursor-pointer flex items-center gap-1 active:scale-95"
                           title="Lưu (Enter)"
                         >
                           <Check className="w-3.5 h-3.5 stroke-[3]" />
@@ -486,12 +477,28 @@ export const Step1EnterTicketCode: React.FC<Step1EnterTicketCodeProps> = ({
                         <button
                           type="button"
                           onClick={handleCancelEdit}
-                          className="px-2.5 py-2 bg-white/10 hover:bg-white/15 text-zinc-300 hover:text-white text-xs font-semibold rounded-xl transition-all cursor-pointer"
+                          className="h-9 px-3 bg-white/10 hover:bg-white/15 text-zinc-300 hover:text-white text-xs font-semibold rounded-xl transition-all cursor-pointer flex items-center justify-center"
                           title="Hủy (Esc)"
                         >
                           Hủy
                         </button>
                       </div>
+
+                      {/* Vạch phân cách */}
+                      <div className="h-6 w-px bg-white/10 shrink-0" />
+
+                      {/* Nút "Vé của tôi" (LUÔN LUÔN HIỆN DIỆN ĐỂ CHỌN THAY THẾ) */}
+                      <button
+                        type="button"
+                        onClick={() => handleOpenWalletModalForReplace(code)}
+                        className="h-9 px-3 rounded-xl flex items-center gap-1.5 text-xs font-semibold shrink-0 transition-all cursor-pointer bg-[#151921] hover:bg-[#1C222C] text-zinc-200 hover:text-white border border-white/10"
+                        title="Chọn vé từ ví tài khoản để thay thế mã này"
+                      >
+                        <span className="whitespace-nowrap">
+                          Vé của tôi {eligibleTickets.length > 0 ? `(${eligibleTickets.length})` : '(0)'}
+                        </span>
+                        <ChevronDown className="w-3.5 h-3.5 text-zinc-400" />
+                      </button>
                     </div>
                   );
                 }
