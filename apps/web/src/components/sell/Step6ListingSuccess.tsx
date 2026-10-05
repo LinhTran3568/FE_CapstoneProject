@@ -34,6 +34,7 @@ export interface Step6ListingSuccessProps {
   handleDownloadQr: () => void;
   onNavigateMyListings: () => void;
   onNavigateMarketplace: () => void;
+  saleType?: 'combo' | 'individual';
 }
 
 export const Step6ListingSuccess: React.FC<Step6ListingSuccessProps> = ({
@@ -52,6 +53,7 @@ export const Step6ListingSuccess: React.FC<Step6ListingSuccessProps> = ({
   handleDownloadQr,
   onNavigateMyListings,
   onNavigateMarketplace,
+  saleType = 'combo',
 }) => {
   const isCombo = ticketCodes.length > 1;
   const totalResalePrice = customTotalResalePrice ?? resalePrice * Math.max(ticketCodes.length, 1);
@@ -97,7 +99,9 @@ export const Step6ListingSuccess: React.FC<Step6ListingSuccessProps> = ({
         </h2>
         <p className="text-xs sm:text-sm text-[#A3A8B3] max-w-lg mx-auto">
           {isCombo
-            ? `All ${ticketCodes.length} tickets are listed together as one combo. Buyers pay the total of every ticket.`
+            ? saleType === 'individual'
+              ? `${ticketCodes.length} vé bán lẻ riêng biệt: Người mua có thể chọn mua lẻ từng vé theo nhu cầu.`
+              : `${ticketCodes.length} vé trong combo: Bán trọn gói (Buộc mua cả cặp). Người mua thanh toán toàn bộ gói.`
             : isPrivateListing
               ? 'Your ticket is protected with our 100% 24-Hour Funds Protection guarantee. Share your secret private link or QR code with your buyer.'
               : 'Your ticket is now listed publicly on TicketShield Marketplace under 100% 24-Hour Protection.'}
@@ -172,8 +176,20 @@ export const Step6ListingSuccess: React.FC<Step6ListingSuccessProps> = ({
                 </div>
               </div>
 
-              {/* Ticket Meta Grid: Codes & Listing ID */}
+              {/* Ticket Meta Grid: Codes & Listing ID & Sale Format */}
               <div className="pt-3 border-t border-[#27272A] text-left space-y-3">
+                {isCombo && (
+                  <div className="space-y-0.5">
+                    <span className="text-[9px] text-[#8F96A3] font-mono font-bold uppercase tracking-wider block">
+                      HÌNH THỨC BÁN
+                    </span>
+                    <p className="font-mono font-bold text-xs text-white">
+                      {saleType === 'individual'
+                        ? `${ticketCodes.length} vé bán lẻ riêng biệt`
+                        : `${ticketCodes.length} vé trong combo: Trọn gói (Buộc mua cả cặp)`}
+                    </p>
+                  </div>
+                )}
                 <div className="space-y-0.5">
                   <span className="text-[9px] text-[#8F96A3] font-mono font-bold uppercase tracking-wider block">
                     {isCombo ? `TICKET CODES (${ticketCodes.length})` : 'TICKET CODE'}

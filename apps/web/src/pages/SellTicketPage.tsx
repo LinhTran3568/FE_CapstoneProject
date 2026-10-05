@@ -1089,6 +1089,7 @@ const DRAFT_STORAGE_KEY = 'ticketshield_sell_draft';
             handleDownloadQr={handleDownloadQr}
             onNavigateMyListings={() => navigate('/my-listings')}
             onNavigateMarketplace={() => navigate('/marketplace')}
+            saleType={saleType}
           />
         )}
 
