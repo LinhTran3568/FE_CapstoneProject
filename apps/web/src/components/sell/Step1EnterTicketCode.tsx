@@ -29,7 +29,7 @@ export interface Step1EnterTicketCodeProps {
   isLoadingOrganizers: boolean;
   eligibleTickets: PurchasedTicketDto[];
   purchasedPassCode: (ticket: PurchasedTicketDto) => string;
-  handleStartVerification: (e: React.FormEvent) => void;
+  handleStartVerification: (e: React.FormEvent, overrideCodes?: string[]) => Promise<boolean> | void;
   isRequestingOtp: boolean;
   bankAccounts: UserBankAccountDto[];
   isLoadingBankAccounts: boolean;
@@ -260,18 +260,38 @@ export const Step1EnterTicketCode: React.FC<Step1EnterTicketCodeProps> = ({
     return null;
   })();
 
-  // Form submit: nếu đang gõ mã mà chưa bấm Thêm -> tự động nạp mã và bắt đầu xác thực luôn
-  const handleFormSubmit = (e: React.FormEvent) => {
+  // Form submit: nếu đang gõ mã mà chưa bấm Thêm -> gửi kèm để xác thực nhưng KHÔNG lưu trước vào bundle!
+  const handleFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (directInputCode.trim()) {
-      const clean = directInputCode.trim().toUpperCase();
-      if (!selectedCodes.includes(clean) && selectedCodes.length < MAX_BUNDLE_TICKETS) {
-        const nextCodes = [...selectedCodes, clean];
-        setTicketCode(nextCodes.join(', '));
-        setDirectInputCode('');
+
+    if (editingCode) {
+      handleSaveEdit(editingCode);
+      return;
+    }
+
+    const pendingCode = directInputCode.trim().toUpperCase();
+    const codesToVerify = [...selectedCodes];
+    if (pendingCode) {
+      if (!codesToVerify.includes(pendingCode)) {
+        if (codesToVerify.length >= MAX_BUNDLE_TICKETS) {
+          setMainError(`Tối đa ${MAX_BUNDLE_TICKETS} vé trong một lượt đăng bán.`);
+          return;
+        }
+        codesToVerify.push(pendingCode);
       }
     }
-    handleStartVerification(e);
+
+    if (codesToVerify.length === 0) {
+      setMainError('Vui lòng nhập mã vé trước khi xác thực.');
+      return;
+    }
+
+    // Gửi danh sách vé cần xác thực mà KHÔNG tự tiện ghi đè state ticketCode trước
+    const success = await handleStartVerification(e, codesToVerify);
+    if (success) {
+      setDirectInputCode('');
+      setMainError('');
+    }
   };
 
   return (
@@ -661,9 +681,11 @@ export const Step1EnterTicketCode: React.FC<Step1EnterTicketCodeProps> = ({
             </>
           ) : (
             <span>
-              {selectedCodes.length > 1
-                ? `Xác thực ${selectedCodes.length} vé`
-                : 'Bắt đầu xác thực vé'}
+              {(() => {
+                const pending = directInputCode.trim().toUpperCase();
+                const total = selectedCodes.length + (pending && !selectedCodes.includes(pending) ? 1 : 0);
+                return total > 1 ? `Xác thực ${total} vé` : 'Bắt đầu xác thực vé';
+              })()}
             </span>
           )}
         </button>

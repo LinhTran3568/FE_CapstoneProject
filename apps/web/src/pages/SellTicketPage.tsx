@@ -324,30 +324,34 @@ const DRAFT_STORAGE_KEY = 'ticketshield_sell_draft';
   }, [sessions]);
 
   // Step 1: Request an OTP for EVERY ticket (BTC issues one OTP per ticket)
-  const handleNextStep1 = async (e: React.FormEvent) => {
+  const handleNextStep1 = async (e: React.FormEvent, overrideCodes?: string[]): Promise<boolean> => {
     e.preventDefault();
 
-    if (isRequestingOtp) return;
+    if (isRequestingOtp) return false;
 
-    const codes = ticketCode
-      .split(',')
-      .map((c) => c.trim().toUpperCase())
-      .filter(Boolean);
+    const rawCodes = overrideCodes && overrideCodes.length > 0
+      ? overrideCodes
+      : ticketCode
+          .split(',')
+          .map((c) => c.trim().toUpperCase())
+          .filter(Boolean);
+
+    const codes = rawCodes.map((c) => c.trim().toUpperCase()).filter(Boolean);
 
     if (codes.length === 0) {
       showToast('Please enter the ticket identifier code!', 'warning');
-      return;
+      return false;
     }
 
     if (codes.length > MAX_BUNDLE_TICKETS) {
       showToast(`A combo can include at most ${MAX_BUNDLE_TICKETS} tickets. Please remove some codes.`, 'warning');
-      return;
+      return false;
     }
 
     const duplicate = codes.find((code, i) => codes.indexOf(code) !== i);
     if (duplicate) {
       showToast(`Ticket ${duplicate} appears more than once. Each code must be unique.`, 'warning');
-      return;
+      return false;
     }
 
     for (const code of codes) {
@@ -357,7 +361,7 @@ const DRAFT_STORAGE_KEY = 'ticketshield_sell_draft';
       );
       if (isAlreadyListed) {
         showToast(`Ticket ${code} is already listed on Marketplace! Please check "My Listings" to manage.`, 'warning');
-        return;
+        return false;
       }
 
       const ownedPurchase = allPurchasedTickets.find(
@@ -365,7 +369,7 @@ const DRAFT_STORAGE_KEY = 'ticketshield_sell_draft';
       );
       if (ownedPurchase && (ownedPurchase.status || '').trim().toUpperCase() !== 'VALID') {
         showToast(`Ticket ${code} cannot be resold yet. Please wait until the protection period has concluded.`, 'error');
-        return;
+        return false;
       }
     }
 
@@ -377,7 +381,7 @@ const DRAFT_STORAGE_KEY = 'ticketshield_sell_draft';
         const firstEventId = matched[0]?.eventId;
         if (firstEventId && matched.some((m) => m?.eventId && m.eventId !== firstEventId)) {
           showToast('Tất cả các vé trong gói bán phải thuộc cùng một sự kiện!', 'error');
-          return;
+          return false;
         }
       }
     }
@@ -432,11 +436,13 @@ const DRAFT_STORAGE_KEY = 'ticketshield_sell_draft';
         'success'
       );
       setCurrentStep(2);
+      return true;
     } catch (err: any) {
       // Hoàn tác phần đã tạo: không vé nào được giữ ở trạng thái chờ OTP.
       await Promise.allSettled(created.map((s) => resaleApi.closeVerification(s.verificationId)));
       const msg = err?.response?.data?.message || err?.message || 'Verification failed. Please check the ticket code and try again.';
       showToast(msg, 'error');
+      return false;
     } finally {
       setIsRequestingOtp(false);
     }
