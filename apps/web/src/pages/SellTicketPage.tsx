@@ -180,18 +180,46 @@ const DRAFT_STORAGE_KEY = 'ticketshield_sell_draft';
     fetchExistingListings();
   }, [fetchExistingListings]);
 
+  // Flatten purchased tickets so each ticket in a bundle/pair is an individual item for resale
+  const allPurchasedTickets = useMemo(() => {
+    const list: PurchasedTicketDto[] = [];
+    for (const t of purchasedTickets) {
+      if (t.bundleItems && t.bundleItems.length > 0) {
+        t.bundleItems.forEach((item, idx) => {
+          const code = (item.ticketCode || '').trim();
+          if (!code) return;
+          list.push({
+            ...t,
+            escrowId: `${t.escrowId}-${item.listingId || code}-${idx}`,
+            listingId: item.listingId || t.listingId,
+            ticketPassCode: code,
+            seatZone: item.seatZone || t.seatZone,
+            qrCodeData: item.qrCodeData || code,
+            qrCodeImageUrl: item.qrCodeImageUrl || t.qrCodeImageUrl,
+            bundleTotalTickets: t.bundleTotalTickets || t.bundleItems?.length,
+          });
+        });
+      } else {
+        list.push(t);
+      }
+    }
+    return list;
+  }, [purchasedTickets]);
+
   // Purchased on TicketShield and released or held in escrow; not already listed.
-  const eligibleTickets = purchasedTickets.filter((t) => {
-    const status = (t.status || '').trim().toUpperCase();
-    if (status !== 'VALID' && status !== 'IN_ESCROW' && status !== 'LOCKED') return false;
-    const code = purchasedPassCode(t).toUpperCase();
-    if (!code) return false;
-    return !existingListings.some(
-      (listing) =>
-        (listing.originalTicketCode || '').toUpperCase() === code &&
-        String(listing.listingStatus).toLowerCase() !== 'cancelled'
-    );
-  });
+  const eligibleTickets = useMemo(() => {
+    return allPurchasedTickets.filter((t) => {
+      const status = (t.status || '').trim().toUpperCase();
+      if (status !== 'VALID' && status !== 'IN_ESCROW' && status !== 'LOCKED') return false;
+      const code = purchasedPassCode(t).toUpperCase();
+      if (!code) return false;
+      return !existingListings.some(
+        (listing) =>
+          (listing.originalTicketCode || '').toUpperCase() === code &&
+          String(listing.listingStatus).toLowerCase() !== 'cancelled'
+      );
+    });
+  }, [allPurchasedTickets, existingListings]);
 
   const verificationIdsRef = useRef<string[]>([]);
   const currentStepRef = useRef(currentStep);
@@ -241,10 +269,10 @@ const DRAFT_STORAGE_KEY = 'ticketshield_sell_draft';
         markupPercent: s.markupPercent,
         priceCeiling: s.priceCeiling,
         resalePrice: price,
-        seatZone: purchasedTickets.find((t) => purchasedPassCode(t) === s.code)?.seatZone,
+        seatZone: allPurchasedTickets.find((t) => purchasedPassCode(t).toUpperCase() === s.code.toUpperCase())?.seatZone,
       };
     });
-  }, [sessions, ticketPrices, purchasedTickets]);
+  }, [sessions, ticketPrices, allPurchasedTickets]);
 
   // Step 5 Confirmation state
   const [agreedTerms, setAgreedTerms] = useState(true);
@@ -333,7 +361,7 @@ const DRAFT_STORAGE_KEY = 'ticketshield_sell_draft';
         return;
       }
 
-      const ownedPurchase = purchasedTickets.find(
+      const ownedPurchase = allPurchasedTickets.find(
         (t) => purchasedPassCode(t).toUpperCase() === code
       );
       if (ownedPurchase && (ownedPurchase.status || '').trim().toUpperCase() !== 'VALID') {
@@ -900,7 +928,7 @@ const DRAFT_STORAGE_KEY = 'ticketshield_sell_draft';
               code: s.code,
               originalPrice: s.originalPrice,
               priceCeiling: s.priceCeiling,
-              seatZone: purchasedTickets.find((t) => purchasedPassCode(t) === s.code)?.seatZone,
+              seatZone: allPurchasedTickets.find((t) => purchasedPassCode(t).toUpperCase() === s.code.toUpperCase())?.seatZone,
             }))}
             markupPercent={markupPercent}
             onContinue={() => setCurrentStep(4)}
@@ -926,7 +954,7 @@ const DRAFT_STORAGE_KEY = 'ticketshield_sell_draft';
             faceValue={faceValue}
             resalePrice={ticketPrices[sessions[0]?.code] ?? sessions[0]?.originalPrice ?? 0}
             bankAccounts={bankAccounts}
-            seatZone={purchasedTickets.find((t) => purchasedPassCode(t) === sessions[0]?.code)?.seatZone}
+            seatZone={allPurchasedTickets.find((t) => purchasedPassCode(t).toUpperCase() === sessions[0]?.code?.toUpperCase())?.seatZone}
             isPrivateListing={isPrivateListing}
             setIsPrivateListing={setIsPrivateListing}
             agreedTerms={agreedTerms}

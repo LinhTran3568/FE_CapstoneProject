@@ -353,13 +353,15 @@ export const Step1EnterTicketCode: React.FC<Step1EnterTicketCodeProps> = ({
 
                   {eligibleTickets.length > 1 && (
                     <div className="flex items-center justify-between px-1 text-[11px] text-[#8B929C]">
-                      <span>Chọn nhiều vé để bán dạng Gói/Combo</span>
+                      <span>Chọn nhiều vé để bán dạng Gói / Vé đôi</span>
                       <button
                         type="button"
                         onClick={handleSelectAllSameEvent}
                         className="text-[#FF5A36] hover:underline font-semibold cursor-pointer"
                       >
-                        Select All (Same Event)
+                        {eligibleTickets.some((t) => (t.bundleTotalTickets && t.bundleTotalTickets >= 2) || t.bundleId)
+                          ? 'Chọn cả cặp vé đôi'
+                          : 'Select All (Same Event)'}
                       </button>
                     </div>
                   )}
@@ -416,6 +418,10 @@ export const Step1EnterTicketCode: React.FC<Step1EnterTicketCodeProps> = ({
                     return filtered.map((t) => {
                       const code = purchasedPassCode(t).toUpperCase();
                       const isSelected = selectedCodes.includes(code);
+                      const isComboTicket = Boolean(
+                        (t.bundleTotalTickets && t.bundleTotalTickets >= 2) || t.bundleId
+                      );
+
                       return (
                         <div
                           key={t.escrowId}
@@ -437,7 +443,14 @@ export const Step1EnterTicketCode: React.FC<Step1EnterTicketCodeProps> = ({
                             </div>
 
                             <div className="min-w-0">
-                              <div className="font-mono font-bold text-xs text-[#FF5A36]">{code}</div>
+                              <div className="flex items-center gap-2">
+                                <span className="font-mono font-bold text-xs text-[#FF5A36]">{code}</span>
+                                {isComboTicket && (
+                                  <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-amber-500/15 border border-amber-500/30 text-amber-300">
+                                    Vé đôi
+                                  </span>
+                                )}
+                              </div>
                               <div className="text-xs font-semibold text-white truncate">{t.eventName}</div>
                               <div className="flex items-center gap-1.5 mt-0.5">
                                 <span className="text-[10px] text-[#8B929C] truncate">{t.tierName}</span>
@@ -560,7 +573,11 @@ export const Step1EnterTicketCode: React.FC<Step1EnterTicketCodeProps> = ({
               <span>Verifying...</span>
             </>
           ) : (
-            <span>Verify Ticket</span>
+            <span>
+              {selectedCodes.length > 1
+                ? `Verify ${selectedCodes.length} Tickets (Combo)`
+                : 'Verify Ticket'}
+            </span>
           )}
         </button>
       </form>

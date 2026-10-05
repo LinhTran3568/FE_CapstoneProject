@@ -446,7 +446,11 @@ export const ProfilePage: React.FC = () => {
                       </div>
                     </div>
                     <div className="text-right shrink-0">
-                      <p className="text-xs font-mono text-zinc-400">{ticket.tierName}</p>
+                      <p className="text-xs font-mono text-zinc-400">
+                        {ticket.bundleTotalTickets && ticket.bundleTotalTickets >= 2
+                          ? `${ticket.tierName} · Combo (${ticket.bundleTotalTickets} vé)`
+                          : ticket.tierName}
+                      </p>
                       <p className="text-sm font-bold text-white mt-0.5">{formatVND(ticket.totalAmountPaid)}</p>
                     </div>
                   </div>
