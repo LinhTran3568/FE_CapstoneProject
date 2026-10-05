@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ShieldCheck, ArrowRight, ArrowLeft } from 'lucide-react';
+import { ShieldCheck, ArrowRight, ArrowLeft, XCircle } from 'lucide-react';
 
 export interface TicketPriceItem {
   code: string;
@@ -16,6 +16,8 @@ export interface Step4SetPriceProps {
   setActiveTicketIndex: (index: number) => void;
   onUpdateTicketPrice: (code: string, newPrice: number) => void;
   onContinue: () => void;
+  onCancel?: () => void;
+  isCancelling?: boolean;
   saleType?: 'combo' | 'individual';
   setSaleType?: (type: 'combo' | 'individual') => void;
 }
@@ -26,6 +28,8 @@ export const Step4SetPrice: React.FC<Step4SetPriceProps> = ({
   setActiveTicketIndex,
   onUpdateTicketPrice,
   onContinue,
+  onCancel,
+  isCancelling = false,
   saleType = 'combo',
   setSaleType,
 }) => {
@@ -587,6 +591,21 @@ export const Step4SetPrice: React.FC<Step4SetPriceProps> = ({
               >
                 <span>{isCombo ? 'Tiếp tục sang Bước 5' : 'Continue'}</span>
                 <ArrowRight className="w-4 h-4" />
+              </button>
+            </div>
+          )}
+
+          {/* Nút hủy phiên mở khóa vé ở Bước 4 */}
+          {onCancel && (
+            <div className="text-center pt-2">
+              <button
+                type="button"
+                onClick={onCancel}
+                disabled={isCancelling}
+                className="text-xs sm:text-sm font-medium text-white/50 hover:text-rose-400 transition-colors inline-flex items-center gap-2 cursor-pointer disabled:opacity-30 py-1.5 px-3 rounded-lg hover:bg-rose-500/10 hover:border hover:border-rose-500/20"
+              >
+                <XCircle className="w-4 h-4" />
+                <span>{isCancelling ? 'Đang hủy...' : 'Hủy đăng bán & mở khóa vé'}</span>
               </button>
             </div>
           )}

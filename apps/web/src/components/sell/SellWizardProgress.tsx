@@ -22,17 +22,16 @@ export const SellWizardProgress: React.FC<SellWizardProgressProps> = ({
 }) => {
   // Điều kiện hiển thị nút Back:
   // - Bước 6 (Đã publish): KHÔNG cho quay lại bất kỳ bước nào (tránh lỗi).
-  // - Bước 3 (Vé đã xác thực & khóa): KHÔNG cho quay lại Bước 2 (OTP).
-  // - Bước 2: Bấm quay lại sẽ hủy phiên & giải phóng khóa vé tại BTC.
+  // - Bước 2 & 3: Bấm quay lại sẽ hủy phiên & giải phóng khóa vé tại BTC.
   // - Bước 4: Cho phép quay lại Bước 3.
   // - Bước 5: Cho phép quay lại Bước 4 (chỉnh giá bán).
   const canGoBack =
     !isPublishing &&
     !isCancellingSession &&
-    (currentStep === 2 || currentStep === 4 || currentStep === 5);
+    (currentStep >= 2 && currentStep <= 5);
 
   const handleBackClick = () => {
-    if (currentStep === 2) {
+    if (currentStep === 2 || currentStep === 3) {
       handleAbandonSession();
     } else if (currentStep === 4) {
       setCurrentStep(3);
@@ -49,14 +48,10 @@ export const SellWizardProgress: React.FC<SellWizardProgressProps> = ({
     if (stepNum > currentStep) return false;
     // Đang ở bước này
     if (stepNum === currentStep) return false;
-    // Khi đã xác thực OTP xong (Bước >= 3), khóa không cho quay lại Bước 1 hay Bước 2
-    if (currentStep >= 3 && stepNum <= 2) return false;
-    // Ở Bước 3, không thể quay lại
-    if (currentStep === 3) return false;
-    // Ở Bước 2, không cho bấm nhảy sang Bước 1 (phải bấm nút hủy để mở khóa vé)
-    if (currentStep === 2 && stepNum === 1) return false;
-
-    return true;
+    // Khi đã ở Bước 4, 5: chỉ cho click quay lại Bước 3, 4 (chưa public)
+    if (currentStep >= 4 && stepNum >= 3) return true;
+    // Các bước 1, 2 khi đã khóa vé thì phải qua nút Hủy để mở khóa
+    return false;
   };
 
   return (

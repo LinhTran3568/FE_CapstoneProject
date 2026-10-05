@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Calendar, MapPin, Ticket, ChevronLeft, ChevronRight, ArrowRight } from 'lucide-react';
+import { Calendar, MapPin, Ticket, ChevronLeft, ChevronRight, ArrowRight, XCircle } from 'lucide-react';
 import { CardStack } from '../ui/card-stack';
 import { formatEventDateTime } from '../../utils/formatters';
 
@@ -18,6 +18,8 @@ export interface Step3ConfirmDetailsProps {
   tickets: Step3Ticket[];
   markupPercent?: number;
   onContinue: () => void;
+  onCancel?: () => void;
+  isCancelling?: boolean;
   eventName?: string;
   eventVenue?: string;
   eventStartAt?: string;
@@ -277,6 +279,8 @@ const TicketCardItem: React.FC<TicketCardItemProps> = ({
 export const Step3ConfirmDetails: React.FC<Step3ConfirmDetailsProps> = ({
   tickets,
   onContinue,
+  onCancel,
+  isCancelling = false,
   eventName = 'Official Concert Event',
   eventVenue = 'Sân vận động Quốc gia Mỹ Đình',
   eventStartAt,
@@ -287,7 +291,7 @@ export const Step3ConfirmDetails: React.FC<Step3ConfirmDetailsProps> = ({
   const safeIndex = Math.min(Math.max(activeIndex, 0), Math.max(tickets.length - 1, 0));
 
   return (
-    <div key={3} className="animate-fade-in-up max-w-2xl mx-auto space-y-5 pt-1 text-center">
+    <div key={3} className="animate-fade-in-up max-w-2xl mx-auto space-y-4 pt-1 text-center">
       {/* Tiêu đề ngắn gọn */}
       <div>
         <h2 className="text-2xl sm:text-3xl font-bold font-display text-white tracking-tight">
@@ -297,34 +301,7 @@ export const Step3ConfirmDetails: React.FC<Step3ConfirmDetailsProps> = ({
 
       {/* Hiển thị dạng STACK khi có nhiều vé (giống Step 2 OTP) */}
       {isCombo ? (
-        <div className="space-y-3 pt-1">
-          {/* Thanh chuyển vé */}
-          <div className="flex items-center justify-between px-1 text-xs">
-            <span className="text-zinc-400 font-medium font-mono">
-              Vé {safeIndex + 1} / {tickets.length}: <strong className="text-white">{tickets[safeIndex]?.code}</strong>
-            </span>
-            <div className="flex items-center gap-1.5">
-              <button
-                type="button"
-                onClick={() => setActiveIndex((prev) => Math.max(0, prev - 1))}
-                disabled={safeIndex === 0}
-                className="w-7 h-7 rounded-lg bg-white/5 hover:bg-white/10 disabled:opacity-30 border border-white/10 flex items-center justify-center text-white transition-all cursor-pointer disabled:cursor-not-allowed"
-                title="Vé trước"
-              >
-                <ChevronLeft className="w-4 h-4" />
-              </button>
-              <button
-                type="button"
-                onClick={() => setActiveIndex((prev) => Math.min(tickets.length - 1, prev + 1))}
-                disabled={safeIndex === tickets.length - 1}
-                className="w-7 h-7 rounded-lg bg-white/5 hover:bg-white/10 disabled:opacity-30 border border-white/10 flex items-center justify-center text-white transition-all cursor-pointer disabled:cursor-not-allowed"
-                title="Vé tiếp theo"
-              >
-                <ChevronRight className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
-
+        <div className="space-y-4 pt-1">
           {/* CardStack theo phong cách so le */}
           <CardStack
             items={tickets.map((t) => ({ id: t.code, ...t }))}
@@ -365,6 +342,57 @@ export const Step3ConfirmDetails: React.FC<Step3ConfirmDetailsProps> = ({
               );
             }}
           />
+
+          {/* Cụm Paging trực quan chuẩn xác giống hệt bên OTP */}
+          <div className="flex items-center justify-center gap-3 pt-1">
+            {/* Mũi tên lùi vé trước */}
+            <button
+              type="button"
+              onClick={() => setActiveIndex((prev) => Math.max(0, prev - 1))}
+              disabled={safeIndex === 0}
+              aria-label="Vé trước"
+              className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl border border-white/15 bg-[#0A0D14] hover:bg-white/[0.08] hover:border-white/25 text-white/80 hover:text-white flex items-center justify-center disabled:opacity-20 disabled:cursor-not-allowed transition-all cursor-pointer shadow-sm active:scale-95"
+            >
+              <ChevronLeft className="w-4 h-4 sm:w-5 sm:h-5" />
+            </button>
+
+            {/* Cụm Paging: Vé X/Y + Dots rõ ràng, to và dễ nhìn */}
+            <div className="flex items-center gap-3 px-4 py-2 rounded-full bg-[#0A0D14] border border-white/15 text-sm font-semibold text-white/90 shadow-sm">
+              <span className="tracking-wide">
+                Vé {safeIndex + 1}/{tickets.length}
+              </span>
+              <div className="flex items-center gap-2 pl-1">
+                {tickets.map((t, idx) => {
+                  const isActive = idx === safeIndex;
+
+                  return (
+                    <button
+                      key={t.code}
+                      type="button"
+                      onClick={() => setActiveIndex(idx)}
+                      className={`transition-all duration-200 cursor-pointer ${
+                        isActive
+                          ? 'w-6 h-2 rounded-full bg-[#FF5A36] shadow-sm shadow-[#FF5A36]/40'
+                          : 'w-2 h-2 rounded-full bg-white/30 hover:bg-white/50'
+                      }`}
+                      title={`Vé ${idx + 1}: ${t.code}`}
+                    />
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Mũi tên tiến vé kế tiếp */}
+            <button
+              type="button"
+              onClick={() => setActiveIndex((prev) => Math.min(tickets.length - 1, prev + 1))}
+              disabled={safeIndex === tickets.length - 1}
+              aria-label="Vé kế tiếp"
+              className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl border border-white/15 bg-[#0A0D14] hover:bg-white/[0.08] hover:border-white/25 text-white/80 hover:text-white flex items-center justify-center disabled:opacity-20 disabled:cursor-not-allowed transition-all cursor-pointer shadow-sm active:scale-95"
+            >
+              <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5" />
+            </button>
+          </div>
         </div>
       ) : (
         /* Vé đơn: 1 chiếc TicketCard chuẩn mực */
@@ -382,7 +410,7 @@ export const Step3ConfirmDetails: React.FC<Step3ConfirmDetailsProps> = ({
       )}
 
       {/* Nút to dưới cùng duy nhất để chuyển tiếp */}
-      <div className="pt-3">
+      <div className="pt-3 space-y-3">
         <button
           type="button"
           onClick={onContinue}
@@ -391,6 +419,21 @@ export const Step3ConfirmDetails: React.FC<Step3ConfirmDetailsProps> = ({
           <span>Tiếp tục thiết lập giá bán</span>
           <ArrowRight className="w-4 h-4 stroke-[2.5]" />
         </button>
+
+        {/* Nút hủy phiên mở khóa vé ở Bước 3 */}
+        {onCancel && (
+          <div>
+            <button
+              type="button"
+              onClick={onCancel}
+              disabled={isCancelling}
+              className="text-xs sm:text-sm font-medium text-white/50 hover:text-rose-400 transition-colors inline-flex items-center gap-2 cursor-pointer disabled:opacity-30 py-1.5 px-3 rounded-lg hover:bg-rose-500/10 hover:border hover:border-rose-500/20"
+            >
+              <XCircle className="w-4 h-4" />
+              <span>{isCancelling ? 'Đang hủy...' : 'Hủy đăng bán & mở khóa vé'}</span>
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

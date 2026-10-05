@@ -1011,6 +1011,8 @@ const DRAFT_STORAGE_KEY = 'ticketshield_sell_draft';
             }
             organizerName={organizers.find((o) => o.id === selectedOrganizerId)?.name || 'Ban tổ chức'}
             onContinue={() => setCurrentStep(4)}
+            onCancel={handleAbandonSession}
+            isCancelling={isCancellingSession}
           />
         )}
 
@@ -1022,6 +1024,8 @@ const DRAFT_STORAGE_KEY = 'ticketshield_sell_draft';
             setActiveTicketIndex={setActiveTicketIndex}
             onUpdateTicketPrice={handleUpdateTicketPrice}
             onContinue={() => setCurrentStep(5)}
+            onCancel={handleAbandonSession}
+            isCancelling={isCancellingSession}
             saleType={saleType}
             setSaleType={setSaleType}
           />
