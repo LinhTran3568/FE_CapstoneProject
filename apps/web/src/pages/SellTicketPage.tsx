@@ -975,15 +975,41 @@ const DRAFT_STORAGE_KEY = 'ticketshield_sell_draft';
         {/* STEP 3: TICKET VERIFIED & LOCKED */}
         {currentStep === 3 && (
           <Step3ConfirmDetails
-            tickets={sessions.map((s) => ({
-              code: s.code,
-              originalPrice: s.originalPrice,
-              priceCeiling: s.priceCeiling,
-              seatZone: allPurchasedTickets.find((t) => purchasedPassCode(t).toUpperCase() === s.code.toUpperCase())?.seatZone,
-            }))}
+            tickets={sessions.map((s) => {
+              const matched = allPurchasedTickets.find(
+                (t) => purchasedPassCode(t).toUpperCase() === s.code.toUpperCase()
+              );
+              return {
+                code: s.code,
+                originalPrice: s.originalPrice,
+                priceCeiling: s.priceCeiling,
+                seatZone: matched?.seatZone,
+                tierName: matched?.tierName,
+                eventStartAt: matched?.eventStartAt,
+                eventName: matched?.eventName,
+                eventVenue: matched?.eventVenue,
+              };
+            })}
             markupPercent={markupPercent}
-            eventName={allPurchasedTickets.find((t) => purchasedPassCode(t).toUpperCase() === sessions[0]?.code?.toUpperCase())?.eventName}
-            eventVenue={allPurchasedTickets.find((t) => purchasedPassCode(t).toUpperCase() === sessions[0]?.code?.toUpperCase())?.eventVenue}
+            eventName={
+              allPurchasedTickets.find(
+                (t) => purchasedPassCode(t).toUpperCase() === sessions[0]?.code?.toUpperCase()
+              )?.eventName ||
+              (organizers.find((o) => o.id === selectedOrganizerId)?.name
+                ? `Đêm nhạc phát hành bởi ${organizers.find((o) => o.id === selectedOrganizerId)?.name}`
+                : 'Official Concert Event')
+            }
+            eventVenue={
+              allPurchasedTickets.find(
+                (t) => purchasedPassCode(t).toUpperCase() === sessions[0]?.code?.toUpperCase()
+              )?.eventVenue || 'Sân vận động Quốc gia Mỹ Đình'
+            }
+            eventStartAt={
+              allPurchasedTickets.find(
+                (t) => purchasedPassCode(t).toUpperCase() === sessions[0]?.code?.toUpperCase()
+              )?.eventStartAt
+            }
+            organizerName={organizers.find((o) => o.id === selectedOrganizerId)?.name || 'Ban tổ chức'}
             onContinue={() => setCurrentStep(4)}
           />
         )}
