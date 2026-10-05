@@ -437,7 +437,7 @@ export const Step1EnterTicketCode: React.FC<Step1EnterTicketCodeProps> = ({
                   return (
                     <div
                       key={code}
-                      className="flex items-center bg-[#05070A] border border-[#FF5A36] ring-4 ring-[#FF5A36]/20 rounded-2xl h-14 pl-3.5 pr-2 gap-2 transition-all shadow-inner animate-in fade-in"
+                      className="flex items-center bg-[#05070A] border border-[#FF5A36] ring-2 ring-[#FF5A36]/20 rounded-2xl h-14 pl-3.5 pr-2 gap-2 transition-colors shadow-inner"
                     >
                       {/* Badge số thứ tự vé */}
                       <div className="w-7 h-7 rounded-lg bg-[#FF5A36]/15 border border-[#FF5A36]/30 text-[#FF5A36] flex items-center justify-center shrink-0 font-mono font-bold text-xs">
@@ -504,44 +504,46 @@ export const Step1EnterTicketCode: React.FC<Step1EnterTicketCodeProps> = ({
                 }
 
                 // =========================================================
-                // CHẾ ĐỘ HIỂN THỊ THẺ VÉ BÌNH THƯỜNG
+                // CHẾ ĐỘ HIỂN THỊ THẺ VÉ BÌNH THƯỜNG (CỐ ĐỊNH H-14 ĐỒNG NHẤT)
                 // =========================================================
                 return (
                   <div
                     key={code}
-                    className="p-3.5 sm:p-4 rounded-2xl bg-[#0D121B] border border-white/10 hover:border-white/20 transition-all flex items-center justify-between gap-3 shadow-md"
+                    className="flex items-center justify-between bg-[#0D121B] border border-white/10 hover:border-white/20 rounded-2xl h-14 pl-3.5 pr-2 gap-2 transition-colors shadow-md"
                   >
-                    <div className="flex items-center gap-3 min-w-0">
-                      <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-[#FF5A36]/10 border border-[#FF5A36]/25 text-[#FF5A36] flex items-center justify-center shrink-0 font-mono font-bold text-xs">
+                    <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                      <div className="w-7 h-7 rounded-lg bg-[#FF5A36]/10 border border-[#FF5A36]/25 text-[#FF5A36] flex items-center justify-center shrink-0 font-mono font-bold text-xs">
                         #{index + 1}
                       </div>
-                      <div className="min-w-0">
+                      <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2">
-                          <span className="font-mono font-bold text-xs sm:text-sm text-white tracking-wide">
+                          <span className="font-mono font-bold text-sm sm:text-base text-white tracking-wide shrink-0">
                             {code}
                           </span>
-                          {matched && (
-                            <span className="text-[10px] bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 px-1.5 py-0.2 rounded font-medium">
-                              Vé từ ví
+                          {matched ? (
+                            <div className="flex items-center gap-1.5 min-w-0 truncate">
+                              <span className="text-[10px] bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 px-1.5 py-0.2 rounded font-medium shrink-0">
+                                Vé ví
+                              </span>
+                              <span className="text-xs text-zinc-400 truncate hidden sm:inline">
+                                · {matched.eventName} ({matched.tierName})
+                              </span>
+                              {(matched.seatZone || matched.tierName) && (
+                                <div className="hidden md:inline-flex">
+                                  <SeatAdjacencyBadge
+                                    seats={matched.seatZone || matched.tierName}
+                                    variant="subtle"
+                                    size="xs"
+                                  />
+                                </div>
+                              )}
+                            </div>
+                          ) : (
+                            <span className="text-xs text-zinc-500 truncate hidden sm:inline">
+                              · Mã vé nhập thủ công
                             </span>
                           )}
                         </div>
-                        {matched ? (
-                          <div className="mt-1 flex items-center gap-2 text-xs text-zinc-400 truncate">
-                            <span className="font-medium text-zinc-200 truncate">{matched.eventName}</span>
-                            <span>·</span>
-                            <span>{matched.tierName}</span>
-                            {(matched.seatZone || matched.tierName) && (
-                              <SeatAdjacencyBadge
-                                seats={matched.seatZone || matched.tierName}
-                                variant="subtle"
-                                size="xs"
-                              />
-                            )}
-                          </div>
-                        ) : (
-                          <div className="text-[11px] text-zinc-400 mt-0.5">Mã vé nhập thủ công</div>
-                        )}
                       </div>
                     </div>
 
@@ -549,8 +551,8 @@ export const Step1EnterTicketCode: React.FC<Step1EnterTicketCodeProps> = ({
                       <button
                         type="button"
                         onClick={() => handleStartEdit(code)}
-                        className="px-2.5 py-1.5 bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-semibold text-zinc-300 hover:text-white rounded-xl transition-all cursor-pointer flex items-center gap-1"
-                        title="Sửa mã vé này ngay tại đây"
+                        className="h-9 px-3 bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-semibold text-zinc-300 hover:text-white rounded-xl transition-all cursor-pointer flex items-center gap-1"
+                        title="Sửa mã vé này"
                       >
                         <Pencil className="w-3.5 h-3.5 text-zinc-400" />
                         <span className="hidden sm:inline">Sửa</span>
@@ -558,7 +560,7 @@ export const Step1EnterTicketCode: React.FC<Step1EnterTicketCodeProps> = ({
                       <button
                         type="button"
                         onClick={() => handleRemoveTicket(code)}
-                        className="p-1.5 bg-white/5 hover:bg-rose-500/15 border border-white/10 hover:border-rose-500/30 text-zinc-400 hover:text-rose-400 rounded-xl transition-all cursor-pointer"
+                        className="h-9 w-9 bg-white/5 hover:bg-rose-500/15 border border-white/10 hover:border-rose-500/30 text-zinc-400 hover:text-rose-400 rounded-xl transition-all cursor-pointer flex items-center justify-center"
                         title="Xóa vé này khỏi gói"
                       >
                         <Trash2 className="w-4 h-4" />
@@ -588,7 +590,7 @@ export const Step1EnterTicketCode: React.FC<Step1EnterTicketCodeProps> = ({
           {/* ========================================================================= */}
           {selectedCodes.length < MAX_BUNDLE_TICKETS && !editingCode && (
             <div className="pt-1 space-y-1.5">
-              <div className="flex items-center bg-[#05070A] border border-white/15 focus-within:border-[#FF5A36] focus-within:ring-4 focus-within:ring-[#FF5A36]/20 rounded-2xl h-14 pl-4 pr-2 gap-2 transition-all shadow-inner">
+              <div className="flex items-center bg-[#05070A] border border-white/15 focus-within:border-[#FF5A36] focus-within:ring-2 focus-within:ring-[#FF5A36]/20 rounded-2xl h-14 pl-3.5 pr-2 gap-2 transition-colors shadow-inner">
                 <Ticket className="w-5 h-5 text-[#FF5A36] shrink-0 pointer-events-none" />
                 <input
                   ref={directInputRef}
@@ -617,7 +619,7 @@ export const Step1EnterTicketCode: React.FC<Step1EnterTicketCodeProps> = ({
                   <button
                     type="button"
                     onClick={handleAddDirectCode}
-                    className="px-3.5 py-2 bg-[#FF5A36] hover:bg-[#FF7252] text-white text-xs font-bold rounded-xl transition-all shadow-sm shadow-[#FF5A36]/30 cursor-pointer shrink-0 active:scale-95"
+                    className="h-9 px-3.5 bg-[#FF5A36] hover:bg-[#FF7252] text-white text-xs font-bold rounded-xl transition-all shadow-sm shadow-[#FF5A36]/30 cursor-pointer shrink-0 active:scale-95 flex items-center justify-center"
                   >
                     + Thêm
                   </button>
