@@ -237,7 +237,13 @@ export const Step4SetPrice: React.FC<Step4SetPriceProps> = ({
 
         {/* Ô INPUT CHỮ SỐ LỚN ĐƯỢC EDIT TRỰC TIẾP */}
         <div className="py-2 flex flex-col items-center justify-center">
-          <div className="relative inline-flex items-baseline justify-center group/price cursor-text">
+          <div
+            className={`relative inline-flex items-baseline justify-center border-b-2 transition-all duration-200 px-3 pb-1 cursor-text ${
+              resalePrice > priceCeiling
+                ? 'border-rose-500'
+                : 'border-white/20 hover:border-white/40 focus-within:border-[#FF5A36]'
+            }`}
+          >
             <input
               id="resale-price-large-input"
               type="text"
@@ -246,19 +252,17 @@ export const Step4SetPrice: React.FC<Step4SetPriceProps> = ({
               onChange={handlePriceInputChange}
               onFocus={(e) => e.target.select()}
               onBlur={handlePriceInputBlur}
-              className={`bg-transparent text-center font-extrabold font-display text-4xl sm:text-6xl tracking-tight text-white focus:outline-none border-b-2 py-0.5 transition-all duration-200 ${
-                resalePrice > priceCeiling
-                  ? 'border-rose-500 text-rose-400'
-                  : 'border-white/15 hover:border-white/35 focus:border-[#FF5A36]'
+              className={`bg-transparent text-right font-extrabold font-display text-4xl sm:text-6xl tracking-tight focus:outline-none transition-colors ${
+                resalePrice > priceCeiling ? 'text-rose-400' : 'text-white'
               }`}
               style={{
-                width: `${Math.max((priceInputText || '0').length * 0.72 + 1.8, 6.5)}rem`,
-                maxWidth: '100%',
+                width: `${Math.max((priceInputText || '').length + 1.2, 5)}ch`,
+                minWidth: '4.5ch',
               }}
               placeholder="0"
               autoComplete="off"
             />
-            <span className="text-base sm:text-xl font-bold text-[#FF5A36] ml-2 select-none">
+            <span className="text-xl sm:text-2xl font-bold font-display text-[#FF5A36] ml-2.5 select-none">
               VND
             </span>
           </div>
