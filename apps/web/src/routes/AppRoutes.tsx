@@ -14,6 +14,7 @@ import { RevenuePreviewPage } from '../pages/RevenuePreviewPage';
 import { MyTicketsPage } from '../pages/MyTicketsPage';
 import { OrganizerPortalPage } from '../pages/OrganizerPortalPage';
 import { PayoutAccountsPage } from '../pages/PayoutAccountsPage';
+import { PrivateListingPage } from '../pages/PrivateListingPage';
 import { ProtectedRoute, GuestRoute } from './ProtectedRoute';
 
 export const AppRoutes: React.FC = () => {
@@ -22,6 +23,7 @@ export const AppRoutes: React.FC = () => {
       {/* Public Pages */}
       <Route path="/" element={<HomePage />} />
       <Route path="/marketplace" element={<MarketplacePage />} />
+      <Route path="/p/:shareToken" element={<PrivateListingPage />} />
       <Route path="/organizer" element={<OrganizerPortalPage />} />
       {import.meta.env.DEV && <Route path="/preview/doanh-thu" element={<RevenuePreviewPage />} />}
 

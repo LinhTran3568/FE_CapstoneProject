@@ -45,6 +45,17 @@ export const resaleListingsApi = {
   },
 
   /**
+   * Private resale listing preview details by secret share token.
+   * GET /resale-listings/private/{shareToken} (anonymous public access via secret link)
+   */
+  getPrivateListing: async (shareToken: string): Promise<ResaleListingDetailDto> => {
+    return httpClient<ResaleListingDetailDto>(
+      `/resale-listings/private/${encodeURIComponent(shareToken.trim())}`,
+      { method: 'GET' }
+    );
+  },
+
+  /**
    * Listings published by the signed-in seller, newest first.
    * GET /resale-listings/my-listings[?status=Verified]  (JWT required)
    */

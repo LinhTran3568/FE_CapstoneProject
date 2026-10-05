@@ -334,6 +334,8 @@ export interface ResaleListingDetailDto {
   bundleId?: string | null;
   isBundleAllOrNothing?: boolean;
   bundleTotalTickets?: number;
+  privateAccessToken?: string;
+  bundleItems?: ResaleListingDetailDto[];
 }
 
 export interface HoldListingForPurchaseRequest {

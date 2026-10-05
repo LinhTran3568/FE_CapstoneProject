@@ -674,6 +674,10 @@ const DRAFT_STORAGE_KEY = 'ticketshield_sell_draft';
           true
         );
         setPublishedListingId(result.listings?.[0]?.listingId ?? '');
+        if (isPrivateListing) {
+          const token = (result as any).privateAccessToken || (result.listings?.[0] as any)?.privateAccessToken || '';
+          setPublishedPrivateToken(token);
+        }
       }
 
       try {
