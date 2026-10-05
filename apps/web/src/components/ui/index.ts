@@ -7,3 +7,4 @@ export * from './SeatAdjacencyBadge';
 export * from './StatusBadge';
 export * from './TicketShieldLogo';
 export * from './TicketShieldTrustBadge';
+export * from './card-stack';
