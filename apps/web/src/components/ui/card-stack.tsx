@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 
@@ -13,7 +13,6 @@ export interface CardStackItem {
 export interface CardStackProps<T extends CardStackItem = CardStackItem> {
   items: T[];
   offset?: number;
-  xOffset?: number;
   scaleFactor?: number;
   activeIndex?: number;
   onActiveIndexChange?: (index: number) => void;
@@ -35,7 +34,7 @@ export const Highlight = ({
   return (
     <span
       className={cn(
-        'font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded px-1.5 py-0.5',
+        'font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded px-1.5 py-0.5',
         className
       )}
     >
@@ -47,7 +46,6 @@ export const Highlight = ({
 export const CardStack = <T extends CardStackItem>({
   items,
   offset = 48,
-  xOffset = 10,
   scaleFactor = 0.04,
   activeIndex,
   onActiveIndexChange,
@@ -58,17 +56,11 @@ export const CardStack = <T extends CardStackItem>({
   layoutMode = 'staggered',
 }: CardStackProps<T>) => {
   const [internalIndex, setInternalIndex] = useState(0);
-  const [switchedId, setSwitchedId] = useState<string | number | null>(null);
 
   const currentIndex = activeIndex !== undefined ? activeIndex : internalIndex;
 
   const setIndex = (idx: number) => {
     if (idx === currentIndex) return;
-    const targetItem = items[idx];
-    if (targetItem) {
-      setSwitchedId(targetItem.id);
-      setTimeout(() => setSwitchedId(null), 500);
-    }
     if (onActiveIndexChange) {
       onActiveIndexChange(idx);
     } else {
@@ -85,7 +77,7 @@ export const CardStack = <T extends CardStackItem>({
   const calculatedHeight =
     containerHeight ??
     (layoutMode === 'staggered'
-      ? `${(total - 1) * offset + 310}px`
+      ? `${(total - 1) * offset + 300}px`
       : '22rem');
 
   return (
@@ -96,28 +88,24 @@ export const CardStack = <T extends CardStackItem>({
       <AnimatePresence initial={false}>
         {items.map((item, originalIndex) => {
           const isTop = originalIndex === currentIndex;
-          const isJustSwitched = switchedId === item.id;
 
           let topPos = 0;
-          let leftPos = 0;
           let zIndexVal = 10;
           let opacityVal = 1;
 
           if (layoutMode === 'staggered') {
-            // Chế độ so le (Staggered Tabs Cascade):
+            // Chế độ so le (Staggered Tabs):
             // Thẻ active nằm ở đáy cascade, mở rộng toàn bộ thân thẻ
-            // Các thẻ phía sau nhô lên một khoảng `offset` (y) và lệch nhẹ `xOffset` (x)
+            // Các thẻ phía sau nhô lên một khoảng `offset` để lộ thanh header
             if (isTop) {
               topPos = inactiveIndices.length * offset;
-              leftPos = inactiveIndices.length * xOffset;
-              zIndexVal = 35;
+              zIndexVal = 30;
               opacityVal = 1;
             } else {
               const inactivePos = inactiveIndices.indexOf(originalIndex);
               topPos = inactivePos * offset;
-              leftPos = inactivePos * xOffset;
               zIndexVal = 10 + inactivePos;
-              opacityVal = 0.96;
+              opacityVal = 0.95;
             }
           } else {
             // Chế độ stack cổ điển
@@ -128,57 +116,28 @@ export const CardStack = <T extends CardStackItem>({
             opacityVal = isTop ? 1 : Math.max(0.35, 1 - relativeIndex * 0.28);
           }
 
-          // Hiệu ứng Switch vòng cung (Arc Switch):
-          // Khi một thẻ được chọn để đưa lên front, nó sẽ vòng ra ngoài mạn trái (x: -80px)
-          // nâng z-index lên cao rồi lượn nhẹ về vị trí front, KHÔNG xuyên qua tâm thẻ khác
-          const animateProps =
-            layoutMode === 'staggered' && isTop && isJustSwitched
-              ? {
-                  x: [0, -80, 0],
-                  y: [topPos - 20, topPos - 10, topPos],
-                  rotate: [0, -4, 0],
-                  top: topPos,
-                  left: leftPos,
-                  zIndex: 45,
-                  opacity: 1,
-                  scale: [0.98, 1.02, 1],
-                }
-              : {
-                  x: 0,
-                  y: 0,
-                  rotate: 0,
-                  top: topPos,
-                  left: leftPos,
-                  zIndex: zIndexVal,
-                  opacity: opacityVal,
-                  scale: isTop ? 1 : 0.99,
-                };
-
           return (
             <motion.div
               key={item.id}
               className={cn(
-                'absolute rounded-2xl transition-shadow duration-200',
+                'absolute w-full rounded-2xl transition-shadow duration-150',
                 isTop
-                  ? 'pointer-events-auto shadow-2xl shadow-black/90'
-                  : 'pointer-events-auto cursor-pointer shadow-lg shadow-black/50 hover:brightness-105',
+                  ? 'pointer-events-auto shadow-2xl shadow-black/80'
+                  : 'pointer-events-auto cursor-pointer shadow-md shadow-black/40 hover:brightness-105',
                 cardClassName
               )}
               style={{
-                width:
-                  layoutMode === 'staggered'
-                    ? `calc(100% - ${(total - 1) * xOffset}px)`
-                    : '100%',
                 transformOrigin: 'top center',
               }}
-              animate={animateProps}
+              animate={{
+                top: topPos,
+                zIndex: zIndexVal,
+                opacity: opacityVal,
+              }}
               transition={{
-                x: { duration: 0.42, ease: [0.16, 1, 0.3, 1] },
-                rotate: { duration: 0.42, ease: [0.16, 1, 0.3, 1] },
-                y: { type: 'spring', stiffness: 280, damping: 26 },
-                top: { type: 'spring', stiffness: 280, damping: 26 },
-                left: { type: 'spring', stiffness: 280, damping: 26 },
-                scale: { type: 'spring', stiffness: 280, damping: 26 },
+                type: 'spring',
+                stiffness: 350,
+                damping: 32,
               }}
               onClick={() => {
                 if (!isTop) {

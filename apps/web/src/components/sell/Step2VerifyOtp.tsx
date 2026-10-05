@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState, useRef } from 'react';
-import { Loader2, Ticket, CheckCircle2, ChevronLeft, ChevronRight, Clock, AlertCircle } from 'lucide-react';
+import { Loader2, Ticket, CheckCircle2, Clock, AlertCircle } from 'lucide-react';
 import { CardStack } from '../ui/card-stack';
 
 export interface OtpTicket {
@@ -35,45 +35,6 @@ const formatTimer = (seconds: number) => {
   return `${m}:${s}`;
 };
 
-const TICKET_THEMES = [
-  {
-    bg: 'bg-[#0D1527]',
-    borderActive: 'border-sky-500/40 ring-1 ring-sky-500/30',
-    borderInactive: 'border-sky-500/25',
-    headerBg: 'bg-[#101C36]',
-    accentText: 'text-sky-400',
-    iconBox: 'bg-sky-500/15 border border-sky-500/30 text-sky-400',
-    btnBg: 'bg-sky-500 hover:bg-sky-400 text-white shadow-sky-500/25',
-  },
-  {
-    bg: 'bg-[#19111C]',
-    borderActive: 'border-[#FF5738]/50 ring-1 ring-[#FF5738]/30',
-    borderInactive: 'border-[#FF5738]/25',
-    headerBg: 'bg-[#251522]',
-    accentText: 'text-[#FF5738]',
-    iconBox: 'bg-[#FF5738]/15 border border-[#FF5738]/30 text-[#FF5738]',
-    btnBg: 'bg-[#FF5738] hover:bg-[#FF7054] text-white shadow-[#FF5738]/25',
-  },
-  {
-    bg: 'bg-[#0C1A1E]',
-    borderActive: 'border-cyan-500/40 ring-1 ring-cyan-500/30',
-    borderInactive: 'border-cyan-500/25',
-    headerBg: 'bg-[#10242B]',
-    accentText: 'text-cyan-400',
-    iconBox: 'bg-cyan-500/15 border border-cyan-500/30 text-cyan-400',
-    btnBg: 'bg-cyan-500 hover:bg-cyan-400 text-white shadow-cyan-500/25',
-  },
-  {
-    bg: 'bg-[#151024]',
-    borderActive: 'border-purple-500/40 ring-1 ring-purple-500/30',
-    borderInactive: 'border-purple-500/25',
-    headerBg: 'bg-[#201538]',
-    accentText: 'text-purple-400',
-    iconBox: 'bg-purple-500/15 border border-purple-500/30 text-purple-400',
-    btnBg: 'bg-purple-500 hover:bg-purple-400 text-white shadow-purple-500/25',
-  },
-];
-
 export const Step2VerifyOtp: React.FC<Step2VerifyOtpProps> = ({
   tickets,
   onVerifyTicket,
@@ -92,7 +53,7 @@ export const Step2VerifyOtp: React.FC<Step2VerifyOtpProps> = ({
 
   const inputRefs = useRef<Record<string, HTMLInputElement | null>>({});
 
-  // Sync digits map per ticket
+  // Đồng bộ danh sách ô nhập OTP cho từng vé
   useEffect(() => {
     setDigits((prev) => {
       const next: Record<string, string[]> = {};
@@ -103,7 +64,7 @@ export const Step2VerifyOtp: React.FC<Step2VerifyOtpProps> = ({
     });
   }, [tickets]);
 
-  // Countdown timer tick
+  // Bộ đếm thời gian thực
   useEffect(() => {
     if (tickets.every((t) => t.locked)) return;
     const interval = setInterval(() => setNow(Date.now()), 1000);
@@ -137,7 +98,7 @@ export const Step2VerifyOtp: React.FC<Step2VerifyOtpProps> = ({
     }
   }, [allLocked]);
 
-  // Focus slot 0 của vé hiện tại khi chuyển tab / card
+  // Focus ô đầu tiên của vé đang chọn khi chuyển thẻ
   useEffect(() => {
     if (!current || current.locked) return undefined;
     const timer = setTimeout(() => {
@@ -253,86 +214,21 @@ export const Step2VerifyOtp: React.FC<Step2VerifyOtpProps> = ({
     }
   };
 
-  const handlePrevCard = () => {
-    setPage((p) => (p - 1 + tickets.length) % tickets.length);
-  };
-
-  const handleNextCard = () => {
-    setPage((p) => (p + 1) % tickets.length);
-  };
-
   if (!current) return null;
 
   return (
-    <div className="max-w-[530px] mx-auto space-y-4 pt-1 font-sans text-center">
-      {/* Title Header */}
+    <div className="max-w-[500px] mx-auto space-y-4 pt-1 font-sans text-center">
+      {/* Tiêu đề trang */}
       <div className="space-y-1">
-        <h2 className="text-2xl sm:text-3xl font-extrabold font-display text-[#F5F5F5] tracking-tight">
-          XÁC THỰC VÉ
+        <h2 className="text-2xl sm:text-3xl font-bold text-white tracking-tight">
+          Xác thực vé
         </h2>
         <p className="text-xs sm:text-sm text-[#8A909B] max-w-sm mx-auto leading-relaxed">
           Nhập mã OTP 6 số để xác thực quyền sở hữu vé chính chủ từ Ban tổ chức.
         </p>
       </div>
 
-      {/* Ticket Navigation Tabs & Indicators (Khi bán nhiều vé / combo) */}
-      {tickets.length > 1 && (
-        <div className="flex items-center justify-between gap-2 px-1">
-          {/* Nút Prev Card */}
-          <button
-            type="button"
-            onClick={handlePrevCard}
-            className="p-2 rounded-xl bg-white/[0.04] border border-white/[0.08] hover:bg-white/[0.08] text-white/70 hover:text-white transition-colors cursor-pointer"
-            title="Vé trước"
-          >
-            <ChevronLeft className="w-4 h-4" />
-          </button>
-
-          {/* Ticket Pills Selector */}
-          <div className="flex items-center gap-1.5 flex-wrap justify-center font-mono">
-            {tickets.map((t, idx) => {
-              const isSelected = idx === safePage;
-              const isLocked = t.locked;
-              const theme = TICKET_THEMES[idx % TICKET_THEMES.length];
-
-              return (
-                <button
-                  key={t.code}
-                  type="button"
-                  onClick={() => setPage(idx)}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
-                    isSelected
-                      ? `${theme.headerBg} border ${theme.accentText} shadow-sm text-white`
-                      : isLocked
-                      ? 'bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/15'
-                      : 'bg-white/[0.03] border border-white/[0.08] text-[#8A909B] hover:text-white hover:bg-white/[0.06]'
-                  }`}
-                >
-                  {isLocked ? (
-                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                  ) : (
-                    <Ticket className={`w-3.5 h-3.5 shrink-0 ${isSelected ? theme.accentText : 'text-[#8A909B]'}`} />
-                  )}
-                  <span>Vé {idx + 1}</span>
-                  <span className="text-[10px] opacity-75 font-normal">({t.code.slice(-4)})</span>
-                </button>
-              );
-            })}
-          </div>
-
-          {/* Nút Next Card */}
-          <button
-            type="button"
-            onClick={handleNextCard}
-            className="p-2 rounded-xl bg-white/[0.04] border border-white/[0.08] hover:bg-white/[0.08] text-white/70 hover:text-white transition-colors cursor-pointer"
-            title="Vé sau"
-          >
-            <ChevronRight className="w-4 h-4" />
-          </button>
-        </div>
-      )}
-
-      {/* CardStack Container: Thẻ OTP dạng So Le (Staggered Tabs Cascade) */}
+      {/* Thẻ OTP dạng So Le (Staggered Tabs) */}
       <div className="pt-1">
         <CardStack
           items={tickets.map((t) => ({ id: t.code, ...t }))}
@@ -340,7 +236,6 @@ export const Step2VerifyOtp: React.FC<Step2VerifyOtpProps> = ({
           onActiveIndexChange={setPage}
           layoutMode="staggered"
           offset={48}
-          xOffset={10}
           renderCard={(t, isTop, originalIndex) => {
             const ticketDigits = digits[t.code] ?? emptyDigits();
             const filledCount = ticketDigits.filter((d) => Boolean(d && d.trim())).length;
@@ -349,22 +244,21 @@ export const Step2VerifyOtp: React.FC<Step2VerifyOtpProps> = ({
             const isFilled = filledCount === OTP_LENGTH;
             const errorMsg = errors[t.code];
             const isCurrentVerifying = isVerifying && verifyingCode === t.code;
-            const theme = TICKET_THEMES[originalIndex % TICKET_THEMES.length];
 
             return (
               <div
-                className={`w-full rounded-2xl transition-all duration-200 overflow-hidden text-left ${theme.bg} ${
+                className={`w-full rounded-2xl transition-all duration-200 overflow-hidden text-left bg-[#111722] ${
                   isTop
-                    ? `${theme.borderActive} shadow-2xl shadow-black/95`
-                    : `${theme.borderInactive} shadow-lg shadow-black/50 hover:brightness-110`
+                    ? 'border border-white/[0.14] shadow-2xl shadow-black/80 ring-1 ring-white/[0.05]'
+                    : 'border border-white/[0.08] shadow-md shadow-black/40 hover:border-white/[0.16]'
                 }`}
               >
-                {/* Header tab: Luôn hiển thị ở cả thẻ active và thẻ so le phía sau */}
+                {/* Header thẻ: Luôn hiển thị ở cả thẻ active và thẻ so le phía sau */}
                 <div
                   className={`h-[48px] px-4 sm:px-5 flex items-center justify-between border-b ${
                     isTop
-                      ? `${theme.headerBg} border-white/[0.1]`
-                      : `${theme.headerBg} border-white/[0.06] cursor-pointer hover:bg-white/[0.04]`
+                      ? 'border-white/[0.08] bg-[#111722]'
+                      : 'border-white/[0.06] bg-[#0E1420] cursor-pointer hover:bg-white/[0.02]'
                   }`}
                   onClick={() => {
                     if (!isTop) setPage(originalIndex);
@@ -372,36 +266,44 @@ export const Step2VerifyOtp: React.FC<Step2VerifyOtpProps> = ({
                 >
                   {/* Cột trái: Biểu tượng + Mã vé */}
                   <div className="flex items-center gap-2.5">
-                    <div className={`p-1.5 rounded-lg ${theme.iconBox}`}>
+                    <div
+                      className={`p-1.5 rounded-lg border ${
+                        t.locked
+                          ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'
+                          : isTop
+                          ? 'bg-[#FF5738]/10 border-[#FF5738]/20 text-[#FF5738]'
+                          : 'bg-white/[0.04] border-white/[0.08] text-[#8A909B]'
+                      }`}
+                    >
                       {t.locked ? (
-                        <CheckCircle2 className="w-3.5 h-3.5" />
+                        <CheckCircle2 className="w-4 h-4" />
                       ) : (
-                        <Ticket className="w-3.5 h-3.5" />
+                        <Ticket className="w-4 h-4" />
                       )}
                     </div>
-                    <div className="flex items-center gap-2 font-mono">
-                      <span className="text-xs uppercase tracking-wider text-white/60">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-[#8A909B]">
                         Vé {originalIndex + 1}:
                       </span>
-                      <span className="text-sm font-bold text-white tracking-wide">
+                      <span className="text-sm font-semibold text-white tracking-wide">
                         {t.code}
                       </span>
                     </div>
                   </div>
 
                   {/* Cột phải: Trạng thái nhập OTP + Thời gian còn lại */}
-                  <div className="flex items-center gap-2 sm:gap-2.5 font-mono text-xs">
+                  <div className="flex items-center gap-2 text-xs">
                     {/* Badge đã nhập OTP chưa */}
                     {t.locked ? (
-                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-500/15 border border-emerald-500/30 text-emerald-400">
+                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-emerald-500/10 border border-emerald-500/20 text-emerald-400">
                         <CheckCircle2 className="w-3 h-3" /> Đã xác thực
                       </span>
                     ) : filledCount === OTP_LENGTH ? (
-                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-amber-500/15 border border-amber-500/30 text-amber-300">
+                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-amber-500/10 border border-amber-500/20 text-amber-300">
                         Đã nhập 6 số
                       </span>
                     ) : filledCount > 0 ? (
-                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-blue-500/10 border border-blue-500/20 text-blue-300">
+                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-[#FF5738]/10 border border-[#FF5738]/20 text-[#FF5738]">
                         Đang nhập ({filledCount}/6)
                       </span>
                     ) : (
@@ -416,24 +318,17 @@ export const Step2VerifyOtp: React.FC<Step2VerifyOtpProps> = ({
                       <span
                         className={
                           t.locked
-                            ? 'text-emerald-400 font-semibold'
+                            ? 'text-emerald-400 font-medium'
                             : isExpired
-                            ? 'text-rose-400 font-bold'
+                            ? 'text-rose-400 font-medium'
                             : tLeft <= 60
-                            ? 'text-rose-400 font-bold animate-pulse'
-                            : 'text-[#FF5738] font-semibold'
+                            ? 'text-rose-400 font-medium animate-pulse'
+                            : 'text-[#FF5738] font-medium'
                         }
                       >
                         {t.locked ? 'Đã khóa' : isExpired ? 'Hết hạn' : formatTimer(tLeft)}
                       </span>
                     </span>
-
-                    {/* Nhãn click khi nằm ở sau */}
-                    {!isTop && (
-                      <span className="text-[11px] text-white/50 hover:text-white hidden sm:inline-block font-sans font-medium pl-1">
-                        Chọn →
-                      </span>
-                    )}
                   </div>
                 </div>
 
@@ -443,7 +338,7 @@ export const Step2VerifyOtp: React.FC<Step2VerifyOtpProps> = ({
                     !isTop ? 'pointer-events-none opacity-0 select-none h-0 p-0 overflow-hidden' : ''
                   }`}
                 >
-                  {/* 6 OTP Input Slots */}
+                  {/* 6 ô nhập OTP */}
                   <div className="space-y-3">
                     <div className="flex items-center justify-center gap-2 pt-0.5">
                       {ticketDigits.map((digit, slot) => (
@@ -474,8 +369,8 @@ export const Step2VerifyOtp: React.FC<Step2VerifyOtpProps> = ({
                       ))}
                     </div>
 
-                    {/* Resend Link & Expiry Indicator */}
-                    <div className="flex items-center justify-between text-xs font-mono px-1 text-[#8A909B]">
+                    {/* Dòng gửi lại OTP và đếm ngược */}
+                    <div className="flex items-center justify-between text-xs px-1 text-[#8A909B]">
                       <span>
                         {isExpired ? 'Mã đã hết hạn' : `Hết hạn sau ${formatTimer(tLeft)}`}
                       </span>
@@ -502,40 +397,40 @@ export const Step2VerifyOtp: React.FC<Step2VerifyOtpProps> = ({
                     </div>
                   </div>
 
-                  {/* Error message */}
+                  {/* Thông báo lỗi nếu có */}
                   {errorMsg && (
-                    <div className="p-2.5 bg-rose-500/10 border border-rose-500/20 rounded-xl text-xs text-rose-300 font-mono text-center">
+                    <div className="p-2.5 bg-rose-500/10 border border-rose-500/20 rounded-xl text-xs text-rose-300 text-center">
                       {errorMsg}
                     </div>
                   )}
 
-                  {/* Button hành động của thẻ này */}
+                  {/* Nút hành động */}
                   <div className="pt-0.5">
                     {t.locked ? (
-                      <div className="w-full h-[46px] rounded-xl font-mono font-bold text-xs bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 flex items-center justify-center gap-2 cursor-default">
+                      <div className="w-full h-[46px] rounded-xl font-medium text-sm bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 flex items-center justify-center gap-2 cursor-default">
                         <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-                        <span>ĐÃ KHÓA VÉ CHÍNH CHỦ ✓</span>
+                        <span>Đã xác thực vé thành công ✓</span>
                       </div>
                     ) : (
                       <button
                         type="button"
                         onClick={() => handleVerifyOneTicket(t)}
                         disabled={!isTop || isCurrentVerifying || !isFilled}
-                        className={`w-full h-[46px] rounded-xl font-mono font-bold uppercase tracking-wider text-xs transition-all duration-200 flex items-center justify-center gap-2 ${
+                        className={`w-full h-[46px] rounded-xl font-medium text-sm transition-all duration-200 flex items-center justify-center gap-2 ${
                           isCurrentVerifying
                             ? 'bg-[#FF5738]/50 text-white cursor-wait'
                             : isFilled
-                            ? `${theme.btnBg} cursor-pointer`
+                            ? 'bg-[#FF5738] hover:bg-[#FF7054] text-white shadow-md shadow-[#FF5738]/20 cursor-pointer'
                             : 'bg-white/[0.04] border border-white/[0.08] text-white/30 cursor-not-allowed'
                         }`}
                       >
                         {isCurrentVerifying ? (
                           <>
                             <Loader2 className="w-4 h-4 animate-spin" />
-                            <span>ĐANG XÁC THỰC VÉ...</span>
+                            <span>Đang xác thực vé...</span>
                           </>
                         ) : (
-                          <span>XÁC THỰC VÉ {t.code} →</span>
+                          <span>Xác thực vé {t.code} →</span>
                         )}
                       </button>
                     )}
@@ -547,16 +442,42 @@ export const Step2VerifyOtp: React.FC<Step2VerifyOtpProps> = ({
         />
       </div>
 
-      {/* Global Status & Step Actions */}
+      {/* Dấu chấm Paging chỉ báo ở phía dưới (khi có nhiều vé) */}
+      {tickets.length > 1 && (
+        <div className="flex items-center justify-center gap-2 pt-1">
+          {tickets.map((t, idx) => {
+            const isActive = idx === safePage;
+            const isLocked = t.locked;
+
+            return (
+              <button
+                key={t.code}
+                type="button"
+                onClick={() => setPage(idx)}
+                className={`transition-all duration-200 cursor-pointer ${
+                  isActive
+                    ? 'w-6 h-2 rounded-full bg-[#FF5738]'
+                    : isLocked
+                    ? 'w-2 h-2 rounded-full bg-emerald-400'
+                    : 'w-2 h-2 rounded-full bg-white/25 hover:bg-white/45'
+                }`}
+                title={`Vé ${idx + 1}: ${t.code}`}
+              />
+            );
+          })}
+        </div>
+      )}
+
+      {/* Hành động hoàn tất / hủy */}
       <div className="space-y-3 pt-1">
         {/* Nút hoàn tất khi tất cả vé đã xác thực */}
         {allLocked && (
           <button
             type="button"
             onClick={onComplete}
-            className="w-full h-[48px] rounded-xl font-mono font-bold uppercase tracking-wider text-xs bg-emerald-500 hover:bg-emerald-600 text-white shadow-lg shadow-emerald-500/20 flex items-center justify-center gap-2 cursor-pointer transition-all"
+            className="w-full h-[48px] rounded-xl font-medium text-sm bg-emerald-500 hover:bg-emerald-600 text-white shadow-lg shadow-emerald-500/20 flex items-center justify-center gap-2 cursor-pointer transition-all"
           >
-            <span>TẤT CẢ VÉ ĐÃ XÁC THỰC - TIẾP TỤC →</span>
+            <span>Tất cả vé đã xác thực - Tiếp tục →</span>
           </button>
         )}
 
@@ -566,7 +487,7 @@ export const Step2VerifyOtp: React.FC<Step2VerifyOtpProps> = ({
             type="button"
             onClick={onAbandon}
             disabled={isCancelling}
-            className="text-xs text-[#8A909B] hover:text-white transition-colors font-mono cursor-pointer disabled:opacity-40"
+            className="text-xs text-[#8A909B] hover:text-white transition-colors cursor-pointer disabled:opacity-40"
           >
             {isCancelling ? 'Đang hủy...' : 'Hủy bỏ phiên xác thực'}
           </button>
