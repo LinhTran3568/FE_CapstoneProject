@@ -157,14 +157,7 @@ export const TicketCard: React.FC<TicketCardProps> = ({
   return (
     <div
       id={`ticket-card-${listing.listingId}`}
-      className={`group relative isolate w-full h-[195px] sm:h-[200px] flex rounded-2xl bg-[#0a0c10] border shadow-[0_8px_24px_rgba(0,0,0,0.7)] transition-[border-color,box-shadow,transform] duration-200 ease-out select-none cursor-pointer ${isTransacting
-          ? 'border-amber-500/40 shadow-[0_8px_30px_rgba(245,158,11,0.15)]'
-          : isSold
-            ? 'border-zinc-700/50 opacity-75'
-            : isBundle
-              ? 'border-white/20 hover:border-[#FF5A36] hover:shadow-[0_12px_36px_rgba(255,90,54,0.25)] hover:-translate-y-1'
-              : 'border-white/10 hover:border-[#FF5A36] hover:shadow-[0_12px_36px_rgba(255,90,54,0.2)] hover:-translate-y-1'
-        }`}
+      className="group relative isolate w-full h-[195px] sm:h-[200px] select-none cursor-pointer transition-transform duration-200 ease-out hover:-translate-y-1"
       onClick={() => {
         if (!isTransacting && onViewDetails) {
           onViewDetails(listing);
@@ -186,6 +179,27 @@ export const TicketCard: React.FC<TicketCardProps> = ({
           )}
         </>
       )}
+
+      {/* ================= MASKED TICKET CONTAINER (Cutout Notches via CSS Mask) ================= */}
+      <div
+        className={`relative w-full h-full flex rounded-2xl overflow-hidden border transition-[border-color,box-shadow] duration-200 ease-out ${
+          isTransacting
+            ? 'border-amber-500/40 shadow-[0_8px_30px_rgba(245,158,11,0.15)]'
+            : isSold
+              ? 'border-zinc-700/50 opacity-75'
+              : isBundle
+                ? 'border-white/20 group-hover:border-[#FF5A36] shadow-[0_8px_24px_rgba(0,0,0,0.7)] group-hover:shadow-[0_12px_36px_rgba(255,90,54,0.25)]'
+                : 'border-white/10 group-hover:border-[#FF5A36] shadow-[0_8px_24px_rgba(0,0,0,0.7)] group-hover:shadow-[0_12px_36px_rgba(255,90,54,0.2)]'
+        }`}
+        style={{
+          WebkitMaskImage:
+            'radial-gradient(circle 14px at 65% 0px, transparent 13.5px, black 14px), radial-gradient(circle 14px at 65% 100%, transparent 13.5px, black 14px)',
+          WebkitMaskComposite: 'destination-in',
+          maskImage:
+            'radial-gradient(circle 14px at 65% 0px, transparent 13.5px, black 14px), radial-gradient(circle 14px at 65% 100%, transparent 13.5px, black 14px)',
+          maskComposite: 'intersect',
+        }}
+      >
       {/* ================= REALTIME TRANSACTING BLURRED OVERLAY ================= */}
       {isTransacting && (
         <div
@@ -382,71 +396,6 @@ export const TicketCard: React.FC<TicketCardProps> = ({
         </div>
       </div>
 
-      {/* ================= PERFORATION JUNCTION, NOTCHES & VERTICAL TEAR LINE ================= */}
-      {/* Top Notch Cutout with contour border that hugs the card */}
-      <div className="absolute left-[65%] -top-[1px] -translate-x-1/2 w-7 h-[15px] z-30 pointer-events-none">
-        <svg
-          viewBox="0 0 28 15"
-          className="w-full h-full block overflow-visible"
-          fill="none"
-        >
-          {/* Mask: strictly bounded between x=0 and x=28, covering 1px card border without bleeding onto white stub */}
-          <path
-            d="M 0,-1 L 28,-1 L 28,0 A 14,14 0 0,1 0,0 Z"
-            fill="#05070A"
-          />
-          {/* Semicircular contour border dipping downward into the ticket */}
-          <path
-            d="M 0,0.5 A 14,14 0 0,0 28,0.5"
-            fill="none"
-            className="stroke-white/10 group-hover:stroke-[#FF5A36] transition-colors duration-200 ease-out"
-            strokeWidth="1.5"
-          />
-        </svg>
-      </div>
-
-      {/* Vertical Perforated Tear Line */}
-      <div className="absolute left-[65%] -ml-[2px] top-[14px] bottom-[14px] -translate-x-1/2 w-[2px] z-20 pointer-events-none flex flex-col items-center justify-center">
-        <svg
-          className="h-full w-[2px] overflow-visible"
-          preserveAspectRatio="none"
-          viewBox="0 0 2 202"
-        >
-          <line
-            x1="1"
-            y1="0"
-            x2="1"
-            y2="202"
-            className="stroke-[#FF5A36]/45 group-hover:stroke-[#FF5A36] group-hover:drop-shadow-[0_0_6px_rgba(255,90,54,0.75)] transition-all duration-200 ease-out"
-            strokeWidth="2"
-            strokeDasharray="9 5"
-            strokeLinecap="round"
-          />
-        </svg>
-      </div>
-
-      {/* Bottom Notch Cutout with contour border that hugs the card */}
-      <div className="absolute left-[65%] -bottom-[1px] -translate-x-1/2 w-7 h-[15px] z-30 pointer-events-none">
-        <svg
-          viewBox="0 0 28 15"
-          className="w-full h-full block overflow-visible"
-          fill="none"
-        >
-          {/* Mask: strictly bounded between x=0 and x=28, covering 1px card border without bleeding onto white stub */}
-          <path
-            d="M 0,14.5 A 14,14 0 0,1 28,14.5 L 28,15.5 L 0,15.5 Z"
-            fill="#05070A"
-          />
-          {/* Semicircular contour border dipping upward into the ticket */}
-          <path
-            d="M 0,14.5 A 14,14 0 0,1 28,14.5"
-            fill="none"
-            className="stroke-white/10 group-hover:stroke-[#FF5A36] transition-colors duration-200 ease-out"
-            strokeWidth="1.5"
-          />
-        </svg>
-      </div>
-
       {/* ================= RIGHT SECTION: TICKET STUB (35% width) ================= */}
       <div
         id={`ticket-stub-${listing.listingId}`}
@@ -588,6 +537,64 @@ export const TicketCard: React.FC<TicketCardProps> = ({
             </button>
           )}
         </div>
+      </div>
+      </div>
+
+      {/* ================= PERFORATION JUNCTION, NOTCHES & VERTICAL TEAR LINE (Stroke-only transparent cutout) ================= */}
+      {/* Top Notch Contour Border (bo theo vết khoét bán nguyệt mép trên) */}
+      <div className="absolute left-[65%] top-0 -translate-x-1/2 w-7 h-3.5 z-30 pointer-events-none">
+        <svg viewBox="0 0 28 14" className="w-full h-full block overflow-visible">
+          <path
+            d="M 0,0.5 A 14,14 0 0,0 28,0.5"
+            fill="none"
+            className={`transition-colors duration-200 ease-out ${
+              isTransacting
+                ? 'stroke-amber-400/50'
+                : isSold
+                  ? 'stroke-zinc-600/50'
+                  : 'stroke-white/10 group-hover:stroke-[#FF5A36]'
+            }`}
+            strokeWidth="1.5"
+          />
+        </svg>
+      </div>
+
+      {/* Vertical Perforated Tear Line */}
+      <div className="absolute left-[65%] -ml-[1px] top-[14px] bottom-[14px] -translate-x-1/2 w-[2px] z-20 pointer-events-none flex flex-col items-center justify-center">
+        <svg
+          className="h-full w-[2px] overflow-visible"
+          preserveAspectRatio="none"
+          viewBox="0 0 2 202"
+        >
+          <line
+            x1="1"
+            y1="0"
+            x2="1"
+            y2="202"
+            className="stroke-[#FF5A36]/45 group-hover:stroke-[#FF5A36] group-hover:drop-shadow-[0_0_6px_rgba(255,90,54,0.75)] transition-all duration-200 ease-out"
+            strokeWidth="2"
+            strokeDasharray="9 5"
+            strokeLinecap="round"
+          />
+        </svg>
+      </div>
+
+      {/* Bottom Notch Contour Border (bo theo vết khoét bán nguyệt mép dưới) */}
+      <div className="absolute left-[65%] bottom-0 -translate-x-1/2 w-7 h-3.5 z-30 pointer-events-none">
+        <svg viewBox="0 0 28 14" className="w-full h-full block overflow-visible">
+          <path
+            d="M 0,13.5 A 14,14 0 0,1 28,13.5"
+            fill="none"
+            className={`transition-colors duration-200 ease-out ${
+              isTransacting
+                ? 'stroke-amber-400/50'
+                : isSold
+                  ? 'stroke-zinc-600/50'
+                  : 'stroke-white/10 group-hover:stroke-[#FF5A36]'
+            }`}
+            strokeWidth="1.5"
+          />
+        </svg>
       </div>
     </div>
   );
