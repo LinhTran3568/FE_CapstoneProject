@@ -103,79 +103,137 @@ const TicketCardItem: React.FC<TicketCardItemProps> = ({
       : '05 Nov 2026, 02:11';
 
   return (
-    <div className="group relative isolate w-full min-h-[190px] flex items-stretch rounded-2xl bg-[#0a0c10] border border-white/10 hover:border-[#FF5A36] shadow-[0_8px_24px_rgba(0,0,0,0.7)] hover:shadow-[0_12px_36px_rgba(255,90,54,0.2)] hover:-translate-y-1 transition-[border-color,box-shadow,transform] duration-200 ease-out select-none overflow-hidden">
-      {/* ================= LEFT SECTION: MAIN BODY (65% width) ================= */}
-      <div className="relative w-[65%] min-h-full rounded-l-2xl overflow-hidden flex flex-col justify-between p-4 sm:p-5 bg-[#0a0c10]">
-        {/* Live Concert Backdrop */}
-        <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none">
-          <img
-            src={backdropUrl}
-            alt={resolvedEventName}
-            className="w-full h-full object-cover object-center contrast-125 saturate-110 transition-transform duration-300 ease-out group-hover:scale-105 opacity-70"
-            loading="lazy"
-            onError={(e) => {
-              e.currentTarget.onerror = null;
-              e.currentTarget.src = '/images/landing/concert.jpg';
-            }}
-          />
-          <div className="absolute inset-0 bg-gradient-to-r from-[#07080b]/95 via-[#0a0c10]/85 to-[#0b0d13]/95" />
-          <div className="absolute inset-0 bg-gradient-to-t from-[#07080b] via-transparent to-black/50" />
-          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_left,_var(--tw-gradient-stops))] from-amber-500/15 via-transparent to-transparent" />
-        </div>
-
-        {/* Top: Tier Badge con nhộng có dot neon */}
-        <div className="relative z-10 flex items-center justify-between">
-          <div className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full border backdrop-blur-md shrink-0 ${zoneStyle.badge}`}>
-            <span className={`w-2 h-2 rounded-full animate-pulse ${zoneStyle.dot}`} />
-            <span className="text-xs font-bold tracking-wider uppercase text-white truncate max-w-[150px]">
-              {resolvedTier}
-            </span>
+    <div className="group relative isolate w-full select-none transition-transform duration-200 ease-out hover:-translate-y-1">
+      {/* ================= MASKED TICKET CONTAINER (Cutout Notches via CSS Mask) ================= */}
+      <div
+        className="relative w-full min-h-[200px] grid grid-cols-[65%_35%] items-stretch rounded-2xl border border-white/10 group-hover:border-[#FF5A36] shadow-[0_8px_24px_rgba(0,0,0,0.7)] group-hover:shadow-[0_12px_36px_rgba(255,90,54,0.2)] transition-[border-color,box-shadow] duration-200 ease-out overflow-hidden"
+        style={{
+          WebkitMaskImage:
+            'radial-gradient(circle 14px at 65% 0px, transparent 13.5px, black 14px), radial-gradient(circle 14px at 65% 100%, transparent 13.5px, black 14px)',
+          WebkitMaskComposite: 'destination-in',
+          maskImage:
+            'radial-gradient(circle 14px at 65% 0px, transparent 13.5px, black 14px), radial-gradient(circle 14px at 65% 100%, transparent 13.5px, black 14px)',
+          maskComposite: 'intersect',
+        }}
+      >
+        {/* ================= LEFT SECTION: MAIN BODY (65% width) ================= */}
+        <div className="relative w-full h-full rounded-l-2xl overflow-hidden flex flex-col justify-between p-4 sm:p-5 bg-[#0a0c10]">
+          {/* Live Concert Backdrop */}
+          <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none">
+            <img
+              src={backdropUrl}
+              alt={resolvedEventName}
+              className="w-full h-full object-cover object-center contrast-125 saturate-110 transition-transform duration-300 ease-out group-hover:scale-105 opacity-70"
+              loading="lazy"
+              onError={(e) => {
+                e.currentTarget.onerror = null;
+                e.currentTarget.src = '/images/landing/concert.jpg';
+              }}
+            />
+            <div className="absolute inset-0 bg-gradient-to-r from-[#07080b]/95 via-[#0a0c10]/85 to-[#0b0d13]/95" />
+            <div className="absolute inset-0 bg-gradient-to-t from-[#07080b] via-transparent to-black/50" />
+            <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_left,_var(--tw-gradient-stops))] from-amber-500/15 via-transparent to-transparent" />
           </div>
-        </div>
 
-        {/* Middle & Bottom Info */}
-        <div className="relative z-10 space-y-2 mt-4">
-          {/* Tên sự kiện */}
-          <h3 className="text-lg sm:text-xl font-extrabold tracking-tight leading-snug drop-shadow-sm text-white group-hover:text-[#FF5A36] transition-colors duration-200 line-clamp-2">
-            {resolvedEventName}
-          </h3>
+          {/* Top: Tier Badge con nhộng có dot neon */}
+          <div className="relative z-10 flex items-center justify-between">
+            <div className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full border backdrop-blur-md shrink-0 ${zoneStyle.badge}`}>
+              <span className={`w-2 h-2 rounded-full animate-pulse ${zoneStyle.dot}`} />
+              <span className="text-xs font-bold tracking-wider uppercase text-white truncate max-w-[150px]">
+                {resolvedTier}
+              </span>
+            </div>
+          </div>
 
-          {/* Metadata */}
-          <div className="flex flex-wrap items-center gap-x-3.5 gap-y-1.5 text-xs text-zinc-300 pt-0.5">
-            {/* Vị trí ghế */}
-            {ticket.seatZone && (
+          {/* Middle & Bottom Info */}
+          <div className="relative z-10 space-y-2 mt-4">
+            {/* Tên sự kiện */}
+            <h3 className="text-lg sm:text-xl font-extrabold tracking-tight leading-snug drop-shadow-sm text-white group-hover:text-[#FF5A36] transition-colors duration-200 line-clamp-2">
+              {resolvedEventName}
+            </h3>
+
+            {/* Metadata */}
+            <div className="flex flex-wrap items-center gap-x-3.5 gap-y-1.5 text-xs text-zinc-300 pt-0.5">
+              {/* Vị trí ghế */}
+              {ticket.seatZone && (
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <Ticket className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                  <span className="font-semibold text-amber-200">{ticket.seatZone}</span>
+                </div>
+              )}
+
+              {/* Ngày & Giờ */}
               <div className="flex items-center gap-1.5 shrink-0">
-                <Ticket className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-                <span className="font-semibold text-amber-200">{ticket.seatZone}</span>
+                <Calendar className="w-3.5 h-3.5 text-zinc-400 shrink-0" />
+                <span className="font-medium text-zinc-300">{formattedDate}</span>
               </div>
-            )}
 
-            {/* Ngày & Giờ */}
-            <div className="flex items-center gap-1.5 shrink-0">
-              <Calendar className="w-3.5 h-3.5 text-zinc-400 shrink-0" />
-              <span className="font-medium text-zinc-300">{formattedDate}</span>
-            </div>
+              {/* Địa điểm */}
+              <div className="flex items-center gap-1.5 min-w-0">
+                <MapPin className="w-3.5 h-3.5 text-zinc-400 shrink-0" />
+                <span className="font-medium text-zinc-300 truncate max-w-[180px]">{resolvedVenue}</span>
+              </div>
 
-            {/* Địa điểm */}
-            <div className="flex items-center gap-1.5 min-w-0">
-              <MapPin className="w-3.5 h-3.5 text-zinc-400 shrink-0" />
-              <span className="font-medium text-zinc-300 truncate max-w-[180px]">{resolvedVenue}</span>
-            </div>
-
-            {/* Nền tảng phát hành */}
-            <div className="flex items-center gap-1.5 shrink-0 text-zinc-400">
-              <span>BTC:</span>
-              <span className="font-medium text-white">{organizerName}</span>
+              {/* Nền tảng phát hành */}
+              <div className="flex items-center gap-1.5 shrink-0 text-zinc-400">
+                <span>BTC:</span>
+                <span className="font-medium text-white">{organizerName}</span>
+              </div>
             </div>
           </div>
+        </div>
+
+        {/* ================= RIGHT SECTION: TICKET STUB (35% width) ================= */}
+        <div className="relative w-full h-full bg-[#e2e8f0] rounded-r-2xl overflow-hidden flex flex-col justify-between p-3.5 sm:p-4 paper-texture shadow-inner">
+          <div className="absolute top-0 bottom-0 left-0 w-3 bg-gradient-to-r from-black/10 to-transparent pointer-events-none" />
+
+          {/* Stub Top: Mã vé pill */}
+          <div className="flex items-center justify-between pt-0.5">
+            <div className="px-2 py-0.5 rounded bg-slate-300/80 border border-slate-400/50">
+              <span className="font-mono text-xs font-bold tracking-wider text-slate-800">
+                {ticket.code}
+              </span>
+            </div>
+
+            {/* Barcode Graphic */}
+            <div className="flex items-center gap-[2px] h-4.5 opacity-80" title="Barcode vé">
+              <span className="w-[2.5px] h-full bg-slate-900" />
+              <span className="w-[1px] h-full bg-slate-900" />
+              <span className="w-[3px] h-full bg-slate-900" />
+              <span className="w-[1px] h-full bg-slate-900" />
+              <span className="w-[2px] h-full bg-slate-900" />
+              <span className="w-[3.5px] h-full bg-slate-900" />
+              <span className="w-[1.5px] h-full bg-slate-900" />
+              <span className="w-[1px] h-full bg-slate-900" />
+              <span className="w-[2.5px] h-full bg-slate-900" />
+            </div>
+          </div>
+
+          {/* Stub Middle: Pricing Block (Chỉ hiển thị giá gốc vé, không trần giá) */}
+          <div className="my-auto py-2">
+            <span className="text-[10px] font-bold tracking-wider text-slate-500 uppercase block">
+              PRICE
+            </span>
+            <div className="flex items-baseline">
+              <span className="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900 leading-none">
+                {ticket.originalPrice.toLocaleString('vi-VN')}
+              </span>
+              <span className="ml-1 text-xs font-bold text-slate-700">VND</span>
+            </div>
+            <div className="text-[10px] font-mono text-slate-500 mt-1.5">
+              Organizer Verified Price
+            </div>
+          </div>
+
+          {/* Stub Bottom: Để trống sạch sẽ không nút thừa */}
+          <div className="h-2" />
         </div>
       </div>
 
-      {/* ================= PERFORATION JUNCTION, NOTCHES & VERTICAL TEAR LINE ================= */}
-      {/* Top Notch Cutout with contour border that hugs the card */}
-      <div className="absolute left-[65%] -top-[1px] -translate-x-1/2 w-7 h-[15px] z-30 pointer-events-none">
-        <svg viewBox="0 0 28 15" className="w-full h-full block overflow-visible" fill="none">
-          <path d="M 0,-1 L 28,-1 L 28,0 A 14,14 0 0,1 0,0 Z" fill="#05070A" />
+      {/* ================= PERFORATION NOTCH STROKES & TEAR LINE (Placed outside mask for seamless contour) ================= */}
+      {/* Top Notch Contour Border (bo theo vết cắt bán nguyệt mép trên) */}
+      <div className="absolute left-[65%] top-0 -translate-x-1/2 w-7 h-3.5 z-20 pointer-events-none">
+        <svg viewBox="0 0 28 14" className="w-full h-full block overflow-visible">
           <path
             d="M 0,0.5 A 14,14 0 0,0 28,0.5"
             fill="none"
@@ -186,7 +244,7 @@ const TicketCardItem: React.FC<TicketCardItemProps> = ({
       </div>
 
       {/* Vertical Perforated Tear Line */}
-      <div className="absolute left-[65%] -ml-[2px] top-[14px] bottom-[14px] -translate-x-1/2 w-[2px] z-20 pointer-events-none flex flex-col items-center justify-center">
+      <div className="absolute left-[65%] -ml-[1px] top-[14px] bottom-[14px] -translate-x-1/2 w-[2px] z-20 pointer-events-none flex flex-col items-center justify-center">
         <svg className="h-full w-[2px] overflow-visible" preserveAspectRatio="none" viewBox="0 0 2 202">
           <line
             x1="1"
@@ -201,63 +259,16 @@ const TicketCardItem: React.FC<TicketCardItemProps> = ({
         </svg>
       </div>
 
-      {/* Bottom Notch Cutout with contour border that hugs the card */}
-      <div className="absolute left-[65%] -bottom-[1px] -translate-x-1/2 w-7 h-[15px] z-30 pointer-events-none">
-        <svg viewBox="0 0 28 15" className="w-full h-full block overflow-visible" fill="none">
-          <path d="M 0,14.5 A 14,14 0 0,1 28,14.5 L 28,15.5 L 0,15.5 Z" fill="#05070A" />
+      {/* Bottom Notch Contour Border (bo theo vết cắt bán nguyệt mép dưới) */}
+      <div className="absolute left-[65%] bottom-0 -translate-x-1/2 w-7 h-3.5 z-20 pointer-events-none">
+        <svg viewBox="0 0 28 14" className="w-full h-full block overflow-visible">
           <path
-            d="M 0,14.5 A 14,14 0 0,1 28,14.5"
+            d="M 0,13.5 A 14,14 0 0,1 28,13.5"
             fill="none"
             className="stroke-white/10 group-hover:stroke-[#FF5A36] transition-colors duration-200 ease-out"
             strokeWidth="1.5"
           />
         </svg>
-      </div>
-
-      {/* ================= RIGHT SECTION: TICKET STUB (35% width) ================= */}
-      <div className="relative w-[35%] h-full bg-[#e2e8f0] rounded-r-2xl overflow-hidden flex flex-col justify-between p-3.5 sm:p-4 paper-texture shadow-inner">
-        <div className="absolute top-0 bottom-0 left-0 w-3 bg-gradient-to-r from-black/10 to-transparent pointer-events-none" />
-
-        {/* Stub Top: Mã vé pill */}
-        <div className="flex items-center justify-between pt-0.5">
-          <div className="px-2 py-0.5 rounded bg-slate-300/80 border border-slate-400/50">
-            <span className="font-mono text-xs font-bold tracking-wider text-slate-800">
-              {ticket.code}
-            </span>
-          </div>
-
-          {/* Barcode Graphic */}
-          <div className="flex items-center gap-[2px] h-4.5 opacity-80" title="Barcode vé">
-            <span className="w-[2.5px] h-full bg-slate-900" />
-            <span className="w-[1px] h-full bg-slate-900" />
-            <span className="w-[3px] h-full bg-slate-900" />
-            <span className="w-[1px] h-full bg-slate-900" />
-            <span className="w-[2px] h-full bg-slate-900" />
-            <span className="w-[3.5px] h-full bg-slate-900" />
-            <span className="w-[1.5px] h-full bg-slate-900" />
-            <span className="w-[1px] h-full bg-slate-900" />
-            <span className="w-[2.5px] h-full bg-slate-900" />
-          </div>
-        </div>
-
-        {/* Stub Middle: Pricing Block (Chỉ hiển thị giá gốc vé, không trần giá) */}
-        <div className="my-auto py-2">
-          <span className="text-[10px] font-bold tracking-wider text-slate-500 uppercase block">
-            PRICE
-          </span>
-          <div className="flex items-baseline">
-            <span className="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900 leading-none">
-              {ticket.originalPrice.toLocaleString('vi-VN')}
-            </span>
-            <span className="ml-1 text-xs font-bold text-slate-700">VND</span>
-          </div>
-          <div className="text-[10px] font-mono text-slate-500 mt-1.5">
-            Organizer Verified Price
-          </div>
-        </div>
-
-        {/* Stub Bottom: Để trống sạch sẽ không nút thừa */}
-        <div className="h-2" />
       </div>
     </div>
   );
