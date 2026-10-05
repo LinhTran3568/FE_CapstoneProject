@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { ShieldCheck, ArrowRight, ArrowLeft, XCircle, Minus, Plus } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { ShieldCheck, ArrowRight, ArrowLeft, XCircle, Minus, Plus, AlertTriangle } from 'lucide-react';
 
 export interface TicketPriceItem {
   code: string;
@@ -200,7 +201,13 @@ export const Step4SetPrice: React.FC<Step4SetPriceProps> = ({
       )}
 
       {/* Card chỉnh giá của Vé đang chọn: Gõ trực tiếp lên chữ số lớn */}
-      <div className="bg-[#0A0D12]/90 backdrop-blur-md border border-white/10 p-5 sm:p-6 rounded-2xl space-y-4 shadow-xl text-center hover:border-white/20 transition-all duration-300">
+      <motion.div
+        key={`ticket-card-${activeTicketIndex}`}
+        initial={{ opacity: 0, y: 5 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.2 }}
+        className="bg-[#0A0D12]/90 backdrop-blur-md border border-white/10 p-5 sm:p-6 rounded-2xl space-y-4 shadow-xl text-center hover:border-white/20 transition-all duration-300"
+      >
         <div className="flex items-center justify-between border-b border-white/10 pb-2.5">
           <div className="text-left space-y-0.5">
             <span className="text-xs text-white font-medium block">
@@ -303,11 +310,20 @@ export const Step4SetPrice: React.FC<Step4SetPriceProps> = ({
             )}
 
             {/* Cảnh báo vàng nếu người bán đặt giá giảm sâu hơn 50% */}
-            {isCurrentDeepDiscount && (
-              <div className="px-2.5 py-1 bg-amber-500/10 border border-amber-500/25 rounded-lg text-amber-300 text-[11px] font-mono inline-flex items-center gap-1.5 mt-0.5 animate-pulse">
-                <span>⚠️ Giá thấp hơn giá gốc {currentDiscountPercent}%, bạn có chắc chắn không?</span>
-              </div>
-            )}
+            <AnimatePresence>
+              {isCurrentDeepDiscount && (
+                <motion.div
+                  initial={{ opacity: 0, y: -4, scale: 0.96 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: -4, scale: 0.96 }}
+                  transition={{ duration: 0.2 }}
+                  className="px-2.5 py-1 bg-amber-500/10 border border-amber-500/25 rounded-lg text-amber-300 text-[11px] font-mono inline-flex items-center gap-1.5 mt-0.5"
+                >
+                  <AlertTriangle className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                  <span>Giá thấp hơn giá gốc {currentDiscountPercent}%, bạn có chắc chắn không?</span>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
         </div>
 
@@ -412,26 +428,32 @@ export const Step4SetPrice: React.FC<Step4SetPriceProps> = ({
                   >
                     ?
                   </button>
-                  {showFeeTooltip && (
-                    <div
-                      onClick={(e) => e.stopPropagation()}
-                      className="absolute left-0 top-full mt-1.5 w-72 p-3 bg-[#0E131F] border border-white/20 rounded-xl shadow-2xl text-[11px] text-zinc-200 z-50 animate-in fade-in zoom-in-95 duration-150 space-y-1.5"
-                    >
-                      <div className="flex items-center justify-between font-bold text-white pb-1 border-b border-white/10">
-                        <span>Phí nền tảng người bán (3%)</span>
-                        <button
-                          type="button"
-                          onClick={() => setShowFeeTooltip(false)}
-                          className="text-zinc-400 hover:text-white cursor-pointer text-xs"
-                        >
-                          ✕
-                        </button>
-                      </div>
-                      <p className="text-zinc-300 leading-relaxed font-sans">
-                        Phí nền tảng 3% được khấu trừ tự động khi vé bán thành công, dùng để duy trì hệ thống bảo vệ giao dịch và đối soát vé với Ban tổ chức (tối thiểu 5.000đ/vé).
-                      </p>
-                    </div>
-                  )}
+                  <AnimatePresence>
+                    {showFeeTooltip && (
+                      <motion.div
+                        initial={{ opacity: 0, y: 6, scale: 0.96 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: 4, scale: 0.96 }}
+                        transition={{ duration: 0.16, ease: 'easeOut' }}
+                        onClick={(e) => e.stopPropagation()}
+                        className="absolute left-0 top-full mt-1.5 w-72 p-3 bg-[#0E131F] border border-white/20 rounded-xl shadow-2xl text-[11px] text-zinc-200 z-50 space-y-1.5"
+                      >
+                        <div className="flex items-center justify-between font-bold text-white pb-1 border-b border-white/10">
+                          <span>Phí nền tảng người bán (3%)</span>
+                          <button
+                            type="button"
+                            onClick={() => setShowFeeTooltip(false)}
+                            className="text-zinc-400 hover:text-white cursor-pointer text-xs"
+                          >
+                            ✕
+                          </button>
+                        </div>
+                        <p className="text-zinc-300 leading-relaxed font-sans">
+                          Phí nền tảng 3% được khấu trừ tự động khi vé bán thành công, dùng để duy trì hệ thống bảo vệ giao dịch và đối soát vé với Ban tổ chức (tối thiểu 5.000đ/vé).
+                        </p>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                 </div>
                 <div>
                   <span className="text-amber-400 tabular-nums">
@@ -545,7 +567,7 @@ export const Step4SetPrice: React.FC<Step4SetPriceProps> = ({
             </div>
           )}
         </div>
-      </div>
+      </motion.div>
     </div>
   );
 };

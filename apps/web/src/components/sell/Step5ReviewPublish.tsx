@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { UserBankAccountDto } from '@ticketshield/types';
 import { Ticket, Globe, Lock, Check, AlertCircle, Loader2, X, Layers, Split, ChevronDown, ChevronUp, AlertTriangle } from 'lucide-react';
 
@@ -130,9 +131,8 @@ export const Step5ReviewPublish: React.FC<Step5ReviewPublishProps> = ({
             <div className="space-y-1">
               <div
                 onClick={() => tickets && tickets.length > 1 && setExpandPriceDetails(!expandPriceDetails)}
-                className={`flex justify-between items-center text-gray-300 select-none py-1 rounded transition-colors ${
-                  tickets && tickets.length > 1 ? 'cursor-pointer hover:text-white' : ''
-                }`}
+                className={`flex justify-between items-center text-gray-300 select-none py-1 rounded transition-colors ${tickets && tickets.length > 1 ? 'cursor-pointer hover:text-white' : ''
+                  }`}
                 title={tickets && tickets.length > 1 ? (expandPriceDetails ? 'Collapse ticket details' : 'Expand ticket details') : undefined}
               >
                 <div className="flex items-center gap-1.5">
@@ -150,11 +150,11 @@ export const Step5ReviewPublish: React.FC<Step5ReviewPublishProps> = ({
                       className="p-0.5 rounded hover:bg-white/10 text-zinc-400 hover:text-white transition-colors cursor-pointer"
                       title={expandPriceDetails ? 'Collapse' : 'Expand'}
                     >
-                      {expandPriceDetails ? (
-                        <ChevronUp className="w-3.5 h-3.5 text-zinc-300" />
-                      ) : (
-                        <ChevronDown className="w-3.5 h-3.5 text-zinc-400" />
-                      )}
+                      <ChevronDown
+                        className={`w-3.5 h-3.5 transition-transform duration-300 ease-out ${
+                          expandPriceDetails ? 'rotate-180 text-zinc-200' : 'text-zinc-400'
+                        }`}
+                      />
                     </button>
                   )}
                 </div>
@@ -166,94 +166,103 @@ export const Step5ReviewPublish: React.FC<Step5ReviewPublishProps> = ({
                 </div>
               </div>
 
-              {/* CÁC DÒNG VÉ CON VIỀN CAM DỌC */}
-              {expandPriceDetails && tickets && tickets.length > 1 && (
-                <div className="space-y-2.5 pl-3 py-2 border-l-2 border-[#FF5A36] bg-white/[0.015] rounded-r-xl my-1 animate-in fade-in duration-150">
-                  {tickets.map((t, idx) => {
-                    const diff = t.originalPrice - t.resalePrice;
-                    const percent = Math.round((Math.abs(diff) / t.originalPrice) * 100);
-                    const isDeepDiscount = t.resalePrice > 0 && diff / t.originalPrice >= 0.5;
+              {/* CÁC DÒNG VÉ CON VIỀN CAM DỌC KÈM HIỆU ỨNG ACCORDION */}
+              <AnimatePresence initial={false}>
+                {expandPriceDetails && tickets && tickets.length > 1 && (
+                  <motion.div
+                    key="price-details-accordion"
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: 'auto', opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
+                    className="overflow-hidden"
+                  >
+                    <div className="space-y-2.5 pl-3 py-2 border-l-2 border-[#FF5A36] bg-white/[0.015] rounded-r-xl my-1">
+                      {tickets.map((t, idx) => {
+                        const diff = t.originalPrice - t.resalePrice;
+                        const percent = Math.round((Math.abs(diff) / t.originalPrice) * 100);
+                        const isDeepDiscount = t.resalePrice > 0 && diff / t.originalPrice >= 0.5;
 
-                    return (
-                      <div key={t.code} className="space-y-1">
-                        <div className="flex items-center justify-between gap-2 text-xs">
-                          {/* Trái: Ticket 1 · ATSH-VIP-6578 · 15% off */}
-                          <div className="flex items-center gap-1.5 min-w-0">
-                            <span className="text-zinc-300 font-medium shrink-0">Ticket {idx + 1}</span>
-                            <span className="text-zinc-600">·</span>
-                            <span className="text-zinc-400 font-mono text-[11px] shrink-0">{t.code}</span>
-                            {t.seatZone && (
-                              <>
+                        return (
+                          <div key={t.code} className="space-y-1">
+                            <div className="flex items-center justify-between gap-2 text-xs">
+                              {/* Trái: Ticket 1 · ATSH-VIP-6578 · 15% off */}
+                              <div className="flex items-center gap-1.5 min-w-0">
+                                <span className="text-zinc-300 font-medium shrink-0">Ticket {idx + 1}</span>
                                 <span className="text-zinc-600">·</span>
-                                <span className="text-zinc-400 text-[11px] truncate">{t.seatZone}</span>
-                              </>
-                            )}
+                                <span className="text-zinc-400 font-mono text-[11px] shrink-0">{t.code}</span>
+                                {t.seatZone && (
+                                  <>
+                                    <span className="text-zinc-600">·</span>
+                                    <span className="text-zinc-400 text-[11px] truncate">{t.seatZone}</span>
+                                  </>
+                                )}
 
-                            {diff > 0 && (
-                              <>
-                                <span className="text-zinc-600">·</span>
-                                <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded border shrink-0 flex items-center gap-1 ${
-                                  isDeepDiscount
-                                    ? 'text-amber-300 bg-amber-500/15 border-amber-500/30 font-mono'
-                                    : 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20'
-                                }`}>
-                                  {isDeepDiscount && <AlertTriangle className="w-2.5 h-2.5 text-amber-300 shrink-0" />}
-                                  <span>{percent >= 100 ? '99.9%' : `${percent}%`} off</span>
-                                </span>
-                              </>
-                            )}
-                            {diff < 0 && (
-                              <>
-                                <span className="text-zinc-600">·</span>
-                                <span className="text-[10px] font-bold text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded border border-amber-500/20 shrink-0">
-                                  +{percent}%
-                                </span>
-                              </>
-                            )}
-                          </div>
+                                {diff > 0 && (
+                                  <>
+                                    <span className="text-zinc-600">·</span>
+                                    <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded border shrink-0 flex items-center gap-1 ${isDeepDiscount
+                                      ? 'text-amber-300 bg-amber-500/15 border-amber-500/30 font-mono'
+                                      : 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20'
+                                      }`}>
+                                      {isDeepDiscount && <AlertTriangle className="w-2.5 h-2.5 text-amber-300 shrink-0" />}
+                                      <span>{percent >= 100 ? '99.9%' : `${percent}%`} off</span>
+                                    </span>
+                                  </>
+                                )}
+                                {diff < 0 && (
+                                  <>
+                                    <span className="text-zinc-600">·</span>
+                                    <span className="text-[10px] font-bold text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded border border-amber-500/20 shrink-0">
+                                      +{percent}%
+                                    </span>
+                                  </>
+                                )}
+                              </div>
 
-                          {/* Phải: Giá bán của vé + Nút Edit */}
-                          <div className="flex items-center gap-2.5 shrink-0">
-                            <div className="text-right">
-                              <span className="font-bold text-zinc-100 tabular-nums">
-                                {t.resalePrice.toLocaleString('vi-VN')}
-                              </span>
-                              <span className="text-[9px] text-zinc-500 ml-1">VND</span>
+                              {/* Phải: Giá bán của vé + Nút Edit */}
+                              <div className="flex items-center gap-2.5 shrink-0">
+                                <div className="text-right">
+                                  <span className="font-bold text-zinc-100 tabular-nums">
+                                    {t.resalePrice.toLocaleString('vi-VN')}
+                                  </span>
+                                  <span className="text-[9px] text-zinc-500 ml-1">VND</span>
+                                </div>
+                                {onEditTicketPrice && (
+                                  <button
+                                    type="button"
+                                    onClick={() => onEditTicketPrice(idx)}
+                                    className="text-[11px] text-[#FF5A36] hover:text-[#FF7252] hover:underline px-1 py-0.5 rounded cursor-pointer font-sans"
+                                    title="Edit price for this ticket"
+                                  >
+                                    Edit
+                                  </button>
+                                )}
+                              </div>
                             </div>
-                            {onEditTicketPrice && (
-                              <button
-                                type="button"
-                                onClick={() => onEditTicketPrice(idx)}
-                                className="text-[11px] text-[#FF5A36] hover:text-[#FF7252] hover:underline px-1 py-0.5 rounded cursor-pointer font-sans"
-                                title="Edit price for this ticket"
-                              >
-                                Edit
-                              </button>
+
+                            {/* Inline Warning thiết kế ngay dưới vé đó */}
+                            {isDeepDiscount && (
+                              <div className="text-[11px] text-amber-300/90 font-mono flex items-center gap-1.5 pl-1 py-0.5">
+                                <AlertTriangle className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                                <span>Ticket {idx + 1} is priced way below face value.</span>
+                              </div>
                             )}
                           </div>
-                        </div>
-
-                        {/* Inline Warning thiết kế ngay dưới vé đó */}
-                        {isDeepDiscount && (
-                          <div className="text-[11px] text-amber-300/90 font-mono flex items-center gap-1.5 pl-1 py-0.5">
-                            <AlertTriangle className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-                            <span>Ticket {idx + 1} is priced way below face value. Double-check that's what you meant.</span>
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
+                        );
+                      })}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
 
             {/* DÒNG 2: Seller Fee · 3% - Hỗ trợ bung/thu */}
             <div className="space-y-1">
               <div
                 onClick={() => tickets && tickets.length > 1 && setExpandFeeDetails(!expandFeeDetails)}
-                className={`relative flex justify-between items-center text-gray-300 select-none py-0.5 rounded transition-colors ${
-                  tickets && tickets.length > 1 ? 'cursor-pointer hover:text-white' : ''
-                }`}
+                className={`relative flex justify-between items-center text-gray-300 select-none py-0.5 rounded transition-colors ${tickets && tickets.length > 1 ? 'cursor-pointer hover:text-white' : ''
+                  }`}
                 title={tickets && tickets.length > 1 ? (expandFeeDetails ? 'Thu gọn phí từng vé' : 'Bung xem phí từng vé') : undefined}
               >
                 <div className="flex items-center gap-1.5">
@@ -269,17 +278,24 @@ export const Step5ReviewPublish: React.FC<Step5ReviewPublishProps> = ({
                   >
                     ?
                   </button>
-                  {activeFeeTooltip === 'seller' && (
-                    <div
-                      onClick={(e) => e.stopPropagation()}
-                      className="absolute left-0 top-full mt-1.5 w-72 p-3 bg-[#131822] border border-gray-700 rounded-xl shadow-2xl text-[11px] text-gray-200 z-30 animate-in fade-in zoom-in-95 duration-150"
-                    >
-                      <div className="font-semibold text-white mb-1 font-sans">Phí nền tảng người bán (3%)</div>
-                      <div className="leading-relaxed font-sans text-zinc-300">
-                        TicketShield khấu trừ tự động 3% từ tổng giá bán khi giao dịch thành công để duy trì dịch vụ bảo đảm an toàn vé và đối soát Ban tổ chức (tối thiểu 5.000đ/vé).
-                      </div>
-                    </div>
-                  )}
+                  <AnimatePresence>
+                    {activeFeeTooltip === 'seller' && (
+                      <motion.div
+                        key="seller-fee-tooltip"
+                        initial={{ opacity: 0, y: 6, scale: 0.96 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: 4, scale: 0.96 }}
+                        transition={{ duration: 0.16, ease: 'easeOut' }}
+                        onClick={(e) => e.stopPropagation()}
+                        className="absolute left-0 top-full mt-1.5 w-72 p-3 bg-[#131822] border border-gray-700 rounded-xl shadow-2xl text-[11px] text-gray-200 z-30"
+                      >
+                        <div className="font-semibold text-white mb-1 font-sans">Phí nền tảng người bán (3%)</div>
+                        <div className="leading-relaxed font-sans text-zinc-300">
+                          TicketShield khấu trừ tự động 3% từ tổng giá bán khi giao dịch thành công để duy trì dịch vụ bảo đảm an toàn vé và đối soát Ban tổ chức (tối thiểu 5.000đ/vé).
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                   {tickets && tickets.length > 1 && (
                     <button
                       type="button"
@@ -290,11 +306,11 @@ export const Step5ReviewPublish: React.FC<Step5ReviewPublishProps> = ({
                       className="p-0.5 rounded hover:bg-white/10 text-zinc-400 hover:text-white transition-colors cursor-pointer"
                       title={expandFeeDetails ? 'Thu gọn' : 'Bung xem phí từng vé'}
                     >
-                      {expandFeeDetails ? (
-                        <ChevronUp className="w-3.5 h-3.5 text-zinc-300" />
-                      ) : (
-                        <ChevronDown className="w-3.5 h-3.5 text-zinc-400" />
-                      )}
+                      <ChevronDown
+                        className={`w-3.5 h-3.5 transition-transform duration-300 ease-out ${
+                          expandFeeDetails ? 'rotate-180 text-zinc-200' : 'text-zinc-400'
+                        }`}
+                      />
                     </button>
                   )}
                 </div>
@@ -306,22 +322,33 @@ export const Step5ReviewPublish: React.FC<Step5ReviewPublishProps> = ({
                 </div>
               </div>
 
-              {/* Chi tiết phí từng vé khi bung ra */}
-              {expandFeeDetails && tickets && tickets.length > 1 && (
-                <div className="space-y-1.5 pl-3 py-1.5 border-l-2 border-amber-500/40 bg-amber-500/[0.03] rounded-r-xl my-1 animate-in fade-in duration-150 text-[11px]">
-                  {tickets.map((t, idx) => {
-                    const ticketFee = Math.max(Math.round((t.resalePrice || 0) * 0.03), 5000);
-                    return (
-                      <div key={t.code} className="flex justify-between items-center text-amber-300/80">
-                        <span>- Phí Vé #{idx + 1} ({t.code}):</span>
-                        <span className="text-amber-400 tabular-nums">
-                          -{ticketFee.toLocaleString('vi-VN')} <span className="text-[9px] text-zinc-500">VND</span>
-                        </span>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
+              {/* Chi tiết phí từng vé khi bung ra có hiệu ứng accordion */}
+              <AnimatePresence initial={false}>
+                {expandFeeDetails && tickets && tickets.length > 1 && (
+                  <motion.div
+                    key="fee-details-accordion"
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: 'auto', opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
+                    className="overflow-hidden"
+                  >
+                    <div className="space-y-1.5 pl-3 py-1.5 border-l-2 border-amber-500/40 bg-amber-500/[0.03] rounded-r-xl my-1 text-[11px]">
+                      {tickets.map((t, idx) => {
+                        const ticketFee = Math.max(Math.round((t.resalePrice || 0) * 0.03), 5000);
+                        return (
+                          <div key={t.code} className="flex justify-between items-center text-amber-300/80">
+                            <span>- Phí Vé #{idx + 1} ({t.code}):</span>
+                            <span className="text-amber-400 tabular-nums">
+                              -{ticketFee.toLocaleString('vi-VN')} <span className="text-[9px] text-zinc-500">VND</span>
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
 
             {/* DÒNG 3: You'll receive */}
@@ -355,11 +382,10 @@ export const Step5ReviewPublish: React.FC<Step5ReviewPublishProps> = ({
                   <button
                     type="button"
                     onClick={() => setSaleType?.('combo')}
-                    className={`p-3 rounded-xl border text-left transition-all cursor-pointer flex items-center gap-2.5 ${
-                      saleType === 'combo'
-                        ? 'bg-[#FF5A36]/15 border-[#FF5A36] text-white shadow-sm shadow-[#FF5A36]/20'
-                        : 'bg-black/40 border-white/10 text-zinc-400 hover:border-white/20 hover:text-zinc-200'
-                    }`}
+                    className={`p-3 rounded-xl border text-left transition-all duration-200 active:scale-[0.98] cursor-pointer flex items-center gap-2.5 ${saleType === 'combo'
+                      ? 'bg-[#FF5A36]/15 border-[#FF5A36] text-white shadow-sm shadow-[#FF5A36]/20'
+                      : 'bg-black/40 border-white/10 text-zinc-400 hover:border-white/20 hover:text-zinc-200'
+                      }`}
                   >
                     <div className={`p-2 rounded-lg shrink-0 ${saleType === 'combo' ? 'bg-[#FF5A36] text-white' : 'bg-white/5 text-zinc-400'}`}>
                       <Layers className="w-4 h-4" />
@@ -376,11 +402,10 @@ export const Step5ReviewPublish: React.FC<Step5ReviewPublishProps> = ({
                   <button
                     type="button"
                     onClick={() => setSaleType?.('individual')}
-                    className={`p-3 rounded-xl border text-left transition-all cursor-pointer flex items-center gap-2.5 ${
-                      saleType === 'individual'
-                        ? 'bg-blue-500/15 border-blue-500 text-white shadow-sm shadow-blue-500/20'
-                        : 'bg-black/40 border-white/10 text-zinc-400 hover:border-white/20 hover:text-zinc-200'
-                    }`}
+                    className={`p-3 rounded-xl border text-left transition-all duration-200 active:scale-[0.98] cursor-pointer flex items-center gap-2.5 ${saleType === 'individual'
+                      ? 'bg-blue-500/15 border-blue-500 text-white shadow-sm shadow-blue-500/20'
+                      : 'bg-black/40 border-white/10 text-zinc-400 hover:border-white/20 hover:text-zinc-200'
+                      }`}
                   >
                     <div className={`p-2 rounded-lg shrink-0 ${saleType === 'individual' ? 'bg-blue-500 text-white' : 'bg-white/5 text-zinc-400'}`}>
                       <Split className="w-4 h-4" />
@@ -406,11 +431,10 @@ export const Step5ReviewPublish: React.FC<Step5ReviewPublishProps> = ({
                 <button
                   type="button"
                   onClick={() => setIsPrivateListing(false)}
-                  className={`p-3 rounded-xl border text-left transition-all cursor-pointer flex items-center gap-2.5 ${
-                    !isPrivateListing
-                      ? 'bg-emerald-500/15 border-emerald-500 text-white shadow-sm shadow-emerald-500/20'
-                      : 'bg-black/40 border-white/10 text-zinc-400 hover:border-white/20 hover:text-zinc-200'
-                  }`}
+                  className={`p-3 rounded-xl border text-left transition-all duration-200 active:scale-[0.98] cursor-pointer flex items-center gap-2.5 ${!isPrivateListing
+                    ? 'bg-emerald-500/15 border-emerald-500 text-white shadow-sm shadow-emerald-500/20'
+                    : 'bg-black/40 border-white/10 text-zinc-400 hover:border-white/20 hover:text-zinc-200'
+                    }`}
                 >
                   <div className={`p-2 rounded-lg shrink-0 ${!isPrivateListing ? 'bg-emerald-500 text-white' : 'bg-white/5 text-zinc-400'}`}>
                     <Globe className="w-4 h-4" />
@@ -425,11 +449,10 @@ export const Step5ReviewPublish: React.FC<Step5ReviewPublishProps> = ({
                 <button
                   type="button"
                   onClick={() => setIsPrivateListing(true)}
-                  className={`p-3 rounded-xl border text-left transition-all cursor-pointer flex items-center gap-2.5 ${
-                    isPrivateListing
-                      ? 'bg-purple-950/60 border-purple-500/60 text-purple-200 shadow-sm shadow-purple-500/20'
-                      : 'bg-black/40 border-white/10 text-zinc-400 hover:border-white/20 hover:text-zinc-200'
-                  }`}
+                  className={`p-3 rounded-xl border text-left transition-all duration-200 active:scale-[0.98] cursor-pointer flex items-center gap-2.5 ${isPrivateListing
+                    ? 'bg-purple-950/60 border-purple-500/60 text-purple-200 shadow-sm shadow-purple-500/20'
+                    : 'bg-black/40 border-white/10 text-zinc-400 hover:border-white/20 hover:text-zinc-200'
+                    }`}
                 >
                   <div className={`p-2 rounded-lg shrink-0 ${isPrivateListing ? 'bg-purple-500 text-white' : 'bg-white/5 text-zinc-400'}`}>
                     <Lock className="w-4 h-4" />
@@ -440,11 +463,22 @@ export const Step5ReviewPublish: React.FC<Step5ReviewPublishProps> = ({
                   </div>
                 </button>
               </div>
-              <p className="text-[11px] text-zinc-400 px-0.5">
-                {!isPrivateListing
-                  ? 'Anyone can find and buy these tickets on the Marketplace.'
-                  : 'Only people you share the link with can see and buy these tickets.'}
-              </p>
+              <div className="min-h-[28px] overflow-hidden">
+                <AnimatePresence mode="wait">
+                  <motion.p
+                    key={isPrivateListing ? 'private' : 'public'}
+                    initial={{ opacity: 0, y: -4 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: 4 }}
+                    transition={{ duration: 0.18 }}
+                    className="text-[11px] text-zinc-400 px-0.5"
+                  >
+                    {!isPrivateListing
+                      ? 'Anyone can find and buy these tickets on the Marketplace.'
+                      : 'Only people you share the link with can see and buy these tickets.'}
+                  </motion.p>
+                </AnimatePresence>
+              </div>
             </div>
           </div>
         </div>
@@ -483,143 +517,153 @@ export const Step5ReviewPublish: React.FC<Step5ReviewPublishProps> = ({
       </div>
 
       {/* CONFIRM MODAL TRƯỚC KHI XUẤT BẢN LÊN SÀN */}
-      {isConfirmModalOpen && (
-        <div
-          className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-150"
-          onClick={() => !isPublishing && setIsConfirmModalOpen(false)}
-        >
-          <div
-            className="bg-[#0B0E14] border border-white/15 rounded-2xl max-w-md w-full p-5 sm:p-6 space-y-4 shadow-2xl text-left animate-in zoom-in-95 duration-150"
-            onClick={(e) => e.stopPropagation()}
+      <AnimatePresence>
+        {isConfirmModalOpen && (
+          <motion.div
+            key="confirm-modal-backdrop"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.18 }}
+            className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4"
+            onClick={() => !isPublishing && setIsConfirmModalOpen(false)}
           >
-            {/* Header Modal */}
-            <div className="flex items-start justify-between gap-3 border-b border-white/10 pb-3">
-              <div className="space-y-1">
-                <h3 className="text-lg font-bold font-display text-white">
-                  Confirm &amp; Publish Listing
-                </h3>
-                <p className="text-xs text-zinc-400 leading-relaxed font-sans">
-                  {isPrivateListing
-                    ? 'Your ticket listing will be created with a secret link.'
-                    : 'Your ticket listing will be published publicly on TicketShield Marketplace.'}
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => !isPublishing && setIsConfirmModalOpen(false)}
-                className="text-zinc-500 hover:text-white transition-colors cursor-pointer p-1 rounded-lg hover:bg-white/5"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            {/* Nội dung tóm tắt chi tiết */}
-            <div className="p-3.5 bg-[#05070A] border border-white/10 rounded-xl space-y-2 text-xs font-mono">
-              <div className="flex justify-between items-start gap-2">
-                <span className="text-zinc-400">Event:</span>
-                <span className="text-white font-medium text-right truncate max-w-[220px] font-sans">
-                  {eventName}
-                </span>
-              </div>
-
-              <div className="flex justify-between items-center gap-2">
-                <span className="text-zinc-400">Sell as:</span>
-                <span className="text-zinc-200 font-semibold text-right">
-                  {ticketCount > 1 ? (
-                    <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
-                      saleType === 'combo'
-                        ? 'text-[#FF7252] bg-[#FF5A36]/10 border border-[#FF5A36]/25'
-                        : 'text-blue-300 bg-blue-500/10 border border-blue-500/25'
-                    }`}>
-                      {saleType === 'combo' ? 'Bundle (Both tickets)' : 'Separately'}
-                    </span>
-                  ) : (
-                    'Single ticket'
-                  )}
-                </span>
+            <motion.div
+              key="confirm-modal-content"
+              initial={{ opacity: 0, scale: 0.94, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.94, y: 8 }}
+              transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
+              className="bg-[#0B0E14] border border-white/15 rounded-2xl max-w-md w-full p-5 sm:p-6 space-y-4 shadow-2xl text-left"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Header Modal */}
+              <div className="flex items-start justify-between gap-3 border-b border-white/10 pb-3">
+                <div className="space-y-1">
+                  <h3 className="text-lg font-bold font-display text-white">
+                    Confirm &amp; Publish Listing
+                  </h3>
+                  <p className="text-xs text-zinc-400 leading-relaxed font-sans">
+                    {isPrivateListing
+                      ? 'Your ticket listing will be created with a secret link.'
+                      : 'Your ticket listing will be published publicly on TicketShield Marketplace.'}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => !isPublishing && setIsConfirmModalOpen(false)}
+                  className="text-zinc-500 hover:text-white transition-colors cursor-pointer p-1 rounded-lg hover:bg-white/5"
+                >
+                  <X className="w-4 h-4" />
+                </button>
               </div>
 
-              <div className="flex justify-between items-center gap-2">
-                <span className="text-zinc-400">Ticket codes:</span>
-                <span className="text-zinc-300 truncate max-w-[200px]">
-                  {ticketCodes.join(', ')}
-                </span>
-              </div>
-
-              {seatZone && (
-                <div className="flex justify-between items-center gap-2">
-                  <span className="text-zinc-400">Seat / Zone:</span>
-                  <span className="text-cyan-300 truncate max-w-[200px]">
-                    {seatZone}
+              {/* Nội dung tóm tắt chi tiết */}
+              <div className="p-3.5 bg-[#05070A] border border-white/10 rounded-xl space-y-2 text-xs font-mono">
+                <div className="flex justify-between items-start gap-2">
+                  <span className="text-zinc-400">Event:</span>
+                  <span className="text-white font-medium text-right truncate max-w-[220px] font-sans">
+                    {eventName}
                   </span>
                 </div>
-              )}
 
-              <div className="flex justify-between items-center gap-2 pt-1.5 border-t border-white/5">
-                <span className="text-zinc-400">Listing price:</span>
-                <span className="text-[#FF5A36] font-bold">
-                  {totalResalePrice.toLocaleString('vi-VN')} VND
-                </span>
-              </div>
+                <div className="flex justify-between items-center gap-2">
+                  <span className="text-zinc-400">Sell as:</span>
+                  <span className="text-zinc-200 font-semibold text-right">
+                    {ticketCount > 1 ? (
+                      <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${saleType === 'combo'
+                        ? 'text-[#FF7252] bg-[#FF5A36]/10 border border-[#FF5A36]/25'
+                        : 'text-blue-300 bg-blue-500/10 border border-blue-500/25'
+                        }`}>
+                        {saleType === 'combo' ? 'Bundle (Both tickets)' : 'Separately'}
+                      </span>
+                    ) : (
+                      'Single ticket'
+                    )}
+                  </span>
+                </div>
 
-              <div className="flex justify-between items-center gap-2">
-                <span className="text-zinc-400">You'll receive (after 3% fee):</span>
-                <span className="text-emerald-400 font-bold">
-                  {totalYouReceive.toLocaleString('vi-VN')} VND
-                </span>
-              </div>
+                <div className="flex justify-between items-center gap-2">
+                  <span className="text-zinc-400">Ticket codes:</span>
+                  <span className="text-zinc-300 truncate max-w-[200px]">
+                    {ticketCodes.join(', ')}
+                  </span>
+                </div>
 
-              <div className="flex justify-between items-center gap-2 pt-1.5 border-t border-white/5">
-                <span className="text-zinc-400">Payout bank account:</span>
-                <span className="text-zinc-200 text-right truncate max-w-[200px]">
-                  {bankAccounts.length > 0
-                    ? `${bankAccounts[0].bankCode} • ${bankAccounts[0].bankAccountNumber}`
-                    : 'Not set yet (can add later)'}
-                </span>
-              </div>
+                {seatZone && (
+                  <div className="flex justify-between items-center gap-2">
+                    <span className="text-zinc-400">Seat / Zone:</span>
+                    <span className="text-cyan-300 truncate max-w-[200px]">
+                      {seatZone}
+                    </span>
+                  </div>
+                )}
 
-              <div className="flex justify-between items-center gap-2">
-                <span className="text-zinc-400">Visibility:</span>
-                <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
-                  isPrivateListing
+                <div className="flex justify-between items-center gap-2 pt-1.5 border-t border-white/5">
+                  <span className="text-zinc-400">Listing price:</span>
+                  <span className="text-[#FF5A36] font-bold">
+                    {totalResalePrice.toLocaleString('vi-VN')} VND
+                  </span>
+                </div>
+
+                <div className="flex justify-between items-center gap-2">
+                  <span className="text-zinc-400">You'll receive (after 3% fee):</span>
+                  <span className="text-emerald-400 font-bold">
+                    {totalYouReceive.toLocaleString('vi-VN')} VND
+                  </span>
+                </div>
+
+                <div className="flex justify-between items-center gap-2 pt-1.5 border-t border-white/5">
+                  <span className="text-zinc-400">Payout bank account:</span>
+                  <span className="text-zinc-200 text-right truncate max-w-[200px]">
+                    {bankAccounts.length > 0
+                      ? `${bankAccounts[0].bankCode} • ${bankAccounts[0].bankAccountNumber}`
+                      : 'Not set yet (can add later)'}
+                  </span>
+                </div>
+
+                <div className="flex justify-between items-center gap-2">
+                  <span className="text-zinc-400">Visibility:</span>
+                  <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${isPrivateListing
                     ? 'text-purple-300 bg-purple-500/10 border border-purple-500/25'
                     : 'text-emerald-300 bg-emerald-500/10 border border-emerald-500/25'
-                }`}>
-                  {isPrivateListing ? 'Private (Secret link)' : 'Public (Marketplace)'}
-                </span>
+                    }`}>
+                    {isPrivateListing ? 'Private (Secret link)' : 'Public (Marketplace)'}
+                  </span>
+                </div>
               </div>
-            </div>
 
-            {/* 2 Nút thao tác */}
-            <div className="flex items-center gap-3 pt-1">
-              <button
-                type="button"
-                onClick={() => setIsConfirmModalOpen(false)}
-                disabled={isPublishing}
-                className="flex-1 py-3 px-4 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-zinc-300 hover:text-white text-xs font-semibold transition-all cursor-pointer disabled:opacity-50"
-              >
-                Go back
-              </button>
+              {/* 2 Nút thao tác */}
+              <div className="flex items-center gap-3 pt-1">
+                <button
+                  type="button"
+                  onClick={() => setIsConfirmModalOpen(false)}
+                  disabled={isPublishing}
+                  className="flex-1 py-3 px-4 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-zinc-300 hover:text-white text-xs font-semibold transition-all active:scale-[0.98] cursor-pointer disabled:opacity-50"
+                >
+                  Go back
+                </button>
 
-              <button
-                type="button"
-                onClick={handlePublishListing}
-                disabled={isPublishing}
-                className="flex-1 py-3 px-4 rounded-xl bg-[#FF5A36] hover:bg-[#FF7252] text-white text-xs font-bold font-display uppercase tracking-wider transition-all shadow-md shadow-[#FF5A36]/30 flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
-              >
-                {isPublishing ? (
-                  <>
-                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                    <span>Publishing...</span>
-                  </>
-                ) : (
-                  <span>Publish</span>
-                )}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+                <button
+                  type="button"
+                  onClick={handlePublishListing}
+                  disabled={isPublishing}
+                  className="flex-1 py-3 px-4 rounded-xl bg-[#FF5A36] hover:bg-[#FF7252] text-white text-xs font-bold font-display uppercase tracking-wider transition-all shadow-md shadow-[#FF5A36]/30 active:scale-[0.98] flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
+                >
+                  {isPublishing ? (
+                    <>
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      <span>Publishing...</span>
+                    </>
+                  ) : (
+                    <span>Publish</span>
+                  )}
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };
