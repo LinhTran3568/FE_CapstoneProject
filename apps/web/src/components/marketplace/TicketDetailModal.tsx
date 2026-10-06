@@ -241,7 +241,7 @@ export const TicketDetailModal: React.FC<TicketDetailModalProps> = ({
                 {displayTickets.map((t) => (
                   <div
                     key={t.id}
-                    className="relative w-full h-[135px] sm:h-[145px] rounded-2xl overflow-hidden border border-white/15 shadow-xl flex select-none transition-all duration-200 hover:border-[#FF5A36]/60"
+                    className="relative w-full h-[135px] sm:h-[145px] rounded-2xl overflow-hidden border border-white/10 shadow-lg flex select-none"
                     style={{
                       WebkitMaskImage:
                         'radial-gradient(circle 12px at 68% 0px, transparent 11.5px, black 12px), radial-gradient(circle 12px at 68% 100%, transparent 11.5px, black 12px)',
@@ -308,7 +308,7 @@ export const TicketDetailModal: React.FC<TicketDetailModalProps> = ({
                       </div>
                     </div>
 
-                    {/* PHẦN CUỐNG PHẢI (32% width): Nền giấy ngà sáng với Mã vé & Giá niêm yết */}
+                    {/* PHẦN CUỐNG PHẢI (32% width): Nền giấy ngà sáng tối giản, không hover, không badge rác */}
                     <div className="relative w-[32%] h-full rounded-r-2xl p-2.5 sm:p-3 flex flex-col justify-between bg-gradient-to-br from-[#f8f7f2] via-[#f1f0e9] to-[#e8e6dc] text-slate-900">
                       {/* Mã vé */}
                       <div className="flex items-center justify-between">
@@ -320,22 +320,18 @@ export const TicketDetailModal: React.FC<TicketDetailModalProps> = ({
                       {/* Khối giá vé */}
                       <div className="my-auto py-0.5 text-left">
                         <div className="text-[9px] font-bold text-slate-500 uppercase tracking-wider">
-                          PRICE
+                          GIÁ VÉ
                         </div>
-                        <div className="flex items-baseline gap-1">
+                        <div className="flex items-baseline gap-1 mt-0.5">
                           <span className="text-base sm:text-lg font-black text-slate-900 leading-none">
                             {formatVND(t.price)}
                           </span>
                         </div>
-                        <div className="text-[9px] font-mono text-slate-500 mt-0.5">
-                          Organizer Verified Price
-                        </div>
                       </div>
 
-                      {/* Footer cuống vé */}
-                      <div className="flex items-center justify-between text-[9px] font-mono text-slate-400 border-t border-slate-300/60 pt-1">
-                        <span>OFFICIAL PASS</span>
-                        <span className="text-emerald-600 font-bold">✓ VERIFIED</span>
+                      {/* Phân cách chân cuống */}
+                      <div className="text-[9px] font-mono text-slate-400 border-t border-slate-300/60 pt-1">
+                        PASS #{t.ticketIndex}
                       </div>
                     </div>
                   </div>
@@ -343,7 +339,7 @@ export const TicketDetailModal: React.FC<TicketDetailModalProps> = ({
               </div>
             </div>
 
-            {/* ================= TỔNG KẾT TÀI CHÍNH (COMPACT FINANCIAL SUMMARY) ================= */}
+            {/* ================= TỔNG KẾT TÀI CHÍNH ================= */}
             <div className="p-3.5 rounded-xl bg-white/[0.03] border border-white/10 space-y-2">
               {isBundle && (
                 <div className="flex items-center justify-between text-xs text-zinc-300">
@@ -359,7 +355,6 @@ export const TicketDetailModal: React.FC<TicketDetailModalProps> = ({
                   <span className="text-xs sm:text-sm font-bold text-white block">
                     {isBundle ? `Tổng thanh toán (${bundleCount} vé)` : 'Tổng thanh toán'}
                   </span>
-                  <span className="text-[10px] text-zinc-400">Đã bao gồm thuế và phí bảo vệ người mua</span>
                 </div>
                 <div className="text-right">
                   <span className="text-xl sm:text-2xl font-black font-mono text-[#FF5A36]">
