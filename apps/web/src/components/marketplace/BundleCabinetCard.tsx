@@ -22,7 +22,7 @@ export const BundleCabinetCard: React.FC<BundleCabinetCardProps> = ({
   return (
     <div
       id={`bundle-cabinet-card-${listing.listingId}`}
-      className="group relative w-full h-[250px] sm:h-[270px] bg-transparent border-0 select-none cursor-pointer flex items-center justify-center transition-all duration-300"
+      className="group relative w-full h-[195px] sm:h-[200px] bg-transparent border-0 select-none cursor-pointer flex items-center justify-center transition-all duration-300"
       onClick={() => {
         if (!isTransacting && onViewDetails) {
           onViewDetails(listing);

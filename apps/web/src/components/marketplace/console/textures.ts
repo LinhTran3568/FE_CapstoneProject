@@ -59,98 +59,105 @@ export function createLeftScreenTexture(listing?: MarketplaceListingDto, bundleC
     ctx.fillStyle = '#030508';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
+    // Subtle LED Dot Matrix Grid Texture Overlay
+    ctx.fillStyle = 'rgba(255, 90, 54, 0.035)';
+    for (let gx = 30; gx < canvas.width; gx += 28) {
+      for (let gy = 30; gy < canvas.height; gy += 28) {
+        ctx.fillRect(gx, gy, 3, 3);
+      }
+    }
+
     // Top Header Row: Badges
     const badgeY = 90;
 
     // 1. Tier Cyan Pill Badge
-    const cyanPillW = 320;
-    const cyanPillH = 76;
+    const cyanPillW = 340;
+    const cyanPillH = 82;
     ctx.save();
-    ctx.fillStyle = 'rgba(6, 182, 212, 0.12)';
-    roundedRect(ctx, 80, badgeY, cyanPillW, cyanPillH, 38);
+    ctx.fillStyle = 'rgba(6, 182, 212, 0.16)';
+    roundedRect(ctx, 80, badgeY, cyanPillW, cyanPillH, 20);
     ctx.fill();
-    ctx.strokeStyle = 'rgba(6, 182, 212, 0.6)';
-    ctx.lineWidth = 2.5;
+    ctx.strokeStyle = 'rgba(6, 182, 212, 0.85)';
+    ctx.lineWidth = 3;
     ctx.stroke();
 
     // Glowing cyan dot
     const pulse = 0.75 + 0.25 * Math.sin(time * 3);
     ctx.fillStyle = `rgba(34, 211, 238, ${pulse})`;
     ctx.shadowColor = '#00f0ff';
-    ctx.shadowBlur = 8;
+    ctx.shadowBlur = 12;
     ctx.beginPath();
-    ctx.arc(125, badgeY + cyanPillH / 2, 8, 0, Math.PI * 2);
+    ctx.arc(125, badgeY + cyanPillH / 2, 9, 0, Math.PI * 2);
     ctx.fill();
     ctx.restore();
 
-    ctx.fillStyle = '#ffffff';
-    ctx.font = 'bold 30px system-ui, -apple-system, sans-serif';
-    ctx.fillText(tierName.toUpperCase().slice(0, 16), 152, badgeY + 49);
+    ctx.fillStyle = '#22d3ee';
+    ctx.font = '700 32px "Silkscreen", monospace';
+    ctx.fillText(tierName.toUpperCase().slice(0, 14), 150, badgeY + 54);
 
     // 2. BUNDLE (N TICKETS) Solid Glowing Neon Orange Pill
-    const orangePillW = 440;
-    const orangePillH = 76;
+    const orangePillW = 460;
+    const orangePillH = 82;
     ctx.save();
-    ctx.fillStyle = '#ff5722';
-    roundedRect(ctx, 430, badgeY, orangePillW, orangePillH, 38);
+    ctx.fillStyle = '#FF5A36';
+    roundedRect(ctx, 450, badgeY, orangePillW, orangePillH, 20);
     ctx.fill();
     ctx.restore();
 
     ctx.fillStyle = '#ffffff';
-    ctx.font = 'bold 30px system-ui, -apple-system, sans-serif';
-    ctx.fillText(`BUNDLE (${count} TICKETS)`, 465, badgeY + 49);
+    ctx.font = '700 32px "Silkscreen", monospace';
+    ctx.fillText(`BUNDLE (${count} TICKETS)`, 480, badgeY + 54);
 
-    // Main Event Title: Bold Crisp Modern Typography
+    // Main Event Title: Dot Matrix Bold Crisp Typography
     ctx.fillStyle = '#ffffff';
-    ctx.font = 'bold 84px system-ui, -apple-system, sans-serif';
+    ctx.font = '700 96px "Silkscreen", "VT323", monospace';
     ctx.letterSpacing = '-1px';
-    // Truncate if too long
-    const title = eventName.length > 26 ? `${eventName.slice(0, 24)}...` : eventName;
-    ctx.fillText(title, 80, 310);
+    const title = eventName.length > 22 ? `${eventName.slice(0, 20)}...` : eventName;
+    ctx.fillText(title, 80, 320);
 
     // Technical Metadata Section
     // Row 1: Zone & Date
-    const metaY1 = 475;
+    const metaY1 = 490;
 
     // Gold Ticket Badge: Seat Zone
     ctx.save();
     ctx.fillStyle = '#f59e0b';
-    ctx.font = 'bold 44px system-ui, -apple-system, sans-serif';
-    ctx.fillText(`🎟  ${seatZone.slice(0, 24)}`, 80, metaY1);
+    ctx.font = '400 48px "Silkscreen", "VT323", monospace';
+    ctx.fillText(`🎟 ${seatZone.slice(0, 20)}`, 80, metaY1);
     ctx.restore();
 
     // Calendar: Event Date
     ctx.fillStyle = '#94a3b8';
-    ctx.font = '500 42px system-ui, -apple-system, sans-serif';
-    ctx.fillText(`📅  ${eventDate}`, 820, metaY1);
+    ctx.font = '400 44px "Silkscreen", "VT323", monospace';
+    ctx.fillText(`📅 ${eventDate}`, 820, metaY1);
 
     // Row 2: Venue
-    const metaY2 = 590;
+    const metaY2 = 610;
     ctx.fillStyle = '#cbd5e1';
-    ctx.font = '500 42px system-ui, -apple-system, sans-serif';
-    const venueText = venue.length > 38 ? `${venue.slice(0, 36)}...` : venue;
-    ctx.fillText(`📍  ${venueText}`, 80, metaY2);
+    ctx.font = '400 44px "Silkscreen", "VT323", monospace';
+    const venueText = venue.length > 34 ? `${venue.slice(0, 32)}...` : venue;
+    ctx.fillText(`📍 ${venueText}`, 80, metaY2);
 
     // Clean Subtle Separator Line
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.08)';
-    ctx.lineWidth = 2;
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.12)';
+    ctx.lineWidth = 2.5;
     ctx.beginPath();
-    ctx.moveTo(80, 700);
-    ctx.lineTo(canvas.width - 80, 700);
+    ctx.moveTo(80, 715);
+    ctx.lineTo(canvas.width - 80, 715);
     ctx.stroke();
 
     // Footer Info
-    const footY = 820;
+    const footY = 840;
 
     // Organizer
     ctx.fillStyle = '#94a3b8';
-    ctx.font = 'bold 38px system-ui, -apple-system, sans-serif';
-    ctx.fillText(organizer.slice(0, 32), 80, footY);
+    ctx.font = '400 38px "Silkscreen", monospace';
+    ctx.fillText(organizer.slice(0, 30), 80, footY);
 
     // Verified Seller Tag with checkmark
     ctx.fillStyle = '#ffffff';
-    ctx.font = '500 38px system-ui, -apple-system, sans-serif';
-    ctx.fillText(seller.slice(0, 32), 820, footY);
+    ctx.font = '400 38px "Silkscreen", monospace';
+    ctx.fillText(seller.slice(0, 30), 820, footY);
   }
 
   draw(0);
@@ -199,63 +206,72 @@ export function createRightScreenTexture(
     ctx.fillStyle = '#030508';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
+    // Subtle LED Dot Matrix Grid Texture Overlay
+    ctx.fillStyle = 'rgba(255, 90, 54, 0.035)';
+    for (let gx = 30; gx < canvas.width; gx += 28) {
+      for (let gy = 30; gy < canvas.height; gy += 28) {
+        ctx.fillRect(gx, gy, 3, 3);
+      }
+    }
+
     // Top Right ID: Masked Code
     const idBoxW = 380;
-    const idBoxH = 76;
+    const idBoxH = 80;
     const idBoxX = 70;
     const idBoxY = 90;
 
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.06)';
-    roundedRect(ctx, idBoxX, idBoxY, idBoxW, idBoxH, 18);
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.08)';
+    roundedRect(ctx, idBoxX, idBoxY, idBoxW, idBoxH, 16);
     ctx.fill();
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.22)';
     ctx.lineWidth = 1.5;
     ctx.stroke();
 
-    ctx.fillStyle = '#cbd5e1';
-    ctx.font = 'bold 34px monospace';
+    ctx.fillStyle = '#e2e8f0';
+    ctx.font = '700 46px "VT323", "Silkscreen", monospace';
     ctx.textAlign = 'center';
-    ctx.fillText(code, idBoxX + idBoxW / 2, idBoxY + 50);
+    ctx.fillText(code, idBoxX + idBoxW / 2, idBoxY + 56);
     ctx.textAlign = 'left';
 
     // Price Section
     const priceY = 320;
 
-    // "PRICE" Label
-    ctx.fillStyle = '#64748b';
-    ctx.font = 'bold 36px monospace';
+    // "PRICE" Label in Dot Matrix
+    ctx.fillStyle = '#94a3b8';
+    ctx.font = '400 38px "Silkscreen", monospace';
     ctx.fillText('COMBO PRICE', 70, priceY);
 
-    // Price string
+    // Huge Crisp Dot Matrix Digital Price (VT323 has authentic digital LED glyphs)
     ctx.fillStyle = '#ffffff';
-    ctx.font = formattedPriceStr.length > 8 ? 'bold 84px system-ui' : 'bold 106px system-ui';
-    ctx.letterSpacing = '-1px';
-    ctx.fillText(formattedPriceStr, 70, priceY + 115);
+    ctx.font = formattedPriceStr.length > 9 ? '700 135px "VT323", monospace' : '700 155px "VT323", monospace';
+    ctx.letterSpacing = '1px';
+    ctx.fillText(formattedPriceStr, 70, priceY + 130);
 
-    ctx.fillStyle = '#cbd5e1';
-    ctx.font = 'bold 44px system-ui, -apple-system, sans-serif';
-    ctx.fillText('VND', 70 + (formattedPriceStr.length > 8 ? 580 : 490), priceY + 115);
+    ctx.fillStyle = '#94a3b8';
+    ctx.font = '400 46px "Silkscreen", monospace';
+    const vOffsetX = formattedPriceStr.length > 9 ? 650 : 570;
+    ctx.fillText('VND', 70 + vOffsetX, priceY + 130);
 
     // Subtitle: "Organizer Verified Price"
     ctx.fillStyle = '#94a3b8';
-    ctx.font = '500 36px system-ui, -apple-system, sans-serif';
-    ctx.fillText('Organizer Verified Price', 70, priceY + 195);
+    ctx.font = '400 34px "Silkscreen", monospace';
+    ctx.fillText('Organizer Verified Price', 70, priceY + 210);
 
-    // ON-SCREEN TOUCHSCREEN CTA BUTTON
+    // ON-SCREEN TOUCHSCREEN CTA BUTTON (Vibrant Brand Orange #FF5A36)
     const btnX = 70;
     const btnY = 830;
     const btnW = canvas.width - 140; // 960
     const btnH = 250;
-    const btnR = 36;
+    const btnR = 32;
 
     ctx.save();
-    ctx.fillStyle = isPressed ? '#ff6e40' : '#ff5722';
+    ctx.fillStyle = isPressed ? '#FF7252' : '#FF5A36';
     roundedRect(ctx, btnX, btnY, btnW, btnH, btnR);
     ctx.fill();
 
-    // Text: "XEM & MUA →"
+    // Text: "XEM & MUA →" in Dot Matrix Font
     ctx.fillStyle = '#ffffff';
-    ctx.font = 'bold 74px system-ui, -apple-system, sans-serif';
+    ctx.font = '700 78px "Silkscreen", monospace';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText('XEM & MUA →', btnX + btnW / 2, btnY + btnH / 2);

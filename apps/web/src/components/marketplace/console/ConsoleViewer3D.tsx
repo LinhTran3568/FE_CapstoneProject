@@ -149,9 +149,9 @@ export const ConsoleViewer3D: React.FC<ConsoleViewer3DProps> = ({
   // 2. Subtly rotates/tilts the cabinet in 3D
   const handleMouseEnter = () => {
     targetDispense.current = 1;
-    targetRotY.current = 0.035; // Hơi xoay nhẹ ~2.0 độ
-    targetRotZ.current = -0.015; // Hơi nghiêng nhẹ ~0.8 độ
-    targetRotX.current = 0.012; // Hơi ngửa nhẹ
+    targetRotY.current = 0.020; // Hơi xoay nhẹ ~1.1 độ
+    targetRotZ.current = -0.008; // Hơi nghiêng nhẹ ~0.4 độ
+    targetRotX.current = 0.008; // Hơi ngửa nhẹ
     if (onDispenseStateChange) onDispenseStateChange(true);
   };
 
@@ -170,10 +170,10 @@ export const ConsoleViewer3D: React.FC<ConsoleViewer3DProps> = ({
     const h = containerRef.current.clientHeight;
     if (w === 0 || h === 0) return;
 
-    const scale = h / 2.65;
-    const cx = w / 2 + 0.832 * scale;
-    const cy = h / 2 - -0.567 * scale;
-    const bw = 1.20 * scale;
+    const scale = h / 2.62;
+    const cx = w / 2 + 1.03 * scale;
+    const cy = h / 2 - -0.394 * scale;
+    const bw = 1.10 * scale;
     const bh = 0.32 * scale;
 
     setBtnOverlayRect({
@@ -196,9 +196,9 @@ export const ConsoleViewer3D: React.FC<ConsoleViewer3DProps> = ({
     const scene = new THREE.Scene();
     sceneRef.current = scene;
 
-    // 2. Orthographic Camera with Cabinet 30° Projection (vH = 2.65 for bold scale)
+    // 2. Orthographic Camera with Cabinet 30° Projection (vH = 2.62 for calibrated 200px cell)
     const aspect = width / height;
-    const viewHeight = 2.65;
+    const viewHeight = 2.62;
     const viewWidth = viewHeight * aspect;
     const orthoCamera = new THREE.OrthographicCamera(
       -viewWidth / 2,
@@ -253,29 +253,29 @@ export const ConsoleViewer3D: React.FC<ConsoleViewer3DProps> = ({
 
     // Root Group
     const rootGroup = new THREE.Group();
-    rootGroup.position.set(-0.28, -0.05, 0);
+    rootGroup.position.set(-0.15, 0, 0);
     scene.add(rootGroup);
     rootGroupRef.current = rootGroup;
 
     // ---------------------------------------------------------
     // 5. CHASSIS ARCHITECTURE
     // ---------------------------------------------------------
-    const chassisGeom = createRoundedBox(4.6, 2.2, 0.90, 0.26, 0.04);
+    const chassisGeom = createRoundedBox(4.30, 2.02, 0.82, 0.22, 0.035);
     const chassisMat = new THREE.MeshStandardMaterial({
-      color: 0x58606e, // Satin slate-silver metal
-      roughness: 0.42,
-      metalness: 0.58,
+      color: 0x1a212d, // Satin Dark Obsidian
+      roughness: 0.38,
+      metalness: 0.65,
     });
     const chassis = new THREE.Mesh(chassisGeom, chassisMat);
     chassis.castShadow = true;
     chassis.receiveShadow = true;
     rootGroup.add(chassis);
 
-    // Continuous glowing neon LED rim
+    // Continuous glowing neon LED rim - TicketShield Orange
     const rimShape = new THREE.Shape();
-    const rimW = 4.46 / 2 - 0.22;
-    const rimH = 2.06 / 2 - 0.22;
-    const rimR = 0.22;
+    const rimW = 4.18 / 2 - 0.20;
+    const rimH = 1.90 / 2 - 0.20;
+    const rimR = 0.20;
     rimShape.moveTo(-rimW, -rimH - rimR);
     rimShape.lineTo(rimW, -rimH - rimR);
     rimShape.absarc(rimW, -rimH, rimR, -Math.PI / 2, 0, false);
@@ -291,10 +291,10 @@ export const ConsoleViewer3D: React.FC<ConsoleViewer3DProps> = ({
       rimPoints.map((p) => new THREE.Vector3(p.x, p.y, 0)),
       true
     );
-    const rimTubeGeom = new THREE.TubeGeometry(rimCurve, 80, 0.018, 8, true);
-    const rimTubeMat = new THREE.MeshBasicMaterial({ color: 0xfffaee });
+    const rimTubeGeom = new THREE.TubeGeometry(rimCurve, 80, 0.016, 8, true);
+    const rimTubeMat = new THREE.MeshBasicMaterial({ color: 0xff5a36 });
     const frontGlowTube = new THREE.Mesh(rimTubeGeom, rimTubeMat);
-    frontGlowTube.position.set(0, 0, 0.495);
+    frontGlowTube.position.set(0, 0, 0.45);
     rootGroup.add(frontGlowTube);
 
     // ---------------------------------------------------------
@@ -306,14 +306,14 @@ export const ConsoleViewer3D: React.FC<ConsoleViewer3DProps> = ({
       metalness: 0.25,
     });
 
-    const leftPocketGeom = createRoundedBox(2.48, 1.80, 0.03, 0.16, 0.012);
+    const leftPocketGeom = createRoundedBox(2.36, 1.72, 0.03, 0.14, 0.012);
     const leftPocket = new THREE.Mesh(leftPocketGeom, screenBezelMat);
-    leftPocket.position.set(-0.80, 0, 0.47);
+    leftPocket.position.set(-0.80, 0, 0.43);
     rootGroup.add(leftPocket);
 
-    const rightPocketGeom = createRoundedBox(1.36, 1.80, 0.03, 0.16, 0.012);
+    const rightPocketGeom = createRoundedBox(1.30, 1.72, 0.03, 0.14, 0.012);
     const rightPocket = new THREE.Mesh(rightPocketGeom, screenBezelMat);
-    rightPocket.position.set(1.28, 0, 0.47);
+    rightPocket.position.set(1.18, 0, 0.43);
     rootGroup.add(rightPocket);
 
     const dividerMat = new THREE.MeshStandardMaterial({
@@ -321,9 +321,9 @@ export const ConsoleViewer3D: React.FC<ConsoleViewer3DProps> = ({
       roughness: 0.35,
       metalness: 0.85,
     });
-    const pillarGeom = createRoundedBox(0.10, 1.84, 0.05, 0.02, 0.01);
+    const pillarGeom = createRoundedBox(0.08, 1.74, 0.04, 0.02, 0.01);
     const pillar = new THREE.Mesh(pillarGeom, dividerMat);
-    pillar.position.set(0.52, 0, 0.49);
+    pillar.position.set(0.45, 0, 0.45);
     rootGroup.add(pillar);
 
     // Dynamic Bundle info calculation
@@ -345,9 +345,9 @@ export const ConsoleViewer3D: React.FC<ConsoleViewer3DProps> = ({
       polygonOffsetFactor: -2,
       polygonOffsetUnits: -2,
     });
-    const leftScreenGeom = createRoundedPlaneGeometry(2.42, 1.74, 0.14);
+    const leftScreenGeom = createRoundedPlaneGeometry(2.32, 1.68, 0.12);
     const leftScreenMesh = new THREE.Mesh(leftScreenGeom, leftScreenMat);
-    leftScreenMesh.position.set(-0.80, 0, 0.51);
+    leftScreenMesh.position.set(-0.80, 0, 0.47);
     rootGroup.add(leftScreenMesh);
 
     // Right Screen
@@ -362,31 +362,32 @@ export const ConsoleViewer3D: React.FC<ConsoleViewer3DProps> = ({
       polygonOffsetFactor: -2,
       polygonOffsetUnits: -2,
     });
-    const rightScreenGeom = createRoundedPlaneGeometry(1.30, 1.74, 0.14);
+    const rightScreenGeom = createRoundedPlaneGeometry(1.26, 1.68, 0.12);
     const rightScreenMesh = new THREE.Mesh(rightScreenGeom, rightScreenMat);
-    rightScreenMesh.position.set(1.28, 0, 0.51);
+    rightScreenMesh.position.set(1.18, 0, 0.47);
     rootGroup.add(rightScreenMesh);
 
     // ---------------------------------------------------------
     // 7. MECHANICAL RIGHT SLOT & TICKETS
     // ---------------------------------------------------------
-    const slotCavityGeom = new THREE.BoxGeometry(1.40, 1.48, 0.45);
+    const slotCavityGeom = new THREE.BoxGeometry(1.10, 1.36, 0.45);
     const slotCavityMat = new THREE.MeshBasicMaterial({ color: 0x020306 });
     const slotCavity = new THREE.Mesh(slotCavityGeom, slotCavityMat);
-    slotCavity.position.set(1.55, 0, 0.0);
+    slotCavity.position.set(1.50, 0, 0.0);
     rootGroup.add(slotCavity);
 
-    const slotBezelGeom = createRoundedBox(0.04, 1.54, 0.52, 0.04, 0.01);
+    const slotBezelGeom = createRoundedBox(0.04, 1.42, 0.48, 0.04, 0.01);
     const slotBezel = new THREE.Mesh(slotBezelGeom, dividerMat);
-    slotBezel.position.set(2.26, 0, 0.0);
+    slotBezel.position.set(2.10, 0, 0.0);
     rootGroup.add(slotBezel);
 
-    const lipGeom = new THREE.BoxGeometry(0.05, 1.50, 0.12);
+    const lipGeom = new THREE.BoxGeometry(0.05, 1.38, 0.12);
     const lipMesh = new THREE.Mesh(lipGeom, chassisMat);
-    lipMesh.position.set(2.265, 0, 0.16);
+    lipMesh.position.set(2.105, 0, 0.14);
     rootGroup.add(lipMesh);
 
-    const ticketGeom = new THREE.PlaneGeometry(1.20, 1.36);
+    // Compact ticket geometry to save grid space
+    const ticketGeom = new THREE.PlaneGeometry(0.88, 1.22);
 
     const t1Item = effectiveListings[0];
     const t2Item = effectiveListings[1] || effectiveListings[0];
@@ -418,9 +419,9 @@ export const ConsoleViewer3D: React.FC<ConsoleViewer3DProps> = ({
     const ticketsGroup = new THREE.Group();
     rootGroup.add(ticketsGroup);
 
-    const idleTicketX1 = 1.95;
-    const idleTicketX2 = 2.05;
-    const idleTicketX3 = 2.15;
+    const idleTicketX1 = 1.76;
+    const idleTicketX2 = 1.83;
+    const idleTicketX3 = 1.90;
 
     const t3 = new THREE.Mesh(ticketGeom, ticketMat3);
     t3.position.set(idleTicketX3, -0.01, -0.10);
@@ -442,7 +443,7 @@ export const ConsoleViewer3D: React.FC<ConsoleViewer3DProps> = ({
     // ---------------------------------------------------------
     const updateCabinetProjection = (w: number, h: number) => {
       const asp = w / h;
-      const vH = 2.65;
+      const vH = 2.62;
       const vW = vH * asp;
 
       orthoCamera.left = -vW / 2;
@@ -504,15 +505,15 @@ export const ConsoleViewer3D: React.FC<ConsoleViewer3DProps> = ({
         (targetDispense.current - dispenseProgress.current) * 0.12;
       const p = dispenseProgress.current;
 
-      // Sliding positions
-      t1.position.x = idleTicketX1 + p * 0.42;
-      t2.position.x = idleTicketX2 + p * 0.58;
-      t3.position.x = idleTicketX3 + p * 0.75;
+      // Sliding positions (thu nhỏ tối đa cự ly trượt theo yêu cầu)
+      t1.position.x = idleTicketX1 + p * 0.10;
+      t2.position.x = idleTicketX2 + p * 0.16;
+      t3.position.x = idleTicketX3 + p * 0.22;
 
       // Subtle fanning tilt of tickets when pulled out
-      t1.rotation.z = p * -0.012;
-      t2.rotation.z = p * 0.022;
-      t3.rotation.z = p * 0.038;
+      t1.rotation.z = p * -0.008;
+      t2.rotation.z = p * 0.012;
+      t3.rotation.z = p * 0.020;
 
       // Subtle 3D tilt of the entire cabinet on hover
       rootGroup.rotation.y += (targetRotY.current - rootGroup.rotation.y) * 0.08;
