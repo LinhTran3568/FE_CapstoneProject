@@ -71,7 +71,7 @@ export function createBrushedMetalBumpTexture(): THREE.CanvasTexture {
 
 /**
  * Left Screen Canvas Texture
- * Clean, modern AMOLED display showing real listing details
+ * Inherited from Vintage CRT Ticket Console: Amber & Cyan Phosphor Glow with Scanlines
  */
 export function createLeftScreenTexture(listing?: MarketplaceListingDto, bundleCount = 3): {
   texture: THREE.CanvasTexture;
@@ -79,7 +79,7 @@ export function createLeftScreenTexture(listing?: MarketplaceListingDto, bundleC
 } {
   const canvas = document.createElement('canvas');
   canvas.width = 1920;
-  canvas.height = 1300;
+  canvas.height = 1200;
   const ctx = canvas.getContext('2d')!;
 
   const eventName = listing?.eventName || 'Anh Trai Say Hi Concert 2026';
@@ -96,88 +96,167 @@ export function createLeftScreenTexture(listing?: MarketplaceListingDto, bundleC
   function draw(time = 0) {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    // Deep pristine AMOLED black background
-    ctx.fillStyle = '#05070b';
+    // 1. Radial CRT Screen Glass Background
+    const bgGrad = ctx.createRadialGradient(
+      canvas.width * 0.45, canvas.height * 0.35, 50,
+      canvas.width * 0.5, canvas.height * 0.5, canvas.width * 0.7
+    );
+    bgGrad.addColorStop(0, '#181d22');
+    bgGrad.addColorStop(0.7, '#0d1013');
+    bgGrad.addColorStop(1, '#06080a');
+    ctx.fillStyle = bgGrad;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    // Top Header Row: Badges
-    const badgeY = 90;
-
-    // 1. Tier Cyan Pill Badge
-    const cyanPillW = 340;
-    const cyanPillH = 82;
-    ctx.save();
-    ctx.fillStyle = 'rgba(15, 23, 42, 0.85)';
-    roundedRect(ctx, 80, badgeY, cyanPillW, cyanPillH, 41);
+    // 2. CRT Glass Glare Highlight across top-left corner
+    const glareGrad = ctx.createLinearGradient(0, 0, canvas.width * 0.75, canvas.height * 0.65);
+    glareGrad.addColorStop(0, 'rgba(255, 255, 255, 0.08)');
+    glareGrad.addColorStop(0.35, 'rgba(255, 255, 255, 0.015)');
+    glareGrad.addColorStop(0.65, 'transparent');
+    ctx.fillStyle = glareGrad;
+    ctx.beginPath();
+    ctx.ellipse(canvas.width * 0.25, -canvas.height * 0.1, canvas.width * 0.65, canvas.height * 0.5, 0.2, 0, Math.PI * 2);
     ctx.fill();
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.22)';
+
+    // 3. Dot-Matrix / LED Grid Texture overlay
+    ctx.fillStyle = 'rgba(255, 170, 51, 0.045)';
+    for (let gx = 20; gx < canvas.width; gx += 20) {
+      for (let gy = 20; gy < canvas.height; gy += 20) {
+        ctx.fillRect(gx, gy, 2.5, 2.5);
+      }
+    }
+
+    // 4. CRT Horizontal Scanlines
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.42)';
+    for (let y = 0; y < canvas.height; y += 8) {
+      ctx.fillRect(0, y, canvas.width, 3.5);
+    }
+
+    // 5. Header Badges
+    // Cyan Tier Badge: "• GA STANDING"
+    const cyanPillW = 380;
+    const cyanPillH = 76;
+    ctx.save();
+    ctx.fillStyle = '#091b24';
+    roundedRect(ctx, 80, 80, cyanPillW, cyanPillH, 20);
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(6, 182, 212, 0.6)';
     ctx.lineWidth = 2.5;
     ctx.stroke();
 
-    // Glowing cyan dot
+    // Glowing Cyan Dot
     const pulse = 0.85 + 0.15 * Math.sin(time * 3);
     ctx.fillStyle = `rgba(34, 211, 238, ${pulse})`;
     ctx.shadowColor = '#00f0ff';
-    ctx.shadowBlur = 12;
+    ctx.shadowBlur = 14;
     ctx.beginPath();
-    ctx.arc(125, badgeY + cyanPillH / 2, 9, 0, Math.PI * 2);
+    ctx.arc(125, 80 + cyanPillH / 2, 9, 0, Math.PI * 2);
     ctx.fill();
+
+    // Cyan Text
+    ctx.font = '700 34px "Silkscreen", monospace';
+    ctx.fillStyle = '#67e8f9';
+    ctx.shadowColor = '#00f0ff';
+    ctx.shadowBlur = 10;
+    ctx.textBaseline = 'middle';
+    ctx.fillText(tierName.toUpperCase().slice(0, 14), 155, 80 + cyanPillH / 2);
     ctx.restore();
 
-    ctx.fillStyle = '#ffffff';
-    ctx.font = '700 34px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(tierName.toUpperCase().slice(0, 16), 150, badgeY + cyanPillH / 2);
-
-    // 2. BUNDLE (N TICKETS) Solid Glowing Neon Orange Pill
-    const orangePillW = 470;
-    const orangePillH = 82;
+    // Amber Bundle Badge: "BUNDLE (N TICKETS)"
+    const orangePillW = 480;
+    const orangePillH = 76;
     ctx.save();
-    ctx.fillStyle = '#FF5A36';
-    roundedRect(ctx, 450, badgeY, orangePillW, orangePillH, 41);
+    ctx.fillStyle = '#2e1303';
+    roundedRect(ctx, 490, 80, orangePillW, orangePillH, 20);
     ctx.fill();
+    ctx.strokeStyle = 'rgba(249, 115, 22, 0.7)';
+    ctx.lineWidth = 2.5;
+    ctx.stroke();
+
+    ctx.font = '700 34px "Silkscreen", monospace';
+    ctx.fillStyle = '#ffaa33';
+    ctx.shadowColor = 'rgba(255, 140, 0, 0.8)';
+    ctx.shadowBlur = 12;
+    ctx.textBaseline = 'middle';
+    ctx.fillText(`BUNDLE (${count} TICKETS)`, 520, 80 + orangePillH / 2);
     ctx.restore();
 
-    ctx.fillStyle = '#ffffff';
-    ctx.font = '800 34px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(`BUNDLE (${count} TICKETS)`, 490, badgeY + orangePillH / 2);
+    // 6. Concert Title in Amber Dot Matrix Font
+    ctx.save();
+    ctx.font = '700 82px "Silkscreen", monospace';
+    ctx.fillStyle = '#ffaa33';
+    ctx.shadowColor = 'rgba(255, 140, 0, 0.9)';
+    ctx.shadowBlur = 16;
     ctx.textBaseline = 'alphabetic';
+    const displayTitle = eventName.length > 22 ? `${eventName.slice(0, 20)}...` : eventName;
+    ctx.fillText(displayTitle.toUpperCase(), 80, 310);
+    ctx.restore();
 
-    // Main Event Title: Bold Crisp Modern Typography
-    ctx.fillStyle = '#ffffff';
-    ctx.font = '800 86px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
-    ctx.letterSpacing = '-1px';
-    const title = eventName.length > 26 ? `${eventName.slice(0, 24)}...` : eventName;
-    ctx.fillText(title, 80, 320);
+    // 7. Border Separator
+    ctx.strokeStyle = 'rgba(255, 170, 51, 0.25)';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(80, 420);
+    ctx.lineTo(canvas.width - 80, 420);
+    ctx.stroke();
 
-    // Metadata Section (Zone, Date, Venue, Organizer, Seller)
-    // Row 1: Zone & Date
-    const metaY1 = 490;
-    ctx.fillStyle = '#ffffff';
-    ctx.font = '700 44px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
-    ctx.fillText(`⛶  ${seatZone.slice(0, 22)}`, 80, metaY1);
+    // 8. Technical Details List in Amber/Gold VFD Typography
+    const metaY1 = 510;
+    ctx.save();
+    // Zone
+    ctx.fillStyle = '#ffaa33';
+    ctx.font = '700 44px "Silkscreen", monospace';
+    ctx.shadowColor = 'rgba(255, 140, 0, 0.8)';
+    ctx.shadowBlur = 10;
+    ctx.fillText('❖', 80, metaY1);
 
-    ctx.fillStyle = '#cbd5e1';
-    ctx.font = '500 42px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
-    ctx.fillText(`📅  ${eventDate}`, 820, metaY1);
+    ctx.fillStyle = '#ffedd5';
+    ctx.font = '700 38px "Silkscreen", monospace';
+    ctx.shadowColor = 'rgba(255, 200, 100, 0.6)';
+    ctx.shadowBlur = 8;
+    ctx.fillText(seatZone.toUpperCase().slice(0, 20), 125, metaY1);
+
+    // Time
+    ctx.fillStyle = '#ffaa33';
+    ctx.font = '700 44px "Silkscreen", monospace';
+    ctx.fillText('◷', 850, metaY1);
+
+    ctx.fillStyle = '#fed7aa';
+    ctx.font = '700 38px "Silkscreen", monospace';
+    ctx.fillText(eventDate.toUpperCase(), 895, metaY1);
 
     // Row 2: Venue
-    const metaY2 = 610;
-    ctx.fillStyle = '#94a3b8';
-    ctx.font = '500 42px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
-    const venueText = venue.length > 38 ? `${venue.slice(0, 36)}...` : venue;
-    ctx.fillText(`📍  ${venueText}`, 80, metaY2);
+    const metaY2 = 640;
+    ctx.fillStyle = '#ffaa33';
+    ctx.font = '700 44px "Silkscreen", monospace';
+    ctx.fillText('⚑', 80, metaY2);
+
+    ctx.fillStyle = '#fef08a';
+    ctx.font = '400 52px "VT323", monospace';
+    ctx.fillText(venue.slice(0, 40), 125, metaY2);
 
     // Row 3: Organizer & Seller
-    const metaY3 = 730;
-    ctx.fillStyle = '#94a3b8';
-    ctx.font = '500 40px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
-    ctx.fillText(organizer.slice(0, 32), 80, metaY3);
+    const metaY3 = 760;
+    ctx.strokeStyle = 'rgba(255, 170, 51, 0.15)';
+    ctx.beginPath();
+    ctx.moveTo(80, 700);
+    ctx.lineTo(canvas.width - 80, 700);
+    ctx.stroke();
 
-    ctx.fillStyle = '#ffffff';
-    ctx.font = '600 40px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
-    ctx.fillText(`✔  ${seller.slice(0, 30)}`, 820, metaY3);
+    ctx.fillStyle = '#fed7aa';
+    ctx.font = '400 46px "VT323", monospace';
+    ctx.fillText(`${organizer.slice(0, 30)}`, 80, metaY3);
+
+    ctx.fillStyle = '#34d399';
+    ctx.shadowColor = '#10b981';
+    ctx.shadowBlur = 10;
+    ctx.font = '700 42px "Silkscreen", monospace';
+    ctx.fillText('✓', 850, metaY3);
+
+    ctx.fillStyle = '#ffedd5';
+    ctx.shadowBlur = 0;
+    ctx.font = '400 46px "VT323", monospace';
+    ctx.fillText(`${seller.slice(0, 30)}`, 895, metaY3);
+    ctx.restore();
   }
 
   draw(0);
@@ -197,6 +276,7 @@ export function createLeftScreenTexture(listing?: MarketplaceListingDto, bundleC
 
 /**
  * Right Screen Canvas Texture with IN-SCREEN TOUCH BUTTON
+ * Inherited from Vintage CRT Ticket Console: Status, Price & Matrix Button
  */
 export function createRightScreenTexture(
   listing?: MarketplaceListingDto,
@@ -209,11 +289,12 @@ export function createRightScreenTexture(
 } {
   const canvas = document.createElement('canvas');
   canvas.width = 1100;
-  canvas.height = 1300;
+  canvas.height = 1200;
   const ctx = canvas.getContext('2d')!;
   let isPressed = false;
 
   const code = listing?.maskedTicketCode || 'AT*******99';
+  const count = listing?.bundleTotalTickets || 3;
   const priceNumber = totalResalePrice || listing?.resalePrice || 50000;
   const formattedPriceStr = priceNumber >= 1000000
     ? (priceNumber / 1).toLocaleString('vi-VN')
@@ -222,72 +303,118 @@ export function createRightScreenTexture(
   function draw() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    // Deep pristine AMOLED Black background
-    ctx.fillStyle = '#05070b';
+    // 1. Radial CRT Screen Glass Background
+    const bgGrad = ctx.createRadialGradient(
+      canvas.width * 0.45, canvas.height * 0.35, 40,
+      canvas.width * 0.5, canvas.height * 0.5, canvas.width * 0.75
+    );
+    bgGrad.addColorStop(0, '#181d22');
+    bgGrad.addColorStop(0.7, '#0d1013');
+    bgGrad.addColorStop(1, '#06080a');
+    ctx.fillStyle = bgGrad;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    // Top Right ID: Masked Code
-    const idBoxW = 400;
-    const idBoxH = 88;
-    const idBoxX = 70;
-    const idBoxY = 90;
+    // 2. Dot-Matrix / LED Grid Texture overlay
+    ctx.fillStyle = 'rgba(255, 170, 51, 0.045)';
+    for (let gx = 20; gx < canvas.width; gx += 20) {
+      for (let gy = 20; gy < canvas.height; gy += 20) {
+        ctx.fillRect(gx, gy, 2.5, 2.5);
+      }
+    }
 
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.05)';
-    roundedRect(ctx, idBoxX, idBoxY, idBoxW, idBoxH, 20);
+    // 3. CRT Scanlines
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.42)';
+    for (let y = 0; y < canvas.height; y += 8) {
+      ctx.fillRect(0, y, canvas.width, 3.5);
+    }
+
+    // 4. Status Code & READY Indicator
+    // Code Box
+    ctx.save();
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.65)';
+    roundedRect(ctx, 70, 80, 420, 76, 16);
     ctx.fill();
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.18)';
-    ctx.lineWidth = 2;
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+    ctx.lineWidth = 1.5;
     ctx.stroke();
 
-    ctx.fillStyle = '#e2e8f0';
-    ctx.font = '600 46px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+    ctx.font = '700 36px "Silkscreen", monospace';
+    ctx.fillStyle = '#cbd5e1';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText(code, idBoxX + idBoxW / 2, idBoxY + idBoxH / 2);
+    ctx.fillText(code, 70 + 210, 80 + 38);
     ctx.textAlign = 'left';
     ctx.textBaseline = 'alphabetic';
+    ctx.restore();
 
-    // Price Section
+    // READY Indicator
+    ctx.save();
+    ctx.font = '700 32px "Silkscreen", monospace';
+    ctx.fillStyle = '#34d399';
+    ctx.shadowColor = '#10b981';
+    ctx.shadowBlur = 12;
+    ctx.beginPath();
+    ctx.arc(660, 118, 7, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillText('READY', 680, 126);
+    ctx.restore();
+
+    // 5. Price Section
     const priceY = 320;
+    ctx.save();
+    ctx.font = '700 34px "Silkscreen", monospace';
+    ctx.fillStyle = '#ffaa33';
+    ctx.shadowColor = 'rgba(255, 140, 0, 0.7)';
+    ctx.shadowBlur = 8;
+    ctx.fillText(`PRICE (BUNDLE ${count}x)`, 70, priceY);
 
-    // "PRICE" Label
+    // Big Glowing White Price
+    ctx.font = '700 115px "Silkscreen", monospace';
+    ctx.fillStyle = '#f6f7fb';
+    ctx.shadowColor = 'rgba(255, 255, 255, 0.85)';
+    ctx.shadowBlur = 18;
+    ctx.fillText(formattedPriceStr, 70, priceY + 125);
+
+    const priceW = ctx.measureText(formattedPriceStr).width;
+    ctx.font = '700 44px "Silkscreen", monospace';
+    ctx.fillStyle = '#ffaa33';
+    ctx.shadowColor = 'rgba(255, 140, 0, 0.8)';
+    ctx.shadowBlur = 10;
+    ctx.fillText('VND', 70 + priceW + 18, priceY + 125);
+
+    // Subtitle
+    ctx.font = '400 32px "Plus Jakarta Sans", sans-serif';
     ctx.fillStyle = '#94a3b8';
-    ctx.font = '600 36px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
-    ctx.fillText('PRICE', 70, priceY);
+    ctx.shadowBlur = 0;
+    ctx.fillText('Organizer Verified Price', 70, priceY + 195);
+    ctx.restore();
 
-    // Big Bold Crisp Price + VND Unit
-    ctx.fillStyle = '#ffffff';
-    ctx.font = formattedPriceStr.length > 9
-      ? '800 100px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
-      : '800 120px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
-    ctx.letterSpacing = '-1px';
-    ctx.fillText(formattedPriceStr, 70, priceY + 130);
-
-    const priceWidth = ctx.measureText(formattedPriceStr).width;
-    ctx.fillStyle = '#cbd5e1';
-    ctx.font = '700 48px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
-    ctx.fillText('VND', 70 + priceWidth + 20, priceY + 130);
-
-    // Subtitle: "Organizer Verified Price"
-    ctx.fillStyle = '#94a3b8';
-    ctx.font = '500 36px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
-    ctx.fillText('Organizer Verified Price', 70, priceY + 205);
-
-    // ON-SCREEN TOUCHSCREEN CTA BUTTON (Vibrant Brand Orange #FF5A36)
+    // 6. Tactile Matrix Button: "XEM & MUA →"
     const btnX = 70;
-    const btnY = 800;
+    const btnY = 780;
     const btnW = canvas.width - 140; // 960
     const btnH = 260;
-    const btnR = 36;
+    const btnR = 32;
 
     ctx.save();
-    ctx.fillStyle = isPressed ? '#E04826' : '#FF5A36';
+    const btnGrad = ctx.createLinearGradient(btnX, btnY, btnX, btnY + btnH);
+    if (isPressed) {
+      btnGrad.addColorStop(0, '#e05b00');
+      btnGrad.addColorStop(1, '#ff7e14');
+    } else {
+      btnGrad.addColorStop(0, '#ff7e14');
+      btnGrad.addColorStop(1, '#e05b00');
+    }
+    ctx.fillStyle = btnGrad;
+    ctx.shadowColor = 'rgba(255, 110, 0, 0.75)';
+    ctx.shadowBlur = 20;
     roundedRect(ctx, btnX, btnY, btnW, btnH, btnR);
     ctx.fill();
 
-    // Text: "XEM & MUA →" in Bold Modern Font
-    ctx.fillStyle = '#ffffff';
-    ctx.font = '800 64px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+    // Text inside button: High-contrast crisp black
+    ctx.font = '700 68px "Silkscreen", monospace';
+    ctx.fillStyle = '#000000';
+    ctx.shadowBlur = 0;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText('XEM & MUA →', btnX + btnW / 2, btnY + btnH / 2);
