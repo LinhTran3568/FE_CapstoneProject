@@ -1,7 +1,7 @@
 // Web Audio API synthesizer for tactile mechanical and electronic dispenser sounds
 class SoundFX {
   private ctx: AudioContext | null = null;
-  public enabled: boolean = true;
+  public enabled: boolean = false;
 
   private getContext(): AudioContext | null {
     if (!this.ctx && typeof window !== 'undefined') {

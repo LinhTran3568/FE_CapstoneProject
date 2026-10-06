@@ -120,12 +120,6 @@ export const ConsoleViewer3D: React.FC<ConsoleViewer3DProps> = ({
     const nextState = targetDispense.current === 0;
     targetDispense.current = nextState ? 1 : 0;
 
-    if (nextState) {
-      soundFX.playDispenseSound();
-    } else {
-      soundFX.playRetractSound();
-    }
-
     if (onDispenseStateChange) {
       onDispenseStateChange(nextState);
     }
@@ -134,7 +128,6 @@ export const ConsoleViewer3D: React.FC<ConsoleViewer3DProps> = ({
   // Direct Click on the In-Screen "XEM & MUA →" Button
   const handleCtaButtonClick = (e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
-    soundFX.playButtonPress();
     rightScreenTexRef.current?.setPressed(true);
     setTimeout(() => {
       rightScreenTexRef.current?.setPressed(false);
@@ -159,7 +152,6 @@ export const ConsoleViewer3D: React.FC<ConsoleViewer3DProps> = ({
     targetRotY.current = 0.035; // Hơi xoay nhẹ ~2.0 độ
     targetRotZ.current = -0.015; // Hơi nghiêng nhẹ ~0.8 độ
     targetRotX.current = 0.012; // Hơi ngửa nhẹ
-    soundFX.playDispenseSound();
     if (onDispenseStateChange) onDispenseStateChange(true);
   };
 
@@ -168,7 +160,6 @@ export const ConsoleViewer3D: React.FC<ConsoleViewer3DProps> = ({
     targetRotY.current = 0;
     targetRotZ.current = 0;
     targetRotX.current = 0;
-    soundFX.playRetractSound();
     if (onDispenseStateChange) onDispenseStateChange(false);
   };
 
@@ -179,11 +170,11 @@ export const ConsoleViewer3D: React.FC<ConsoleViewer3DProps> = ({
     const h = containerRef.current.clientHeight;
     if (w === 0 || h === 0) return;
 
-    const scale = h / 4.3;
-    const cx = w / 2 + 0.862 * scale;
-    const cy = h / 2 - -0.667 * scale;
-    const bw = 1.22 * scale;
-    const bh = 0.34 * scale;
+    const scale = h / 2.65;
+    const cx = w / 2 + 0.832 * scale;
+    const cy = h / 2 - -0.567 * scale;
+    const bw = 1.20 * scale;
+    const bh = 0.32 * scale;
 
     setBtnOverlayRect({
       left: Math.round(cx - bw / 2),
@@ -205,9 +196,9 @@ export const ConsoleViewer3D: React.FC<ConsoleViewer3DProps> = ({
     const scene = new THREE.Scene();
     sceneRef.current = scene;
 
-    // 2. Orthographic Camera with Cabinet 30° Projection
+    // 2. Orthographic Camera with Cabinet 30° Projection (vH = 2.65 for bold scale)
     const aspect = width / height;
-    const viewHeight = 4.3;
+    const viewHeight = 2.65;
     const viewWidth = viewHeight * aspect;
     const orthoCamera = new THREE.OrthographicCamera(
       -viewWidth / 2,
@@ -262,7 +253,7 @@ export const ConsoleViewer3D: React.FC<ConsoleViewer3DProps> = ({
 
     // Root Group
     const rootGroup = new THREE.Group();
-    rootGroup.position.set(-0.25, -0.15, 0);
+    rootGroup.position.set(-0.28, -0.05, 0);
     scene.add(rootGroup);
     rootGroupRef.current = rootGroup;
 
@@ -451,7 +442,7 @@ export const ConsoleViewer3D: React.FC<ConsoleViewer3DProps> = ({
     // ---------------------------------------------------------
     const updateCabinetProjection = (w: number, h: number) => {
       const asp = w / h;
-      const vH = 4.3;
+      const vH = 2.65;
       const vW = vH * asp;
 
       orthoCamera.left = -vW / 2;
