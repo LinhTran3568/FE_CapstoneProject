@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   X,
@@ -71,7 +71,6 @@ export const TicketDetailModal: React.FC<TicketDetailModalProps> = ({
         : listing.originalPrice;
 
   const perTicketResalePrice = Math.round(totalResalePrice / (bundleCount || 1));
-  const perTicketOriginalPrice = Math.round(totalOriginalPrice / (bundleCount || 1));
 
   // Adjacency detection for all seats in combo
   const allSeatZones = effectiveBundleListings
@@ -102,7 +101,7 @@ export const TicketDetailModal: React.FC<TicketDetailModalProps> = ({
         tierName: item.tierName || listing.tierName || 'VIP ZONE',
         seatZone: item.seatZone || `Ghế #${idx + 1}`,
         price: item.resalePrice || perTicketResalePrice,
-        code: item.maskedTicketCode || `AT-2026-${String(idx + 1).padStart(4, '0')}`,
+        code: item.maskedTicketCode || `AT*******${String(idx + 1).padStart(2, '0')}`,
       }));
     }
 
@@ -116,7 +115,7 @@ export const TicketDetailModal: React.FC<TicketDetailModalProps> = ({
           price: perTicketResalePrice,
           code: listing.maskedTicketCode
             ? `${listing.maskedTicketCode.slice(0, -2)}${String(idx + 1).padStart(2, '0')}`
-            : `AT-2026-${String(idx + 1).padStart(4, '0')}`,
+            : `AT*******${String(idx + 1).padStart(2, '0')}`,
         }));
       }
 
@@ -126,7 +125,7 @@ export const TicketDetailModal: React.FC<TicketDetailModalProps> = ({
         tierName: listing.tierName || 'VIP ZONE A',
         seatZone: listing.seatZone ? `${listing.seatZone} (Vé #${idx + 1})` : `Ghế #${idx + 1}`,
         price: perTicketResalePrice,
-        code: listing.maskedTicketCode || `AT-2026-${String(idx + 1).padStart(4, '0')}`,
+        code: listing.maskedTicketCode || `AT*******${String(idx + 1).padStart(2, '0')}`,
       }));
     }
 
@@ -137,10 +136,12 @@ export const TicketDetailModal: React.FC<TicketDetailModalProps> = ({
         tierName: listing.tierName || 'VIP ZONE A',
         seatZone: listing.seatZone || 'Khán đài',
         price: listing.resalePrice,
-        code: listing.maskedTicketCode || 'AT-2026-XXXX',
+        code: listing.maskedTicketCode || 'AT*******99',
       },
     ];
   })();
+
+  const isRetailAllowed = listing.isBundleAllOrNothing === false;
 
   return (
     <AnimatePresence>
@@ -163,8 +164,8 @@ export const TicketDetailModal: React.FC<TicketDetailModalProps> = ({
           transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
           className="relative w-full max-w-2xl bg-[#090C12] border border-white/15 rounded-2xl shadow-2xl overflow-hidden z-10 my-auto text-left"
         >
-          {/* Header Banner: Tinh gọn chiều cao h-28 sm:h-32 */}
-          <div className="relative h-28 sm:h-32 w-full overflow-hidden">
+          {/* Header Banner: Tinh gọn chiều cao h-28 */}
+          <div className="relative h-28 w-full overflow-hidden">
             <img
               src={backdropUrl}
               alt={listing.eventName}
@@ -219,8 +220,8 @@ export const TicketDetailModal: React.FC<TicketDetailModalProps> = ({
               </div>
             </div>
 
-            {/* ================= DANH SÁCH CÁC CARD VÉ TRỰC QUAN (VISUAL TICKET CARDS) ================= */}
-            <div className="space-y-2">
+            {/* ================= DANH SÁCH CÁC CARD VÉ TRỰC QUAN (AUTHENTIC TICKET STUBS) ================= */}
+            <div className="space-y-2.5">
               <div className="flex items-center justify-between text-xs font-bold uppercase tracking-wider text-zinc-400">
                 <span className="flex items-center gap-1.5 text-white">
                   <Ticket className="w-3.5 h-3.5 text-[#FF5A36]" />
@@ -229,50 +230,113 @@ export const TicketDetailModal: React.FC<TicketDetailModalProps> = ({
                   </span>
                 </span>
                 {isBundle && (
-                  <span className="text-[11px] font-mono text-amber-300">
-                    Bán nguyên lô · Không tách lẻ
+                  <span className="text-[11px] font-mono text-amber-300 font-semibold px-2 py-0.5 rounded bg-amber-500/10 border border-amber-500/25">
+                    {isRetailAllowed ? 'Có bán lẻ' : 'Không bán lẻ'}
                   </span>
                 )}
               </div>
 
-              {/* Grid các card vé con: Hiển thị trực quan, đẹp mắt */}
-              <div
-                className={`grid gap-2.5 ${
-                  displayTickets.length >= 2 ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-1'
-                }`}
-              >
+              {/* Danh sách các thẻ vé trực quan y hệt mẫu vé TicketCard */}
+              <div className="space-y-3">
                 {displayTickets.map((t) => (
                   <div
                     key={t.id}
-                    className="relative rounded-xl p-3 border border-white/15 bg-gradient-to-b from-[#131724] to-[#0b0e16] flex flex-col justify-between shadow-md overflow-hidden group/ticket hover:border-[#FF5A36]/60 transition-colors"
+                    className="relative w-full h-[135px] sm:h-[145px] rounded-2xl overflow-hidden border border-white/15 shadow-xl flex select-none transition-all duration-200 hover:border-[#FF5A36]/60"
+                    style={{
+                      WebkitMaskImage:
+                        'radial-gradient(circle 12px at 68% 0px, transparent 11.5px, black 12px), radial-gradient(circle 12px at 68% 100%, transparent 11.5px, black 12px)',
+                      WebkitMaskComposite: 'destination-in',
+                      maskImage:
+                        'radial-gradient(circle 12px at 68% 0px, transparent 11.5px, black 12px), radial-gradient(circle 12px at 68% 100%, transparent 11.5px, black 12px)',
+                      maskComposite: 'intersect',
+                    }}
                   >
-                    {/* Top Notch khuyết vé */}
-                    <div className="absolute -top-2 left-1/2 -translate-x-1/2 w-4 h-4 rounded-full bg-[#090C12] border border-white/10" />
+                    {/* Đường nét đứt xé vé ngăn cách 2 bên */}
+                    <div className="absolute left-[68%] top-0 bottom-0 border-r border-dashed border-zinc-400/50 z-20 pointer-events-none" />
 
-                    <div>
-                      {/* Card Header Row */}
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-[#FF5A36]/20 text-[#FF8A65] border border-[#FF5A36]/40">
+                    {/* PHẦN THÂN TRÁI (68% width): Nền tối với ảnh sân khấu & thông tin chi tiết */}
+                    <div className="relative w-[68%] h-full rounded-l-2xl overflow-hidden flex flex-col justify-between p-3 sm:p-3.5 bg-[#0a0c10]">
+                      {/* Image Backdrop */}
+                      <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none">
+                        <img
+                          src={backdropUrl}
+                          alt={listing.eventName}
+                          className="w-full h-full object-cover object-center contrast-125 saturate-110 opacity-55"
+                          loading="lazy"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-r from-[#07080b]/95 via-[#0a0c10]/85 to-[#0b0d13]/95" />
+                      </div>
+
+                      {/* Header Row: Tier badge & Thứ tự vé */}
+                      <div className="relative z-10 flex items-center justify-between gap-1.5">
+                        <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full border border-white/20 bg-black/75 backdrop-blur-md">
+                          <span className="w-1.5 h-1.5 rounded-full bg-[#FF5A36] shadow-[0_0_6px_#FF5A36] animate-pulse" />
+                          <span className="text-[10px] sm:text-[11px] font-bold tracking-wider uppercase text-white truncate max-w-[120px]">
+                            {t.tierName}
+                          </span>
+                        </div>
+
+                        <span className="px-2 py-0.5 rounded bg-white/10 text-zinc-300 font-mono text-[9px] font-extrabold uppercase tracking-wider">
                           VÉ #{t.ticketIndex}
-                        </span>
-                        <span className="text-[11px] font-bold text-white uppercase tracking-wider">
-                          {t.tierName}
                         </span>
                       </div>
 
-                      {/* Vị trí ghế nổi bật */}
-                      <div className="p-2 rounded-lg bg-black/50 border border-white/5 mb-2">
-                        <div className="text-[9px] text-zinc-400 font-mono">VỊ TRÍ CHỖ NGỒI</div>
-                        <div className="text-xs sm:text-sm font-extrabold text-white truncate">
-                          {t.seatZone}
+                      {/* Event Title */}
+                      <div className="relative z-10 my-0.5">
+                        <h3 className="text-sm sm:text-base font-extrabold text-white tracking-tight leading-snug truncate drop-shadow-sm">
+                          {listing.eventName}
+                        </h3>
+                      </div>
+
+                      {/* Metadata: Vị trí ghế & Ngày/Địa điểm */}
+                      <div className="relative z-10 space-y-0.5 text-[10px] sm:text-[11px] text-zinc-300">
+                        <div className="flex items-center gap-1.5 text-amber-200 font-semibold truncate">
+                          <Ticket className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                          <span className="truncate">{t.seatZone}</span>
+                        </div>
+
+                        <div className="flex items-center justify-between text-zinc-400 text-[10px] pt-1 border-t border-white/[0.08]">
+                          <div className="flex items-center gap-1 truncate">
+                            <Calendar className="w-3 h-3 text-zinc-400 shrink-0" />
+                            <span className="truncate">{formatEventDateTime(listing.eventStartAt)}</span>
+                          </div>
+                          <div className="flex items-center gap-1 shrink-0 text-zinc-300">
+                            <span className="text-emerald-400 font-bold">✓</span>
+                            <span className="truncate">{listing.sellerFullName ? `Seller: ${listing.sellerFullName}` : 'Seller: Hoang Thong'}</span>
+                          </div>
                         </div>
                       </div>
                     </div>
 
-                    {/* Footer cuống vé: Mã & Giá vé con */}
-                    <div className="pt-2 border-t border-dashed border-white/15 flex items-center justify-between text-[11px] font-mono">
-                      <span className="text-zinc-400 truncate max-w-[110px]">{t.code}</span>
-                      <span className="text-emerald-400 font-bold">{formatVND(t.price)}</span>
+                    {/* PHẦN CUỐNG PHẢI (32% width): Nền giấy ngà sáng với Mã vé & Giá niêm yết */}
+                    <div className="relative w-[32%] h-full rounded-r-2xl p-2.5 sm:p-3 flex flex-col justify-between bg-gradient-to-br from-[#f8f7f2] via-[#f1f0e9] to-[#e8e6dc] text-slate-900">
+                      {/* Mã vé */}
+                      <div className="flex items-center justify-between">
+                        <span className="px-2 py-0.5 rounded bg-black/5 border border-black/10 text-[10px] font-mono font-bold text-slate-700 tracking-wider">
+                          {t.code}
+                        </span>
+                      </div>
+
+                      {/* Khối giá vé */}
+                      <div className="my-auto py-0.5 text-left">
+                        <div className="text-[9px] font-bold text-slate-500 uppercase tracking-wider">
+                          PRICE
+                        </div>
+                        <div className="flex items-baseline gap-1">
+                          <span className="text-base sm:text-lg font-black text-slate-900 leading-none">
+                            {formatVND(t.price)}
+                          </span>
+                        </div>
+                        <div className="text-[9px] font-mono text-slate-500 mt-0.5">
+                          Organizer Verified Price
+                        </div>
+                      </div>
+
+                      {/* Footer cuống vé */}
+                      <div className="flex items-center justify-between text-[9px] font-mono text-slate-400 border-t border-slate-300/60 pt-1">
+                        <span>OFFICIAL PASS</span>
+                        <span className="text-emerald-600 font-bold">✓ VERIFIED</span>
+                      </div>
                     </div>
                   </div>
                 ))}
