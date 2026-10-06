@@ -163,15 +163,11 @@ export const TicketCard: React.FC<TicketCardProps> = ({
   return (
     <div
       id={`ticket-card-${listing.listingId}`}
-      className={`group relative isolate w-full h-[195px] sm:h-[200px] select-none cursor-pointer transform-gpu will-change-transform transition-transform duration-200 ease-out origin-bottom-left ${
+      className={`group relative isolate w-full h-[195px] sm:h-[200px] select-none cursor-pointer transition-all duration-300 ease-out origin-bottom-left ${
         isBundle
-          ? 'hover:-translate-y-1.5 hover:-rotate-[0.6deg]'
-          : 'hover:-translate-y-1'
+          ? 'hover:-translate-y-2 hover:-rotate-[0.6deg]'
+          : 'hover:-translate-y-1.5'
       }`}
-      style={{
-        transform: 'translateZ(0)',
-        backfaceVisibility: 'hidden',
-      }}
       onClick={() => {
         if (!isTransacting && onViewDetails) {
           onViewDetails(listing);
@@ -183,7 +179,7 @@ export const TicketCard: React.FC<TicketCardProps> = ({
         <>
           {/* Deck Layer 2 (Mid Ticket): Khoét lỗ bán nguyệt ở 65% trên & dưới y hệt vé chính */}
           <div
-            className="absolute inset-0 rounded-2xl bg-[#141824] border border-white/15 -z-10 opacity-75 pointer-events-none transition-transform duration-200 ease-out origin-bottom-left -top-1 -right-1 group-hover:-top-2.5 group-hover:-right-4 group-hover:rotate-[1.4deg] group-hover:opacity-100 shadow-[0_8px_20px_rgba(0,0,0,0.6)] group-hover:border-[#FF5A36]/40 overflow-hidden transform-gpu will-change-transform"
+            className="absolute inset-0 rounded-2xl bg-[#141824] border border-white/15 -z-10 opacity-75 pointer-events-none transition-all duration-300 ease-out origin-bottom-left -top-1 -right-1 group-hover:-top-2.5 group-hover:-right-4 group-hover:rotate-[1.4deg] group-hover:opacity-100 shadow-[0_8px_20px_rgba(0,0,0,0.6)] group-hover:border-[#FF5A36]/50 overflow-hidden"
             style={{
               WebkitMaskImage:
                 'radial-gradient(circle 14px at 65% 0px, transparent 13.5px, black 14px), radial-gradient(circle 14px at 65% 100%, transparent 13.5px, black 14px)',
@@ -208,7 +204,7 @@ export const TicketCard: React.FC<TicketCardProps> = ({
           {/* Deck Layer 3 (Back Ticket - nếu bundle >= 3 vé): Khoét lỗ bán nguyệt ở 65% trên & dưới */}
           {bundleCount >= 3 && (
             <div
-              className="absolute inset-0 rounded-2xl bg-[#0d1017] border border-white/10 -z-20 opacity-45 pointer-events-none transition-transform duration-200 ease-out origin-bottom-left -top-2 -right-2 group-hover:-top-4.5 group-hover:-right-7.5 group-hover:rotate-[2.6deg] group-hover:opacity-85 shadow-[0_12px_28px_rgba(0,0,0,0.7)] group-hover:border-[#FF5A36]/30 overflow-hidden transform-gpu will-change-transform"
+              className="absolute inset-0 rounded-2xl bg-[#0d1017] border border-white/10 -z-20 opacity-45 pointer-events-none transition-all duration-300 ease-out origin-bottom-left -top-2 -right-2 group-hover:-top-4.5 group-hover:-right-7.5 group-hover:rotate-[2.6deg] group-hover:opacity-85 shadow-[0_12px_28px_rgba(0,0,0,0.7)] group-hover:border-[#FF5A36]/40 overflow-hidden"
               style={{
                 WebkitMaskImage:
                   'radial-gradient(circle 14px at 65% 0px, transparent 13.5px, black 14px), radial-gradient(circle 14px at 65% 100%, transparent 13.5px, black 14px)',
@@ -235,14 +231,14 @@ export const TicketCard: React.FC<TicketCardProps> = ({
 
       {/* ================= MASKED TICKET CONTAINER (Cutout Notches via CSS Mask) ================= */}
       <div
-        className={`relative w-full h-full flex rounded-2xl overflow-hidden border transition-[border-color,box-shadow] duration-200 ease-out ${
+        className={`relative w-full h-full flex rounded-2xl overflow-hidden border transition-all duration-300 ease-out ${
           isTransacting
             ? 'border-amber-500/40 shadow-[0_8px_30px_rgba(245,158,11,0.15)]'
             : isSold
               ? 'border-zinc-700/50 opacity-75'
               : isBundle
-                ? 'border-white/20 group-hover:border-[#FF5A36] shadow-[0_8px_24px_rgba(0,0,0,0.7)] group-hover:shadow-[0_12px_36px_rgba(255,90,54,0.25)]'
-                : 'border-white/10 group-hover:border-[#FF5A36] shadow-[0_8px_24px_rgba(0,0,0,0.7)] group-hover:shadow-[0_12px_36px_rgba(255,90,54,0.2)]'
+                ? 'border-white/20 group-hover:border-[#FF5A36] shadow-[0_8px_24px_rgba(0,0,0,0.7)] group-hover:shadow-[0_12px_36px_rgba(255,90,54,0.3)]'
+                : 'border-white/10 group-hover:border-[#FF5A36] shadow-[0_8px_24px_rgba(0,0,0,0.7)] group-hover:shadow-[0_12px_36px_rgba(255,90,54,0.25)]'
         }`}
         style={{
           WebkitMaskImage:
