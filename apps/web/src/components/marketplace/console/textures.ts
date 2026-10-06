@@ -71,7 +71,7 @@ export function createBrushedMetalBumpTexture(): THREE.CanvasTexture {
 
 /**
  * Left Screen Canvas Texture
- * Inherited from Vintage CRT Ticket Console: Amber & Cyan Phosphor Glow with Scanlines
+ * Clean, bold TicketShield dark theme with high-contrast amber/cyan glow & crisp typography
  */
 export function createLeftScreenTexture(listing?: MarketplaceListingDto, bundleCount = 3): {
   texture: THREE.CanvasTexture;
@@ -79,184 +79,173 @@ export function createLeftScreenTexture(listing?: MarketplaceListingDto, bundleC
 } {
   const canvas = document.createElement('canvas');
   canvas.width = 1920;
-  canvas.height = 1200;
+  canvas.height = 1080;
   const ctx = canvas.getContext('2d')!;
 
   const eventName = listing?.eventName || 'Anh Trai Say Hi Concert 2026';
-  const tierName = listing?.tierName || 'GA STANDING';
+  const tierName = listing?.tierName || 'VIP ZONE B';
   const count = listing?.bundleTotalTickets || bundleCount;
-  const seatZone = listing?.seatZone || 'GA Standing Zone 2';
+  const seatZone = listing?.seatZone || 'VIP Zone B - Hàng 3, Ghế 12';
   const eventDate = listing?.eventStartAt
     ? formatEventDateTime(listing.eventStartAt)
-    : '05 Nov 2026, 02:11';
-  const venue = listing?.eventVenue || 'Van Hanh Mall Stadium, TP.HCM';
+    : '05 Th11 2026 • 19:30';
+  const venue = listing?.eventVenue || 'SVĐ Quân Khu 7, TP.HCM';
   const organizer = listing?.organizerName ? `BTC: ${listing.organizerName}` : 'BTC: VieON Entertainment';
-  const seller = listing?.sellerFullName ? `Seller: ${listing.sellerFullName}` : 'Seller: Nguyen Van Seller';
+  const seller = listing?.sellerFullName ? `Seller: ${listing.sellerFullName}` : 'Seller: Hoàng Thông';
 
   function draw(time = 0) {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    // 1. Radial CRT Screen Glass Background
-    const bgGrad = ctx.createRadialGradient(
-      canvas.width * 0.45, canvas.height * 0.35, 50,
-      canvas.width * 0.5, canvas.height * 0.5, canvas.width * 0.7
-    );
-    bgGrad.addColorStop(0, '#181d22');
-    bgGrad.addColorStop(0.7, '#0d1013');
-    bgGrad.addColorStop(1, '#06080a');
+    // 1. Deep OLED Obsidian Background (TicketShield Theme)
+    const bgGrad = ctx.createLinearGradient(0, 0, 0, canvas.height);
+    bgGrad.addColorStop(0, '#090d15');
+    bgGrad.addColorStop(0.5, '#06080d');
+    bgGrad.addColorStop(1, '#05070a');
     ctx.fillStyle = bgGrad;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    // 2. CRT Glass Glare Highlight across top-left corner
-    const glareGrad = ctx.createLinearGradient(0, 0, canvas.width * 0.75, canvas.height * 0.65);
-    glareGrad.addColorStop(0, 'rgba(255, 255, 255, 0.08)');
-    glareGrad.addColorStop(0.35, 'rgba(255, 255, 255, 0.015)');
-    glareGrad.addColorStop(0.65, 'transparent');
-    ctx.fillStyle = glareGrad;
-    ctx.beginPath();
-    ctx.ellipse(canvas.width * 0.25, -canvas.height * 0.1, canvas.width * 0.65, canvas.height * 0.5, 0.2, 0, Math.PI * 2);
-    ctx.fill();
+    // 2. Subtle Upper Ambient Horizon Glow (Soft cyan/amber backlight)
+    const glowGrad = ctx.createRadialGradient(
+      canvas.width * 0.35, 120, 50,
+      canvas.width * 0.35, 120, 600
+    );
+    glowGrad.addColorStop(0, 'rgba(6, 182, 212, 0.08)');
+    glowGrad.addColorStop(1, 'rgba(6, 182, 212, 0)');
+    ctx.fillStyle = glowGrad;
+    ctx.fillRect(0, 0, canvas.width, 350);
 
-    // 3. Dot-Matrix / LED Grid Texture overlay
-    ctx.fillStyle = 'rgba(255, 170, 51, 0.045)';
-    for (let gx = 20; gx < canvas.width; gx += 20) {
-      for (let gy = 20; gy < canvas.height; gy += 20) {
-        ctx.fillRect(gx, gy, 2.5, 2.5);
-      }
+    // 3. Ultra-subtle Micro-Grid (Rất mờ, không tạo sọc răng cưa che chữ)
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.015)';
+    for (let gy = 40; gy < canvas.height; gy += 40) {
+      ctx.fillRect(0, gy, canvas.width, 1);
     }
 
-    // 4. CRT Horizontal Scanlines
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.42)';
-    for (let y = 0; y < canvas.height; y += 8) {
-      ctx.fillRect(0, y, canvas.width, 3.5);
-    }
+    // 4. Header Badges
+    const badgeY = 60;
+    const badgeH = 92;
 
-    // 5. Header Badges
-    // Cyan Tier Badge: "• GA STANDING"
-    const cyanPillW = 380;
-    const cyanPillH = 76;
+    // Cyan Tier Badge: "• VIP ZONE A" (from user's .badge-zone)
+    const cyanPillW = 440;
     ctx.save();
-    ctx.fillStyle = '#091b24';
-    roundedRect(ctx, 80, 80, cyanPillW, cyanPillH, 20);
+    ctx.fillStyle = '#111e29';
+    roundedRect(ctx, 70, badgeY, cyanPillW, badgeH, 24);
     ctx.fill();
-    ctx.strokeStyle = 'rgba(6, 182, 212, 0.6)';
+    ctx.strokeStyle = '#0284c7';
     ctx.lineWidth = 2.5;
     ctx.stroke();
 
-    // Glowing Cyan Dot
+    // Pulsing Cyan Dot
     const pulse = 0.85 + 0.15 * Math.sin(time * 3);
-    ctx.fillStyle = `rgba(34, 211, 238, ${pulse})`;
+    ctx.fillStyle = `rgba(56, 189, 248, ${pulse})`;
     ctx.shadowColor = '#00f0ff';
     ctx.shadowBlur = 14;
     ctx.beginPath();
-    ctx.arc(125, 80 + cyanPillH / 2, 9, 0, Math.PI * 2);
+    ctx.arc(120, badgeY + badgeH / 2, 11, 0, Math.PI * 2);
     ctx.fill();
 
-    // Cyan Text
-    ctx.font = '700 34px "Silkscreen", monospace';
-    ctx.fillStyle = '#67e8f9';
-    ctx.shadowColor = '#00f0ff';
-    ctx.shadowBlur = 10;
+    // Tier Text
+    ctx.font = '700 42px "Plus Jakarta Sans", sans-serif';
+    ctx.fillStyle = '#38bdf8';
+    ctx.shadowColor = 'rgba(56, 189, 248, 0.5)';
+    ctx.shadowBlur = 8;
     ctx.textBaseline = 'middle';
-    ctx.fillText(tierName.toUpperCase().slice(0, 14), 155, 80 + cyanPillH / 2);
+    ctx.fillText(`• ${tierName.toUpperCase().slice(0, 15)}`, 150, badgeY + badgeH / 2);
     ctx.restore();
 
-    // Amber Bundle Badge: "BUNDLE (N TICKETS)"
-    const orangePillW = 480;
-    const orangePillH = 76;
+    // Orange Bundle Badge: "BUNDLE (N TICKETS)" (from user's .badge-bundle)
+    const orangePillW = 560;
     ctx.save();
-    ctx.fillStyle = '#2e1303';
-    roundedRect(ctx, 490, 80, orangePillW, orangePillH, 20);
+    ctx.fillStyle = '#2a1608';
+    roundedRect(ctx, 540, badgeY, orangePillW, badgeH, 24);
     ctx.fill();
-    ctx.strokeStyle = 'rgba(249, 115, 22, 0.7)';
+    ctx.strokeStyle = '#ff7a18';
     ctx.lineWidth = 2.5;
     ctx.stroke();
 
-    ctx.font = '700 34px "Silkscreen", monospace';
-    ctx.fillStyle = '#ffaa33';
-    ctx.shadowColor = 'rgba(255, 140, 0, 0.8)';
+    ctx.font = '800 40px "Plus Jakarta Sans", sans-serif';
+    ctx.fillStyle = '#ff9142';
+    ctx.shadowColor = 'rgba(255, 122, 24, 0.6)';
     ctx.shadowBlur = 12;
     ctx.textBaseline = 'middle';
-    ctx.fillText(`BUNDLE (${count} TICKETS)`, 520, 80 + orangePillH / 2);
+    ctx.fillText(`BUNDLE (${count} TICKETS)`, 580, badgeY + badgeH / 2);
     ctx.restore();
 
-    // 6. Concert Title in Amber Dot Matrix Font
+    // 5. Concert Title: KHỔNG LỒ & BOLD (#ffffff)
     ctx.save();
-    ctx.font = '700 82px "Silkscreen", monospace';
-    ctx.fillStyle = '#ffaa33';
-    ctx.shadowColor = 'rgba(255, 140, 0, 0.9)';
+    ctx.font = '800 108px "Plus Jakarta Sans", -apple-system, sans-serif';
+    ctx.fillStyle = '#ffffff';
+    ctx.shadowColor = 'rgba(255, 255, 255, 0.4)';
     ctx.shadowBlur = 16;
-    ctx.textBaseline = 'alphabetic';
-    const displayTitle = eventName.length > 22 ? `${eventName.slice(0, 20)}...` : eventName;
-    ctx.fillText(displayTitle.toUpperCase(), 80, 310);
+    ctx.letterSpacing = '-1.5px';
+    const displayTitle = eventName.length > 24 ? `${eventName.slice(0, 22)}...` : eventName;
+    ctx.fillText(displayTitle, 70, 285);
     ctx.restore();
 
-    // 7. Border Separator
-    ctx.strokeStyle = 'rgba(255, 170, 51, 0.25)';
+    // 6. Glowing Horizontal Divider
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.12)';
     ctx.lineWidth = 2;
     ctx.beginPath();
-    ctx.moveTo(80, 420);
-    ctx.lineTo(canvas.width - 80, 420);
+    ctx.moveTo(70, 370);
+    ctx.lineTo(canvas.width - 70, 370);
     ctx.stroke();
 
-    // 8. Technical Details List in Amber/Gold VFD Typography
-    const metaY1 = 510;
+    // 7. Event Metadata (Matching user's .event-meta: #9aa5b5 and #e2e8f0)
+    // Row 1: Venue
+    const metaY1 = 490;
     ctx.save();
-    // Zone
-    ctx.fillStyle = '#ffaa33';
-    ctx.font = '700 44px "Silkscreen", monospace';
-    ctx.shadowColor = 'rgba(255, 140, 0, 0.8)';
-    ctx.shadowBlur = 10;
-    ctx.fillText('❖', 80, metaY1);
+    ctx.fillStyle = '#ff7a18';
+    ctx.font = '700 54px "Plus Jakarta Sans", sans-serif';
+    ctx.fillText('📍', 70, metaY1);
 
-    ctx.fillStyle = '#ffedd5';
-    ctx.font = '700 38px "Silkscreen", monospace';
-    ctx.shadowColor = 'rgba(255, 200, 100, 0.6)';
-    ctx.shadowBlur = 8;
-    ctx.fillText(seatZone.toUpperCase().slice(0, 20), 125, metaY1);
+    ctx.fillStyle = '#9aa5b5';
+    ctx.font = '500 50px "Plus Jakarta Sans", sans-serif';
+    ctx.fillText(venue.slice(0, 44), 145, metaY1);
 
-    // Time
-    ctx.fillStyle = '#ffaa33';
-    ctx.font = '700 44px "Silkscreen", monospace';
-    ctx.fillText('◷', 850, metaY1);
-
-    ctx.fillStyle = '#fed7aa';
-    ctx.font = '700 38px "Silkscreen", monospace';
-    ctx.fillText(eventDate.toUpperCase(), 895, metaY1);
-
-    // Row 2: Venue
+    // Row 2: Date & Seller
     const metaY2 = 640;
-    ctx.fillStyle = '#ffaa33';
-    ctx.font = '700 44px "Silkscreen", monospace';
-    ctx.fillText('⚑', 80, metaY2);
+    ctx.fillStyle = '#ff7a18';
+    ctx.font = '700 54px "Plus Jakarta Sans", sans-serif';
+    ctx.fillText('📅', 70, metaY2);
 
-    ctx.fillStyle = '#fef08a';
-    ctx.font = '400 52px "VT323", monospace';
-    ctx.fillText(venue.slice(0, 40), 125, metaY2);
+    ctx.fillStyle = '#9aa5b5';
+    ctx.font = '500 48px "Plus Jakarta Sans", sans-serif';
+    ctx.fillText(eventDate, 145, metaY2);
 
-    // Row 3: Organizer & Seller
-    const metaY3 = 760;
-    ctx.strokeStyle = 'rgba(255, 170, 51, 0.15)';
+    const dateW = ctx.measureText(eventDate).width;
+    const sellerX = Math.max(145 + dateW + 60, 960);
+
+    ctx.fillStyle = '#9aa5b5';
+    ctx.fillText('👤 Seller: ', sellerX, metaY2);
+    const sellerLabelW = ctx.measureText('👤 Seller: ').width;
+
+    ctx.fillStyle = '#e2e8f0';
+    ctx.font = '700 48px "Plus Jakarta Sans", sans-serif';
+    ctx.fillText(seller.slice(0, 24), sellerX + sellerLabelW, metaY2);
+
+    // Divider Line 2
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.08)';
     ctx.beginPath();
-    ctx.moveTo(80, 700);
-    ctx.lineTo(canvas.width - 80, 700);
+    ctx.moveTo(70, 720);
+    ctx.lineTo(canvas.width - 70, 720);
     ctx.stroke();
 
-    ctx.fillStyle = '#fed7aa';
-    ctx.font = '400 46px "VT323", monospace';
-    ctx.fillText(`${organizer.slice(0, 30)}`, 80, metaY3);
+    // Row 3: Organizer
+    const metaY3 = 810;
+    ctx.fillStyle = '#627284';
+    ctx.font = '500 44px "Plus Jakarta Sans", sans-serif';
+    ctx.fillText(organizer.slice(0, 36), 70, metaY3);
 
     ctx.fillStyle = '#34d399';
-    ctx.shadowColor = '#10b981';
-    ctx.shadowBlur = 10;
-    ctx.font = '700 42px "Silkscreen", monospace';
-    ctx.fillText('✓', 850, metaY3);
-
-    ctx.fillStyle = '#ffedd5';
-    ctx.shadowBlur = 0;
-    ctx.font = '400 46px "VT323", monospace';
-    ctx.fillText(`${seller.slice(0, 30)}`, 895, metaY3);
+    ctx.font = '700 44px "Plus Jakarta Sans", sans-serif';
+    ctx.fillText('✓ BTC Verified', sellerX, metaY3);
     ctx.restore();
+
+    // 8. Bottom Border Inner Shadow
+    const bottomShadow = ctx.createLinearGradient(0, canvas.height - 40, 0, canvas.height);
+    bottomShadow.addColorStop(0, 'rgba(0, 0, 0, 0)');
+    bottomShadow.addColorStop(1, 'rgba(0, 0, 0, 0.4)');
+    ctx.fillStyle = bottomShadow;
+    ctx.fillRect(0, canvas.height - 40, canvas.width, 40);
   }
 
   draw(0);
@@ -276,7 +265,7 @@ export function createLeftScreenTexture(listing?: MarketplaceListingDto, bundleC
 
 /**
  * Right Screen Canvas Texture with IN-SCREEN TOUCH BUTTON
- * Inherited from Vintage CRT Ticket Console: Status, Price & Matrix Button
+ * Phù hợp theme TicketShield, kích thước chữ và nút to rõ, dễ bấm
  */
 export function createRightScreenTexture(
   listing?: MarketplaceListingDto,
@@ -295,7 +284,7 @@ export function createRightScreenTexture(
 
   const code = listing?.maskedTicketCode || 'AT*******99';
   const count = listing?.bundleTotalTickets || 3;
-  const priceNumber = totalResalePrice || listing?.resalePrice || 50000;
+  const priceNumber = totalResalePrice || listing?.resalePrice || 5500000;
   const formattedPriceStr = priceNumber >= 1000000
     ? (priceNumber / 1).toLocaleString('vi-VN')
     : priceNumber.toLocaleString('vi-VN');
@@ -303,117 +292,107 @@ export function createRightScreenTexture(
   function draw() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    // 1. Radial CRT Screen Glass Background
-    const bgGrad = ctx.createRadialGradient(
-      canvas.width * 0.45, canvas.height * 0.35, 40,
-      canvas.width * 0.5, canvas.height * 0.5, canvas.width * 0.75
-    );
-    bgGrad.addColorStop(0, '#181d22');
-    bgGrad.addColorStop(0.7, '#0d1013');
-    bgGrad.addColorStop(1, '#06080a');
+    // 1. Deep OLED Obsidian Background
+    const bgGrad = ctx.createLinearGradient(0, 0, 0, canvas.height);
+    bgGrad.addColorStop(0, '#090d15');
+    bgGrad.addColorStop(0.5, '#06080d');
+    bgGrad.addColorStop(1, '#05070a');
     ctx.fillStyle = bgGrad;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    // 2. Dot-Matrix / LED Grid Texture overlay
-    ctx.fillStyle = 'rgba(255, 170, 51, 0.045)';
-    for (let gx = 20; gx < canvas.width; gx += 20) {
-      for (let gy = 20; gy < canvas.height; gy += 20) {
-        ctx.fillRect(gx, gy, 2.5, 2.5);
-      }
-    }
+    // 2. Subtle Horizon Glow
+    const glowGrad = ctx.createRadialGradient(
+      canvas.width * 0.5, 120, 40,
+      canvas.width * 0.5, 120, 500
+    );
+    glowGrad.addColorStop(0, 'rgba(255, 122, 24, 0.08)');
+    glowGrad.addColorStop(1, 'rgba(255, 122, 24, 0)');
+    ctx.fillStyle = glowGrad;
+    ctx.fillRect(0, 0, canvas.width, 350);
 
-    // 3. CRT Scanlines
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.42)';
-    for (let y = 0; y < canvas.height; y += 8) {
-      ctx.fillRect(0, y, canvas.width, 3.5);
-    }
-
-    // 4. Status Code & READY Indicator
-    // Code Box
+    // 3. Status Code (from user's .serial-box)
+    const idBoxW = 480;
+    const idBoxH = 92;
     ctx.save();
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.65)';
-    roundedRect(ctx, 70, 80, 420, 76, 16);
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
+    roundedRect(ctx, 60, 60, idBoxW, idBoxH, 16);
     ctx.fill();
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
-    ctx.lineWidth = 1.5;
+    ctx.strokeStyle = '#332414';
+    ctx.lineWidth = 2.5;
     ctx.stroke();
 
-    ctx.font = '700 36px "Silkscreen", monospace';
-    ctx.fillStyle = '#cbd5e1';
+    ctx.font = '700 48px "VT323", monospace';
+    ctx.fillStyle = '#ffaa5e';
+    ctx.shadowColor = '#ff7a18';
+    ctx.shadowBlur = 12;
+    ctx.letterSpacing = '3px';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText(code, 70 + 210, 80 + 38);
-    ctx.textAlign = 'left';
-    ctx.textBaseline = 'alphabetic';
+    ctx.fillText(code, 60 + idBoxW / 2, 60 + idBoxH / 2);
     ctx.restore();
 
-    // READY Indicator
+    // 4. Price Section (from user's .price-section: .price-label #717d8f, .price-val #ffffff)
+    const priceY = 260;
     ctx.save();
-    ctx.font = '700 32px "Silkscreen", monospace';
-    ctx.fillStyle = '#34d399';
-    ctx.shadowColor = '#10b981';
-    ctx.shadowBlur = 12;
-    ctx.beginPath();
-    ctx.arc(660, 118, 7, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.fillText('READY', 680, 126);
-    ctx.restore();
+    ctx.font = '700 38px "Plus Jakarta Sans", sans-serif';
+    ctx.fillStyle = '#717d8f';
+    ctx.letterSpacing = '1px';
+    ctx.fillText(`PRICE (BUNDLE ${count}X)`, 60, priceY);
 
-    // 5. Price Section
-    const priceY = 320;
-    ctx.save();
-    ctx.font = '700 34px "Silkscreen", monospace';
-    ctx.fillStyle = '#ffaa33';
-    ctx.shadowColor = 'rgba(255, 140, 0, 0.7)';
-    ctx.shadowBlur = 8;
-    ctx.fillText(`PRICE (BUNDLE ${count}x)`, 70, priceY);
-
-    // Big Glowing White Price
-    ctx.font = '700 115px "Silkscreen", monospace';
-    ctx.fillStyle = '#f6f7fb';
-    ctx.shadowColor = 'rgba(255, 255, 255, 0.85)';
-    ctx.shadowBlur = 18;
-    ctx.fillText(formattedPriceStr, 70, priceY + 125);
+    // Huge Glowing White Price (.price-val)
+    const isVeryLong = formattedPriceStr.length > 10;
+    ctx.font = isVeryLong
+      ? '800 138px "Plus Jakarta Sans", sans-serif'
+      : '800 162px "Plus Jakarta Sans", sans-serif';
+    ctx.fillStyle = '#ffffff';
+    ctx.shadowColor = 'rgba(255, 255, 255, 0.7)';
+    ctx.shadowBlur = 24;
+    ctx.letterSpacing = '-2px';
+    ctx.fillText(formattedPriceStr, 60, priceY + 155);
 
     const priceW = ctx.measureText(formattedPriceStr).width;
-    ctx.font = '700 44px "Silkscreen", monospace';
-    ctx.fillStyle = '#ffaa33';
-    ctx.shadowColor = 'rgba(255, 140, 0, 0.8)';
+    ctx.font = '800 58px "Plus Jakarta Sans", sans-serif';
+    ctx.fillStyle = '#ffffff';
     ctx.shadowBlur = 10;
-    ctx.fillText('VND', 70 + priceW + 18, priceY + 125);
+    ctx.fillText('VND', 60 + priceW + 20, priceY + 155);
 
-    // Subtitle
-    ctx.font = '400 32px "Plus Jakarta Sans", sans-serif';
-    ctx.fillStyle = '#94a3b8';
+    // Verified tag (.verified-tag: #627284)
+    ctx.font = '500 40px "Plus Jakarta Sans", sans-serif';
+    ctx.fillStyle = '#627284';
     ctx.shadowBlur = 0;
-    ctx.fillText('Organizer Verified Price', 70, priceY + 195);
+    ctx.fillText('✓ Organizer Verified Price', 60, priceY + 235);
     ctx.restore();
 
-    // 6. Tactile Matrix Button: "XEM & MUA →"
-    const btnX = 70;
-    const btnY = 780;
-    const btnW = canvas.width - 140; // 960
-    const btnH = 260;
-    const btnR = 32;
+    // 5. Tactile Matrix Button: "XEM & MUA →" (.btn-action-matrix: linear-gradient(180deg, #ff8c2b 0%, #e65c00 100%))
+    const btnX = 60;
+    const btnY = 660;
+    const btnW = canvas.width - 120; // 980
+    const btnH = 460;
+    const btnR = 36;
 
     ctx.save();
     const btnGrad = ctx.createLinearGradient(btnX, btnY, btnX, btnY + btnH);
     if (isPressed) {
-      btnGrad.addColorStop(0, '#e05b00');
-      btnGrad.addColorStop(1, '#ff7e14');
+      btnGrad.addColorStop(0, '#c74e00');
+      btnGrad.addColorStop(1, '#e65c00');
     } else {
-      btnGrad.addColorStop(0, '#ff7e14');
-      btnGrad.addColorStop(1, '#e05b00');
+      btnGrad.addColorStop(0, '#ff8c2b');
+      btnGrad.addColorStop(1, '#e65c00');
     }
     ctx.fillStyle = btnGrad;
-    ctx.shadowColor = 'rgba(255, 110, 0, 0.75)';
-    ctx.shadowBlur = 20;
+    ctx.shadowColor = 'rgba(255, 122, 24, 0.7)';
+    ctx.shadowBlur = 32;
     roundedRect(ctx, btnX, btnY, btnW, btnH, btnR);
     ctx.fill();
 
-    // Text inside button: High-contrast crisp black
-    ctx.font = '700 68px "Silkscreen", monospace';
-    ctx.fillStyle = '#000000';
+    // Border highlight
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.35)';
+    ctx.lineWidth = 3;
+    ctx.stroke();
+
+    // Button Text: Huge Crisp White
+    ctx.font = '800 86px "Plus Jakarta Sans", sans-serif';
+    ctx.fillStyle = '#ffffff';
     ctx.shadowBlur = 0;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
@@ -439,7 +418,9 @@ export function createRightScreenTexture(
       texture.needsUpdate = true;
     },
     isButtonUV: (uv: THREE.Vector2) => {
-      return uv.x >= 0.05 && uv.x <= 0.95 && uv.y >= 0.15 && uv.y <= 0.38;
+      const px = uv.x * 1100;
+      const py = (1 - uv.y) * 1200;
+      return px >= 60 && px <= 1040 && py >= 660 && py <= 1120;
     },
   };
 }

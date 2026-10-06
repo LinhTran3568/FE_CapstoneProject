@@ -165,17 +165,18 @@ export const ConsoleViewer3D: React.FC<ConsoleViewer3DProps> = ({
   };
 
   // Calculate pixel bounds of the in-screen CTA button for HTML overlay
+  // Calculate pixel bounds of the in-screen CTA button for HTML overlay
   const updateOverlayButtonPosition = useCallback(() => {
     if (!containerRef.current) return;
     const w = containerRef.current.clientWidth;
     const h = containerRef.current.clientHeight;
     if (w === 0 || h === 0) return;
 
-    const scale = h / 2.30;
-    const cx = w / 2 + 1.27 * scale;
-    const cy = h / 2 - -0.370 * scale;
-    const bw = 1.35 * scale;
-    const bh = 0.36 * scale;
+    const scale = h / 2.12;
+    const cx = w / 2 + 1.41 * scale;
+    const cy = h / 2 + 0.40 * scale;
+    const bw = 1.44 * scale;
+    const bh = 0.65 * scale;
 
     setBtnOverlayRect({
       left: Math.round(cx - bw / 2),
@@ -197,9 +198,9 @@ export const ConsoleViewer3D: React.FC<ConsoleViewer3DProps> = ({
     const scene = new THREE.Scene();
     sceneRef.current = scene;
 
-    // 2. Orthographic Camera with Cabinet 30° Projection (vH = 2.30 to fill card area)
+    // 2. Orthographic Camera with Cabinet 30° Projection (vH = 2.12 to fill card area)
     const aspect = width / height;
-    const viewHeight = 2.30;
+    const viewHeight = 2.12;
     const viewWidth = viewHeight * aspect;
     const orthoCamera = new THREE.OrthographicCamera(
       -viewWidth / 2,
@@ -224,32 +225,32 @@ export const ConsoleViewer3D: React.FC<ConsoleViewer3DProps> = ({
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.28;
+    renderer.toneMappingExposure = 1.10;
     container.innerHTML = '';
     container.appendChild(renderer.domElement);
     rendererRef.current = renderer;
 
-    // 4. Studio Lighting System
-    const ambientLight = new THREE.AmbientLight(0xffffff, 2.4);
+    // 4. Studio Lighting System (Balanced for Dark Gunmetal Housing)
+    const ambientLight = new THREE.AmbientLight(0xffffff, 1.25);
     scene.add(ambientLight);
 
-    const keyLight = new THREE.DirectionalLight(0xffffff, 3.8);
-    keyLight.position.set(3.5, 7.0, 7.0);
+    const keyLight = new THREE.DirectionalLight(0xffffff, 2.8);
+    keyLight.position.set(3.5, 6.0, 5.5);
     keyLight.castShadow = true;
     keyLight.shadow.mapSize.width = 512;
     keyLight.shadow.mapSize.height = 512;
     scene.add(keyLight);
 
-    const topLight = new THREE.DirectionalLight(0xffffff, 3.0);
-    topLight.position.set(0.0, 8.0, 2.5);
+    const topLight = new THREE.DirectionalLight(0xffffff, 1.8);
+    topLight.position.set(0.0, 7.0, 2.0);
     scene.add(topLight);
 
-    const fillLight = new THREE.DirectionalLight(0xdbeafe, 2.0);
-    fillLight.position.set(-6.0, 3.0, 4.0);
+    const fillLight = new THREE.DirectionalLight(0x94a3b8, 1.2);
+    fillLight.position.set(-5.0, 2.5, 4.0);
     scene.add(fillLight);
 
-    const warmSlot = new THREE.DirectionalLight(0xffedd5, 2.2);
-    warmSlot.position.set(6.0, 0.5, 3.5);
+    const warmSlot = new THREE.DirectionalLight(0xff7a18, 1.8);
+    warmSlot.position.set(5.5, 0.5, 3.0);
     scene.add(warmSlot);
 
     // Root Group (Centered with room for right tickets)
@@ -259,26 +260,26 @@ export const ConsoleViewer3D: React.FC<ConsoleViewer3DProps> = ({
     rootGroupRef.current = rootGroup;
 
     // ---------------------------------------------------------
-    // 5. CHASSIS ARCHITECTURE (Pristine Satin White Ceramic Finish)
+    // 5. CHASSIS ARCHITECTURE (Gunmetal Housing with Bevel Depth)
     // ---------------------------------------------------------
     const metalBumpTex = createBrushedMetalBumpTexture();
-    const chassisGeom = createRoundedBox(5.20, 2.08, 0.78, 0.22, 0.035);
+    const chassisGeom = createRoundedBox(5.45, 2.06, 0.76, 0.22, 0.035);
     const chassisMat = new THREE.MeshStandardMaterial({
-      color: 0xf5f7fb, // Crisp Ceramic Pearl White
-      roughness: 0.32,
-      metalness: 0.12,
+      color: 0x272c35, // Premium Matte Gunmetal (Gradient #444952 -> #292d34 -> #1c1f24)
+      roughness: 0.38,
+      metalness: 0.70, // Authentic metal sheen with specular reflections along rounded chamfers
       bumpMap: metalBumpTex,
-      bumpScale: 0.0012,
+      bumpScale: 0.0016,
     });
     const chassis = new THREE.Mesh(chassisGeom, chassisMat);
     chassis.castShadow = true;
     chassis.receiveShadow = true;
     rootGroup.add(chassis);
 
-    // Continuous glowing neon LED rim - Warm White Champagne Glow
+    // Continuous glowing neon LED rim - Radiant Neon Orange Halo (#ff7a18)
     const rimShape = new THREE.Shape();
-    const rimW = 5.06 / 2 - 0.20;
-    const rimH = 1.94 / 2 - 0.20;
+    const rimW = 5.30 / 2 - 0.20;
+    const rimH = 1.92 / 2 - 0.20;
     const rimR = 0.20;
     rimShape.moveTo(-rimW, -rimH - rimR);
     rimShape.lineTo(rimW, -rimH - rimR);
@@ -296,7 +297,7 @@ export const ConsoleViewer3D: React.FC<ConsoleViewer3DProps> = ({
       true
     );
     const rimTubeGeom = new THREE.TubeGeometry(rimCurve, 80, 0.016, 8, true);
-    const rimTubeMat = new THREE.MeshBasicMaterial({ color: 0xfffaee });
+    const rimTubeMat = new THREE.MeshBasicMaterial({ color: 0xff7a18 }); // Radiant Neon Orange
     const frontGlowTube = new THREE.Mesh(rimTubeGeom, rimTubeMat);
     frontGlowTube.position.set(0, 0, 0.415);
     rootGroup.add(frontGlowTube);
@@ -305,30 +306,30 @@ export const ConsoleViewer3D: React.FC<ConsoleViewer3DProps> = ({
     // 6. AMOLED SCREENS & SUBTLE GLASS REFLECTION
     // ---------------------------------------------------------
     const screenBezelMat = new THREE.MeshStandardMaterial({
-      color: 0x07090e,
-      roughness: 0.90,
-      metalness: 0.10,
+      color: 0x111317, // Deep Chamfered Bezel Recess
+      roughness: 0.85,
+      metalness: 0.20,
     });
 
     // Dark flush screen cavities behind the screen planes
-    const leftBackGeom = createRoundedPlaneGeometry(3.04, 1.76, 0.14);
+    const leftBackGeom = createRoundedPlaneGeometry(3.30, 1.80, 0.14);
     const leftBackMesh = new THREE.Mesh(leftBackGeom, screenBezelMat);
     leftBackMesh.position.set(-0.82, 0, 0.428);
     rootGroup.add(leftBackMesh);
 
-    const rightBackGeom = createRoundedPlaneGeometry(1.54, 1.76, 0.14);
+    const rightBackGeom = createRoundedPlaneGeometry(1.66, 1.80, 0.14);
     const rightBackMesh = new THREE.Mesh(rightBackGeom, screenBezelMat);
-    rightBackMesh.position.set(1.52, 0, 0.428);
+    rightBackMesh.position.set(1.66, 0, 0.428);
     rootGroup.add(rightBackMesh);
 
     const dividerMat = new THREE.MeshStandardMaterial({
-      color: 0x222630,
-      roughness: 0.40,
-      metalness: 0.80,
+      color: 0x3d424b, // Metallic Bezel Divider
+      roughness: 0.35,
+      metalness: 0.75,
     });
-    const pillarGeom = createRoundedBox(0.08, 1.74, 0.06, 0.02, 0.01);
+    const pillarGeom = createRoundedBox(0.06, 1.76, 0.06, 0.02, 0.01);
     const pillar = new THREE.Mesh(pillarGeom, dividerMat);
-    pillar.position.set(0.72, 0, 0.442);
+    pillar.position.set(0.83, 0, 0.442);
     rootGroup.add(pillar);
 
     // Dynamic Bundle info calculation
@@ -338,7 +339,7 @@ export const ConsoleViewer3D: React.FC<ConsoleViewer3DProps> = ({
       ? effectiveListings.reduce((sum, item) => sum + (item.resalePrice || 0), 0)
       : (listing?.bundleTotalTickets && listing.bundleTotalTickets >= 2
         ? listing.resalePrice * listing.bundleTotalTickets
-        : listing?.resalePrice || 150000);
+        : listing?.resalePrice || 5500000);
 
     // Left Screen: crisp and vibrant emissive AMOLED
     const { texture: leftTex, update: updateLeftScreen } = createLeftScreenTexture(listing, count);
@@ -348,9 +349,9 @@ export const ConsoleViewer3D: React.FC<ConsoleViewer3DProps> = ({
       metalness: 0.05,
       emissive: new THREE.Color(0xffffff),
       emissiveMap: leftTex,
-      emissiveIntensity: 0.85,
+      emissiveIntensity: 0.92,
     });
-    const leftScreenGeom = createRoundedPlaneGeometry(3.00, 1.72, 0.12);
+    const leftScreenGeom = createRoundedPlaneGeometry(3.26, 1.76, 0.12);
     const leftScreenMesh = new THREE.Mesh(leftScreenGeom, leftScreenMat);
     leftScreenMesh.position.set(-0.82, 0, 0.435);
     rootGroup.add(leftScreenMesh);
@@ -365,11 +366,11 @@ export const ConsoleViewer3D: React.FC<ConsoleViewer3DProps> = ({
       metalness: 0.05,
       emissive: new THREE.Color(0xffffff),
       emissiveMap: rightTexObj.texture,
-      emissiveIntensity: 0.85,
+      emissiveIntensity: 0.92,
     });
-    const rightScreenGeom = createRoundedPlaneGeometry(1.50, 1.72, 0.12);
+    const rightScreenGeom = createRoundedPlaneGeometry(1.62, 1.76, 0.12);
     const rightScreenMesh = new THREE.Mesh(rightScreenGeom, rightScreenMat);
-    rightScreenMesh.position.set(1.52, 0, 0.435);
+    rightScreenMesh.position.set(1.66, 0, 0.435);
     rootGroup.add(rightScreenMesh);
 
     // Subtle Glass Overlays (bóng siêu nhẹ, trong suốt tuyệt đối)
@@ -389,7 +390,7 @@ export const ConsoleViewer3D: React.FC<ConsoleViewer3DProps> = ({
     rootGroup.add(leftGlass);
 
     const rightGlass = new THREE.Mesh(rightScreenGeom, glassMat);
-    rightGlass.position.set(1.52, 0, 0.440);
+    rightGlass.position.set(1.66, 0, 0.440);
     rootGroup.add(rightGlass);
 
     // ---------------------------------------------------------
@@ -398,21 +399,21 @@ export const ConsoleViewer3D: React.FC<ConsoleViewer3DProps> = ({
     const slotCavityGeom = new THREE.BoxGeometry(1.10, 1.36, 0.45);
     const slotCavityMat = new THREE.MeshBasicMaterial({ color: 0x020306 });
     const slotCavity = new THREE.Mesh(slotCavityGeom, slotCavityMat);
-    slotCavity.position.set(2.00, 0, 0.0);
+    slotCavity.position.set(2.10, 0, 0.0);
     rootGroup.add(slotCavity);
 
-    const slotBezelGeom = createRoundedBox(0.04, 1.42, 0.48, 0.04, 0.01);
+    const slotBezelGeom = createRoundedBox(0.04, 1.44, 0.48, 0.04, 0.01);
     const slotBezel = new THREE.Mesh(slotBezelGeom, dividerMat);
-    slotBezel.position.set(2.55, 0, 0.0);
+    slotBezel.position.set(2.68, 0, 0.0);
     rootGroup.add(slotBezel);
 
-    const lipGeom = new THREE.BoxGeometry(0.05, 1.38, 0.12);
+    const lipGeom = new THREE.BoxGeometry(0.05, 1.40, 0.12);
     const lipMesh = new THREE.Mesh(lipGeom, chassisMat);
-    lipMesh.position.set(2.555, 0, 0.14);
+    lipMesh.position.set(2.685, 0, 0.14);
     rootGroup.add(lipMesh);
 
     // Ticket geometry
-    const ticketGeom = new THREE.PlaneGeometry(0.92, 1.26);
+    const ticketGeom = new THREE.PlaneGeometry(0.92, 1.28);
 
     const t1Item = effectiveListings[0];
     const t2Item = effectiveListings[1] || effectiveListings[0];
@@ -444,9 +445,9 @@ export const ConsoleViewer3D: React.FC<ConsoleViewer3DProps> = ({
     const ticketsGroup = new THREE.Group();
     rootGroup.add(ticketsGroup);
 
-    const idleTicketX1 = 2.22;
-    const idleTicketX2 = 2.30;
-    const idleTicketX3 = 2.38;
+    const idleTicketX1 = 2.34;
+    const idleTicketX2 = 2.43;
+    const idleTicketX3 = 2.52;
 
     const t3 = new THREE.Mesh(ticketGeom, ticketMat3);
     t3.position.set(idleTicketX3, -0.01, -0.10);
@@ -468,7 +469,7 @@ export const ConsoleViewer3D: React.FC<ConsoleViewer3DProps> = ({
     // ---------------------------------------------------------
     const updateCabinetProjection = (w: number, h: number) => {
       const asp = w / h;
-      const vH = 2.30;
+      const vH = 2.12;
       const vW = vH * asp;
 
       orthoCamera.left = -vW / 2;
@@ -531,9 +532,9 @@ export const ConsoleViewer3D: React.FC<ConsoleViewer3DProps> = ({
       const p = dispenseProgress.current;
 
       // Sliding positions (thu nhỏ tối đa cự ly trượt theo yêu cầu)
-      t1.position.x = idleTicketX1 + p * 0.10;
-      t2.position.x = idleTicketX2 + p * 0.16;
-      t3.position.x = idleTicketX3 + p * 0.22;
+      t1.position.x = idleTicketX1 + p * 0.08;
+      t2.position.x = idleTicketX2 + p * 0.14;
+      t3.position.x = idleTicketX3 + p * 0.20;
 
       // Subtle fanning tilt of tickets when pulled out
       t1.rotation.z = p * -0.008;
