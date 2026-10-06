@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Calendar, MapPin, CheckCircle2, Ticket, Layers, Sparkles, ShieldCheck } from 'lucide-react';
+import { Calendar, MapPin, CheckCircle2, Ticket } from 'lucide-react';
 import { MarketplaceListingDto } from '@ticketshield/types';
 import { formatEventDateTime } from '../../utils/formatters';
 
@@ -11,8 +11,13 @@ interface BundleToasterCardProps {
 }
 
 /**
- * Skeuomorphic 2.5D "Ticket Bundle Toaster" Component
- * Thiết kế cỗ máy Terminal cơ khí nhả vé Combo (2-3 vé) từ khe cắm vật lý có chiều sâu Isometric 3D.
+ * Skeuomorphic 2.5D "Ticket Bundle Toaster" UI Component
+ * Tái hiện chính xác 100% cỗ máy phần cứng Unibody 3D theo thiết kế nguyên bản:
+ * - Khối máy nguyên khối với góc nhìn 3/4 Isometric Perspective.
+ * - Viền đèn LED Neon Tube màu kem ấm (Warm Ivory) bo quanh toàn bộ mặt trước.
+ * - Mặt trước thụt sâu chứa 2 màn hình AMOLED tách biệt.
+ * - Mặt hông phải có hốc khe cơ khí (Mechanical Slot) kẹp chặt xấp vé.
+ * - Xấp 3 vé (1 vé đen + 2 vé trắng có barcode) cắm sâu và nhô dài ra ngoài khe cắm.
  */
 export const BundleToasterCard: React.FC<BundleToasterCardProps> = ({
   listing,
@@ -27,7 +32,7 @@ export const BundleToasterCard: React.FC<BundleToasterCardProps> = ({
   const ticketCount = Math.max(
     listing.bundleTotalTickets || 0,
     effectiveListings.length,
-    3 // mặc định trực quan 3 vé cho hiệu ứng Toaster
+    3
   );
 
   const totalBundlePrice = effectiveListings.length > 1
@@ -39,47 +44,12 @@ export const BundleToasterCard: React.FC<BundleToasterCardProps> = ({
   const formattedTotalPrice = new Intl.NumberFormat('vi-VN').format(totalBundlePrice);
   const formattedDate = formatEventDateTime(listing.eventStartAt);
 
-  // Danh sách vé con hiển thị trong khe nhả vé
-  const ticketCardsData = [
-    {
-      id: 3,
-      code: effectiveListings[2]?.maskedTicketCode || 'AT•••6580',
-      seat: effectiveListings[2]?.seatZone || 'Seat C-03',
-      color: 'bg-gradient-to-br from-slate-200 to-slate-300 text-slate-800',
-      tilt: '-rotate-[5deg]',
-      hoverShift: 'group-hover:translate-x-6 group-hover:-rotate-[7deg]',
-      zIndex: 'z-10',
-      shadow: 'shadow-md',
-      opacity: 'opacity-90',
-    },
-    {
-      id: 2,
-      code: effectiveListings[1]?.maskedTicketCode || 'AT•••6579',
-      seat: effectiveListings[1]?.seatZone || 'Seat C-02',
-      color: 'bg-gradient-to-br from-zinc-100 to-slate-200 text-slate-900',
-      tilt: 'rotate-[0deg]',
-      hoverShift: 'group-hover:translate-x-4 group-hover:rotate-[1deg]',
-      zIndex: 'z-20',
-      shadow: 'shadow-lg',
-      opacity: 'opacity-95',
-    },
-    {
-      id: 1,
-      code: effectiveListings[0]?.maskedTicketCode || 'AT•••6578',
-      seat: effectiveListings[0]?.seatZone || 'Seat C-01',
-      color: 'bg-gradient-to-br from-white via-slate-50 to-orange-50/50 text-slate-900',
-      tilt: 'rotate-[4deg]',
-      hoverShift: 'group-hover:translate-x-2 group-hover:rotate-[6deg]',
-      zIndex: 'z-30',
-      shadow: 'shadow-2xl shadow-black/60',
-      opacity: 'opacity-100',
-    },
-  ];
+  const maskedCode = listing.maskedTicketCode || 'AT*******99';
 
   return (
     <div
-      className="relative w-full py-4 select-none"
-      style={{ perspective: '1400px' }}
+      className="relative w-full py-4 px-1 select-none flex items-center justify-center"
+      style={{ perspective: '1600px' }}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
       onClick={() => {
@@ -89,211 +59,270 @@ export const BundleToasterCard: React.FC<BundleToasterCardProps> = ({
     >
       {/* 2.5D Isometric Tilt Wrapper */}
       <div
-        className={`group relative w-full h-[225px] sm:h-[235px] cursor-pointer transition-all duration-300 ease-out ${
-          isHovered
-            ? 'scale-[1.01] -translate-y-1.5'
-            : ''
+        className={`group relative w-full max-w-[620px] h-[225px] sm:h-[235px] cursor-pointer transition-all duration-300 ease-out ${
+          isHovered ? '-translate-y-1.5' : ''
         }`}
         style={{
           transformStyle: 'preserve-3d',
           transform: isHovered
-            ? 'rotateY(-4deg) rotateX(1deg)'
-            : 'rotateY(-8deg) rotateX(2deg)',
+            ? 'rotateY(-10deg) rotateX(1deg)'
+            : 'rotateY(-14deg) rotateX(2deg)',
         }}
       >
-        {/* ================= 1. CHASSIS AMBIENT RIM GLOW & SHADOW ================= */}
+        {/* ================= 1. AMBIENT FLOOR CONTACT SHADOW ================= */}
         <div
-          className="absolute -inset-1 rounded-[38px] bg-gradient-to-r from-cyan-500/20 via-orange-500/20 to-cyan-500/10 blur-xl opacity-60 transition-opacity duration-300 group-hover:opacity-90 pointer-events-none"
+          className="absolute -bottom-5 left-6 right-10 h-10 bg-black/80 blur-xl rounded-full transform -skew-x-12 pointer-events-none transition-all duration-300"
+          style={{ opacity: isHovered ? 0.95 : 0.75 }}
           aria-hidden="true"
         />
 
-        {/* ================= 2. MAIN CONSOLE CHASSIS (Skeuomorphic Gunmetal Body) ================= */}
-        <div className="relative w-full h-full rounded-[34px] p-2.5 sm:p-3 bg-gradient-to-b from-[#2e3442] via-[#1a1e27] to-[#0e1117] border-t border-white/30 border-l border-white/15 border-b border-black/80 border-r border-black/60 shadow-[0_24px_48px_rgba(0,0,0,0.85),_inset_0_1px_2px_rgba(255,255,255,0.25)] flex items-stretch overflow-visible">
+        {/* ================= 2. THE 3D UNIBODY MACHINE CHASSIS ================= */}
+        <div className="relative w-full h-full flex items-stretch">
 
-          {/* Screws / Bolts Decor on 4 Corners of the Hardware Frame */}
-          <div className="absolute top-2.5 left-3 w-1.5 h-1.5 rounded-full bg-zinc-600 border border-white/20 shadow-inner" />
-          <div className="absolute bottom-2.5 left-3 w-1.5 h-1.5 rounded-full bg-zinc-600 border border-white/20 shadow-inner" />
-          <div className="absolute top-2.5 right-3 w-1.5 h-1.5 rounded-full bg-zinc-600 border border-white/20 shadow-inner" />
-          <div className="absolute bottom-2.5 right-3 w-1.5 h-1.5 rounded-full bg-zinc-600 border border-white/20 shadow-inner" />
+          {/* --- MAIN MACHINE HOUSING (FRONT BEZEL WITH WARM IVORY LED GLOW) --- */}
+          <div className="relative flex-1 h-full rounded-[30px] p-[5px] bg-gradient-to-br from-[#404756] via-[#2f3542] to-[#1e222b] shadow-[0_25px_50px_rgba(0,0,0,0.85),_inset_0_1px_2px_rgba(255,255,255,0.35)] flex items-stretch">
 
-          {/* Top Chassis Beveled Highlight */}
-          <div className="absolute top-0 inset-x-8 h-[1px] bg-gradient-to-r from-transparent via-cyan-300/40 to-transparent pointer-events-none" />
+            {/* Warm Ivory LED Tube Border (Viền đèn neon sáng màu kem ấm bo quanh mặt trước) */}
+            <div className="relative w-full h-full rounded-[26px] p-[4px] bg-[#f2eee3] shadow-[0_0_14px_rgba(255,248,225,0.45),_inset_0_0_8px_rgba(255,248,225,0.3)] flex items-stretch">
 
-          {/* ================= 3. FRONT BEZEL: TWO RECESSED AMOLED SCREENS ================= */}
-          <div className="relative z-10 flex-1 grid grid-cols-[1fr_auto_1fr] items-stretch gap-0 mr-[65px] sm:mr-[75px]">
+              {/* Recessed Dark Metal Bezel Frame */}
+              <div className="relative w-full h-full rounded-[22px] p-2 sm:p-2.5 bg-gradient-to-b from-[#2b303c] via-[#1f232c] to-[#15181f] shadow-[inset_0_2px_6px_rgba(0,0,0,0.9)] flex items-stretch gap-2.5">
 
-            {/* --- SCREEN 1 (LEFT): EVENT METADATA TERMINAL --- */}
-            <div className="relative rounded-2xl bg-[#050608] border border-white/5 p-3.5 sm:p-4 flex flex-col justify-between overflow-hidden shadow-[inset_0_3px_10px_rgba(0,0,0,0.9),_0_1px_0_rgba(255,255,255,0.05)]">
-              {/* Screen Glass Scanline & Reflection */}
-              <div className="absolute inset-0 bg-gradient-to-b from-white/[0.04] via-transparent to-black/40 pointer-events-none" />
-              <div className="absolute -top-10 -left-10 w-24 h-24 bg-cyan-500/10 rounded-full blur-2xl pointer-events-none" />
+                {/* ---------------- SCREEN 1: LEFT EVENT AMOLED DISPLAY ---------------- */}
+                <div className="relative flex-[1.25] h-full rounded-2xl bg-[#060709] border border-white/5 p-3 sm:p-3.5 flex flex-col justify-between overflow-hidden shadow-[inset_0_3px_10px_rgba(0,0,0,0.95)]">
+                  {/* Subtle Screen Glare */}
+                  <div className="absolute inset-0 bg-gradient-to-b from-white/[0.04] via-transparent to-black/50 pointer-events-none" />
 
-              {/* Badges Row */}
-              <div className="relative z-10 flex flex-wrap items-center gap-1.5">
-                {/* Cyan Pulsating Tier Badge */}
-                <div className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-cyan-950/70 border border-cyan-400/40 shadow-[0_0_10px_rgba(6,182,212,0.25)]">
-                  <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-ping" />
-                  <span className="text-[10px] font-black tracking-wider uppercase text-cyan-300">
-                    {listing.tierName || 'GA STANDING'}
-                  </span>
+                  {/* Badges Row */}
+                  <div className="relative z-10 flex items-center gap-1.5 flex-wrap">
+                    {/* Cyan Indicator Badge */}
+                    <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-cyan-950/60 border border-cyan-400/30">
+                      <span className="w-1.5 h-1.5 rounded-full bg-cyan-400" />
+                      <span className="text-[10px] font-bold tracking-wider uppercase text-cyan-200">
+                        {listing.tierName || 'GA STANDING'}
+                      </span>
+                    </div>
+
+                    {/* Orange Glow Pill Badge */}
+                    <div className="inline-flex items-center px-3 py-0.5 rounded-full bg-[#f95721] text-white text-[10px] font-black tracking-wider uppercase shadow-[0_2px_8px_rgba(249,87,33,0.4)]">
+                      BUNDLE ({ticketCount} TICKETS)
+                    </div>
+                  </div>
+
+                  {/* Event Title */}
+                  <div className="relative z-10 my-0.5 space-y-1">
+                    <h3 className="text-[15px] sm:text-[16px] font-black text-white tracking-tight leading-snug line-clamp-2">
+                      {listing.eventName}
+                    </h3>
+
+                    {/* Seat Zone & Date Meta */}
+                    <div className="flex items-center gap-2 flex-wrap text-[11px] font-semibold text-[#f98838]">
+                      <div className="flex items-center gap-1">
+                        <Ticket className="w-3.5 h-3.5 text-[#f98838] shrink-0" />
+                        <span>{listing.seatZone || 'GA Standing Zone 2'}</span>
+                      </div>
+                      <div className="flex items-center gap-1 text-zinc-400 font-normal">
+                        <Calendar className="w-3 h-3 text-zinc-400 shrink-0" />
+                        <span>{formattedDate}</span>
+                      </div>
+                    </div>
+
+                    {/* Venue Location */}
+                    <div className="flex items-center gap-1 text-[10px] text-zinc-400 truncate">
+                      <MapPin className="w-3 h-3 text-zinc-400 shrink-0" />
+                      <span className="truncate">{listing.eventVenue}</span>
+                    </div>
+                  </div>
+
+                  {/* Verification Footer */}
+                  <div className="relative z-10 flex items-center gap-3 text-[10px] text-zinc-400 border-t border-white/5 pt-1.5">
+                    <div className="truncate">
+                      <span>BTC: </span>
+                      <span className="text-zinc-200 font-medium">{listing.organizerName || 'VieON Entertainment'}</span>
+                    </div>
+                    {listing.sellerFullName && (
+                      <div className="flex items-center gap-1 shrink-0">
+                        <CheckCircle2 className="w-3 h-3 text-emerald-400 shrink-0" />
+                        <span className="text-zinc-300">Seller: {listing.sellerFullName}</span>
+                      </div>
+                    )}
+                  </div>
                 </div>
 
-                {/* Orange Glow Bundle Pill */}
-                <div className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-gradient-to-r from-[#FF5A36]/25 to-orange-500/25 border border-[#FF5A36]/60 shadow-[0_0_12px_rgba(255,90,54,0.3)]">
-                  <Layers className="w-3 h-3 text-[#FF5A36]" />
-                  <span className="text-[10px] font-black tracking-wider uppercase text-[#FF8A65]">
-                    BUNDLE ({ticketCount} VÉ)
-                  </span>
-                </div>
-              </div>
+                {/* ---------------- SCREEN 2: RIGHT PRICING & CTA TERMINAL ---------------- */}
+                <div className="relative flex-1 h-full rounded-2xl bg-[#060709] border border-white/5 p-3 sm:p-3.5 flex flex-col justify-between overflow-hidden shadow-[inset_0_3px_10px_rgba(0,0,0,0.95)]">
+                  {/* Subtle Screen Glare */}
+                  <div className="absolute inset-0 bg-gradient-to-b from-white/[0.04] via-transparent to-black/50 pointer-events-none" />
 
-              {/* Event Title & Seat Zone */}
-              <div className="relative z-10 my-1 space-y-1">
-                <h3 className="text-[14px] sm:text-[15px] font-black text-white tracking-tight leading-snug line-clamp-2 drop-shadow-sm group-hover:text-cyan-200 transition-colors">
-                  {listing.eventName}
-                </h3>
-                <div className="flex items-center gap-1.5 text-[11px] font-semibold text-cyan-400/90 font-mono">
-                  <Ticket className="w-3 h-3 text-cyan-400 shrink-0" />
-                  <span className="truncate max-w-[150px] sm:max-w-[180px]">
-                    {listing.seatZone || `Combo ${ticketCount} ghế liền kề`}
-                  </span>
-                </div>
-              </div>
+                  {/* Ticket Masked ID Tag */}
+                  <div className="relative z-10 flex items-center justify-start">
+                    <span className="px-2 py-0.5 rounded-md bg-[#131720] border border-white/10 font-mono text-[10px] font-bold text-zinc-300">
+                      {maskedCode}
+                    </span>
+                  </div>
 
-              {/* Timestamp & Venue Footer */}
-              <div className="relative z-10 space-y-0.5 text-[10px] text-zinc-400 border-t border-white/5 pt-1.5">
-                <div className="flex items-center gap-1 truncate">
-                  <Calendar className="w-3 h-3 text-zinc-400 shrink-0" />
-                  <span className="truncate">{formattedDate}</span>
-                </div>
-                <div className="flex items-center gap-1 truncate">
-                  <MapPin className="w-3 h-3 text-zinc-400 shrink-0" />
-                  <span className="truncate">{listing.eventVenue}</span>
-                </div>
-              </div>
-            </div>
+                  {/* Price Block */}
+                  <div className="relative z-10 my-auto py-1">
+                    <div className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">
+                      PRICE
+                    </div>
+                    <div className="text-[22px] sm:text-[24px] font-black text-white tracking-tight leading-tight">
+                      {formattedTotalPrice}{' '}
+                      <span className="text-[12px] font-bold text-zinc-300">VND</span>
+                    </div>
+                    <div className="text-[10px] text-zinc-400 font-medium">
+                      Organizer Verified Price
+                    </div>
+                  </div>
 
-            {/* --- CENTRAL PHYSICAL HARDWARE DIVIDER --- */}
-            <div className="w-3 sm:w-4 flex items-center justify-center relative">
-              <div className="w-1.5 h-[80%] rounded-full bg-gradient-to-r from-zinc-700 via-zinc-500 to-zinc-800 shadow-[0_0_2px_rgba(0,0,0,0.8),_inset_0_1px_1px_rgba(255,255,255,0.4)] border border-black/40" />
-            </div>
-
-            {/* --- SCREEN 2 (RIGHT): PRICING & CTA TERMINAL --- */}
-            <div className="relative rounded-2xl bg-[#050608] border border-white/5 p-3.5 sm:p-4 flex flex-col justify-between overflow-hidden shadow-[inset_0_3px_10px_rgba(0,0,0,0.9),_0_1px_0_rgba(255,255,255,0.05)]">
-              {/* Glass Scanline & Reflection */}
-              <div className="absolute inset-0 bg-gradient-to-b from-white/[0.04] via-transparent to-black/40 pointer-events-none" />
-              <div className="absolute -bottom-8 -right-8 w-24 h-24 bg-orange-500/10 rounded-full blur-2xl pointer-events-none" />
-
-              {/* Top Tag: Masked bundle ID */}
-              <div className="relative z-10 flex items-center justify-between">
-                <div className="inline-flex items-center gap-1 text-[9px] font-mono text-zinc-400">
-                  <ShieldCheck className="w-3 h-3 text-emerald-400" />
-                  <span>AUTHENTIC</span>
+                  {/* Pill CTA Button */}
+                  <div className="relative z-10">
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (onViewDetails) onViewDetails(listing);
+                        else onBuy(listing);
+                      }}
+                      className="w-full py-2.5 px-4 rounded-full bg-[#f95721] hover:bg-[#e64a17] text-white font-extrabold text-[12px] tracking-wider uppercase shadow-[0_4px_14px_rgba(249,87,33,0.45)] flex items-center justify-center gap-1.5 transition-all duration-150 active:scale-[0.98] cursor-pointer"
+                    >
+                      <span>XEM & MUA</span>
+                      <span className="text-sm font-black transition-transform duration-150 group-hover:translate-x-1">→</span>
+                    </button>
+                  </div>
                 </div>
-                <span className="font-mono text-[9px] text-zinc-400 px-1.5 py-0.5 rounded bg-white/5 border border-white/10">
-                  ID: {listing.listingId.slice(0, 6)}
-                </span>
-              </div>
 
-              {/* Centered Price Block */}
-              <div className="relative z-10 text-center my-auto py-1">
-                <div className="text-[10px] font-bold text-zinc-400 tracking-wider uppercase">
-                  TRỌN GÓI ({ticketCount} VÉ)
-                </div>
-                <div className="text-[20px] sm:text-[22px] font-black text-white tracking-tight leading-tight">
-                  <span className="text-amber-400 drop-shadow-[0_0_12px_rgba(251,191,36,0.3)]">
-                    {formattedTotalPrice}
-                  </span>
-                  <span className="text-[11px] font-bold text-zinc-300 ml-1">VND</span>
-                </div>
-                <div className="text-[9px] font-mono text-emerald-400/80 flex items-center justify-center gap-1 mt-0.5">
-                  <CheckCircle2 className="w-2.5 h-2.5" />
-                  <span>Giá niêm yết chuẩn BTC</span>
-                </div>
-              </div>
-
-              {/* Vibrant Pill CTA Button */}
-              <div className="relative z-10">
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    if (onViewDetails) onViewDetails(listing);
-                    else onBuy(listing);
-                  }}
-                  className="w-full py-2 px-3 rounded-full bg-gradient-to-r from-[#FF5A36] via-[#FF6E40] to-orange-500 hover:from-orange-500 hover:to-[#FF5A36] text-white font-extrabold text-[11px] sm:text-xs tracking-wider shadow-[0_4px_16px_rgba(255,90,54,0.4)] flex items-center justify-center gap-1.5 transition-all duration-200 active:scale-[0.98] cursor-pointer"
-                >
-                  <span>XEM & MUA GÓI</span>
-                  <span className="transition-transform duration-200 group-hover:translate-x-1">→</span>
-                </button>
               </div>
             </div>
           </div>
 
-          {/* ================= 4. MECHANICAL SLOT & TICKET EJECTION MECHANISM ================= */}
-          {/* Vị trí mạn phải: Cấu trúc Sandwich 3 lớp */}
-          <div className="absolute right-0 top-0 bottom-0 w-[80px] sm:w-[95px] overflow-visible pointer-events-none">
+          {/* ================= 3. RIGHT FLANK (MẶT HÔNG 3D CỦA CỖ MÁY) ================= */}
+          <div
+            className="relative w-[38px] sm:w-[44px] h-full rounded-r-[32px] -ml-[2px] bg-gradient-to-r from-[#2a303d] via-[#222631] to-[#171a22] border-t border-b border-r border-black/80 shadow-[inset_1px_0_1px_rgba(255,255,255,0.15)] flex items-center justify-center"
+            style={{
+              transformOrigin: 'left center',
+            }}
+          >
+            {/* Miệng khe cơ khí dập chìm trên mặt hông (Recessed Slot Port) */}
+            <div className="relative w-[18px] sm:w-[20px] h-[145px] sm:h-[155px] rounded-[8px] p-[2.5px] bg-[#0c0e13] border border-white/10 shadow-[inset_2px_0_6px_rgba(0,0,0,0.95)] flex items-center justify-start overflow-visible">
 
-            {/* LAYER 1: Background Slot Cavity (Rãnh khoang cơ khí sâu hút z-0) */}
-            <div className="absolute top-4 bottom-4 left-2 w-8 rounded-r-xl bg-[#030406] border-l-2 border-black shadow-[inset_4px_0_12px_rgba(0,0,0,0.98),_inset_0_2px_4px_rgba(0,0,0,0.8)] z-0" />
+              {/* Lỗ hốc đen sâu hút bên trong (Pitch Black Well) */}
+              <div className="relative w-full h-full rounded-[5px] bg-black shadow-[inset_0_0_8px_#000] overflow-visible">
 
-            {/* Rãnh kim loại bên trong khe nhả vé */}
-            <div className="absolute top-5 bottom-5 left-3 w-1 bg-black/80 rounded-full z-0" />
-
-            {/* LAYER 2: Ticket Bundle Stack (Xấp 3 vé xếp lớp z-10 thò ra ngoài) */}
-            <div className="absolute top-4 bottom-4 left-2.5 right-[-15px] sm:right-[-25px] flex items-center justify-start overflow-visible z-10">
-              {ticketCardsData.map((t, idx) => (
+                {/* ================= 4. THE 3 EJECTING TICKETS STACK ================= */}
+                {/* Toàn bộ xấp vé chui từ trong lỗ này thò dài ra ngoài sang phải */}
                 <div
-                  key={t.id}
-                  className={`absolute left-0 w-[68px] sm:w-[82px] h-[135px] sm:h-[150px] rounded-xl p-2 flex flex-col justify-between border border-black/15 transition-all duration-300 ease-out ${t.color} ${t.tilt} ${t.hoverShift} ${t.zIndex} ${t.shadow} ${t.opacity}`}
-                  style={{
-                    transformOrigin: 'left center',
-                    left: `${idx * 4}px`,
-                  }}
+                  className={`absolute left-[3px] top-[4px] bottom-[4px] flex items-center transition-transform duration-300 ease-out pointer-events-none ${
+                    isHovered ? 'translate-x-3' : 'translate-x-0'
+                  }`}
+                  style={{ width: '130px' }}
                 >
-                  {/* Notch cắn góc của cuống vé */}
-                  <div className="absolute -top-1.5 left-1/2 -translate-x-1/2 w-3 h-1.5 rounded-b-full bg-[#151921] border-b border-black/20" />
-                  <div className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-3 h-1.5 rounded-t-full bg-[#151921] border-t border-black/20" />
+                  {/* --- TICKET 1 (TRONG CÙNG): VÉ ĐEN CARBON --- */}
+                  <div
+                    className="absolute left-[8px] w-[95px] sm:w-[105px] h-[125px] sm:h-[135px] rounded-r-xl bg-[#0f1117] border border-white/15 p-2 flex flex-col justify-between text-white shadow-[0_6px_16px_rgba(0,0,0,0.8)] z-10"
+                    style={{
+                      transform: 'rotate(-2deg)',
+                      transformOrigin: 'left center',
+                    }}
+                  >
+                    {/* Cutout notch mép trên & dưới */}
+                    <div className="absolute -top-1.5 right-6 w-3 h-1.5 rounded-b-full bg-[#1e222b]" />
+                    <div className="absolute -bottom-1.5 right-6 w-3 h-1.5 rounded-t-full bg-[#1e222b]" />
 
-                  {/* Header vé */}
-                  <div className="flex items-center justify-between">
-                    <span className="text-[8px] font-black uppercase text-orange-600">
-                      TICKET {t.id}
-                    </span>
-                    <Sparkles className="w-2.5 h-2.5 text-amber-500" />
+                    <div className="flex items-center justify-between">
+                      <span className="text-[7px] font-black uppercase text-amber-500">2026</span>
+                    </div>
+
+                    <div className="my-auto text-center font-mono text-[8px] text-zinc-300 leading-tight">
+                      <div>05 Nov</div>
+                      <div>02:11</div>
+                    </div>
+
+                    <div className="text-[6.5px] text-zinc-400 font-mono truncate border-t border-white/10 pt-0.5">
+                      Nguyen Van Seller
+                    </div>
                   </div>
 
-                  {/* Vị trí ghế & Barcode */}
-                  <div className="my-auto text-center space-y-1">
-                    <div className="font-mono text-[9px] font-bold tracking-tight text-slate-800">
-                      {t.seat}
+                  {/* --- TICKET 2 (Ở GIỮA): VÉ TRẮNG SẮC NÉT (MÃ VẠCH + GIÁ) --- */}
+                  <div
+                    className="absolute left-[20px] w-[98px] sm:w-[110px] h-[132px] sm:h-[142px] rounded-r-xl bg-white border border-slate-300 p-2 flex flex-col justify-between text-slate-900 shadow-[4px_8px_20px_rgba(0,0,0,0.6)] z-20"
+                    style={{
+                      transform: 'rotate(2deg)',
+                      transformOrigin: 'left center',
+                    }}
+                  >
+                    {/* Cutout notch mép trên & dưới */}
+                    <div className="absolute -top-1.5 right-6 w-3 h-1.5 rounded-b-full bg-[#1e222b]" />
+                    <div className="absolute -bottom-1.5 right-6 w-3 h-1.5 rounded-t-full bg-[#1e222b]" />
+
+                    {/* Header vé có logo VieON */}
+                    <div className="flex items-center justify-between border-b border-slate-200 pb-1">
+                      <span className="font-black text-[8px] text-orange-600 tracking-wider">VieON</span>
+                      <span className="font-mono text-[7px] text-slate-500 font-bold">#2</span>
                     </div>
-                    {/* Giả lập Barcode mini */}
-                    <div className="flex items-center justify-center gap-0.5 h-4 opacity-70">
+
+                    {/* Thân vé: Tên sự kiện & Barcode thẳng đứng */}
+                    <div className="my-auto flex items-center justify-between gap-1 py-0.5">
+                      <div className="flex-1 font-bold text-[7.5px] leading-tight text-slate-800 line-clamp-3">
+                        Anh Trai Say Hi Concert 2026
+                      </div>
+
+                      {/* Barcode SVG sắc nét */}
+                      <div className="flex items-center gap-[1px] h-9 shrink-0 pr-1">
+                        <div className="w-[1px] h-full bg-slate-900" />
+                        <div className="w-[2px] h-full bg-slate-900" />
+                        <div className="w-[1px] h-full bg-slate-900" />
+                        <div className="w-[3px] h-full bg-slate-900" />
+                        <div className="w-[1px] h-full bg-slate-900" />
+                        <div className="w-[2px] h-full bg-slate-900" />
+                        <div className="w-[1px] h-full bg-slate-900" />
+                        <div className="w-[3px] h-full bg-slate-900" />
+                      </div>
+                    </div>
+
+                    {/* Footer giá vé */}
+                    <div className="border-t border-slate-200 pt-1 flex items-center justify-between">
+                      <span className="font-black text-[9px] text-slate-900">
+                        {formattedTotalPrice} VND
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* --- TICKET 3 (NGOÀI CÙNG PHÍA SAU): VÉ TRẮNG SỐ 3 --- */}
+                  <div
+                    className="absolute left-[34px] w-[96px] sm:w-[106px] h-[128px] sm:h-[138px] rounded-r-xl bg-slate-50 border border-slate-300 p-2 flex flex-col justify-between text-slate-800 shadow-[6px_10px_22px_rgba(0,0,0,0.5)] z-15"
+                    style={{
+                      transform: 'rotate(5deg)',
+                      transformOrigin: 'left center',
+                    }}
+                  >
+                    {/* Header */}
+                    <div className="flex items-center justify-between border-b border-slate-200 pb-1">
+                      <span className="font-black text-[8px] text-zinc-500">VieON</span>
+                      <span className="font-mono text-[7px] text-slate-500 font-bold">#3</span>
+                    </div>
+
+                    {/* Barcode phụ */}
+                    <div className="my-auto flex items-center justify-center gap-[1.5px] h-8 opacity-60">
                       <div className="w-[1px] h-full bg-slate-900" />
                       <div className="w-[2px] h-full bg-slate-900" />
                       <div className="w-[1px] h-full bg-slate-900" />
+                      <div className="w-[2px] h-full bg-slate-900" />
                       <div className="w-[3px] h-full bg-slate-900" />
-                      <div className="w-[1px] h-full bg-slate-900" />
-                      <div className="w-[2px] h-full bg-slate-900" />
-                      <div className="w-[1px] h-full bg-slate-900" />
+                    </div>
+
+                    <div className="border-t border-slate-200 pt-0.5 text-right font-mono text-[7px] text-slate-500">
+                      VIP PASS
                     </div>
                   </div>
 
-                  {/* Footer mã vé */}
-                  <div className="font-mono text-[7px] text-center font-bold text-slate-600 truncate border-t border-slate-300/60 pt-0.5">
-                    {t.code}
-                  </div>
                 </div>
-              ))}
-            </div>
 
-            {/* LAYER 3: Front Retaining Lip / Bezel Flap (Gờ vành kim loại mặt trước kẹp gốc vé z-20) */}
-            <div className="absolute top-2.5 bottom-2.5 left-0 w-3 sm:w-3.5 rounded-r-2xl bg-gradient-to-r from-[#2a2f3d] via-[#1f2430] to-[#12151c] border-r border-t border-b border-white/20 shadow-[2px_0_6px_rgba(0,0,0,0.7),_inset_1px_1px_1px_rgba(255,255,255,0.3)] z-20">
-              {/* Highlight khe máy kim loại */}
-              <div className="absolute top-1/2 -translate-y-1/2 left-0.5 w-0.5 h-16 bg-cyan-400/40 rounded-full blur-[0.5px]" />
-            </div>
+                {/* Vành gờ cơ khí mép ngoài cùng kẹp gốc vé (Lip Bezel) */}
+                <div className="absolute inset-y-0 left-0 w-[4px] bg-gradient-to-r from-zinc-700 to-black z-30 pointer-events-none rounded-l-sm" />
 
+              </div>
+            </div>
           </div>
 
         </div>
