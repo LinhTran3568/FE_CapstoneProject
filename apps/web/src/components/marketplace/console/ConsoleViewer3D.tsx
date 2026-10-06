@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState, useCallback } from 'react';
 import * as THREE from 'three';
 import { MarketplaceListingDto } from '@ticketshield/types';
 import {
+  createBrushedMetalBumpTexture,
   createLeftScreenTexture,
   createRightScreenTexture,
   createTicket1Texture,
@@ -172,7 +173,7 @@ export const ConsoleViewer3D: React.FC<ConsoleViewer3DProps> = ({
 
     const scale = h / 2.62;
     const cx = w / 2 + 1.03 * scale;
-    const cy = h / 2 - -0.394 * scale;
+    const cy = h / 2 - -0.362 * scale;
     const bw = 1.10 * scale;
     const bh = 0.32 * scale;
 
@@ -260,18 +261,21 @@ export const ConsoleViewer3D: React.FC<ConsoleViewer3DProps> = ({
     // ---------------------------------------------------------
     // 5. CHASSIS ARCHITECTURE
     // ---------------------------------------------------------
+    const metalBumpTex = createBrushedMetalBumpTexture();
     const chassisGeom = createRoundedBox(4.30, 2.02, 0.82, 0.22, 0.035);
     const chassisMat = new THREE.MeshStandardMaterial({
-      color: 0x1a212d, // Satin Dark Obsidian
-      roughness: 0.38,
-      metalness: 0.65,
+      color: 0x222834, // Dark slate anodized titanium
+      roughness: 0.46,
+      metalness: 0.70,
+      bumpMap: metalBumpTex,
+      bumpScale: 0.0035,
     });
     const chassis = new THREE.Mesh(chassisGeom, chassisMat);
     chassis.castShadow = true;
     chassis.receiveShadow = true;
     rootGroup.add(chassis);
 
-    // Continuous glowing neon LED rim - TicketShield Orange
+    // Continuous glowing neon LED rim - Warm White / Champagne
     const rimShape = new THREE.Shape();
     const rimW = 4.18 / 2 - 0.20;
     const rimH = 1.90 / 2 - 0.20;
@@ -292,38 +296,39 @@ export const ConsoleViewer3D: React.FC<ConsoleViewer3DProps> = ({
       true
     );
     const rimTubeGeom = new THREE.TubeGeometry(rimCurve, 80, 0.016, 8, true);
-    const rimTubeMat = new THREE.MeshBasicMaterial({ color: 0xff5a36 });
+    const rimTubeMat = new THREE.MeshBasicMaterial({ color: 0xfff6eb });
     const frontGlowTube = new THREE.Mesh(rimTubeGeom, rimTubeMat);
-    frontGlowTube.position.set(0, 0, 0.45);
+    frontGlowTube.position.set(0, 0, 0.43);
     rootGroup.add(frontGlowTube);
 
     // ---------------------------------------------------------
-    // 6. TWO LARGE RECESSED AMOLED SCREENS
+    // 6. TWO LARGE RECESSED AMOLED SCREENS & PROTECTIVE GLASS
     // ---------------------------------------------------------
     const screenBezelMat = new THREE.MeshStandardMaterial({
-      color: 0x07090e,
-      roughness: 0.85,
-      metalness: 0.25,
+      color: 0x06080d,
+      roughness: 0.90,
+      metalness: 0.20,
     });
 
-    const leftPocketGeom = createRoundedBox(2.36, 1.72, 0.03, 0.14, 0.012);
+    // Sunken cavity pockets inside the chassis
+    const leftPocketGeom = createRoundedBox(2.36, 1.72, 0.10, 0.14, 0.012);
     const leftPocket = new THREE.Mesh(leftPocketGeom, screenBezelMat);
-    leftPocket.position.set(-0.80, 0, 0.43);
+    leftPocket.position.set(-0.80, 0, 0.34);
     rootGroup.add(leftPocket);
 
-    const rightPocketGeom = createRoundedBox(1.30, 1.72, 0.03, 0.14, 0.012);
+    const rightPocketGeom = createRoundedBox(1.30, 1.72, 0.10, 0.14, 0.012);
     const rightPocket = new THREE.Mesh(rightPocketGeom, screenBezelMat);
-    rightPocket.position.set(1.18, 0, 0.43);
+    rightPocket.position.set(1.18, 0, 0.34);
     rootGroup.add(rightPocket);
 
     const dividerMat = new THREE.MeshStandardMaterial({
-      color: 0x333b49,
-      roughness: 0.35,
-      metalness: 0.85,
+      color: 0x181e28,
+      roughness: 0.40,
+      metalness: 0.80,
     });
-    const pillarGeom = createRoundedBox(0.08, 1.74, 0.04, 0.02, 0.01);
+    const pillarGeom = createRoundedBox(0.08, 1.74, 0.12, 0.02, 0.01);
     const pillar = new THREE.Mesh(pillarGeom, dividerMat);
-    pillar.position.set(0.45, 0, 0.45);
+    pillar.position.set(0.45, 0, 0.38);
     rootGroup.add(pillar);
 
     // Dynamic Bundle info calculation
@@ -335,37 +340,64 @@ export const ConsoleViewer3D: React.FC<ConsoleViewer3DProps> = ({
         ? listing.resalePrice * listing.bundleTotalTickets
         : listing?.resalePrice || 150000);
 
-    // Left Screen
+    // Left Screen with emissive OLED radiance
     const { texture: leftTex, update: updateLeftScreen } = createLeftScreenTexture(listing, count);
-    const leftScreenMat = new THREE.MeshBasicMaterial({
+    const leftScreenMat = new THREE.MeshStandardMaterial({
       map: leftTex,
-      transparent: false,
-      depthTest: true,
+      roughness: 0.18,
+      metalness: 0.05,
+      emissive: new THREE.Color(0x282828),
+      emissiveMap: leftTex,
+      emissiveIntensity: 0.72,
       polygonOffset: true,
-      polygonOffsetFactor: -2,
-      polygonOffsetUnits: -2,
+      polygonOffsetFactor: -1,
+      polygonOffsetUnits: -1,
     });
     const leftScreenGeom = createRoundedPlaneGeometry(2.32, 1.68, 0.12);
     const leftScreenMesh = new THREE.Mesh(leftScreenGeom, leftScreenMat);
-    leftScreenMesh.position.set(-0.80, 0, 0.47);
+    leftScreenMesh.position.set(-0.80, 0, 0.37);
     rootGroup.add(leftScreenMesh);
 
-    // Right Screen
+    // Right Screen with emissive OLED radiance
     const rightTexObj = createRightScreenTexture(listing, totalResalePrice);
     rightScreenTexRef.current = rightTexObj;
 
-    const rightScreenMat = new THREE.MeshBasicMaterial({
+    const rightScreenMat = new THREE.MeshStandardMaterial({
       map: rightTexObj.texture,
-      transparent: false,
-      depthTest: true,
+      roughness: 0.18,
+      metalness: 0.05,
+      emissive: new THREE.Color(0x282828),
+      emissiveMap: rightTexObj.texture,
+      emissiveIntensity: 0.72,
       polygonOffset: true,
-      polygonOffsetFactor: -2,
-      polygonOffsetUnits: -2,
+      polygonOffsetFactor: -1,
+      polygonOffsetUnits: -1,
     });
     const rightScreenGeom = createRoundedPlaneGeometry(1.26, 1.68, 0.12);
     const rightScreenMesh = new THREE.Mesh(rightScreenGeom, rightScreenMat);
-    rightScreenMesh.position.set(1.18, 0, 0.47);
+    rightScreenMesh.position.set(1.18, 0, 0.37);
     rootGroup.add(rightScreenMesh);
+
+    // Protective Reflective Glass Overlays
+    const glassMat = new THREE.MeshPhysicalMaterial({
+      color: 0xffffff,
+      transparent: true,
+      opacity: 0.12,
+      roughness: 0.04,
+      metalness: 0.08,
+      clearcoat: 1.0,
+      clearcoatRoughness: 0.06,
+      reflectivity: 0.65,
+      depthWrite: false,
+    });
+
+    const leftGlass = new THREE.Mesh(leftScreenGeom, glassMat);
+    leftGlass.position.set(-0.80, 0, 0.388);
+    rootGroup.add(leftGlass);
+
+    const rightGlass = new THREE.Mesh(rightScreenGeom, glassMat);
+    rightGlass.position.set(1.18, 0, 0.388);
+    rootGroup.add(rightGlass);
 
     // ---------------------------------------------------------
     // 7. MECHANICAL RIGHT SLOT & TICKETS
