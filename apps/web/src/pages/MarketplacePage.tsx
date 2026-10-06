@@ -19,7 +19,6 @@ import { useAuthStore } from '../stores/authStore';
 import { useMarketplaceListings } from '../hooks/useMarketplaceListings';
 import { QuickFilterBar, QuickFilterState } from '../components/marketplace/QuickFilterBar';
 import { TicketCard } from '../components/marketplace/TicketCard';
-import { BundleCabinetCard } from '../components/marketplace/BundleCabinetCard';
 import { BuyTicketModal } from '../components/marketplace/BuyTicketModal';
 import { TicketDetailModal } from '../components/marketplace/TicketDetailModal';
 import { StageMapModal } from '../components/marketplace/StageMapModal';
@@ -676,31 +675,15 @@ export const MarketplacePage: React.FC = () => {
         {!isLoading && !isError && filteredListings.length > 0 && (
           <div className="space-y-8">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch">
-              {filteredListings.map((listing) => {
-                const isBundle = Boolean(
-                  listing.bundleId ||
-                  (listing.bundleTotalTickets && listing.bundleTotalTickets >= 2) ||
-                  (bundleMap.get(listing.bundleId || '') && (bundleMap.get(listing.bundleId || '')?.length ?? 0) > 1)
-                );
-
-                return isBundle ? (
-                  <BundleCabinetCard
-                    key={listing.listingId}
-                    listing={listing}
-                    onBuy={handleBuy}
-                    onViewDetails={(target) => setInspectingListing(target)}
-                    bundleListings={listing.bundleId ? bundleMap.get(listing.bundleId) : undefined}
-                  />
-                ) : (
-                  <TicketCard
-                    key={listing.listingId}
-                    listing={listing}
-                    onBuy={handleBuy}
-                    onViewDetails={(target) => setInspectingListing(target)}
-                    bundleListings={listing.bundleId ? bundleMap.get(listing.bundleId) : undefined}
-                  />
-                );
-              })}
+              {filteredListings.map((listing) => (
+                <TicketCard
+                  key={listing.listingId}
+                  listing={listing}
+                  onBuy={handleBuy}
+                  onViewDetails={(target) => setInspectingListing(target)}
+                  bundleListings={listing.bundleId ? bundleMap.get(listing.bundleId) : undefined}
+                />
+              ))}
             </div>
 
             {/* Pagination Controls */}

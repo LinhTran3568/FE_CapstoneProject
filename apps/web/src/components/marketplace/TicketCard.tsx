@@ -361,14 +361,20 @@ export const TicketCard: React.FC<TicketCardProps> = ({
                   <Ticket className="w-3 h-3 text-[#FF5A36]" />
                   <span>{bundleCount} Ghế:</span>
                 </div>
-                {effectiveBundleListings.slice(0, 3).map((item, idx) => (
-                  <span
-                    key={item.listingId || idx}
-                    className="px-1.5 py-0.5 rounded bg-white/10 border border-white/10 text-white font-mono text-[10px] font-semibold truncate max-w-[90px]"
-                  >
-                    {item.seatZone || item.tierName || `Ghế #${idx + 1}`}
+                {effectiveBundleListings.length > 1 ? (
+                  effectiveBundleListings.slice(0, 3).map((item, idx) => (
+                    <span
+                      key={item.listingId || idx}
+                      className="px-1.5 py-0.5 rounded bg-white/10 border border-white/10 text-white font-mono text-[10px] font-semibold truncate max-w-[140px]"
+                    >
+                      {item.seatZone || item.tierName || `Ghế #${idx + 1}`}
+                    </span>
+                  ))
+                ) : (
+                  <span className="px-1.5 py-0.5 rounded bg-white/10 border border-white/10 text-white font-mono text-[10px] font-semibold truncate max-w-[220px]">
+                    {listing.seatZone || listing.tierName || `${bundleCount} Vé`}
                   </span>
-                ))}
+                )}
                 {effectiveBundleListings.length > 3 && (
                   <span className="text-[10px] text-zinc-400 font-mono">+{effectiveBundleListings.length - 3}</span>
                 )}
