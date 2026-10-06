@@ -157,25 +157,46 @@ export const TicketCard: React.FC<TicketCardProps> = ({
   return (
     <div
       id={`ticket-card-${listing.listingId}`}
-      className="group relative isolate w-full h-[195px] sm:h-[200px] select-none cursor-pointer transition-transform duration-200 ease-out hover:-translate-y-1"
+      className={`group relative isolate w-full h-[195px] sm:h-[200px] select-none cursor-pointer transition-all duration-300 ease-out origin-bottom-left ${
+        isBundle
+          ? 'hover:-translate-y-1.5 hover:-rotate-[0.6deg]'
+          : 'hover:-translate-y-1'
+      }`}
       onClick={() => {
         if (!isTransacting && onViewDetails) {
           onViewDetails(listing);
         }
       }}
     >
-      {/* Layered Stacked Deck Visual Effect for Combo Bundles (2–4 tickets) */}
+      {/* Layered Stacked Deck Visual Effect for Combo Bundles (Interactive Pull-Card & Subtle Tilt on Hover) */}
       {isBundle && (
         <>
+          {/* Deck Layer 2 (Mid Ticket): Rút nhô sang phải & hơi nghiêng nhẹ 1.4 độ */}
           <div
-            className="absolute -top-1.5 -right-1.5 -left-1.5 h-full rounded-2xl bg-[#131722] border border-white/10 -z-10 opacity-75 pointer-events-none transition-transform duration-200 group-hover:-translate-y-1"
+            className="absolute inset-0 rounded-2xl bg-[#141824] border border-white/15 -z-10 opacity-75 pointer-events-none transition-all duration-300 ease-out origin-bottom-left -top-1 -right-1 group-hover:-top-2.5 group-hover:-right-4 group-hover:rotate-[1.4deg] group-hover:opacity-100 shadow-[0_8px_20px_rgba(0,0,0,0.6)] group-hover:border-[#FF5A36]/40 overflow-hidden"
             aria-hidden="true"
-          />
+          >
+            {/* Giả lập cuống vé giấy ở mép phải của vé #2 */}
+            <div className="absolute right-0 top-0 bottom-0 w-[35%] bg-slate-300/25 border-l border-white/10 flex items-center justify-center">
+              <span className="font-mono text-[9px] font-bold text-slate-400/80 uppercase tracking-widest rotate-90 select-none">
+                PASS #2
+              </span>
+            </div>
+          </div>
+
+          {/* Deck Layer 3 (Back Ticket - nếu bundle >= 3 vé): Rút nhô xa hơn & hơi nghiêng nhẹ 2.6 độ */}
           {bundleCount >= 3 && (
             <div
-              className="absolute -top-3 -right-3 -left-3 h-full rounded-2xl bg-[#090b10] border border-white/5 -z-20 opacity-45 pointer-events-none"
+              className="absolute inset-0 rounded-2xl bg-[#0d1017] border border-white/10 -z-20 opacity-45 pointer-events-none transition-all duration-300 ease-out origin-bottom-left -top-2 -right-2 group-hover:-top-4.5 group-hover:-right-7.5 group-hover:rotate-[2.6deg] group-hover:opacity-85 shadow-[0_12px_28px_rgba(0,0,0,0.7)] group-hover:border-[#FF5A36]/30 overflow-hidden"
               aria-hidden="true"
-            />
+            >
+              {/* Giả lập cuống vé giấy ở mép phải của vé #3 */}
+              <div className="absolute right-0 top-0 bottom-0 w-[35%] bg-slate-400/15 border-l border-white/10 flex items-center justify-center">
+                <span className="font-mono text-[9px] font-bold text-slate-500/70 uppercase tracking-widest rotate-90 select-none">
+                  PASS #3
+                </span>
+              </div>
+            </div>
           )}
         </>
       )}
