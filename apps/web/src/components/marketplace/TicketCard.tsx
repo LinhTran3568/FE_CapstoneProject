@@ -94,36 +94,42 @@ export const TicketCard: React.FC<TicketCardProps> = ({
   const perTicketPrice = Math.round(totalBundleResalePrice / (bundleCount || 1));
   const formattedPerTicketPrice = new Intl.NumberFormat('vi-VN').format(perTicketPrice);
 
-  // Dynamic Zone styling with high contrast dark glass and vibrant accents
+  const hasDiscount = totalBundleOriginalPrice > totalBundleResalePrice;
+  const calculatedDiscountPercent = hasDiscount
+    ? Math.round(((totalBundleOriginalPrice - totalBundleResalePrice) / totalBundleOriginalPrice) * 100)
+    : 0;
+  const discountPercentage = listing.discountPercentage > 0 ? listing.discountPercentage : calculatedDiscountPercent;
+
+  // Dynamic Zone styling with high contrast dark solid accents (no backdrop-blur filter lag on hover)
   const getZoneStyle = (tierName: string) => {
     const lower = (tierName || '').toLowerCase();
     if (lower.includes('svip')) {
       return {
-        badge: 'bg-black/75 border border-amber-400/50 text-white backdrop-blur-md shadow-sm',
+        badge: 'bg-[#18150a] border border-amber-400/50 text-white shadow-sm',
         dot: 'bg-amber-400 shadow-[0_0_8px_#fbbf24]',
       };
     }
     if (lower.includes('vip b') || lower.includes('vip-b')) {
       return {
-        badge: 'bg-black/75 border border-orange-400/50 text-white backdrop-blur-md shadow-sm',
+        badge: 'bg-[#18110a] border border-orange-400/50 text-white shadow-sm',
         dot: 'bg-orange-400 shadow-[0_0_8px_#fb923c]',
       };
     }
     if (lower.includes('fanzone') || lower.includes('fan zone')) {
       return {
-        badge: 'bg-black/75 border border-rose-400/50 text-white backdrop-blur-md shadow-sm',
+        badge: 'bg-[#180a0f] border border-rose-400/50 text-white shadow-sm',
         dot: 'bg-rose-400 shadow-[0_0_8px_#fb7185]',
       };
     }
     if (lower.includes('ga') || lower.includes('standard')) {
       return {
-        badge: 'bg-black/75 border border-sky-400/50 text-white backdrop-blur-md shadow-sm',
+        badge: 'bg-[#0a1218] border border-sky-400/50 text-white shadow-sm',
         dot: 'bg-sky-400 shadow-[0_0_8px_#38bdf8]',
       };
     }
     // Default VIP ZONE A
     return {
-      badge: 'bg-black/75 border border-white/20 text-white backdrop-blur-md shadow-sm',
+      badge: 'bg-[#121622] border border-white/20 text-white shadow-sm',
       dot: 'bg-[#FF5A36] shadow-[0_0_8px_#FF5A36]',
     };
   };
@@ -157,11 +163,15 @@ export const TicketCard: React.FC<TicketCardProps> = ({
   return (
     <div
       id={`ticket-card-${listing.listingId}`}
-      className={`group relative isolate w-full h-[195px] sm:h-[200px] select-none cursor-pointer transition-all duration-300 ease-out origin-bottom-left ${
+      className={`group relative isolate w-full h-[195px] sm:h-[200px] select-none cursor-pointer transform-gpu will-change-transform transition-transform duration-200 ease-out origin-bottom-left ${
         isBundle
           ? 'hover:-translate-y-1.5 hover:-rotate-[0.6deg]'
           : 'hover:-translate-y-1'
       }`}
+      style={{
+        transform: 'translateZ(0)',
+        backfaceVisibility: 'hidden',
+      }}
       onClick={() => {
         if (!isTransacting && onViewDetails) {
           onViewDetails(listing);
@@ -171,29 +181,51 @@ export const TicketCard: React.FC<TicketCardProps> = ({
       {/* Layered Stacked Deck Visual Effect for Combo Bundles (Interactive Pull-Card & Subtle Tilt on Hover) */}
       {isBundle && (
         <>
-          {/* Deck Layer 2 (Mid Ticket): Rút nhô sang phải & hơi nghiêng nhẹ 1.4 độ */}
+          {/* Deck Layer 2 (Mid Ticket): Khoét lỗ bán nguyệt ở 65% trên & dưới y hệt vé chính */}
           <div
-            className="absolute inset-0 rounded-2xl bg-[#141824] border border-white/15 -z-10 opacity-75 pointer-events-none transition-all duration-300 ease-out origin-bottom-left -top-1 -right-1 group-hover:-top-2.5 group-hover:-right-4 group-hover:rotate-[1.4deg] group-hover:opacity-100 shadow-[0_8px_20px_rgba(0,0,0,0.6)] group-hover:border-[#FF5A36]/40 overflow-hidden"
+            className="absolute inset-0 rounded-2xl bg-[#141824] border border-white/15 -z-10 opacity-75 pointer-events-none transition-transform duration-200 ease-out origin-bottom-left -top-1 -right-1 group-hover:-top-2.5 group-hover:-right-4 group-hover:rotate-[1.4deg] group-hover:opacity-100 shadow-[0_8px_20px_rgba(0,0,0,0.6)] group-hover:border-[#FF5A36]/40 overflow-hidden transform-gpu will-change-transform"
+            style={{
+              WebkitMaskImage:
+                'radial-gradient(circle 14px at 65% 0px, transparent 13.5px, black 14px), radial-gradient(circle 14px at 65% 100%, transparent 13.5px, black 14px)',
+              WebkitMaskComposite: 'destination-in',
+              maskImage:
+                'radial-gradient(circle 14px at 65% 0px, transparent 13.5px, black 14px), radial-gradient(circle 14px at 65% 100%, transparent 13.5px, black 14px)',
+              maskComposite: 'intersect',
+            }}
             aria-hidden="true"
           >
+            {/* Đường nét đứt xé vé ngăn cách 65% */}
+            <div className="absolute left-[65%] top-0 bottom-0 border-r border-dashed border-white/10 pointer-events-none" />
+
             {/* Giả lập cuống vé giấy ở mép phải của vé #2 */}
             <div className="absolute right-0 top-0 bottom-0 w-[35%] bg-slate-300/25 border-l border-white/10 flex items-center justify-center">
               <span className="font-mono text-[9px] font-bold text-slate-400/80 uppercase tracking-widest rotate-90 select-none">
-                PASS #2
+                VÉ #2
               </span>
             </div>
           </div>
 
-          {/* Deck Layer 3 (Back Ticket - nếu bundle >= 3 vé): Rút nhô xa hơn & hơi nghiêng nhẹ 2.6 độ */}
+          {/* Deck Layer 3 (Back Ticket - nếu bundle >= 3 vé): Khoét lỗ bán nguyệt ở 65% trên & dưới */}
           {bundleCount >= 3 && (
             <div
-              className="absolute inset-0 rounded-2xl bg-[#0d1017] border border-white/10 -z-20 opacity-45 pointer-events-none transition-all duration-300 ease-out origin-bottom-left -top-2 -right-2 group-hover:-top-4.5 group-hover:-right-7.5 group-hover:rotate-[2.6deg] group-hover:opacity-85 shadow-[0_12px_28px_rgba(0,0,0,0.7)] group-hover:border-[#FF5A36]/30 overflow-hidden"
+              className="absolute inset-0 rounded-2xl bg-[#0d1017] border border-white/10 -z-20 opacity-45 pointer-events-none transition-transform duration-200 ease-out origin-bottom-left -top-2 -right-2 group-hover:-top-4.5 group-hover:-right-7.5 group-hover:rotate-[2.6deg] group-hover:opacity-85 shadow-[0_12px_28px_rgba(0,0,0,0.7)] group-hover:border-[#FF5A36]/30 overflow-hidden transform-gpu will-change-transform"
+              style={{
+                WebkitMaskImage:
+                  'radial-gradient(circle 14px at 65% 0px, transparent 13.5px, black 14px), radial-gradient(circle 14px at 65% 100%, transparent 13.5px, black 14px)',
+                WebkitMaskComposite: 'destination-in',
+                maskImage:
+                  'radial-gradient(circle 14px at 65% 0px, transparent 13.5px, black 14px), radial-gradient(circle 14px at 65% 100%, transparent 13.5px, black 14px)',
+                maskComposite: 'intersect',
+              }}
               aria-hidden="true"
             >
+              {/* Đường nét đứt xé vé ngăn cách 65% */}
+              <div className="absolute left-[65%] top-0 bottom-0 border-r border-dashed border-white/10 pointer-events-none" />
+
               {/* Giả lập cuống vé giấy ở mép phải của vé #3 */}
               <div className="absolute right-0 top-0 bottom-0 w-[35%] bg-slate-400/15 border-l border-white/10 flex items-center justify-center">
                 <span className="font-mono text-[9px] font-bold text-slate-500/70 uppercase tracking-widest rotate-90 select-none">
-                  PASS #3
+                  VÉ #3
                 </span>
               </div>
             </div>
@@ -266,13 +298,14 @@ export const TicketCard: React.FC<TicketCardProps> = ({
         id={`ticket-body-${listing.listingId}`}
         className="relative w-[65%] h-full rounded-l-2xl overflow-hidden flex flex-col justify-between p-4 sm:p-5 bg-[#0a0c10]"
       >
-        {/* Live Concert Stage Photo Background with fast hardware-accelerated subtle zoom */}
+        {/* Live Concert Stage Photo Background with fast hardware-accelerated rendering */}
         <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none">
           <img
             src={backdropUrl}
             alt={listing.eventName}
-            className={`w-full h-full object-cover object-center contrast-125 saturate-110 transition-transform duration-300 ease-out group-hover:scale-105 ${isSold ? 'opacity-40 grayscale' : isTransacting ? 'opacity-55' : 'opacity-70'
-              }`}
+            className={`w-full h-full object-cover object-center contrast-125 saturate-110 pointer-events-none ${
+              isSold ? 'opacity-40 grayscale' : isTransacting ? 'opacity-55' : 'opacity-70'
+            }`}
             loading="lazy"
             onError={(e) => {
               e.currentTarget.onerror = null;
@@ -290,7 +323,7 @@ export const TicketCard: React.FC<TicketCardProps> = ({
           <div className="flex flex-wrap items-center gap-1.5 min-w-0">
             {/* Tier / Zone Badge */}
             <div
-              className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full border backdrop-blur-md shrink-0 ${zoneStyle.badge}`}
+              className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full border shrink-0 ${zoneStyle.badge}`}
             >
               <span className={`w-1.5 h-1.5 rounded-full animate-pulse ${zoneStyle.dot}`}></span>
               <span className="text-[10px] sm:text-[11px] font-bold tracking-wider uppercase text-white truncate max-w-[110px]">
@@ -302,7 +335,7 @@ export const TicketCard: React.FC<TicketCardProps> = ({
             {isBundle && (
               <div
                 id={`badge-bundle-${listing.listingId}`}
-                className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-[#FF5A36]/15 border border-[#FF5A36]/60 text-[#FF8A65] text-[10px] sm:text-[11px] font-extrabold tracking-wider uppercase backdrop-blur-md shadow-[0_0_15px_rgba(255,90,54,0.25)] shrink-0"
+                className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-[#1e0f0a] border border-[#FF5A36]/60 text-[#FF8A65] text-[10px] sm:text-[11px] font-extrabold tracking-wider uppercase shadow-[0_0_12px_rgba(255,90,54,0.2)] shrink-0"
                 title={`Combo package of ${bundleCount} ${bundleCount > 1 ? 'tickets' : 'ticket'}`}
               >
                 <Layers className="w-3 h-3 text-[#FF5A36] shrink-0" />
@@ -472,6 +505,22 @@ export const TicketCard: React.FC<TicketCardProps> = ({
               {isBundle ? `COMBO (${bundleCount} ${bundleCount > 1 ? 'TICKETS' : 'TICKET'})` : 'PRICE'}
             </span>
           </div>
+
+          {/* Giá vé gốc bị gạch ngang (nếu có giảm giá so với giá gốc) - Xuất hiện TRƯỚC giá mới */}
+          {hasDiscount && (
+            <div className="flex items-center gap-1.5 mb-0.5">
+              <span className="text-[11px] text-slate-400 line-through font-medium">
+                {formattedOriginalPrice} VND
+              </span>
+              {discountPercentage > 0 && (
+                <span className="px-1.5 py-0.2 rounded text-[9px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
+                  -{discountPercentage}%
+                </span>
+              )}
+            </div>
+          )}
+
+          {/* Giá vé mới */}
           <div className="flex items-baseline">
             <span className="text-[20px] sm:text-[22px] font-extrabold tracking-tight text-slate-900 leading-none">
               {formattedPrice}
@@ -479,22 +528,10 @@ export const TicketCard: React.FC<TicketCardProps> = ({
             <span className="ml-1 text-xs font-bold text-slate-700">VND</span>
           </div>
 
-          {isBundle ? (
+          {/* Micro-copy phụ trợ cho Combo */}
+          {isBundle && (
             <div className="text-[10px] font-mono text-slate-600 font-semibold mt-0.5">
               ~{formattedPerTicketPrice} đ/vé
-            </div>
-          ) : listing.discountPercentage > 0 ? (
-            <div className="flex items-center gap-1.5 mt-0.5">
-              <span className="text-[11px] text-slate-400 line-through font-medium">
-                {formattedOriginalPrice} VND
-              </span>
-              <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
-                -{listing.discountPercentage}%
-              </span>
-            </div>
-          ) : (
-            <div className="text-[10px] font-mono-code text-slate-500 mt-0.5">
-              Organizer Verified Price
             </div>
           )}
         </div>
@@ -598,7 +635,7 @@ export const TicketCard: React.FC<TicketCardProps> = ({
             y1="0"
             x2="1"
             y2="202"
-            className="stroke-[#FF5A36]/45 group-hover:stroke-[#FF5A36] group-hover:drop-shadow-[0_0_6px_rgba(255,90,54,0.75)] transition-all duration-200 ease-out"
+            className="stroke-[#FF5A36]/45 group-hover:stroke-[#FF5A36] transition-colors duration-150 ease-out"
             strokeWidth="2"
             strokeDasharray="9 5"
             strokeLinecap="round"

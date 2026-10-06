@@ -222,9 +222,6 @@ const TicketCardItem: React.FC<TicketCardItemProps> = ({
               </span>
               <span className="ml-1 text-xs font-bold text-slate-700">VND</span>
             </div>
-            <div className="text-[10px] font-mono text-slate-500 mt-1.5">
-              Organizer Verified Price
-            </div>
           </div>
 
           {/* Stub Bottom: Để trống sạch sẽ không nút thừa */}

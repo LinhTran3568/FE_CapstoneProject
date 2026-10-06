@@ -93,6 +93,8 @@ export const TicketDetailModal: React.FC<TicketDetailModalProps> = ({
   const backdropUrl = getEventBackdrop(listing.eventName);
 
   // Build the array of visual ticket cards to display
+  const perTicketOriginalPrice = Math.round(totalOriginalPrice / (bundleCount || 1));
+
   const displayTickets = (() => {
     if (effectiveBundleListings.length > 1) {
       return effectiveBundleListings.map((item, idx) => ({
@@ -100,6 +102,7 @@ export const TicketDetailModal: React.FC<TicketDetailModalProps> = ({
         ticketIndex: idx + 1,
         tierName: item.tierName || listing.tierName || 'VIP ZONE',
         seatZone: item.seatZone || `Ghế #${idx + 1}`,
+        originalPrice: item.originalPrice || perTicketOriginalPrice,
         price: item.resalePrice || perTicketResalePrice,
         code: item.maskedTicketCode || `AT*******${String(idx + 1).padStart(2, '0')}`,
       }));
@@ -112,6 +115,7 @@ export const TicketDetailModal: React.FC<TicketDetailModalProps> = ({
           ticketIndex: idx + 1,
           tierName: listing.tierName || 'VIP ZONE A',
           seatZone: adjacency.commonRow ? `Hàng ${adjacency.commonRow} · Ghế ${sn}` : `Ghế ${sn}`,
+          originalPrice: perTicketOriginalPrice,
           price: perTicketResalePrice,
           code: listing.maskedTicketCode
             ? `${listing.maskedTicketCode.slice(0, -2)}${String(idx + 1).padStart(2, '0')}`
@@ -124,6 +128,7 @@ export const TicketDetailModal: React.FC<TicketDetailModalProps> = ({
         ticketIndex: idx + 1,
         tierName: listing.tierName || 'VIP ZONE A',
         seatZone: listing.seatZone ? `${listing.seatZone} (Vé #${idx + 1})` : `Ghế #${idx + 1}`,
+        originalPrice: perTicketOriginalPrice,
         price: perTicketResalePrice,
         code: listing.maskedTicketCode || `AT*******${String(idx + 1).padStart(2, '0')}`,
       }));
@@ -135,6 +140,7 @@ export const TicketDetailModal: React.FC<TicketDetailModalProps> = ({
         ticketIndex: 1,
         tierName: listing.tierName || 'VIP ZONE A',
         seatZone: listing.seatZone || 'Khán đài',
+        originalPrice: listing.originalPrice,
         price: listing.resalePrice,
         code: listing.maskedTicketCode || 'AT*******99',
       },
@@ -322,6 +328,16 @@ export const TicketDetailModal: React.FC<TicketDetailModalProps> = ({
                         <div className="text-[9px] font-bold text-slate-500 uppercase tracking-wider">
                           GIÁ VÉ
                         </div>
+                        {t.originalPrice > t.price && (
+                          <div className="flex items-center gap-1 mt-0.5">
+                            <span className="text-[10px] text-slate-400 line-through font-medium">
+                              {formatVND(t.originalPrice)}
+                            </span>
+                            <span className="text-[9px] font-bold text-emerald-700">
+                              -{Math.round(((t.originalPrice - t.price) / t.originalPrice) * 100)}%
+                            </span>
+                          </div>
+                        )}
                         <div className="flex items-baseline gap-1 mt-0.5">
                           <span className="text-base sm:text-lg font-black text-slate-900 leading-none">
                             {formatVND(t.price)}
@@ -331,7 +347,7 @@ export const TicketDetailModal: React.FC<TicketDetailModalProps> = ({
 
                       {/* Phân cách chân cuống */}
                       <div className="text-[9px] font-mono text-slate-400 border-t border-slate-300/60 pt-1">
-                        PASS #{t.ticketIndex}
+                        VÉ #{t.ticketIndex}
                       </div>
                     </div>
                   </div>
@@ -341,6 +357,15 @@ export const TicketDetailModal: React.FC<TicketDetailModalProps> = ({
 
             {/* ================= TỔNG KẾT TÀI CHÍNH ================= */}
             <div className="p-3.5 rounded-xl bg-white/[0.03] border border-white/10 space-y-2">
+              {totalOriginalPrice > totalResalePrice && (
+                <div className="flex items-center justify-between text-xs text-zinc-400">
+                  <span>Giá gốc ban đầu:</span>
+                  <span className="font-mono text-zinc-400 line-through">
+                    {formatVND(totalOriginalPrice)}
+                  </span>
+                </div>
+              )}
+
               {isBundle && (
                 <div className="flex items-center justify-between text-xs text-zinc-300">
                   <span>Giá bình quân:</span>
