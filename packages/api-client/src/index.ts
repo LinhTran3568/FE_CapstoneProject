@@ -7,3 +7,5 @@ export * from './services/bankAccounts.api';
 export * from './services/mockTickets.api';
 export * from './services/organizers.api';
 export * from './services/payouts.api';
+export * from './services/disputes.api';
+

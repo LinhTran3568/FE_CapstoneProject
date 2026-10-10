@@ -12,6 +12,7 @@ import {
   QrCode,
   RefreshCw,
   Search,
+  ShieldAlert,
   Ticket,
   User,
   X,
@@ -22,6 +23,8 @@ import { useMyTickets } from '../hooks/useMyTickets';
 import { useUIStore } from '../stores/uiStore';
 import { formatEventDateTime, formatVND } from '../utils/formatters';
 import { SeatAdjacencyBadge } from '../components/ui/SeatAdjacencyBadge';
+import { DisputeSubmissionModal } from '../components/dispute/DisputeSubmissionModal';
+
 
 const entryPayload = (ticket: PurchasedTicketDto) =>
   (ticket.qrCodeImageUrl || ticket.qrCodeData || ticket.ticketPassCode || '').trim();
@@ -52,6 +55,7 @@ const getDisputedBadge = (ticket: PurchasedTicketDto) => {
 export const MyTicketsPage: React.FC = () => {
   const { data: tickets = [], isPending, isError, error, refetch, isFetching } = useMyTickets();
   const [qrTicket, setQrTicket] = useState<PurchasedTicketDto | null>(null);
+  const [disputeTicket, setDisputeTicket] = useState<PurchasedTicketDto | null>(null);
   const [filter, setFilter] = useState<'all' | 'ready'>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const showToast = useUIStore((state) => state.showToast);
@@ -326,6 +330,7 @@ export const MyTicketsPage: React.FC = () => {
                 key={ticket.escrowId || ticket.listingId}
                 ticket={ticket}
                 onViewQr={() => setQrTicket(ticket)}
+                onOpenDispute={() => setDisputeTicket(ticket)}
               />
             ))}
           </div>
@@ -335,6 +340,11 @@ export const MyTicketsPage: React.FC = () => {
       {/* Entry QR Modal */}
       {qrTicket && (
         <EntryQrModal ticket={qrTicket} onClose={() => setQrTicket(null)} />
+      )}
+
+      {/* Dispute Submission Modal */}
+      {disputeTicket && (
+        <DisputeSubmissionModal ticket={disputeTicket} onClose={() => setDisputeTicket(null)} />
       )}
     </div>
   );
@@ -402,9 +412,10 @@ const getEventBackdrop = (name: string): string => {
 interface OfficialTicketPassCardProps {
   ticket: PurchasedTicketDto;
   onViewQr: () => void;
+  onOpenDispute: () => void;
 }
 
-const OfficialTicketPassCard: React.FC<OfficialTicketPassCardProps> = ({ ticket, onViewQr }) => {
+const OfficialTicketPassCard: React.FC<OfficialTicketPassCardProps> = ({ ticket, onViewQr, onOpenDispute }) => {
   const showToast = useUIStore((state) => state.showToast);
   const [copied, setCopied] = useState(false);
   const disputeBadge = getDisputedBadge(ticket);
@@ -638,8 +649,8 @@ const OfficialTicketPassCard: React.FC<OfficialTicketPassCardProps> = ({ ticket,
           </div>
         </div>
 
-        {/* Stub Bottom: Action Button (View Entry QR) */}
-        <div>
+        {/* Stub Bottom: Action Buttons */}
+        <div className="space-y-1.5">
           {hasQr ? (
             <button
               type="button"
@@ -662,6 +673,29 @@ const OfficialTicketPassCard: React.FC<OfficialTicketPassCardProps> = ({ ticket,
               <Loader2 className="w-3.5 h-3.5 animate-spin shrink-0" />
               <span>ISSUING...</span>
             </button>
+          )}
+
+          {ticket.status === 'DISPUTED' ? (
+            <div className="w-full py-1 px-1.5 bg-rose-500/15 border border-rose-500/40 text-rose-700 font-bold text-[9.5px] sm:text-[10px] tracking-tight rounded-lg flex items-center justify-center gap-1 text-center select-none">
+              <ShieldAlert className="w-3 h-3 text-rose-600 shrink-0 animate-pulse" />
+              <span>DISPUTE OPEN</span>
+            </div>
+          ) : (
+            ticket.escrowId &&
+            (ticket.status === 'IN_ESCROW' || ticket.status === 'LOCKED') && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onOpenDispute();
+                }}
+                className="w-full py-1 px-1.5 bg-slate-800/10 hover:bg-rose-500/15 border border-slate-400/40 hover:border-rose-500/40 text-slate-700 hover:text-rose-700 font-bold text-[9.5px] sm:text-[10px] tracking-tight rounded-lg flex items-center justify-center gap-1 transition-all cursor-pointer"
+                title="Gửi khiếu nại sự cố vé đến TicketShield Escrow"
+              >
+                <ShieldAlert className="w-3 h-3 text-rose-600 shrink-0" />
+                <span>BÁO SỰ CỐ VÉ</span>
+              </button>
+            )
           )}
         </div>
       </div>
