@@ -47,9 +47,10 @@ export const useCancelListing = () => {
   return useMutation({
     mutationFn: (listingId: string) => resaleListingsApi.cancelListing(listingId),
     onSuccess: (result) => {
+      const cancelledCodes = new Set(result.allCancelledTicketCodes || []);
       queryClient.setQueryData<SellerListingDto[]>(myListingsQueryKey, (listings) =>
         listings?.map((listing) =>
-          listing.listingId === result.listingId
+          listing.listingId === result.listingId || cancelledCodes.has(listing.originalTicketCode)
             ? { ...listing, listingStatus: result.listingStatus }
             : listing
         )

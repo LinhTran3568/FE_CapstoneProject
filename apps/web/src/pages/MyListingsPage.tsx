@@ -14,6 +14,7 @@ import {
   Tag,
   Ticket,
   Undo2,
+  Layers,
   XCircle,
   Clock,
   CheckCircle2,
@@ -345,11 +346,27 @@ export const MyListingsPage: React.FC = () => {
     resetCancelMutation();
   }, [resetCancelMutation]);
 
+  const childBundleListings = useMemo(() => {
+    if (!listingToCancel) return [];
+    if (listingToCancel.bundleId) {
+      return listings.filter((l) => l.bundleId === listingToCancel.bundleId);
+    }
+    return [listingToCancel];
+  }, [listingToCancel, listings]);
+
   const handleConfirmCancel = () => {
     if (!listingToCancel) return;
+    const isBundle = Boolean(
+      listingToCancel.bundleId || (listingToCancel.bundleTotalTickets && listingToCancel.bundleTotalTickets >= 2)
+    );
     cancelMutation.mutate(listingToCancel.listingId, {
       onSuccess: () => {
-        showToast(TOAST_CANCEL_SUCCESS, 'success');
+        showToast(
+          isBundle
+            ? '🎉 Hủy trọn gói vé (Combo) thành công! Tất cả các vé con trong gói đã được mở khóa với Ban Tổ Chức.'
+            : TOAST_CANCEL_SUCCESS,
+          'success'
+        );
         setListingToCancel(null);
       },
       onError: (err) => {
@@ -764,11 +781,27 @@ export const MyListingsPage: React.FC = () => {
                         <button
                           type="button"
                           onClick={() => setListingToCancel(listing)}
-                          className="px-3.5 py-2 bg-white/[0.04] hover:bg-rose-500/15 border border-white/10 hover:border-rose-500/40 text-[#8B929C] hover:text-rose-300 rounded-xl transition-all flex items-center gap-1.5 text-xs font-bold font-mono tracking-wider cursor-pointer active:scale-95 shadow-sm"
-                          title="Cancel listing and release ticket lock at the organizer"
+                          className={`px-3.5 py-2 rounded-xl transition-all flex items-center gap-1.5 text-xs font-bold font-mono tracking-wider cursor-pointer active:scale-95 shadow-sm ${
+                            Boolean(listing.bundleId || (listing.bundleTotalTickets && listing.bundleTotalTickets >= 2))
+                              ? 'bg-purple-500/10 hover:bg-purple-500/20 border border-purple-500/30 hover:border-purple-500/50 text-purple-300'
+                              : 'bg-white/[0.04] hover:bg-rose-500/15 border border-white/10 hover:border-rose-500/40 text-[#8B929C] hover:text-rose-300'
+                          }`}
+                          title={
+                            Boolean(listing.bundleId || (listing.bundleTotalTickets && listing.bundleTotalTickets >= 2))
+                              ? 'Cancel bundle and release ticket locks at the organizer'
+                              : 'Cancel listing and release ticket lock at the organizer'
+                          }
                         >
-                          <Undo2 className="w-3.5 h-3.5" />
-                          <span>Cancel Listing</span>
+                          {Boolean(listing.bundleId || (listing.bundleTotalTickets && listing.bundleTotalTickets >= 2)) ? (
+                            <Layers className="w-3.5 h-3.5 text-purple-400" />
+                          ) : (
+                            <Undo2 className="w-3.5 h-3.5" />
+                          )}
+                          <span>
+                            {Boolean(listing.bundleId || (listing.bundleTotalTickets && listing.bundleTotalTickets >= 2))
+                              ? 'Cancel Bundle'
+                              : 'Cancel Listing'}
+                          </span>
                         </button>
                       )}
                     </div>
@@ -845,12 +878,30 @@ export const MyListingsPage: React.FC = () => {
       {/* Cancel Confirmation Modal */}
       <ConfirmModal
         open={listingToCancel !== null}
-        eyebrow="Seller Action"
-        title="Cancel this ticket listing?"
-        description="This listing will be removed from the marketplace and an unlock command will be sent to the Organizer to restore the original ticket to VALID."
-        confirmLabel={cancelMutation.isError ? 'Retry' : 'Confirm Cancellation'}
-        cancelLabel="Keep Listing"
-        loadingLabel="Unlocking ticket..."
+        eyebrow={
+          listingToCancel && Boolean(listingToCancel.bundleId || (listingToCancel.bundleTotalTickets && listingToCancel.bundleTotalTickets >= 2))
+            ? 'XÁC NHẬN HỦY GÓI VÉ'
+            : 'Seller Action'
+        }
+        title={
+          listingToCancel && Boolean(listingToCancel.bundleId || (listingToCancel.bundleTotalTickets && listingToCancel.bundleTotalTickets >= 2))
+            ? `Hủy gói combo (${childBundleListings.length || listingToCancel.bundleTotalTickets || 2} vé)?`
+            : 'Hủy niêm yết vé này?'
+        }
+        description={
+          listingToCancel && Boolean(listingToCancel.bundleId || (listingToCancel.bundleTotalTickets && listingToCancel.bundleTotalTickets >= 2))
+            ? 'Khi bạn xác nhận hủy, tất cả các vé con thuộc gói combo này sẽ đồng thời được hủy niêm yết khỏi chợ và tự động mở khóa về tài khoản ban đầu.'
+            : 'Vé này sẽ được hủy niêm yết khỏi chợ và hệ thống sẽ gửi yêu cầu mở khóa vé về trạng thái hợp lệ ban đầu cho bạn.'
+        }
+        confirmLabel={
+          cancelMutation.isError
+            ? 'Retry'
+            : listingToCancel && Boolean(listingToCancel.bundleId || (listingToCancel.bundleTotalTickets && listingToCancel.bundleTotalTickets >= 2))
+            ? 'Hủy toàn bộ gói vé'
+            : 'Xác nhận hủy vé'
+        }
+        cancelLabel="Giữ lại tin đăng"
+        loadingLabel="Đang mở khóa gói vé..."
         tone="danger"
         isLoading={cancelMutation.isPending}
         onConfirm={handleConfirmCancel}
@@ -858,15 +909,59 @@ export const MyListingsPage: React.FC = () => {
       >
         {listingToCancel && (
           <div className="space-y-3">
-            <div className="p-4 bg-[#05070A] border border-white/10 rounded-2xl space-y-1">
-              <p className="font-bold text-white text-sm">{listingToCancel.eventName}</p>
-              <p className="text-xs text-[#8B929C] font-mono">
-                {listingToCancel.tierName} • Code {listingToCancel.originalTicketCode}
-              </p>
-              <p className="text-sm font-bold font-display text-white tabular-nums">
-                {formatVND(listingToCancel.resalePrice)}
-              </p>
-            </div>
+            {Boolean(listingToCancel.bundleId || (listingToCancel.bundleTotalTickets && listingToCancel.bundleTotalTickets >= 2)) ? (
+              <div className="space-y-3">
+                <div className="p-3.5 bg-purple-500/10 border border-purple-500/30 rounded-xl text-purple-300 text-xs leading-relaxed flex items-start gap-2.5">
+                  <span className="font-bold text-xs uppercase text-purple-400 bg-purple-500/20 px-2 py-0.5 rounded border border-purple-500/40 shrink-0 mt-0.5">QUY ĐỊNH BÁN GÓI</span>
+                  <span>
+                    Gói vé bao gồm <strong>{childBundleListings.length || listingToCancel.bundleTotalTickets || 2} vé con</strong>. Tất cả các vé trong gói sẽ đồng thời được mở khóa và hoàn trả về tài khoản ban đầu của bạn.
+                  </span>
+                </div>
+
+                <div className="text-xs font-mono font-bold text-[#8B929C] uppercase tracking-wider pt-1 flex items-center justify-between">
+                  <span>Danh sách vé con trong Combo:</span>
+                  <span className="text-purple-400 font-extrabold">{childBundleListings.length} vé</span>
+                </div>
+
+                <div className="max-h-60 overflow-y-auto space-y-2 pr-1 no-scrollbar">
+                  {childBundleListings.map((child, idx) => (
+                    <div
+                      key={child.listingId}
+                      className="p-3 bg-[#05070A] border border-white/10 hover:border-purple-500/40 rounded-xl flex items-center justify-between gap-3 text-xs transition-colors"
+                    >
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <div className="w-7 h-7 rounded-lg bg-purple-500/15 border border-purple-500/30 flex items-center justify-center text-purple-300 font-bold font-mono text-xs shrink-0">
+                          #{idx + 1}
+                        </div>
+                        <div className="min-w-0">
+                          <p className="font-bold text-white truncate">{child.eventName}</p>
+                          <p className="text-[11px] text-[#8B929C] font-mono truncate">
+                            {child.tierName} {child.seatZone ? `• ${child.seatZone}` : ''} • Mã {child.originalTicketCode}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="text-right shrink-0">
+                        <span className="font-bold font-display text-white tabular-nums block">
+                          {formatVND(child.resalePrice)}
+                        </span>
+                        <ListingStatusPill status={child.listingStatus} />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <div className="p-4 bg-[#05070A] border border-white/10 rounded-2xl space-y-1">
+                <p className="font-bold text-white text-sm">{listingToCancel.eventName}</p>
+                <p className="text-xs text-[#8B929C] font-mono">
+                  {listingToCancel.tierName} • Code {listingToCancel.originalTicketCode}
+                </p>
+                <p className="text-sm font-bold font-display text-white tabular-nums">
+                  {formatVND(listingToCancel.resalePrice)}
+                </p>
+              </div>
+            )}
+
             {listingToCancel.isPrivate && (
               <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded-xl text-amber-300 text-[11px] leading-relaxed flex gap-2">
                 <Lock className="w-4 h-4 shrink-0 mt-0.5" />
@@ -875,14 +970,7 @@ export const MyListingsPage: React.FC = () => {
                 </span>
               </div>
             )}
-            {Boolean(listingToCancel.bundleId || (listingToCancel.bundleTotalTickets && listingToCancel.bundleTotalTickets >= 2)) && (
-              <div className="p-3 bg-purple-500/10 border border-purple-500/30 rounded-xl text-purple-300 text-[11px] leading-relaxed flex gap-2">
-                <span className="font-bold text-xs uppercase text-purple-400 shrink-0">COMBO:</span>
-                <span>
-                  Vé này thuộc gói combo ({listingToCancel.bundleTotalTickets || 2} vé). Khi xác nhận hủy, toàn bộ các vé thuộc combo này sẽ được mở khóa và hủy bán cùng lúc.
-                </span>
-              </div>
-            )}
+
             {cancelMutation.isError && (
               <div className="p-3 bg-rose-500/10 border border-rose-500/30 rounded-xl text-rose-300 text-[11px] leading-relaxed flex gap-2">
                 <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />

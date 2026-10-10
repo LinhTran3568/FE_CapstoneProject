@@ -437,6 +437,7 @@ export interface CreateUserBankAccountRequest {
 export interface CancelResaleListingResponse {
   listingId: string;
   originalTicketCode: string;
+  allCancelledTicketCodes?: string[];
   listingStatus: ListingStatus;
   cancelledAt: string;
 }
