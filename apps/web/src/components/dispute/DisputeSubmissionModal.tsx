@@ -10,11 +10,16 @@ import {
   Upload,
   X,
   Trash2,
+  Building2,
+  PlusCircle,
+  CheckCircle,
 } from 'lucide-react';
 import type { PurchasedTicketDto } from '@ticketshield/types';
 import { disputesApi, DisputeReasonCode } from '@ticketshield/api-client';
 import { useQueryClient } from '@tanstack/react-query';
 import { myPurchasedTicketsQueryKey } from '../../hooks/useMyTickets';
+import { useMyBankAccounts } from '../../hooks/useMyBankAccounts';
+import { SellerBankAccountModal } from '../profile/SellerBankAccountModal';
 import { useUIStore } from '../../stores/uiStore';
 
 interface DisputeSubmissionModalProps {
@@ -40,6 +45,15 @@ export const DisputeSubmissionModal: React.FC<DisputeSubmissionModalProps> = ({
   const queryClient = useQueryClient();
   const showToast = useUIStore((state) => state.showToast);
 
+  const {
+    data: bankAccounts = [],
+    isLoading: isLoadingBankAccounts,
+    refetch: refetchBankAccounts,
+  } = useMyBankAccounts();
+  const [isBankModalOpen, setIsBankModalOpen] = useState(false);
+  const hasBankAccount = bankAccounts.length > 0;
+  const primaryAccount = bankAccounts.find((acc) => acc.isDefault) || bankAccounts[0];
+
   const [reasonCode, setReasonCode] = useState<DisputeReasonCode>(DisputeReasonCode.TicketInvalid);
   const [description, setDescription] = useState('');
   const [evidenceFiles, setEvidenceFiles] = useState<EvidenceFileItem[]>([]);
@@ -62,6 +76,13 @@ export const DisputeSubmissionModal: React.FC<DisputeSubmissionModalProps> = ({
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [handleKeyDown]);
+
+  // Auto-dismiss bank account error when an account is linked
+  useEffect(() => {
+    if (hasBankAccount && errorMsg?.toLowerCase().includes('ngân hàng')) {
+      setErrorMsg(null);
+    }
+  }, [hasBankAccount, errorMsg]);
 
   // Clean up object URLs on unmount
   useEffect(() => {
@@ -121,8 +142,16 @@ export const DisputeSubmissionModal: React.FC<DisputeSubmissionModalProps> = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setErrorMsg(null);
+
     if (!ticket.escrowId) {
       setErrorMsg('Không tìm thấy thông tin giao dịch Escrow để khiếu nại.');
+      return;
+    }
+
+    if (!hasBankAccount) {
+      setErrorMsg('Bạn cần liên kết tài khoản ngân hàng trước khi gửi báo cáo sự cố để có thể nhận tiền hoàn.');
+      setIsBankModalOpen(true);
       return;
     }
 
@@ -244,6 +273,59 @@ export const DisputeSubmissionModal: React.FC<DisputeSubmissionModalProps> = ({
             ESCROW HOLD
           </div>
         </div>
+
+        {/* Bank Account Requirement Status */}
+        {isLoadingBankAccounts ? (
+          <div className="p-2.5 rounded-xl bg-[#080A10] border border-white/10 flex items-center gap-2 text-xs text-[#94A3B8]">
+            <Loader2 className="w-3.5 h-3.5 animate-spin text-amber-400" />
+            <span>Đang kiểm tra tài khoản nhận hoàn tiền...</span>
+          </div>
+        ) : !hasBankAccount ? (
+          <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-200 text-xs space-y-2">
+            <div className="flex items-start gap-2">
+              <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+              <div className="space-y-0.5">
+                <div className="font-semibold text-white">Chưa liên kết tài khoản ngân hàng nhận tiền hoàn</div>
+                <p className="text-[11px] text-amber-200/90 leading-relaxed">
+                  Để đảm bảo bạn nhận được tiền hoàn khi sự cố được giải quyết, hệ thống yêu cầu liên kết tài khoản ngân hàng trước khi gửi khiếu nại.
+                </p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => setIsBankModalOpen(true)}
+              className="w-full py-2 px-3 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-amber-100 text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+            >
+              <PlusCircle className="w-3.5 h-3.5 text-amber-400" />
+              <span>Liên kết tài khoản ngân hàng ngay</span>
+            </button>
+          </div>
+        ) : (
+          <div className="p-2.5 rounded-xl bg-[#080A10] border border-emerald-500/30 flex items-center justify-between gap-2 text-xs">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className="w-7 h-7 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0">
+                <Building2 className="w-3.5 h-3.5" />
+              </div>
+              <div className="min-w-0">
+                <div className="text-[10px] text-[#94A3B8] flex items-center gap-1">
+                  <span>Tài khoản nhận hoàn tiền</span>
+                  <CheckCircle className="w-3 h-3 text-emerald-400 inline" />
+                </div>
+                <div className="font-bold text-white text-xs truncate">
+                  {primaryAccount?.bankCode} • <span className="font-mono text-emerald-400">{primaryAccount?.bankAccountNumber}</span>
+                </div>
+                <div className="text-[10px] text-[#94A3B8] uppercase truncate">{primaryAccount?.accountHolderName}</div>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => setIsBankModalOpen(true)}
+              className="text-[10.5px] text-[#94A3B8] hover:text-white underline cursor-pointer shrink-0"
+            >
+              Thay đổi
+            </button>
+          </div>
+        )}
 
         {/* Form Body */}
         <form onSubmit={handleSubmit} className="space-y-3">
@@ -380,8 +462,9 @@ export const DisputeSubmissionModal: React.FC<DisputeSubmissionModalProps> = ({
 
             <button
               type="submit"
-              disabled={isSubmitting}
-              className="flex-1 py-2 px-3 min-h-9 bg-rose-600 hover:bg-rose-500 text-white font-bold font-display text-xs uppercase tracking-wider rounded-xl shadow-md shadow-rose-600/30 flex items-center justify-center gap-1.5 transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer disabled:opacity-50"
+              disabled={isSubmitting || !hasBankAccount || isLoadingBankAccounts}
+              title={!hasBankAccount ? 'Cần liên kết tài khoản ngân hàng trước khi gửi khiếu nại' : undefined}
+              className="flex-1 py-2 px-3 min-h-9 bg-rose-600 hover:bg-rose-500 text-white font-bold font-display text-xs uppercase tracking-wider rounded-xl shadow-md shadow-rose-600/30 flex items-center justify-center gap-1.5 transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isSubmitting ? (
                 <>
@@ -398,6 +481,18 @@ export const DisputeSubmissionModal: React.FC<DisputeSubmissionModalProps> = ({
           </div>
         </form>
       </motion.div>
+
+      {/* Seller Bank Account Linking Modal */}
+      <SellerBankAccountModal
+        isOpen={isBankModalOpen}
+        onClose={() => setIsBankModalOpen(false)}
+        onSuccess={async () => {
+          await refetchBankAccounts();
+          setIsBankModalOpen(false);
+          setErrorMsg(null);
+          showToast('Liên kết tài khoản ngân hàng thành công!', 'success');
+        }}
+      />
     </div>
   );
 };
