@@ -391,14 +391,8 @@ export const AdminLayout: React.FC = () => {
             </nav>
           </div>
 
-          {/* Right: Status indicator, Notifications & User avatar */}
+          {/* Right: Notifications & User avatar */}
           <div className="flex items-center gap-3 sm:gap-4 shrink-0">
-            {/* System Status Pill */}
-            <div className="hidden md:flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-[11px] font-mono text-emerald-700">
-              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-              <span className="font-bold">System Online • 2026</span>
-            </div>
-
             {/* Notification / Dispute Alert */}
             <Link
               to="/admin/disputes"

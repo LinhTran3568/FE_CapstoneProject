@@ -9,7 +9,6 @@ import {
   Percent,
   TrendingUp,
   Clock,
-  ShieldCheck,
   CheckCircle2,
   Layers,
   ArrowUpRight
@@ -93,12 +92,6 @@ export const AdminConfigPage: React.FC = () => {
           </p>
         </div>
 
-        {/* Real-time System Guard Badge */}
-        <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white border border-[#E5EAF0] shadow-sm self-start sm:self-auto text-xs font-mono">
-          <ShieldCheck className="w-4 h-4 text-emerald-600" />
-          <span className="text-[#667085]">Escrow Guard:</span>
-          <strong className="text-emerald-700 font-bold">100% Hoạt Động</strong>
-        </div>
       </div>
 
       {/* ── Compact Live Parameters Summary Strip ── */}
