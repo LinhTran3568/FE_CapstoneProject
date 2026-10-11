@@ -95,4 +95,36 @@ export const adminApi = {
       body: JSON.stringify(payload),
     });
   },
+
+  /**
+   * Lấy danh sách toàn bộ tài khoản người dùng từ Identity Service (FE-6.5.4)
+   */
+  getUsers: async (): Promise<AdminUserDto[]> => {
+    return await httpClient<AdminUserDto[]>('/admin/users');
+  },
+
+  /**
+   * Khóa vĩnh viễn tài khoản người dùng vi phạm (SCRUM-220 / FE-6.5.4)
+   */
+  suspendUser: async (userId: string): Promise<AdminUserDto> => {
+    return await httpClient<AdminUserDto>(`/admin/users/${userId}/suspension`, {
+      method: 'POST',
+    });
+  },
 };
+
+export interface AdminUserDto {
+  id: string;
+  email: string;
+  fullName: string;
+  phoneNumber?: string;
+  role: string;
+  isActive: boolean;
+  trustScore?: number;
+  bankCode?: string;
+  bankAccountNumber?: string;
+  accountHolderName?: string;
+  createdAt?: string;
+  isKycVerified?: boolean;
+}
+
