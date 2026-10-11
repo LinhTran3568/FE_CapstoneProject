@@ -65,7 +65,11 @@ export const Navbar: React.FC = () => {
 
   const handleBrandClick = (e: React.MouseEvent) => {
     e.preventDefault();
-    navigate('/');
+    if (isAdmin) {
+      navigate('/admin/dashboard');
+    } else {
+      navigate('/');
+    }
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -127,28 +131,32 @@ export const Navbar: React.FC = () => {
 
         {/* Navigation Links */}
         <nav className="hidden md:flex items-center gap-1 bg-[#090C12]/90 backdrop-blur-md p-1.5 rounded-full border border-white/10 shadow-inner">
-          <Link
-            to="/"
-            className={`px-3.5 py-1.5 rounded-full text-xs font-mono font-bold uppercase tracking-wider whitespace-nowrap transition-all ${
-              location.pathname === '/'
-                ? 'bg-[#FF5A36] text-white shadow-[0_2px_15px_rgba(255,90,54,0.4)]'
-                : 'text-[#94A3B8] hover:text-white hover:bg-white/[0.06]'
-            }`}
-          >
-            Home
-          </Link>
+          {!isAdmin && (
+            <>
+              <Link
+                to="/"
+                className={`px-3.5 py-1.5 rounded-full text-xs font-mono font-bold uppercase tracking-wider whitespace-nowrap transition-all ${
+                  location.pathname === '/'
+                    ? 'bg-[#FF5A36] text-white shadow-[0_2px_15px_rgba(255,90,54,0.4)]'
+                    : 'text-[#94A3B8] hover:text-white hover:bg-white/[0.06]'
+                }`}
+              >
+                Home
+              </Link>
 
-          <Link
-            to="/marketplace"
-            className={`px-3.5 py-1.5 rounded-full text-xs font-mono font-bold uppercase tracking-wider whitespace-nowrap transition-all flex items-center gap-1.5 ${
-              location.pathname === '/marketplace'
-                ? 'bg-[#FF5A36] text-white shadow-[0_2px_15px_rgba(255,90,54,0.4)]'
-                : 'text-[#94A3B8] hover:text-white hover:bg-white/[0.06]'
-            }`}
-          >
-            <Ticket className="w-3.5 h-3.5" />
-            <span>Marketplace</span>
-          </Link>
+              <Link
+                to="/marketplace"
+                className={`px-3.5 py-1.5 rounded-full text-xs font-mono font-bold uppercase tracking-wider whitespace-nowrap transition-all flex items-center gap-1.5 ${
+                  location.pathname === '/marketplace'
+                    ? 'bg-[#FF5A36] text-white shadow-[0_2px_15px_rgba(255,90,54,0.4)]'
+                    : 'text-[#94A3B8] hover:text-white hover:bg-white/[0.06]'
+                }`}
+              >
+                <Ticket className="w-3.5 h-3.5" />
+                <span>Marketplace</span>
+              </Link>
+            </>
+          )}
 
           {isStaff && (
             <Link
@@ -166,7 +174,7 @@ export const Navbar: React.FC = () => {
 
           {isAdmin && (
             <Link
-              to="/admin/config"
+              to="/admin/dashboard"
               className={`px-3.5 py-1.5 rounded-full text-xs font-mono font-bold uppercase tracking-wider whitespace-nowrap transition-all flex items-center gap-1.5 ${
                 location.pathname.startsWith('/admin')
                   ? 'bg-[#FF5A36] text-white shadow-[0_2px_15px_rgba(255,90,54,0.4)]'
@@ -243,73 +251,87 @@ export const Navbar: React.FC = () => {
                     <p className="text-[11px] font-mono text-[#8B929C] truncate">{user.email}</p>
                   </div>
 
-                  {isStaff && (
-                    <Link
-                      to="/disputes/console"
-                      onClick={() => setUserDropdownOpen(false)}
-                      className="w-full px-3 py-2.5 rounded-xl text-xs font-mono text-amber-300 hover:text-amber-200 hover:bg-amber-500/10 flex items-center gap-2.5 transition-colors"
-                    >
-                      <ShieldAlert className="w-4 h-4 text-amber-400" />
-                      <span>Dispute Console</span>
-                    </Link>
+                  {isAdmin ? (
+                    <>
+                      <Link
+                        to="/admin/dashboard"
+                        onClick={() => setUserDropdownOpen(false)}
+                        className="w-full px-3 py-2.5 rounded-xl text-xs font-mono text-[#FF5A36] hover:text-white hover:bg-[#FF5A36]/10 flex items-center gap-2.5 transition-colors"
+                      >
+                        <Sliders className="w-4 h-4 text-[#FF5A36]" />
+                        <span>Admin Console</span>
+                      </Link>
+                      <Link
+                        to="/admin/disputes"
+                        onClick={() => setUserDropdownOpen(false)}
+                        className="w-full px-3 py-2.5 rounded-xl text-xs font-mono text-amber-300 hover:text-amber-200 hover:bg-amber-500/10 flex items-center gap-2.5 transition-colors"
+                      >
+                        <ShieldAlert className="w-4 h-4 text-amber-400" />
+                        <span>Dispute Console</span>
+                      </Link>
+                    </>
+                  ) : (
+                    <>
+                      {isStaff && (
+                        <Link
+                          to="/disputes/console"
+                          onClick={() => setUserDropdownOpen(false)}
+                          className="w-full px-3 py-2.5 rounded-xl text-xs font-mono text-amber-300 hover:text-amber-200 hover:bg-amber-500/10 flex items-center gap-2.5 transition-colors"
+                        >
+                          <ShieldAlert className="w-4 h-4 text-amber-400" />
+                          <span>Dispute Console</span>
+                        </Link>
+                      )}
+
+                      <Link
+                        to="/my-tickets"
+                        onClick={() => setUserDropdownOpen(false)}
+                        className="w-full px-3 py-2.5 rounded-xl text-xs font-mono text-[#CBD5E1] hover:text-white hover:bg-white/10 flex items-center gap-2.5 transition-colors"
+                      >
+                        <Sparkles className="w-4 h-4 text-[#FF5A36]" />
+                        <span>My Tickets</span>
+                      </Link>
+
+                      <Link
+                        to="/my-listings"
+                        onClick={() => setUserDropdownOpen(false)}
+                        className="w-full px-3 py-2.5 rounded-xl text-xs font-mono text-[#CBD5E1] hover:text-white hover:bg-white/10 flex items-center gap-2.5 transition-colors"
+                      >
+                        <ListFilter className="w-4 h-4 text-[#FF5A36]" />
+                        <span>My Listings</span>
+                      </Link>
+
+                      <Link
+                        to="/payout-accounts"
+                        onClick={() => setUserDropdownOpen(false)}
+                        className="w-full px-3 py-2.5 rounded-xl text-xs font-mono text-[#CBD5E1] hover:text-white hover:bg-white/10 flex items-center gap-2.5 transition-colors"
+                      >
+                        <Building2 className="w-4 h-4 text-emerald-400" />
+                        <span>Payout Accounts</span>
+                      </Link>
+
+                      <Link
+                        to="/profile"
+                        onClick={() => setUserDropdownOpen(false)}
+                        className="w-full px-3 py-2.5 rounded-xl text-xs font-mono text-[#CBD5E1] hover:text-white hover:bg-white/10 flex items-center gap-2.5 transition-colors"
+                      >
+                        <UserIcon className="w-4 h-4 text-[#FF5A36]" />
+                        <span>My Profile</span>
+                      </Link>
+                    </>
                   )}
-
-                  {isAdmin && (
-                    <Link
-                      to="/admin/config"
-                      onClick={() => setUserDropdownOpen(false)}
-                      className="w-full px-3 py-2.5 rounded-xl text-xs font-mono text-[#FF5A36] hover:text-white hover:bg-[#FF5A36]/10 flex items-center gap-2.5 transition-colors"
-                    >
-                      <Sliders className="w-4 h-4 text-[#FF5A36]" />
-                      <span>System Config (US-6.4)</span>
-                    </Link>
-                  )}
-
-                  <Link
-                    to="/my-tickets"
-                    onClick={() => setUserDropdownOpen(false)}
-                    className="w-full px-3 py-2.5 rounded-xl text-xs font-mono text-[#CBD5E1] hover:text-white hover:bg-white/10 flex items-center gap-2.5 transition-colors"
-                  >
-                    <Sparkles className="w-4 h-4 text-[#FF5A36]" />
-                    <span>My Tickets</span>
-                  </Link>
-
-                  <Link
-                    to="/my-listings"
-                    onClick={() => setUserDropdownOpen(false)}
-                    className="w-full px-3 py-2.5 rounded-xl text-xs font-mono text-[#CBD5E1] hover:text-white hover:bg-white/10 flex items-center gap-2.5 transition-colors"
-                  >
-                    <ListFilter className="w-4 h-4 text-[#FF5A36]" />
-                    <span>My Listings</span>
-                  </Link>
-
-                  <Link
-                    to="/payout-accounts"
-                    onClick={() => setUserDropdownOpen(false)}
-                    className="w-full px-3 py-2.5 rounded-xl text-xs font-mono text-[#CBD5E1] hover:text-white hover:bg-white/10 flex items-center gap-2.5 transition-colors"
-                  >
-                    <Building2 className="w-4 h-4 text-emerald-400" />
-                    <span>Payout Accounts</span>
-                  </Link>
-
-                  <Link
-                    to="/profile"
-                    onClick={() => setUserDropdownOpen(false)}
-                    className="w-full px-3 py-2.5 rounded-xl text-xs font-mono text-[#CBD5E1] hover:text-white hover:bg-white/10 flex items-center gap-2.5 transition-colors"
-                  >
-                    <UserIcon className="w-4 h-4 text-[#FF5A36]" />
-                    <span>My Profile</span>
-                  </Link>
 
                   <div className="pt-1 border-t border-white/10">
-                    <Link
-                      to="/organizer"
-                      onClick={() => setUserDropdownOpen(false)}
-                      className="w-full px-3 py-2 rounded-xl text-[11px] font-mono text-orange-400/80 hover:text-orange-400 hover:bg-orange-500/10 flex items-center gap-2.5 transition-colors"
-                    >
-                      <span className="w-2 h-2 rounded-full bg-orange-500 animate-pulse"></span>
-                      <span>Organizer Portal</span>
-                    </Link>
+                    {!isAdmin && (
+                      <Link
+                        to="/organizer"
+                        onClick={() => setUserDropdownOpen(false)}
+                        className="w-full px-3 py-2 rounded-xl text-[11px] font-mono text-orange-400/80 hover:text-orange-400 hover:bg-orange-500/10 flex items-center gap-2.5 transition-colors"
+                      >
+                        <span className="w-2 h-2 rounded-full bg-orange-500 animate-pulse"></span>
+                        <span>Organizer Portal</span>
+                      </Link>
+                    )}
 
                     <button
                       onClick={handleLogout}
@@ -373,21 +395,25 @@ export const Navbar: React.FC = () => {
             </div>
           ) : (
             <div className="flex flex-col gap-1">
-              <Link
-                to="/"
-                onClick={() => setMobileMenuOpen(false)}
-                className="px-4 py-2.5 rounded-xl text-xs font-mono font-bold uppercase text-white hover:bg-white/10 text-left transition-colors"
-              >
-                Home
-              </Link>
-              <Link
-                to="/marketplace"
-                onClick={() => setMobileMenuOpen(false)}
-                className="px-4 py-2.5 rounded-xl text-xs font-mono font-bold uppercase text-white hover:bg-white/10 flex items-center gap-2"
-              >
-                <Ticket className="w-4 h-4 text-[#FF5A36]" />
-                <span>Marketplace</span>
-              </Link>
+              {!isAdmin && (
+                <>
+                  <Link
+                    to="/"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="px-4 py-2.5 rounded-xl text-xs font-mono font-bold uppercase text-white hover:bg-white/10 text-left transition-colors"
+                  >
+                    Home
+                  </Link>
+                  <Link
+                    to="/marketplace"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="px-4 py-2.5 rounded-xl text-xs font-mono font-bold uppercase text-white hover:bg-white/10 flex items-center gap-2"
+                  >
+                    <Ticket className="w-4 h-4 text-[#FF5A36]" />
+                    <span>Marketplace</span>
+                  </Link>
+                </>
+              )}
               {isStaff && (
                 <Link
                   to="/disputes/console"
@@ -400,56 +426,58 @@ export const Navbar: React.FC = () => {
               )}
               {isAdmin && (
                 <Link
-                  to="/admin/config"
+                  to="/admin/dashboard"
                   onClick={() => setMobileMenuOpen(false)}
                   className="px-4 py-2.5 rounded-xl text-xs font-mono font-bold uppercase text-[#FF5A36] hover:bg-[#FF5A36]/10 flex items-center gap-2"
                 >
                   <Sliders className="w-4 h-4 text-[#FF5A36]" />
-                  <span>System Config</span>
+                  <span>Admin Portal</span>
                 </Link>
               )}
               {!isAdmin && !isStaff && (
-                <Link
-                  to="/sell-ticket"
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="px-4 py-2.5 rounded-xl text-xs font-mono font-bold uppercase text-[#FF5A36] hover:bg-[#FF5A36]/10 flex items-center gap-2 font-bold"
-                >
-                  <PlusCircle className="w-4 h-4 text-[#FF5A36]" />
-                  <span>Sell Ticket</span>
-                </Link>
+                <>
+                  <Link
+                    to="/sell-ticket"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="px-4 py-2.5 rounded-xl text-xs font-mono font-bold uppercase text-[#FF5A36] hover:bg-[#FF5A36]/10 flex items-center gap-2 font-bold"
+                  >
+                    <PlusCircle className="w-4 h-4 text-[#FF5A36]" />
+                    <span>Sell Ticket</span>
+                  </Link>
+                  <Link
+                    to="/my-tickets"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="px-4 py-2.5 rounded-xl text-xs font-mono font-bold uppercase text-white hover:bg-white/10 flex items-center gap-2"
+                  >
+                    <Sparkles className="w-4 h-4 text-[#FF5A36]" />
+                    <span>My Tickets</span>
+                  </Link>
+                  <Link
+                    to="/my-listings"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="px-4 py-2.5 rounded-xl text-xs font-mono font-bold uppercase text-white hover:bg-white/10 flex items-center gap-2"
+                  >
+                    <ListFilter className="w-4 h-4 text-[#FF5A36]" />
+                    <span>My Listings</span>
+                  </Link>
+                  <Link
+                    to="/payout-accounts"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="px-4 py-2.5 rounded-xl text-xs font-mono font-bold uppercase text-white hover:bg-white/10 flex items-center gap-2"
+                  >
+                    <Building2 className="w-4 h-4 text-emerald-400" />
+                    <span>Payout Accounts</span>
+                  </Link>
+                  <Link
+                    to="/organizer"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="px-4 py-2.5 rounded-xl text-xs font-mono font-bold uppercase text-orange-400 hover:bg-orange-500/10 flex items-center gap-2"
+                  >
+                    <ShieldCheck className="w-4 h-4" />
+                    <span>Organizer Portal</span>
+                  </Link>
+                </>
               )}
-              <Link
-                to="/my-tickets"
-                onClick={() => setMobileMenuOpen(false)}
-                className="px-4 py-2.5 rounded-xl text-xs font-mono font-bold uppercase text-white hover:bg-white/10 flex items-center gap-2"
-              >
-                <Sparkles className="w-4 h-4 text-[#FF5A36]" />
-                <span>My Tickets</span>
-              </Link>
-              <Link
-                to="/my-listings"
-                onClick={() => setMobileMenuOpen(false)}
-                className="px-4 py-2.5 rounded-xl text-xs font-mono font-bold uppercase text-white hover:bg-white/10 flex items-center gap-2"
-              >
-                <ListFilter className="w-4 h-4 text-[#FF5A36]" />
-                <span>My Listings</span>
-              </Link>
-              <Link
-                to="/payout-accounts"
-                onClick={() => setMobileMenuOpen(false)}
-                className="px-4 py-2.5 rounded-xl text-xs font-mono font-bold uppercase text-white hover:bg-white/10 flex items-center gap-2"
-              >
-                <Building2 className="w-4 h-4 text-emerald-400" />
-                <span>Payout Accounts</span>
-              </Link>
-              <Link
-                to="/organizer"
-                onClick={() => setMobileMenuOpen(false)}
-                className="px-4 py-2.5 rounded-xl text-xs font-mono font-bold uppercase text-orange-400 hover:bg-orange-500/10 flex items-center gap-2"
-              >
-                <ShieldCheck className="w-4 h-4" />
-                <span>Organizer Portal</span>
-              </Link>
               <div className="pt-2 border-t border-white/10">
                 <button
                   onClick={() => {

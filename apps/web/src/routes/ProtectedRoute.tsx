@@ -32,6 +32,25 @@ export const ProtectedRoute: React.FC = () => {
 };
 
 /**
+ * Route only accessible to guests or non-admin users.
+ * Strictly locks Admin accounts inside the management portal (/admin/dashboard),
+ * redirecting any attempt to access marketplace or public user pages.
+ */
+export const UserRoute: React.FC = () => {
+  const { user, isAuthenticated, isLoading } = useAuthStore();
+
+  if (isLoading) {
+    return <RouteLoadingScreen />;
+  }
+
+  if (isAuthenticated && user && isAdminRole(user.role)) {
+    return <Navigate to="/admin/dashboard" replace />;
+  }
+
+  return <Outlet />;
+};
+
+/**
  * Route only accessible to guest (unauthenticated) users.
  * When authenticated, automatically redirects to Admin Portal (if admin), Dispute Console (if staff), or Marketplace.
  */

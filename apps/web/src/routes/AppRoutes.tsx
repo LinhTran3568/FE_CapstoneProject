@@ -18,21 +18,41 @@ import { PrivateListingPage } from '../pages/PrivateListingPage';
 import { DisputeConsolePage } from '../pages/DisputeConsolePage';
 import { AdminConfigPage } from '../pages/AdminConfigPage';
 import { AdminDashboardPage } from '../pages/AdminDashboardPage';
-import { AdminEventsPage } from '../pages/AdminEventsPage';
-import { AdminTransactionsPage } from '../pages/AdminTransactionsPage';
 import { AdminUsersPage } from '../pages/AdminUsersPage';
 import { AdminLayout } from '../components/admin/layout/AdminLayout';
-import { ProtectedRoute, GuestRoute, StaffRoute, AdminRoute } from './ProtectedRoute';
+import { ProtectedRoute, GuestRoute, StaffRoute, AdminRoute, UserRoute } from './ProtectedRoute';
+import { useAuthStore } from '../stores/authStore';
+import { isAdminRole } from '../utils/staffRole';
+
+const FallbackRoute: React.FC = () => {
+  const { user, isAuthenticated } = useAuthStore();
+  if (isAuthenticated && user && isAdminRole(user.role)) {
+    return <Navigate to="/admin/dashboard" replace />;
+  }
+  return <Navigate to="/" replace />;
+};
 
 export const AppRoutes: React.FC = () => {
   return (
     <Routes>
-      {/* Public Pages */}
-      <Route path="/" element={<HomePage />} />
-      <Route path="/marketplace" element={<MarketplacePage />} />
-      <Route path="/p/:shareToken" element={<PrivateListingPage />} />
-      <Route path="/organizer" element={<OrganizerPortalPage />} />
-      {import.meta.env.DEV && <Route path="/preview/doanh-thu" element={<RevenuePreviewPage />} />}
+      {/* Public & Customer User Pages (Admin is strictly blocked and redirected to /admin/dashboard) */}
+      <Route element={<UserRoute />}>
+        <Route path="/" element={<HomePage />} />
+        <Route path="/marketplace" element={<MarketplacePage />} />
+        <Route path="/p/:shareToken" element={<PrivateListingPage />} />
+        <Route path="/organizer" element={<OrganizerPortalPage />} />
+        {import.meta.env.DEV && <Route path="/preview/doanh-thu" element={<RevenuePreviewPage />} />}
+
+        {/* Protected User Pages */}
+        <Route element={<ProtectedRoute />}>
+          <Route path="/profile" element={<ProfilePage />} />
+          <Route path="/payout-accounts" element={<PayoutAccountsPage />} />
+          <Route path="/sell-ticket" element={<SellTicketPage />} />
+          <Route path="/my-listings" element={<MyListingsPage />} />
+          <Route path="/my-tickets" element={<MyTicketsPage />} />
+          <Route path="/dashboard" element={<DashboardPage />} />
+        </Route>
+      </Route>
 
       {/* Guest-only Pages (Cannot access when already authenticated) */}
       <Route element={<GuestRoute />}>
@@ -40,16 +60,6 @@ export const AppRoutes: React.FC = () => {
         <Route path="/register" element={<RegisterPage />} />
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
         <Route path="/reset-password" element={<ResetPasswordPage />} />
-      </Route>
-
-      {/* Protected User Pages */}
-      <Route element={<ProtectedRoute />}>
-        <Route path="/profile" element={<ProfilePage />} />
-        <Route path="/payout-accounts" element={<PayoutAccountsPage />} />
-        <Route path="/sell-ticket" element={<SellTicketPage />} />
-        <Route path="/my-listings" element={<MyListingsPage />} />
-        <Route path="/my-tickets" element={<MyTicketsPage />} />
-        <Route path="/dashboard" element={<DashboardPage />} />
       </Route>
 
       {/* Staff / Moderator Pages */}
@@ -65,8 +75,8 @@ export const AppRoutes: React.FC = () => {
         <Route element={<AdminLayout />}>
           <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />
           <Route path="/admin/dashboard" element={<AdminDashboardPage />} />
-          <Route path="/admin/events" element={<AdminEventsPage />} />
-          <Route path="/admin/transactions" element={<AdminTransactionsPage />} />
+          <Route path="/admin/events" element={<Navigate to="/admin/config?tab=markup" replace />} />
+          <Route path="/admin/transactions" element={<Navigate to="/admin/config?tab=buffer" replace />} />
           <Route path="/admin/config" element={<AdminConfigPage />} />
           <Route path="/admin/fees" element={<Navigate to="/admin/config?tab=fees" replace />} />
           <Route path="/admin/fee-settings" element={<Navigate to="/admin/config?tab=fees" replace />} />
@@ -75,7 +85,7 @@ export const AppRoutes: React.FC = () => {
       </Route>
 
       {/* Fallback */}
-      <Route path="*" element={<Navigate to="/" replace />} />
+      <Route path="*" element={<FallbackRoute />} />
     </Routes>
   );
 };

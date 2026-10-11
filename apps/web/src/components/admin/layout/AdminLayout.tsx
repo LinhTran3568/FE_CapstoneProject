@@ -6,8 +6,6 @@ import { disputesApi } from '@ticketshield/api-client';
 import { isAdminRole } from '../../../utils/staffRole';
 import {
   LayoutDashboard,
-  Ticket,
-  ArrowLeftRight,
   ShieldAlert,
   Users,
   Sliders,
@@ -16,7 +14,6 @@ import {
   LogOut,
   ChevronRight,
   ChevronLeft,
-  ExternalLink,
   ShieldCheck,
   ChevronDown,
   Bell,
@@ -94,22 +91,6 @@ export const AdminLayout: React.FC = () => {
       adminOnly: true,
     },
     {
-      to: '/admin/events',
-      aliases: ['/admin/events'],
-      label: 'Listings & Tickets',
-      icon: Ticket,
-      badge: null,
-      adminOnly: true,
-    },
-    {
-      to: '/admin/transactions',
-      aliases: ['/admin/transactions'],
-      label: 'Transactions & Buffer',
-      icon: ArrowLeftRight,
-      badge: null,
-      adminOnly: true,
-    },
-    {
       to: '/admin/disputes',
       aliases: ['/admin/disputes', '/disputes/console'],
       label: 'Dispute Console',
@@ -153,18 +134,6 @@ export const AdminLayout: React.FC = () => {
       return [
         { label: portalPrefix, to: portalHome },
         { label: 'Dispute Resolution Console', to: '/admin/disputes' }
-      ];
-    }
-    if (p.startsWith('/admin/events')) {
-      return [
-        { label: portalPrefix, to: portalHome },
-        { label: 'Listings & Tickets', to: '/admin/events' }
-      ];
-    }
-    if (p.startsWith('/admin/transactions')) {
-      return [
-        { label: portalPrefix, to: portalHome },
-        { label: 'Transactions & Buffer', to: '/admin/transactions' }
       ];
     }
     if (p.startsWith('/admin/users')) {
@@ -306,20 +275,6 @@ export const AdminLayout: React.FC = () => {
 
         {/* Bottom Profile & Actions */}
         <div className="p-3 border-t border-slate-800 space-y-2">
-          {/* Quick link to public website */}
-          <a
-            href="/marketplace"
-            target="_blank"
-            rel="noopener noreferrer"
-            title={isCollapsed ? 'Xem Chợ Vé' : undefined}
-            className={`flex items-center gap-2.5 px-3 py-2 rounded-xl text-[11px] font-mono text-slate-400 hover:text-white hover:bg-slate-800/60 transition-colors ${
-              isCollapsed ? 'justify-center px-0' : ''
-            }`}
-          >
-            <ExternalLink className="w-3.5 h-3.5 shrink-0" />
-            {!isCollapsed && <span>Xem Chợ Vé</span>}
-          </a>
-
           {/* Administrator Profile Card */}
           <div className={`bg-slate-900/90 rounded-xl border border-slate-800 flex items-center transition-all ${
             isCollapsed ? 'justify-center p-2' : 'justify-between p-2.5 gap-2'

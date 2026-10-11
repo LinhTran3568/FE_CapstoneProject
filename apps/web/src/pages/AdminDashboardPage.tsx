@@ -15,7 +15,6 @@ import {
   Building,
   Loader2,
   RefreshCw,
-  ExternalLink,
   ShieldCheck
 } from 'lucide-react';
 
@@ -165,7 +164,7 @@ export const AdminDashboardPage: React.FC = () => {
           </div>
           <div className="pt-2 border-t border-[#E5EAF0] flex items-center justify-between text-[11px]">
             <span className="text-[#667085]">Anti-scalping: Bật</span>
-            <Link to="/admin/events" className="text-[#F45135] font-semibold hover:underline flex items-center gap-1">
+            <Link to="/admin/config?tab=markup" className="text-[#F45135] font-semibold hover:underline flex items-center gap-1">
               Danh sách <ArrowRight className="w-3 h-3" />
             </Link>
           </div>
@@ -281,7 +280,7 @@ export const AdminDashboardPage: React.FC = () => {
               </h3>
             </div>
             <Link
-              to="/admin/events"
+              to="/admin/config?tab=markup"
               className="text-xs font-semibold text-[#F45135] hover:underline flex items-center gap-1"
             >
               Xem tất cả ({events.length}) <ArrowRight className="w-3 h-3" />
@@ -310,7 +309,7 @@ export const AdminDashboardPage: React.FC = () => {
 
           <div className="pt-2">
             <Link
-              to="/admin/events"
+              to="/admin/config?tab=markup"
               className="w-full py-2 rounded-lg border border-[#E5EAF0] hover:bg-slate-50 text-xs font-semibold text-[#101722] flex items-center justify-center gap-1.5 transition-colors block text-center"
             >
               <span>Quản lý trần giá vé</span>
