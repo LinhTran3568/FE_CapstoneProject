@@ -36,7 +36,21 @@ const mapBackendUserToFE = (dto: BackendAuthResult | BackendUserProfile): User =
   const userId = profile.userId || profile.id || (dto as BackendAuthResult).userId || '';
   const email = profile.email || (dto as BackendAuthResult).email || '';
   const fullName = profile.fullName || (dto as BackendAuthResult).fullName || '';
-  const role = profile.role || (dto as BackendAuthResult).role || 'BUYER';
+  const rawRole = (profile.role !== undefined && profile.role !== null)
+    ? profile.role
+    : ((dto as BackendAuthResult).role !== undefined ? (dto as BackendAuthResult).role : 'BUYER');
+
+  const normalizeRole = (r: unknown): any => {
+    const s = String(r).trim().toUpperCase();
+    if (s === '3' || s === 'ADMIN') return 'ADMIN';
+    if (s === '2' || s === 'ORGANIZER') return 'ORGANIZER';
+    if (s === 'CSKH') return 'CSKH';
+    if (s === 'MODERATOR') return 'MODERATOR';
+    if (s === 'RESELLER' || s === 'SELLER') return 'RESELLER';
+    return 'BUYER';
+  };
+
+  const role = normalizeRole(rawRole);
   const phoneNumber = profile.phoneNumber || '';
   const createdAt = profile.createdAt || new Date().toISOString();
 
@@ -45,7 +59,7 @@ const mapBackendUserToFE = (dto: BackendAuthResult | BackendUserProfile): User =
     email,
     fullName,
     phoneNumber,
-    role: (role as any) || 'BUYER',
+    role,
     isVerified: true,
     kycStatus: 'VERIFIED',
     createdAt,

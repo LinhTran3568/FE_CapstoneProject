@@ -24,8 +24,13 @@ interface SpeedDialActionItem {
 export const QuickActionSpeedDial: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
-  const navigate = useNavigate();
   const location = useLocation();
+  const navigate = useNavigate();
+
+  // Hide on admin portal and dispute console to keep UI uncluttered
+  if (location.pathname.startsWith('/admin') || location.pathname.startsWith('/disputes')) {
+    return null;
+  }
 
   // Close on Escape or click outside
   useEffect(() => {

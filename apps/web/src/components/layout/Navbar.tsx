@@ -3,7 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../stores/authStore';
 import { useUIStore } from '../../stores/uiStore';
 import { TicketShieldLogo } from '../ui/TicketShieldLogo';
-import { isStaffRole } from '../../utils/staffRole';
+import { isStaffRole, isAdminRole } from '../../utils/staffRole';
 import {
   Ticket,
   PlusCircle,
@@ -18,7 +18,8 @@ import {
   Sparkles,
   ArrowRight,
   Search,
-  Building2
+  Building2,
+  Sliders
 } from 'lucide-react';
 
 export const Navbar: React.FC = () => {
@@ -79,8 +80,9 @@ export const Navbar: React.FC = () => {
     user?.role === 'RESELLER' ||
     (user?.role as string) === 'SELLER';
 
-  const isAdmin = user?.role === 'ADMIN';
+  const isAdmin = isAdminRole(user?.role);
   const isStaff = isStaffRole(user?.role);
+  const isAdminOrStaffPage = location.pathname.startsWith('/admin') || location.pathname.startsWith('/disputes');
 
   return (
     <header
@@ -89,34 +91,45 @@ export const Navbar: React.FC = () => {
           : 'bg-gradient-to-b from-[#05070A]/90 via-[#05070A]/40 to-transparent py-4'
         }`}
     >
-      <div className="max-w-7xl mx-auto px-6 md:px-12 flex items-center justify-between gap-4">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-8 flex items-center justify-between gap-4">
         {/* Brand Logo & Search Bar */}
-        <div className="flex items-center gap-4 sm:gap-6">
+        <div className="flex items-center gap-3 sm:gap-4 shrink-0">
           <a href="/" onClick={handleBrandClick} className="focus:outline-none shrink-0 group">
             <TicketShieldLogo size="md" />
           </a>
 
-          {/* Global Navbar Search Bar */}
-          <form
-            onSubmit={handleNavSearchSubmit}
-            className="hidden sm:flex items-center gap-2 h-9 w-44 md:w-60 lg:w-72 bg-white/5 hover:bg-white/10 focus-within:bg-[#0D1117] focus-within:border-[#FF5A36] border border-white/10 rounded-full px-3 transition-all"
-          >
-            <Search className="w-3.5 h-3.5 text-[#8B929C] shrink-0" />
-            <input
-              type="text"
-              placeholder="Search events, tickets..."
-              value={navSearchTerm}
-              onChange={(e) => setNavSearchTerm(e.target.value)}
-              className="w-full bg-transparent border-0 text-white placeholder-[#8B929C] text-xs font-medium focus:outline-none"
-            />
-          </form>
+          {/* Global Navbar Search Bar (hidden on Admin & Dispute Console pages to prevent clutter) */}
+          {!isAdminOrStaffPage && (
+            <form
+              onSubmit={handleNavSearchSubmit}
+              className="hidden lg:flex items-center gap-2 h-9 w-44 md:w-56 lg:w-64 bg-white/5 hover:bg-white/10 focus-within:bg-[#0D1117] focus-within:border-[#FF5A36] border border-white/10 rounded-full px-3 transition-all"
+            >
+              <Search className="w-3.5 h-3.5 text-[#8B929C] shrink-0" />
+              <input
+                type="text"
+                placeholder="Search events, tickets..."
+                value={navSearchTerm}
+                onChange={(e) => setNavSearchTerm(e.target.value)}
+                className="w-full bg-transparent border-0 text-white placeholder-[#8B929C] text-xs font-medium focus:outline-none"
+              />
+            </form>
+          )}
+
+          {isAdminOrStaffPage && (
+            <div className="hidden sm:flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-xs font-mono text-slate-300">
+              <span className="w-2 h-2 rounded-full bg-[#FF5A36] animate-pulse"></span>
+              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-300">
+                {isAdmin ? 'Admin Console' : 'Staff Console'}
+              </span>
+            </div>
+          )}
         </div>
 
         {/* Navigation Links */}
-        <nav className="hidden md:flex items-center gap-1.5 bg-[#090C12]/90 backdrop-blur-md p-1.5 rounded-full border border-white/10 shadow-inner">
+        <nav className="hidden md:flex items-center gap-1 bg-[#090C12]/90 backdrop-blur-md p-1.5 rounded-full border border-white/10 shadow-inner">
           <Link
             to="/"
-            className={`px-4 py-1.5 rounded-full text-xs font-mono font-bold uppercase tracking-wider whitespace-nowrap transition-all ${
+            className={`px-3.5 py-1.5 rounded-full text-xs font-mono font-bold uppercase tracking-wider whitespace-nowrap transition-all ${
               location.pathname === '/'
                 ? 'bg-[#FF5A36] text-white shadow-[0_2px_15px_rgba(255,90,54,0.4)]'
                 : 'text-[#94A3B8] hover:text-white hover:bg-white/[0.06]'
@@ -127,7 +140,7 @@ export const Navbar: React.FC = () => {
 
           <Link
             to="/marketplace"
-            className={`px-4 py-1.5 rounded-full text-xs font-mono font-bold uppercase tracking-wider whitespace-nowrap transition-all flex items-center gap-1.5 ${
+            className={`px-3.5 py-1.5 rounded-full text-xs font-mono font-bold uppercase tracking-wider whitespace-nowrap transition-all flex items-center gap-1.5 ${
               location.pathname === '/marketplace'
                 ? 'bg-[#FF5A36] text-white shadow-[0_2px_15px_rgba(255,90,54,0.4)]'
                 : 'text-[#94A3B8] hover:text-white hover:bg-white/[0.06]'
@@ -140,37 +153,53 @@ export const Navbar: React.FC = () => {
           {isStaff && (
             <Link
               to="/disputes/console"
-              className={`px-4 py-1.5 rounded-full text-xs font-mono font-bold uppercase tracking-wider whitespace-nowrap transition-all flex items-center gap-1.5 ${
+              className={`px-3.5 py-1.5 rounded-full text-xs font-mono font-bold uppercase tracking-wider whitespace-nowrap transition-all flex items-center gap-1.5 ${
                 location.pathname.startsWith('/disputes') || location.pathname.startsWith('/admin/disputes')
-                  ? 'bg-[#FF5A36] text-white shadow-[0_2px_15px_rgba(255,90,54,0.4)]'
+                  ? 'bg-amber-500 text-black font-extrabold shadow-[0_2px_15px_rgba(245,158,11,0.4)]'
                   : 'text-amber-400 hover:text-amber-300 hover:bg-white/[0.06]'
               }`}
             >
-              <ShieldAlert className="w-3.5 h-3.5 text-amber-400" />
-              <span>Dispute Console</span>
+              <ShieldAlert className="w-3.5 h-3.5" />
+              <span>Disputes</span>
+            </Link>
+          )}
+
+          {isAdmin && (
+            <Link
+              to="/admin/config"
+              className={`px-3.5 py-1.5 rounded-full text-xs font-mono font-bold uppercase tracking-wider whitespace-nowrap transition-all flex items-center gap-1.5 ${
+                location.pathname.startsWith('/admin')
+                  ? 'bg-[#FF5A36] text-white shadow-[0_2px_15px_rgba(255,90,54,0.4)]'
+                  : 'text-[#FF5A36] hover:text-white hover:bg-white/[0.06]'
+              }`}
+            >
+              <Sliders className="w-3.5 h-3.5 text-[#FF5A36]" />
+              <span>Admin Portal</span>
             </Link>
           )}
         </nav>
 
         {/* Right Actions */}
-        <div className="hidden sm:flex items-center gap-3">
-          <Link
-            to="/sell-ticket"
-            className={`group px-4 py-2 rounded-xl text-xs font-mono font-bold uppercase tracking-wider whitespace-nowrap transition-all flex items-center gap-1.5 ${
-              location.pathname === '/sell-ticket'
-                ? 'bg-[#FF5A36] text-black shadow-[0_2px_15px_rgba(255,90,54,0.4)]'
-                : 'bg-white/5 text-white hover:bg-[#FF5A36] hover:text-black border border-white/15 hover:border-[#FF5A36]'
-            }`}
-          >
-            <PlusCircle
-              className={`w-3.5 h-3.5 transition-colors ${
+        <div className="hidden sm:flex items-center gap-3 shrink-0">
+          {!isAdmin && !isStaff && (
+            <Link
+              to="/sell-ticket"
+              className={`group px-3.5 py-2 rounded-xl text-xs font-mono font-bold uppercase tracking-wider whitespace-nowrap transition-all flex items-center gap-1.5 ${
                 location.pathname === '/sell-ticket'
-                  ? 'text-black'
-                  : 'text-[#FF5A36] group-hover:text-black'
+                  ? 'bg-[#FF5A36] text-black shadow-[0_2px_15px_rgba(255,90,54,0.4)]'
+                  : 'bg-white/5 text-white hover:bg-[#FF5A36] hover:text-black border border-white/15 hover:border-[#FF5A36]'
               }`}
-            />
-            <span>Sell Ticket</span>
-          </Link>
+            >
+              <PlusCircle
+                className={`w-3.5 h-3.5 transition-colors ${
+                  location.pathname === '/sell-ticket'
+                    ? 'text-black'
+                    : 'text-[#FF5A36] group-hover:text-black'
+                }`}
+              />
+              <span>Sell Ticket</span>
+            </Link>
+          )}
 
           {!user ? (
             <Link
@@ -222,6 +251,17 @@ export const Navbar: React.FC = () => {
                     >
                       <ShieldAlert className="w-4 h-4 text-amber-400" />
                       <span>Dispute Console</span>
+                    </Link>
+                  )}
+
+                  {isAdmin && (
+                    <Link
+                      to="/admin/config"
+                      onClick={() => setUserDropdownOpen(false)}
+                      className="w-full px-3 py-2.5 rounded-xl text-xs font-mono text-[#FF5A36] hover:text-white hover:bg-[#FF5A36]/10 flex items-center gap-2.5 transition-colors"
+                    >
+                      <Sliders className="w-4 h-4 text-[#FF5A36]" />
+                      <span>System Config (US-6.4)</span>
                     </Link>
                   )}
 
@@ -358,14 +398,26 @@ export const Navbar: React.FC = () => {
                   <span>Dispute Console</span>
                 </Link>
               )}
-              <Link
-                to="/sell-ticket"
-                onClick={() => setMobileMenuOpen(false)}
-                className="px-4 py-2.5 rounded-xl text-xs font-mono font-bold uppercase text-[#FF5A36] hover:bg-[#FF5A36]/10 flex items-center gap-2 font-bold"
-              >
-                <PlusCircle className="w-4 h-4 text-[#FF5A36]" />
-                <span>Sell Ticket</span>
-              </Link>
+              {isAdmin && (
+                <Link
+                  to="/admin/config"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="px-4 py-2.5 rounded-xl text-xs font-mono font-bold uppercase text-[#FF5A36] hover:bg-[#FF5A36]/10 flex items-center gap-2"
+                >
+                  <Sliders className="w-4 h-4 text-[#FF5A36]" />
+                  <span>System Config</span>
+                </Link>
+              )}
+              {!isAdmin && !isStaff && (
+                <Link
+                  to="/sell-ticket"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="px-4 py-2.5 rounded-xl text-xs font-mono font-bold uppercase text-[#FF5A36] hover:bg-[#FF5A36]/10 flex items-center gap-2 font-bold"
+                >
+                  <PlusCircle className="w-4 h-4 text-[#FF5A36]" />
+                  <span>Sell Ticket</span>
+                </Link>
+              )}
               <Link
                 to="/my-tickets"
                 onClick={() => setMobileMenuOpen(false)}

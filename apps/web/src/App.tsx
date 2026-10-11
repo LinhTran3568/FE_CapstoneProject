@@ -116,20 +116,25 @@ const AppContent: React.FC = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, [location.pathname]);
 
-  // Auth pages handle their own full-bleed layout (no header/footer overlap)
+  // Auth pages and Admin console handle their own dedicated layout
   const isAuthPage = ['/login', '/register', '/forgot-password', '/reset-password'].includes(
     location.pathname
   );
-  const isLandingPage = location.pathname === '/';
+  const isAdminRoute = location.pathname.startsWith('/admin') || location.pathname.startsWith('/disputes');
+  const showPublicChrome = !isAuthPage && !isAdminRoute;
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#05070A] text-[#F5F5F2] selection:bg-[#FF5A36] selection:text-white font-sans antialiased">
-      {!isAuthPage && <Navbar />}
+    <div className={`min-h-screen flex flex-col font-sans antialiased ${
+      isAdminRoute
+        ? 'bg-[#F5F7FA] text-[#101722]'
+        : 'bg-[#05070A] text-[#F5F5F2] selection:bg-[#FF5A36] selection:text-white'
+    }`}>
+      {showPublicChrome && <Navbar />}
       <main className="flex-1 w-full">
         <AppRoutes />
       </main>
-      {!isAuthPage && <Footer />}
-      {!isAuthPage && <QuickActionSpeedDial />}
+      {showPublicChrome && <Footer />}
+      {showPublicChrome && <QuickActionSpeedDial />}
       <ToastContainer />
     </div>
   );

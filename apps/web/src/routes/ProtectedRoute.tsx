@@ -3,7 +3,7 @@ import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import { useAuthStore } from '../stores/authStore';
 import { UserRole } from '@ticketshield/types';
 import { Loader2 } from 'lucide-react';
-import { isStaffRole } from '../utils/staffRole';
+import { isStaffRole, isAdminRole } from '../utils/staffRole';
 
 const RouteLoadingScreen: React.FC = () => (
   <div className="min-h-screen bg-[#05070A] flex flex-col items-center justify-center gap-3 text-white">
@@ -33,10 +33,10 @@ export const ProtectedRoute: React.FC = () => {
 
 /**
  * Route only accessible to guest (unauthenticated) users.
- * When authenticated, automatically redirects to Marketplace or previous page.
+ * When authenticated, automatically redirects to Admin Portal (if admin), Dispute Console (if staff), or Marketplace.
  */
 export const GuestRoute: React.FC = () => {
-  const { isAuthenticated, isLoading } = useAuthStore();
+  const { user, isAuthenticated, isLoading } = useAuthStore();
   const location = useLocation();
 
   if (isLoading) {
@@ -44,6 +44,13 @@ export const GuestRoute: React.FC = () => {
   }
 
   if (isAuthenticated) {
+    if (user && isAdminRole(user.role)) {
+      return <Navigate to="/admin" replace />;
+    }
+    if (user && isStaffRole(user.role)) {
+      return <Navigate to="/disputes/console" replace />;
+    }
+
     const rawFrom = (location.state as any)?.from;
     const targetPath = typeof rawFrom === 'string' ? rawFrom : rawFrom?.pathname;
     const from = (!targetPath || targetPath === '/sell-ticket' || targetPath === '/sell') ? '/marketplace' : targetPath;
@@ -83,6 +90,28 @@ export const StaffRoute: React.FC = () => {
   }
 
   if (!isStaffRole(user.role)) {
+    return <Navigate to="/marketplace" replace />;
+  }
+
+  return <Outlet />;
+};
+
+/**
+ * Route accessible strictly to Admin role
+ */
+export const AdminRoute: React.FC = () => {
+  const { user, isAuthenticated, isLoading } = useAuthStore();
+  const location = useLocation();
+
+  if (isLoading) {
+    return <RouteLoadingScreen />;
+  }
+
+  if (!isAuthenticated || !user) {
+    return <Navigate to="/login" state={{ from: location }} replace />;
+  }
+
+  if (!isAdminRole(user.role)) {
     return <Navigate to="/marketplace" replace />;
   }
 

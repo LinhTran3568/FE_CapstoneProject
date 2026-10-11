@@ -10,6 +10,7 @@ import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { Mail, Lock, ArrowLeft } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { TicketShieldLogo } from '../components/ui/TicketShieldLogo';
+import { isAdminRole, isStaffRole } from '../utils/staffRole';
 
 export const LoginPage: React.FC = () => {
   const { login } = useAuthStore();
@@ -34,12 +35,29 @@ export const LoginPage: React.FC = () => {
     },
   });
 
+  const getRedirectPath = (role: any, explicitFrom?: string | null) => {
+    if (isAdminRole(role)) {
+      if (explicitFrom && (explicitFrom.startsWith('/admin') || explicitFrom.startsWith('/disputes'))) {
+        return explicitFrom;
+      }
+      return '/admin';
+    }
+    if (isStaffRole(role)) {
+      if (explicitFrom && (explicitFrom.startsWith('/disputes') || explicitFrom.startsWith('/admin/disputes'))) {
+        return explicitFrom;
+      }
+      return '/disputes/console';
+    }
+    return from;
+  };
+
   const onSubmit = async (data: LoginFormData) => {
     try {
       const res = await authApi.login(data);
       login(res.user, res.token);
       showToast('Login successful! Welcome back.', 'success');
-      navigate(from, { replace: true });
+      const destination = getRedirectPath(res.user.role, targetPath);
+      navigate(destination, { replace: true });
     } catch (err: any) {
       showToast('Login failed: ' + err.message, 'error');
     }
@@ -55,7 +73,8 @@ export const LoginPage: React.FC = () => {
       const res = await authApi.googleLogin(credentialResponse.credential);
       login(res.user, res.token);
       showToast('Google login successful! Welcome back.', 'success');
-      navigate(from, { replace: true });
+      const destination = getRedirectPath(res.user.role, targetPath);
+      navigate(destination, { replace: true });
     } catch (err: any) {
       showToast('Google login failed: ' + err.message, 'error');
     } finally {
