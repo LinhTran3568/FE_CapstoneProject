@@ -3,6 +3,7 @@ import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import { useAuthStore } from '../stores/authStore';
 import { UserRole } from '@ticketshield/types';
 import { Loader2 } from 'lucide-react';
+import { isStaffRole } from '../utils/staffRole';
 
 const RouteLoadingScreen: React.FC = () => (
   <div className="min-h-screen bg-[#05070A] flex flex-col items-center justify-center gap-3 text-white">
@@ -61,6 +62,28 @@ export const RoleGuard: React.FC<{ allowedRoles: UserRole[] }> = ({ allowedRoles
 
   if (!user || !allowedRoles.includes(user.role)) {
     return <Navigate to="/" replace />;
+  }
+
+  return <Outlet />;
+};
+
+/**
+ * Route accessible to platform staff (Admin, CSKH, Moderator).
+ */
+export const StaffRoute: React.FC = () => {
+  const { user, isAuthenticated, isLoading } = useAuthStore();
+  const location = useLocation();
+
+  if (isLoading) {
+    return <RouteLoadingScreen />;
+  }
+
+  if (!isAuthenticated || !user) {
+    return <Navigate to="/login" state={{ from: location }} replace />;
+  }
+
+  if (!isStaffRole(user.role)) {
+    return <Navigate to="/marketplace" replace />;
   }
 
   return <Outlet />;

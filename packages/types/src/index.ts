@@ -1,6 +1,6 @@
 // TicketShield AI Domain Models & Types
 
-export type UserRole = 'BUYER' | 'RESELLER' | 'ADMIN' | 'ORGANIZER';
+export type UserRole = 'BUYER' | 'RESELLER' | 'ADMIN' | 'ORGANIZER' | 'CSKH' | 'MODERATOR';
 
 export interface User {
   id: string;

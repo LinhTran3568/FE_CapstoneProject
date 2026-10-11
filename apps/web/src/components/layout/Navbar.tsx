@@ -3,11 +3,13 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../stores/authStore';
 import { useUIStore } from '../../stores/uiStore';
 import { TicketShieldLogo } from '../ui/TicketShieldLogo';
+import { isStaffRole } from '../../utils/staffRole';
 import {
   Ticket,
   PlusCircle,
   ListFilter,
   ShieldCheck,
+  ShieldAlert,
   User as UserIcon,
   LogOut,
   ChevronDown,
@@ -73,34 +75,12 @@ export const Navbar: React.FC = () => {
     navigate('/');
   };
 
-  const scrollToSection = (sectionId: string) => {
-    setMobileMenuOpen(false);
-    if (isLandingPage) {
-      if (sectionId === 'hero') {
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-      } else {
-        const el = document.getElementById(sectionId);
-        if (el) {
-          const headerOffset = 64;
-          const elementRect = el.getBoundingClientRect();
-          const absoluteElementTop = elementRect.top + window.scrollY;
-          window.scrollTo({
-            top: Math.max(0, absoluteElementTop - headerOffset),
-            behavior: 'smooth',
-          });
-        }
-      }
-    } else {
-      navigate('/', { state: { scrollTo: sectionId } });
-    }
-  };
-
-
   const isSeller =
     user?.role === 'RESELLER' ||
     (user?.role as string) === 'SELLER';
 
   const isAdmin = user?.role === 'ADMIN';
+  const isStaff = isStaffRole(user?.role);
 
   return (
     <header
@@ -132,7 +112,7 @@ export const Navbar: React.FC = () => {
           </form>
         </div>
 
-        {/* Navigation Links - Clean 2-Tab Discovery Pill */}
+        {/* Navigation Links */}
         <nav className="hidden md:flex items-center gap-1.5 bg-[#090C12]/90 backdrop-blur-md p-1.5 rounded-full border border-white/10 shadow-inner">
           <Link
             to="/"
@@ -156,11 +136,24 @@ export const Navbar: React.FC = () => {
             <Ticket className="w-3.5 h-3.5" />
             <span>Marketplace</span>
           </Link>
+
+          {isStaff && (
+            <Link
+              to="/disputes/console"
+              className={`px-4 py-1.5 rounded-full text-xs font-mono font-bold uppercase tracking-wider whitespace-nowrap transition-all flex items-center gap-1.5 ${
+                location.pathname.startsWith('/disputes') || location.pathname.startsWith('/admin/disputes')
+                  ? 'bg-[#FF5A36] text-white shadow-[0_2px_15px_rgba(255,90,54,0.4)]'
+                  : 'text-amber-400 hover:text-amber-300 hover:bg-white/[0.06]'
+              }`}
+            >
+              <ShieldAlert className="w-3.5 h-3.5 text-amber-400" />
+              <span>Dispute Console</span>
+            </Link>
+          )}
         </nav>
 
         {/* Right Actions */}
         <div className="hidden sm:flex items-center gap-3">
-          {/* Sell Ticket CTA Button - Always accessible */}
           <Link
             to="/sell-ticket"
             className={`group px-4 py-2 rounded-xl text-xs font-mono font-bold uppercase tracking-wider whitespace-nowrap transition-all flex items-center gap-1.5 ${
@@ -220,6 +213,17 @@ export const Navbar: React.FC = () => {
                     <p className="text-xs font-bold text-white truncate">{user.fullName}</p>
                     <p className="text-[11px] font-mono text-[#8B929C] truncate">{user.email}</p>
                   </div>
+
+                  {isStaff && (
+                    <Link
+                      to="/disputes/console"
+                      onClick={() => setUserDropdownOpen(false)}
+                      className="w-full px-3 py-2.5 rounded-xl text-xs font-mono text-amber-300 hover:text-amber-200 hover:bg-amber-500/10 flex items-center gap-2.5 transition-colors"
+                    >
+                      <ShieldAlert className="w-4 h-4 text-amber-400" />
+                      <span>Dispute Console</span>
+                    </Link>
+                  )}
 
                   <Link
                     to="/my-tickets"
@@ -344,6 +348,16 @@ export const Navbar: React.FC = () => {
                 <Ticket className="w-4 h-4 text-[#FF5A36]" />
                 <span>Marketplace</span>
               </Link>
+              {isStaff && (
+                <Link
+                  to="/disputes/console"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="px-4 py-2.5 rounded-xl text-xs font-mono font-bold uppercase text-amber-400 hover:bg-amber-500/10 flex items-center gap-2"
+                >
+                  <ShieldAlert className="w-4 h-4 text-amber-400" />
+                  <span>Dispute Console</span>
+                </Link>
+              )}
               <Link
                 to="/sell-ticket"
                 onClick={() => setMobileMenuOpen(false)}

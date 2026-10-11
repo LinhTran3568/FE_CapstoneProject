@@ -15,7 +15,8 @@ import { MyTicketsPage } from '../pages/MyTicketsPage';
 import { OrganizerPortalPage } from '../pages/OrganizerPortalPage';
 import { PayoutAccountsPage } from '../pages/PayoutAccountsPage';
 import { PrivateListingPage } from '../pages/PrivateListingPage';
-import { ProtectedRoute, GuestRoute } from './ProtectedRoute';
+import { DisputeConsolePage } from '../pages/DisputeConsolePage';
+import { ProtectedRoute, GuestRoute, StaffRoute } from './ProtectedRoute';
 
 export const AppRoutes: React.FC = () => {
   return (
@@ -35,7 +36,7 @@ export const AppRoutes: React.FC = () => {
         <Route path="/reset-password" element={<ResetPasswordPage />} />
       </Route>
 
-      {/* Protected Pages (Requires authenticated session) */}
+      {/* Protected User Pages */}
       <Route element={<ProtectedRoute />}>
         <Route path="/profile" element={<ProfilePage />} />
         <Route path="/payout-accounts" element={<PayoutAccountsPage />} />
@@ -43,6 +44,12 @@ export const AppRoutes: React.FC = () => {
         <Route path="/my-listings" element={<MyListingsPage />} />
         <Route path="/my-tickets" element={<MyTicketsPage />} />
         <Route path="/dashboard" element={<DashboardPage />} />
+      </Route>
+
+      {/* Staff / Admin / Moderator Pages */}
+      <Route element={<StaffRoute />}>
+        <Route path="/disputes/console" element={<DisputeConsolePage />} />
+        <Route path="/admin/disputes" element={<DisputeConsolePage />} />
       </Route>
 
       {/* Fallback */}
