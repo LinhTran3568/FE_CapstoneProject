@@ -198,9 +198,19 @@ const ListingFinancialBreakdown: React.FC<{
       {/* Thực nhận */}
       <div className="flex justify-between items-center text-sm pt-0.5">
         <span className="text-gray-300 font-bold">Thực nhận:</span>
-        <span className="text-base font-extrabold text-emerald-400 tabular-nums font-display">
-          {formatVND(netPayout)}
-        </span>
+        {listing.escrowStatus === 'Refunded' ? (
+          <span className="text-sm font-extrabold text-rose-400 tabular-nums font-display flex items-center gap-1">
+            0 ₫ <span className="text-[11px] font-normal text-rose-400/80">(Đã hoàn người mua)</span>
+          </span>
+        ) : listing.escrowStatus === 'Disputed' ? (
+          <span className="text-sm font-extrabold text-amber-400 tabular-nums font-display flex items-center gap-1">
+            {formatVND(netPayout)} <span className="text-[11px] font-normal text-amber-400/80">(Tạm phong tỏa)</span>
+          </span>
+        ) : (
+          <span className="text-base font-extrabold text-emerald-400 tabular-nums font-display">
+            {formatVND(netPayout)}
+          </span>
+        )}
       </div>
 
       {/* Tài khoản nhận & Mã đối soát */}
@@ -673,10 +683,64 @@ export const MyListingsPage: React.FC = () => {
                         </span>
                       </div>
 
-                      {/* 30-Second Escrow Settlement & Payout Banner */}
+                      {/* Escrow Settlement, Dispute & Payout Banner */}
                       {listing.listingStatus === 'Sold' && (
                         <div className="pt-2 w-full">
-                          {listing.inSettlementBuffer ? (
+                          {listing.escrowStatus === 'Refunded' ? (
+                            <div
+                              onClick={() =>
+                                setExpandedBreakdownId((prev) =>
+                                  prev === listing.listingId ? null : listing.listingId
+                                )
+                              }
+                              className="p-2 sm:p-2.5 rounded-xl bg-rose-500/10 hover:bg-rose-500/15 border border-rose-500/30 hover:border-rose-500/50 flex items-center justify-between gap-3 text-xs text-rose-300 transition-all cursor-pointer group"
+                              title="Bấm để xem chi tiết tiền hoàn cho người mua"
+                            >
+                              <div className="flex items-center gap-2 min-w-0">
+                                <XCircle className="w-4 h-4 text-rose-400 shrink-0" />
+                                <span className="truncate">
+                                  <strong className="text-rose-400 font-semibold">Đã hoàn tiền cho người mua:</strong>{' '}
+                                  {formatVND(listing.totalBuyerPaid || listing.resalePrice)} (Khiếu nại được chấp thuận · Hủy nhận tiền)
+                                </span>
+                              </div>
+
+                              <div className="flex items-center gap-1 px-2 py-0.5 rounded-lg bg-rose-500/20 text-rose-300 group-hover:bg-rose-500/30 text-[11px] font-mono font-bold transition-colors shrink-0">
+                                <span>{expandedBreakdownId === listing.listingId ? 'Đóng' : 'Chi tiết'}</span>
+                                <ChevronDown
+                                  className={`w-3.5 h-3.5 transition-transform duration-200 ${
+                                    expandedBreakdownId === listing.listingId ? 'rotate-180' : ''
+                                  }`}
+                                />
+                              </div>
+                            </div>
+                          ) : listing.escrowStatus === 'Disputed' ? (
+                            <div
+                              onClick={() =>
+                                setExpandedBreakdownId((prev) =>
+                                  prev === listing.listingId ? null : listing.listingId
+                                )
+                              }
+                              className="p-2 sm:p-2.5 rounded-xl bg-amber-500/10 hover:bg-amber-500/15 border border-amber-500/30 hover:border-amber-500/50 flex items-center justify-between gap-3 text-xs text-amber-300 transition-all cursor-pointer group"
+                              title="Bấm để xem chi tiết khoản tiền đang phong tỏa"
+                            >
+                              <div className="flex items-center gap-2 min-w-0">
+                                <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0 animate-pulse" />
+                                <span className="truncate">
+                                  <strong className="text-amber-400 font-semibold">Đang có khiếu nại sự cố:</strong>{' '}
+                                  Khoản tiền {formatVND(listing.netSellerPayout || listing.resalePrice)} đang bị phong tỏa chờ BQT xử lý
+                                </span>
+                              </div>
+
+                              <div className="flex items-center gap-1 px-2 py-0.5 rounded-lg bg-amber-500/20 text-amber-300 group-hover:bg-amber-500/30 text-[11px] font-mono font-bold transition-colors shrink-0">
+                                <span>{expandedBreakdownId === listing.listingId ? 'Đóng' : 'Chi tiết'}</span>
+                                <ChevronDown
+                                  className={`w-3.5 h-3.5 transition-transform duration-200 ${
+                                    expandedBreakdownId === listing.listingId ? 'rotate-180' : ''
+                                  }`}
+                                />
+                              </div>
+                            </div>
+                          ) : listing.inSettlementBuffer ? (
                             <SettlementCountdownBanner
                               unlockAt={listing.unlockAt}
                               netSellerPayout={listing.netSellerPayout}
