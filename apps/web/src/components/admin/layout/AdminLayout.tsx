@@ -15,6 +15,7 @@ import {
   X,
   LogOut,
   ChevronRight,
+  ChevronLeft,
   ExternalLink,
   ShieldCheck,
   ChevronDown,
@@ -210,15 +211,33 @@ export const AdminLayout: React.FC = () => {
           isCollapsed ? 'w-20' : 'w-64'
         } ${mobileDrawerOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}
       >
+        {/* Floating Toggle Button on the outer right edge in the middle of sidebar */}
+        <button
+          type="button"
+          onClick={() => setIsCollapsed(!isCollapsed)}
+          className="hidden lg:flex absolute -right-3.5 top-1/2 -translate-y-1/2 z-50 w-7 h-7 rounded-full bg-[#101722] border border-slate-700/90 text-slate-300 hover:text-white hover:border-[#F45135] hover:scale-110 shadow-lg items-center justify-center transition-all focus:outline-none cursor-pointer"
+          title={isCollapsed ? "Mở rộng sidebar" : "Thu gọn sidebar"}
+          aria-label={isCollapsed ? "Mở rộng sidebar" : "Thu gọn sidebar"}
+        >
+          {isCollapsed ? (
+            <ChevronRight className="w-4 h-4 text-[#F45135]" />
+          ) : (
+            <ChevronLeft className="w-4 h-4 text-slate-300" />
+          )}
+        </button>
+
         {/* Brand Header */}
-        <div className="h-16 flex items-center justify-between px-4 border-b border-slate-800">
+        <div className={`h-16 flex items-center border-b border-slate-800 transition-all ${
+          isCollapsed ? 'justify-center px-2' : 'justify-between px-4'
+        }`}>
           <Link
             to={isAdmin ? "/admin/dashboard" : "/admin/disputes"}
-            className="flex items-center gap-3 overflow-hidden group focus:outline-none"
+            className={`flex items-center group focus:outline-none min-w-0 ${
+              isCollapsed ? 'justify-center p-1 rounded-xl hover:bg-slate-800/80' : 'gap-2.5 overflow-hidden'
+            }`}
+            title={isAdmin ? "TicketShield Fintech Admin" : "TicketShield Staff Console"}
           >
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#F45135] to-red-600 flex items-center justify-center text-white shrink-0 shadow-md shadow-[#F45135]/25">
-              <ShieldCheck className="w-5 h-5" />
-            </div>
+            <TicketShieldLogo size="sm" showText={false} />
             {!isCollapsed && (
               <div className="flex flex-col min-w-0">
                 <span className="text-sm font-extrabold tracking-tight text-white font-display truncate">
@@ -231,21 +250,11 @@ export const AdminLayout: React.FC = () => {
             )}
           </Link>
 
-          {/* Desktop Collapse Toggle */}
-          <button
-            type="button"
-            onClick={() => setIsCollapsed(!isCollapsed)}
-            className="hidden lg:flex p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800/80 transition-colors"
-            title={isCollapsed ? 'Mở rộng sidebar' : 'Thu gọn sidebar'}
-          >
-            {isCollapsed ? <PanelLeftOpen className="w-4 h-4" /> : <PanelLeftClose className="w-4 h-4" />}
-          </button>
-
           {/* Mobile Close Button */}
           <button
             type="button"
             onClick={() => setMobileDrawerOpen(false)}
-            className="lg:hidden p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800/80 transition-colors"
+            className="lg:hidden p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800/80 transition-colors ml-auto"
           >
             <X className="w-5 h-5" />
           </button>
@@ -312,15 +321,22 @@ export const AdminLayout: React.FC = () => {
           </a>
 
           {/* Administrator Profile Card */}
-          <div className="bg-slate-900/90 rounded-xl p-2.5 border border-slate-800 flex items-center justify-between gap-2">
-            <div className="flex items-center gap-2.5 min-w-0">
-              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#F45135] to-amber-500 text-white font-bold text-xs flex items-center justify-center shrink-0 shadow-sm">
+          <div className={`bg-slate-900/90 rounded-xl border border-slate-800 flex items-center transition-all ${
+            isCollapsed ? 'justify-center p-2' : 'justify-between p-2.5 gap-2'
+          }`}>
+            <div className={`flex items-center min-w-0 ${isCollapsed ? 'justify-center' : 'gap-2.5'}`}>
+              <div
+                className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#F45135] to-amber-500 text-white font-bold text-xs flex items-center justify-center shrink-0 shadow-sm"
+                title={user?.fullName || 'Administrator'}
+              >
                 {user?.fullName ? user.fullName[0].toUpperCase() : 'A'}
               </div>
               {!isCollapsed && (
                 <div className="min-w-0">
                   <p className="text-xs font-bold text-white truncate">{user?.fullName || 'Administrator'}</p>
-                  <p className="text-[10px] font-mono text-emerald-400 truncate">Super Admin</p>
+                  <p className="text-[10px] font-mono text-emerald-400 truncate">
+                    {isAdmin ? 'Super Admin' : 'Staff Moderator'}
+                  </p>
                 </div>
               )}
             </div>

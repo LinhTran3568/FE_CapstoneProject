@@ -3,9 +3,10 @@ import React from 'react';
 interface LogoProps {
   className?: string;
   size?: 'sm' | 'md' | 'lg';
+  showText?: boolean;
 }
 
-export const TicketShieldLogo: React.FC<LogoProps> = ({ className = '', size = 'md' }) => {
+export const TicketShieldLogo: React.FC<LogoProps> = ({ className = '', size = 'md', showText = true }) => {
   const sizeClasses = {
     sm: 'w-8 h-8',
     md: 'w-10 h-10',
@@ -96,9 +97,11 @@ export const TicketShieldLogo: React.FC<LogoProps> = ({ className = '', size = '
       </div>
 
       {/* Brand Text */}
-      <span className="font-display font-extrabold tracking-tight text-[#F5F5F2] text-xl sm:text-2xl group-hover:text-[#FF5A36] transition-colors">
-        TicketShield
-      </span>
+      {showText && (
+        <span className="font-display font-extrabold tracking-tight text-[#F5F5F2] text-xl sm:text-2xl group-hover:text-[#FF5A36] transition-colors">
+          TicketShield
+        </span>
+      )}
     </div>
   );
 };
