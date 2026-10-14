@@ -8,6 +8,7 @@ import {
   LayoutDashboard,
   ShieldAlert,
   Users,
+  Building2,
   Sliders,
   Menu,
   X,
@@ -108,9 +109,17 @@ export const AdminLayout: React.FC = () => {
       adminOnly: true,
     },
     {
+      to: '/admin/organizers',
+      aliases: ['/admin/organizers'],
+      label: 'Đối tác & Kết nối',
+      icon: Building2,
+      badge: null,
+      adminOnly: true,
+    },
+    {
       to: '/admin/config',
       aliases: ['/admin/config', '/admin/fee-settings', '/admin/fees'],
-      label: 'System Configuration',
+      label: 'Cấu hình hệ thống',
       icon: Sliders,
       badge: null,
       adminOnly: true,
@@ -124,6 +133,12 @@ export const AdminLayout: React.FC = () => {
     const portalPrefix = isAdmin ? 'Admin' : 'Moderation';
     const portalHome = isAdmin ? '/admin/dashboard' : '/admin/disputes';
 
+    if (p.startsWith('/admin/organizers')) {
+      return [
+        { label: portalPrefix, to: portalHome },
+        { label: 'Đối tác & Kết nối', to: '/admin/organizers' }
+      ];
+    }
     if (p.startsWith('/admin/config') || p.startsWith('/admin/fee-settings') || p.startsWith('/admin/fees')) {
       return [
         { label: portalPrefix, to: portalHome },
