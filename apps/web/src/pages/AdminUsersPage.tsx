@@ -252,7 +252,7 @@ export const AdminUsersPage: React.FC = () => {
             </span>
           </h1>
           <p className="text-xs text-[#667085] mt-0.5">
-            Dữ liệu tài khoản thời gian thực từ cơ sở dữ liệu TicketShield Identity (FE-6.5.4)
+            Dữ liệu tài khoản thời gian thực từ cơ sở dữ liệu TicketShield Identity
           </p>
         </div>
 

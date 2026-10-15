@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Copy, RefreshCw, Plus, RotateCcw, Check, Sparkles, Ticket, ShieldCheck, KeyRound, ExternalLink } from 'lucide-react';
 import { useUIStore } from '../stores/uiStore';
+import { getOrganizerApiBase } from '@ticketshield/api-client';
 
-const ORGANIZER_API = 'http://localhost:5001/api/organizer';
+const ORGANIZER_API = getOrganizerApiBase();
 
 interface MockTicketDto {
   id: string;

@@ -8,19 +8,9 @@ import {
   StorefrontEvent,
   StorefrontTier,
 } from '../../data/storefrontCatalog';
+import { organizerStoreApi, OrganizerBackendTier } from '@ticketshield/api-client';
 
-// Backend BE-MOCK-7.1.1 API configuration
-const ORGANIZER_API_BASE = 'http://localhost:5001/api/organizer';
-
-export interface BackendTier {
-  id: string;
-  eventId: string;
-  tierName: string;
-  price: number;
-  totalQuantity: number;
-  availableQuantity: number;
-  createdAt?: string;
-}
+export type BackendTier = OrganizerBackendTier;
 
 export interface EnrichedTier extends StorefrontTier {
   category: 'vip' | 'standard' | 'ga';
@@ -55,26 +45,41 @@ export const OGTicketStorePage: React.FC = () => {
   const [isCheckoutModalOpen, setIsCheckoutModalOpen] = useState<boolean>(false);
   const [alertNotice, setAlertNotice] = useState<string | null>(null);
 
-  // 3. Connect to BE-MOCK-7.1.1 (GET /api/organizer/events/{id}/tiers)
+  // 3. Connect to Ban Tổ Chức API (GET /api/organizer/events/{id}/tiers)
   const fetchBackendTiers = useCallback(async () => {
     setIsBackendLoading(true);
     try {
-      const res = await fetch(`${ORGANIZER_API_BASE}/events/${event.id}/tiers`, {
-        headers: { Accept: 'application/json' },
-      });
+      const liveTiers = await organizerStoreApi.getEventTiers(event.id);
+      if (Array.isArray(liveTiers) && liveTiers.length > 0) {
+        // Non-destructive merge: update matched tiers and keep other catalog tiers intact
+        setTiers((prev) => {
+          const updated = prev.map((catalogTier) => {
+            const matched = liveTiers.find(
+              (l) =>
+                l.id.toLowerCase() === catalogTier.id.toLowerCase() ||
+                l.tierName.trim().toLowerCase() === catalogTier.tierName.trim().toLowerCase()
+            );
+            if (!matched) return catalogTier;
 
-      if (res.ok) {
-        const liveTiers: BackendTier[] = await res.json();
-        if (Array.isArray(liveTiers) && liveTiers.length > 0) {
-          // Merge live backend inventory with rich frontend metadata
-          setTiers((prev) => {
-            return liveTiers.map((live) => {
-              const matchedCatalog = prev.find(
-                (p) =>
-                  p.id === live.id ||
-                  p.tierName.trim().toLowerCase() === live.tierName.trim().toLowerCase()
-              );
+            return {
+              ...catalogTier,
+              id: matched.id,
+              price: matched.price,
+              availableQuantity: matched.availableQuantity,
+              totalQuantity: matched.totalQuantity,
+              isSoldOut: matched.availableQuantity <= 0,
+              backendSynced: true,
+            };
+          });
 
+          // If backend has extra tiers not in catalog, append them
+          for (const live of liveTiers) {
+            const alreadyExists = updated.some(
+              (u) =>
+                u.id.toLowerCase() === live.id.toLowerCase() ||
+                u.tierName.trim().toLowerCase() === live.tierName.trim().toLowerCase()
+            );
+            if (!alreadyExists) {
               const category: 'vip' | 'standard' | 'ga' =
                 live.tierName.toLowerCase().includes('vip') || live.tierName.toLowerCase().includes('diamond')
                   ? 'vip'
@@ -82,23 +87,9 @@ export const OGTicketStorePage: React.FC = () => {
                   ? 'ga'
                   : 'standard';
 
-              if (matchedCatalog) {
-                return {
-                  ...matchedCatalog,
-                  id: live.id,
-                  price: live.price,
-                  availableQuantity: live.availableQuantity,
-                  totalQuantity: live.totalQuantity,
-                  isSoldOut: live.availableQuantity <= 0,
-                  category,
-                  backendSynced: true,
-                };
-              }
-
-              // Fallback tier generated from live backend data
-              return {
+              updated.push({
                 id: live.id,
-                tierKey: 'diamond',
+                tierKey: 'vip',
                 tierName: live.tierName,
                 price: live.price,
                 totalQuantity: live.totalQuantity,
@@ -109,23 +100,24 @@ export const OGTicketStorePage: React.FC = () => {
                 isSoldOut: live.availableQuantity <= 0,
                 perks: [
                   'Vé điện tử chính thức phát hành từ Ban Tổ Chức',
-                  'Mã QR Cyber-Escrow bảo mật chống làm giả',
+                  'Mã QR bảo mật chống làm giả',
                   'Kèm quà tặng lưu niệm concert chính hãng',
                 ],
                 category,
                 backendSynced: true,
-              };
-            });
-          });
+              });
+            }
+          }
 
-          setBackendStatus('connected');
-          setLastSyncedTime(new Date().toLocaleTimeString('vi-VN'));
-          setAlertNotice('Đã đồng bộ trực tiếp với hệ thống máy chủ Ban Tổ Chức (BE-MOCK-7.1.1)');
-          setTimeout(() => setAlertNotice(null), 4000);
-          return;
-        }
+          return updated;
+        });
+
+        setBackendStatus('connected');
+        setLastSyncedTime(new Date().toLocaleTimeString('vi-VN'));
+        setAlertNotice('Đã cập nhật tình trạng vé mới nhất từ Ban Tổ Chức');
+        setTimeout(() => setAlertNotice(null), 4000);
+        return;
       }
-      // If 404 or non-ok, fallback to seed catalog
       setBackendStatus('offline');
     } catch {
       setBackendStatus('offline');
@@ -222,7 +214,7 @@ export const OGTicketStorePage: React.FC = () => {
               {event.title}
             </Link>
             <span className="material-symbols-outlined text-[12px]">chevron_right</span>
-            <span className="text-[#ffb4a8] font-bold">Đặt vé chính thức BTC (FE-7.2.1)</span>
+            <span className="text-[#ffb4a8] font-bold">Đặt vé chính thức từ Ban Tổ Chức</span>
           </div>
 
           {/* Sync indicator */}
@@ -230,13 +222,13 @@ export const OGTicketStorePage: React.FC = () => {
             {backendStatus === 'connected' ? (
               <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-[11px] font-mono text-emerald-300">
                 <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                <span>BE-MOCK-7.1.1 LIVE SYNC</span>
+                <span>HỆ THỐNG VÉ TRỰC TUYẾN</span>
                 {lastSyncedTime && <span className="text-emerald-400/60 hidden sm:inline">({lastSyncedTime})</span>}
               </div>
             ) : (
-              <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/30 text-[11px] font-mono text-amber-300">
-                <span className="w-2 h-2 rounded-full bg-amber-400" />
-                <span>DEMO CATALOG</span>
+              <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-slate-500/10 border border-white/10 text-[11px] font-mono text-slate-300">
+                <span className="w-2 h-2 rounded-full bg-slate-400" />
+                <span>KHO VÉ SỰ KIỆN</span>
               </div>
             )}
 
@@ -712,13 +704,13 @@ export const OGTicketStorePage: React.FC = () => {
                     </span>
                   </div>
 
-                  {/* CTA BUTTON: UNLOCKS FE-7.2.2 */}
+                  {/* CTA BUTTON */}
                   <button
                     type="button"
                     onClick={handleProceedToCheckout}
                     className="w-full py-3.5 px-4 rounded-xl bg-gradient-to-r from-[#ff5945] to-[#d03724] hover:opacity-95 text-white font-bold text-sm transition-all shadow-xl shadow-[#ff5945]/25 flex items-center justify-center gap-2 group cursor-pointer"
                   >
-                    <span>Tiếp tục thanh toán (FE-7.2.2)</span>
+                    <span>Tiếp tục đặt vé</span>
                     <span className="material-symbols-outlined text-[18px] group-hover:translate-x-1 transition-transform">
                       arrow_forward
                     </span>

@@ -9,3 +9,4 @@ export * from './services/organizers.api';
 export * from './services/payouts.api';
 export * from './services/disputes.api';
 export * from './services/admin.api';
+export * from './services/organizerStore.api';

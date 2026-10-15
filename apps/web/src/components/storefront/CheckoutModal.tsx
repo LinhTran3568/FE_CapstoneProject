@@ -34,7 +34,7 @@ interface OrderResultData {
   createdAt: string;
 }
 
-const ORGANIZER_API_BASE = 'http://localhost:5001/api/organizer';
+import { organizerStoreApi } from '@ticketshield/api-client';
 
 export const CheckoutModal: React.FC<CheckoutModalProps> = ({
   isOpen,
@@ -56,6 +56,9 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
     phone?: string;
     terms?: string;
   }>({});
+
+  // Backend error state
+  const [apiError, setApiError] = useState<string | null>(null);
 
   // Loading and result states
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -97,7 +100,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
     return Object.keys(errs).length === 0;
   };
 
-  // Handle Checkout & Ticket Issuance (FE-7.2.2 + BE-MOCK-7.1.2)
+  // Handle Checkout & Ticket Issuance
   const handleSubmitCheckout = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -105,38 +108,65 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
       return;
     }
 
+    setApiError(null);
     setIsSubmitting(true);
 
     const timestamp = new Date().toISOString();
-    const orderId = `ORD-${Date.now().toString(36).toUpperCase()}-${Math.floor(1000 + Math.random() * 9000)}`;
     const finalBuyerEmail = buyerEmail.trim();
     const finalBuyerName = buyerName.trim();
     const finalBuyerPhone = buyerPhone.trim();
 
-    // 1. Call Backend BE-MOCK-7.1.2: POST /api/organizer/orders/checkout for each selected tier
-    for (const item of selectedItems) {
+    let backendOrderId: string | null = null;
+    const completedItems: SelectedTierItem[] = [];
+
+    // 1. Call Backend Checkout atomically (Atomic Transaction via checkout-batch or single checkout)
+    if (selectedItems.length > 1) {
       try {
-        await fetch(`${ORGANIZER_API_BASE}/orders/checkout`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            tierId: item.tier.id,
-            quantity: item.quantity,
-            buyerEmail: finalBuyerEmail,
-          }),
+        const batchRes = await organizerStoreApi.checkoutBatch({
+          eventId: event.id,
+          buyerEmail: finalBuyerEmail,
+          items: selectedItems.map((it) => ({
+            tierId: it.tier.id,
+            quantity: it.quantity,
+          })),
         });
-      } catch {
-        // Backend offline or mock unreachable, proceed with graceful client issuance
+        backendOrderId = batchRes.orderId;
+        completedItems.push(...selectedItems);
+      } catch (err: unknown) {
+        setIsSubmitting(false);
+        const errMsg = err instanceof Error ? err.message : 'Lỗi hệ thống khi thanh toán với Ban Tổ Chức';
+        setApiError(errMsg);
+        return;
+      }
+    } else if (selectedItems.length === 1) {
+      try {
+        const item = selectedItems[0];
+        const checkoutRes = await organizerStoreApi.checkout({
+          tierId: item.tier.id,
+          quantity: item.quantity,
+          buyerEmail: finalBuyerEmail,
+        });
+
+        if (checkoutRes.orderId) {
+          backendOrderId = checkoutRes.orderId;
+        }
+        completedItems.push(item);
+      } catch (err: unknown) {
+        setIsSubmitting(false);
+        const errMsg = err instanceof Error ? err.message : 'Lỗi hệ thống khi thanh toán với Ban Tổ Chức';
+        setApiError(errMsg);
+        return;
       }
     }
 
-    // 2. Generate official tickets with deterministic codes and QR payloads
+    const orderId = backendOrderId || `ORD-${Date.now().toString(36).toUpperCase()}-${Math.floor(1000 + Math.random() * 9000)}`;
+
+    // 2. Generate and persist official tickets to Ban Tổ Chức database
     const issuedTickets: MockTicketDto[] = [];
     let seatCounter = 1;
 
-    for (const item of selectedItems) {
+    for (const item of completedItems) {
       for (let i = 0; i < item.quantity; i++) {
-        const randSuffix = Math.floor(1000 + Math.random() * 9000).toString();
         let prefix = 'ATSH-STD';
         if (item.tier.tierName.toLowerCase().includes('vip')) {
           prefix = 'ATSH-VIP';
@@ -144,14 +174,44 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
           prefix = 'ATSH-GA';
         }
 
-        const ticketCode = `${prefix}-2026-${randSuffix}`;
         const seatLabel = item.tier.seatZone
           ? `${item.tier.seatZone} • Ghế #${seatCounter < 10 ? '0' + seatCounter : seatCounter}`
           : `${item.tier.tierName} • Ghế #${seatCounter < 10 ? '0' + seatCounter : seatCounter}`;
 
+        // Generate unique ticket code with collision retry up to 3 attempts
+        let confirmedTicketCode = '';
+        let lastTicketError: Error | null = null;
+
+        for (let attempt = 1; attempt <= 3; attempt++) {
+          const randSuffix = `${Date.now().toString().slice(-4)}${Math.floor(100 + Math.random() * 900)}`;
+          const candidateCode = `${prefix}-2026-${randSuffix}`;
+
+          try {
+            await organizerStoreApi.generateTicket({
+              ticketCode: candidateCode,
+              eventName: event.title,
+              seatZone: seatLabel,
+              originalPrice: item.tier.price,
+              ownerEmail: finalBuyerEmail,
+              ownerName: finalBuyerName,
+              ownerPhone: finalBuyerPhone,
+            });
+            confirmedTicketCode = candidateCode;
+            break;
+          } catch (err: unknown) {
+            lastTicketError = err instanceof Error ? err : new Error('Không thể kết nối máy chủ phát hành');
+          }
+        }
+
+        if (!confirmedTicketCode) {
+          setIsSubmitting(false);
+          setApiError(`Lỗi phát hành vé từ Ban Tổ Chức: ${lastTicketError?.message || 'Trùng mã vé hoặc máy chủ bận'}`);
+          return;
+        }
+
         issuedTickets.push({
           id: `tkt-${Date.now()}-${seatCounter}`,
-          ticketCode,
+          ticketCode: confirmedTicketCode,
           eventName: event.title,
           seatZone: seatLabel,
           originalPrice: item.tier.price,
@@ -167,20 +227,18 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
       }
     }
 
-    // 3. Set order result to display congratulation screen with tickets and QR codes
-    setTimeout(() => {
-      setIsSubmitting(false);
-      setOrderResult({
-        orderId,
-        eventName: event.title,
-        buyerName: finalBuyerName,
-        buyerEmail: finalBuyerEmail,
-        buyerPhone: finalBuyerPhone,
-        totalAmount: grandTotal,
-        tickets: issuedTickets,
-        createdAt: timestamp,
-      });
-    }, 700);
+    // 3. Display congratulation screen with tickets and QR codes
+    setIsSubmitting(false);
+    setOrderResult({
+      orderId,
+      eventName: event.title,
+      buyerName: finalBuyerName,
+      buyerEmail: finalBuyerEmail,
+      buyerPhone: finalBuyerPhone,
+      totalAmount: grandTotal,
+      tickets: issuedTickets,
+      createdAt: timestamp,
+    });
   };
 
   const handleCopyCode = (code: string) => {
@@ -347,6 +405,17 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                 {errors.terms && <p className="text-[11px] text-[#ff5945] mt-1 font-bold pl-6">{errors.terms}</p>}
               </div>
 
+              {/* Error Alert from API if any */}
+              {apiError && (
+                <div className="p-3.5 rounded-xl bg-red-500/15 border border-red-500/40 text-red-200 text-xs flex items-start gap-2.5 animate-in fade-in duration-200">
+                  <span className="material-symbols-outlined text-red-400 text-lg shrink-0">error</span>
+                  <div className="flex-1">
+                    <p className="font-semibold text-white">Không thể hoàn tất đặt vé</p>
+                    <p className="mt-0.5 text-red-200 leading-relaxed">{apiError}</p>
+                  </div>
+                </div>
+              )}
+
               {/* Action Buttons */}
               <div className="pt-3 flex flex-col sm:flex-row gap-3">
                 <button
@@ -364,12 +433,12 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                   {isSubmitting ? (
                     <>
                       <span className="material-symbols-outlined text-[18px] animate-spin">refresh</span>
-                      <span>Đang gọi API checkout & xuất vé...</span>
+                      <span>Đang xử lý đặt vé & phát hành...</span>
                     </>
                   ) : (
                     <>
                       <span className="material-symbols-outlined text-[18px]">bolt</span>
-                      <span>Xác nhận & Mua vé (FE-7.2.2)</span>
+                      <span>Xác nhận & Mua vé</span>
                     </>
                   )}
                 </button>
