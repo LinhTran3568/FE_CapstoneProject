@@ -170,49 +170,75 @@ export const OrderSuccess: React.FC<OrderSuccessProps> = ({
         </div>
       </div>
 
-      {/* Useful Secondary Market & Navigation Shortcuts */}
+      {/* Useful Secondary Market & Navigation Shortcuts (Nút tắt sang sàn TicketShield) */}
       <div className="bg-[#131B26] border border-white/[0.08] rounded-2xl p-6 sm:p-7 space-y-4">
-        <h4 className="font-display font-bold text-base text-white">
-          Các thao tác quản lý tiếp theo
-        </h4>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-white/5 pb-3">
+          <div className="flex items-center gap-2">
+            <span className="w-2.5 h-2.5 rounded-full bg-[#ff5945] animate-pulse" />
+            <h4 className="font-display font-bold text-base text-white">
+              Nút tắt sang hệ sinh thái sàn TicketShield
+            </h4>
+          </div>
+          <span className="text-[11px] font-mono text-[#4cd7f6] bg-[#4cd7f6]/10 px-2.5 py-0.5 rounded-full">
+            Đồng bộ Sổ cái Cyber-Escrow
+          </span>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
           {/* Action 1: View in My Tickets on TicketShield */}
           <Link
             to="/my-tickets"
-            className="p-4 rounded-xl bg-[#0B0F17] hover:bg-[#1A2433] border border-white/10 transition-colors block space-y-1 text-left group"
+            className="p-4 rounded-xl bg-[#0B0F17] hover:bg-[#1A2433] border border-white/10 transition-all block space-y-1 text-left group hover:border-[#ff5945]/40"
           >
-            <div className="text-xs font-bold text-white group-hover:text-[#E11D48] transition-colors">
-              Ví vé TicketShield →
+            <div className="text-xs font-bold text-white group-hover:text-[#ff5945] transition-colors flex items-center justify-between">
+              <span>Ví vé cá nhân</span>
+              <span className="material-symbols-outlined text-[16px]">arrow_forward</span>
             </div>
             <p className="text-[11px] text-[#94A3B8] leading-relaxed">
-              Truy cập ví vé cá nhân để xem tất cả vé đã mua và chuẩn bị check-in.
+              Truy cập ví để xem tất cả vé đã mua và chuẩn bị check-in cổng.
             </p>
           </Link>
 
           {/* Action 2: Secondary Resale */}
           <Link
             to="/sell-ticket"
-            className="p-4 rounded-xl bg-[#0B0F17] hover:bg-[#1A2433] border border-white/10 transition-colors block space-y-1 text-left group"
+            className="p-4 rounded-xl bg-[#0B0F17] hover:bg-[#1A2433] border border-white/10 transition-all block space-y-1 text-left group hover:border-[#4cd7f6]/40"
           >
-            <div className="text-xs font-bold text-[#FF5A36] group-hover:underline">
-              Ký gửi bán lại an toàn →
+            <div className="text-xs font-bold text-[#4cd7f6] transition-colors flex items-center justify-between">
+              <span>Ký gửi bán lại vé</span>
+              <span className="material-symbols-outlined text-[16px]">swap_horiz</span>
             </div>
             <p className="text-[11px] text-[#94A3B8] leading-relaxed">
-              Nếu bạn bận đột xuất, chuyển nhượng lại vé an toàn qua hệ thống Escrow TicketShield.
+              Bận đột xuất? Ký gửi vé sang sàn thứ cấp được bảo vệ bởi Cyber-Escrow.
             </p>
           </Link>
 
-          {/* Action 3: Buy more tickets */}
+          {/* Action 3: TicketShield Marketplace */}
+          <Link
+            to="/marketplace"
+            className="p-4 rounded-xl bg-[#0B0F17] hover:bg-[#1A2433] border border-white/10 transition-all block space-y-1 text-left group hover:border-emerald-500/40"
+          >
+            <div className="text-xs font-bold text-emerald-400 transition-colors flex items-center justify-between">
+              <span>Sàn TicketShield</span>
+              <span className="material-symbols-outlined text-[16px]">storefront</span>
+            </div>
+            <p className="text-[11px] text-[#94A3B8] leading-relaxed">
+              Khám phá chợ vé resale đã được định danh và xác thực 100%.
+            </p>
+          </Link>
+
+          {/* Action 4: Buy more tickets */}
           <button
             type="button"
             onClick={onResetOrder}
-            className="p-4 rounded-xl bg-[#0B0F17] hover:bg-[#1A2433] border border-white/10 transition-colors text-left space-y-1 group w-full"
+            className="p-4 rounded-xl bg-[#0B0F17] hover:bg-[#1A2433] border border-white/10 transition-all text-left space-y-1 group w-full cursor-pointer hover:border-purple-500/40"
           >
-            <div className="text-xs font-bold text-white group-hover:text-emerald-400 transition-colors">
-              Mua vé sự kiện khác →
+            <div className="text-xs font-bold text-white group-hover:text-purple-300 transition-colors flex items-center justify-between">
+              <span>Mua vé sự kiện khác</span>
+              <span className="material-symbols-outlined text-[16px]">add_shopping_cart</span>
             </div>
             <p className="text-[11px] text-[#94A3B8] leading-relaxed">
-              Khám phá thêm các đêm nhạc và buổi hòa nhạc khác đang mở bán.
+              Tiếp tục khám phá các sự kiện và đêm nhạc khác đang mở bán.
             </p>
           </button>
         </div>

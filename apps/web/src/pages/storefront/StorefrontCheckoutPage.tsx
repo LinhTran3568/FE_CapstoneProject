@@ -3,6 +3,9 @@ import { useParams, useLocation, Link, useNavigate } from 'react-router-dom';
 import { QRCodeCanvas } from 'qrcode.react';
 import { StorefrontLayout } from '../../components/storefront/layout/StorefrontLayout';
 import { getStorefrontEventById } from '../../data/storefrontCatalog';
+import { OrderSuccess } from '../../components/storefront/OrderSuccess';
+import { CheckoutOrderResult } from '../../components/storefront/CheckoutForm';
+import { MockTicketDto } from '@ticketshield/types';
 
 export const StorefrontCheckoutPage: React.FC = () => {
   const { eventId } = useParams<{ eventId?: string }>();
@@ -12,14 +15,25 @@ export const StorefrontCheckoutPage: React.FC = () => {
 
   const stateData = location.state as {
     ticketQuantities?: Record<string, number>;
+    selectedTiers?: Array<{
+      tierId: string;
+      tierName: string;
+      price: number;
+      quantity: number;
+      subtotal: number;
+    }>;
     grandTotal?: number;
     rawSubtotal?: number;
     fee?: number;
+    orderSource?: string;
   } | null;
 
   const rawSubtotal = stateData?.rawSubtotal || 9000000;
-  const fee = stateData?.fee || 180000;
-  const grandTotal = stateData?.grandTotal || 9180000;
+  const fee = stateData?.fee ?? 0;
+  const grandTotal = stateData?.grandTotal || (rawSubtotal + fee);
+
+  // Order Result State for displaying Official Issued Tickets
+  const [orderResult, setOrderResult] = useState<CheckoutOrderResult | null>(null);
 
   // Countdown timer state
   const totalDuration = 15 * 60; // 15 mins window
@@ -43,12 +57,24 @@ export const StorefrontCheckoutPage: React.FC = () => {
   const [isVerifying, setIsVerifying] = useState(false);
   const [isConfirmed, setIsConfirmed] = useState(false);
 
+  // Buyer Form States (FE-7.2.2 - Required Inputs)
+  const [buyerName, setBuyerName] = useState('');
+  const [buyerEmail, setBuyerEmail] = useState('');
+  const [buyerPhone, setBuyerPhone] = useState('');
+  const [agreedTerms, setAgreedTerms] = useState(false);
+  const [formErrors, setFormErrors] = useState<{
+    name?: string;
+    email?: string;
+    phone?: string;
+    terms?: string;
+  }>({});
+
   // Toast notification state
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   const showToast = (msg: string) => {
     setToastMessage(msg);
-    setTimeout(() => setToastMessage(null), 2500);
+    setTimeout(() => setToastMessage(null), 3000);
   };
 
   const copyToClipboard = (text: string, label: string) => {
@@ -56,13 +82,143 @@ export const StorefrontCheckoutPage: React.FC = () => {
     showToast(`Đã sao chép ${label}`);
   };
 
-  const handleConfirmed = () => {
+  // Form Validation
+  const validateBuyerForm = (): boolean => {
+    const errors: { name?: string; email?: string; phone?: string; terms?: string } = {};
+
+    if (!buyerName.trim()) {
+      errors.name = 'Vui lòng nhập họ và tên người nhận vé';
+    } else if (buyerName.trim().length < 2) {
+      errors.name = 'Họ và tên tối thiểu 2 ký tự';
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!buyerEmail.trim()) {
+      errors.email = 'Vui lòng nhập địa chỉ email nhận vé';
+    } else if (!emailRegex.test(buyerEmail.trim())) {
+      errors.email = 'Địa chỉ email không đúng định dạng';
+    }
+
+    const phoneDigits = buyerPhone.replace(/[\s.-]/g, '');
+    const phoneRegex = /(84|0[3|5|7|8|9])+([0-9]{8})\b/;
+    if (!buyerPhone.trim()) {
+      errors.phone = 'Vui lòng nhập số điện thoại nhận vé';
+    } else if (!phoneRegex.test(phoneDigits)) {
+      errors.phone = 'Số điện thoại không hợp lệ (cần 10 chữ số)';
+    }
+
+    if (!agreedTerms) {
+      errors.terms = 'Bạn cần đồng ý với điều khoản nhận vé và định danh';
+    }
+
+    setFormErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
+  // Mock Payment & Checkout API integration (BE-MOCK-7.1.2)
+  const handleMockPaymentSuccess = async () => {
+    // 0. Validate buyer inputs first (NO HARDCODING)
+    if (!validateBuyerForm()) {
+      showToast('⚠️ Vui lòng nhập đầy đủ thông tin người nhận vé trước khi thanh toán!');
+      const formEl = document.getElementById('buyer-info-section');
+      if (formEl) {
+        formEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+      return;
+    }
+
     setIsVerifying(true);
+    showToast('Đang kết nối BE-MOCK-7.1.2 và xuất mã vé điện tử...');
+
+    const timestamp = new Date().toISOString();
+    const orderId = `ORD-${Date.now().toString(36).toUpperCase()}-${Math.floor(1000 + Math.random() * 9000)}`;
+    const finalBuyerEmail = buyerEmail.trim();
+    const finalBuyerName = buyerName.trim();
+    const finalBuyerPhone = buyerPhone.trim();
+
+    // 1. Try calling Backend BE-MOCK-7.1.2 POST /api/organizer/orders/checkout if live tiers exist
+    if (stateData?.selectedTiers && stateData.selectedTiers.length > 0) {
+      for (const item of stateData.selectedTiers) {
+        try {
+          await fetch('http://localhost:5001/api/organizer/orders/checkout', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              tierId: item.tierId,
+              quantity: item.quantity,
+              buyerEmail: finalBuyerEmail,
+            }),
+          });
+        } catch {
+          // Graceful fallback if backend server is not reachable
+        }
+      }
+    }
+
+    // 2. Generate official tickets with deterministic and clean codes
+    const generatedTickets: MockTicketDto[] = [];
+    const tiersToIssue =
+      stateData?.selectedTiers && stateData.selectedTiers.length > 0
+        ? stateData.selectedTiers
+        : [
+            {
+              tierId: 'tier-vip-default',
+              tierName: 'VIP Zone A',
+              price: 2500000,
+              quantity: 2,
+              subtotal: 5000000,
+            },
+          ];
+
+    let seatNum = 1;
+    for (const item of tiersToIssue) {
+      for (let i = 0; i < item.quantity; i++) {
+        const randSuffix = Math.floor(1000 + Math.random() * 9000);
+        const isVip = item.tierName.toLowerCase().includes('vip') || item.tierName.toLowerCase().includes('diamond');
+        const prefix = isVip ? 'ATSH-VIP-2026' : 'ATSH-GA-2026';
+        const ticketCode = `${prefix}-${randSuffix}`;
+
+        generatedTickets.push({
+          id: `tkt-${Date.now()}-${seatNum}`,
+          ticketCode,
+          eventName: event.title,
+          seatZone: `${item.tierName} (Khu A - Ghế #${seatNum < 10 ? '0' + seatNum : seatNum})`,
+          originalPrice: item.price,
+          ownerEmail: finalBuyerEmail,
+          ownerName: finalBuyerName,
+          ownerPhone: finalBuyerPhone,
+          status: 'VALID',
+          createdAt: timestamp,
+          updatedAt: timestamp,
+        });
+        seatNum++;
+      }
+    }
+
+    const result: CheckoutOrderResult = {
+      orderId,
+      eventName: event.title,
+      buyerName: finalBuyerName,
+      buyerEmail: finalBuyerEmail,
+      buyerPhone: finalBuyerPhone,
+      paymentMethod:
+        selectedMethod === 'vietqr'
+          ? 'Chuyển khoản VietQR tức thì'
+          : selectedMethod === 'card'
+          ? 'Thẻ tín dụng quốc tế'
+          : 'Ví điện tử liên kết',
+      totalAmount: grandTotal,
+      tickets: generatedTickets,
+      createdAt: timestamp,
+    };
+
     setTimeout(() => {
       setIsVerifying(false);
       setIsConfirmed(true);
-      showToast('Đã xác thực thành công đơn hàng! E-Ticket đã được kích hoạt.');
-    }, 1800);
+      setOrderResult(result);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      showToast('Thanh toán thành công! Mã vé chính thức đã sẵn sàng.');
+    }, 1000);
   };
 
   const handleCancelOrder = () => {
@@ -76,6 +232,19 @@ export const StorefrontCheckoutPage: React.FC = () => {
   const transferMemo = 'TS89214 SOOBIN';
 
   const qrPayload = `00020101021238580010A000000727012600069704220112190388997766010208QRIBFTTA520460115303704540${grandTotal}5802VN6214${transferMemo}6304`;
+
+  if (orderResult) {
+    return (
+      <StorefrontLayout activeTab="kham-pha">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-14">
+          <OrderSuccess
+            orderResult={orderResult}
+            onResetOrder={() => navigate(`/storefront/event/${event.id}/select-seat`)}
+          />
+        </div>
+      </StorefrontLayout>
+    );
+  }
 
   return (
     <StorefrontLayout activeTab="kham-pha">
@@ -101,6 +270,16 @@ export const StorefrontCheckoutPage: React.FC = () => {
                     #ORD-89214
                   </span>
                 </div>
+                <button
+                  type="button"
+                  onClick={handleMockPaymentSuccess}
+                  disabled={isVerifying}
+                  className="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white text-xs font-bold flex items-center gap-1.5 shadow-lg shadow-emerald-500/25 active:scale-95 transition-all cursor-pointer"
+                  title="Bấm để kích hoạt thanh toán thành công và nhận mã vé điện tử ngay"
+                >
+                  <span className="material-symbols-outlined text-[16px]">bolt</span>
+                  <span>Thanh toán thành công (Test Mock)</span>
+                </button>
                 <span className="hidden md:inline text-[#33343d] font-bold">•</span>
                 <p className="text-xs text-[#e3beb8] max-w-md">
                   Vé đã được bảo lưu độc quyền cho bạn. Vui lòng hoàn tất thanh toán trước khi phiên khóa vé tự động hủy.
@@ -477,24 +656,50 @@ export const StorefrontCheckoutPage: React.FC = () => {
                     </span>
                   </div>
 
-                  {/* Seat Card */}
-                  <div className="p-3 rounded-xl bg-[#1d1f28] flex items-center justify-between border border-white/5">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-lg bg-[#282a32] flex flex-col items-center justify-center font-bold text-white">
-                        <span className="text-[9px] text-[#aa8984] leading-none">QTY</span>
-                        <span className="font-display text-sm text-[#ffb4a8]">2x</span>
-                      </div>
-                      <div className="flex flex-col">
-                        <span className="text-xs font-bold text-white">Diamond Lounge VIP</span>
-                        <span className="text-[11px] text-[#aa8984]">Khu vực A1 • Hàng D • Ghế 14, 15</span>
-                      </div>
-                    </div>
+                  {/* Dynamic Seat / Tier Cards */}
+                  {stateData?.selectedTiers && stateData.selectedTiers.length > 0 ? (
+                    stateData.selectedTiers.map((tier) => (
+                      <div key={tier.tierId} className="p-3 rounded-xl bg-[#1d1f28] flex items-center justify-between border border-white/5">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-lg bg-[#282a32] flex flex-col items-center justify-center font-bold text-white">
+                            <span className="text-[9px] text-[#aa8984] leading-none">QTY</span>
+                            <span className="font-display text-sm text-[#ffb4a8]">{tier.quantity}x</span>
+                          </div>
+                          <div className="flex flex-col">
+                            <span className="text-xs font-bold text-white">{tier.tierName}</span>
+                            <span className="text-[11px] text-[#aa8984]">Khu vực chính thức BTC • Cửa 1 & 2</span>
+                          </div>
+                        </div>
 
-                    <div className="text-right">
-                      <span className="font-display font-bold text-sm text-white">9.000.000</span>
-                      <span className="text-[10px] text-[#aa8984] block">VNĐ</span>
+                        <div className="text-right">
+                          <span className="font-display font-bold text-sm text-white">
+                            {tier.subtotal.toLocaleString('vi-VN')}
+                          </span>
+                          <span className="text-[10px] text-[#aa8984] block">VNĐ</span>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="p-3 rounded-xl bg-[#1d1f28] flex items-center justify-between border border-white/5">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-lg bg-[#282a32] flex flex-col items-center justify-center font-bold text-white">
+                          <span className="text-[9px] text-[#aa8984] leading-none">QTY</span>
+                          <span className="font-display text-sm text-[#ffb4a8]">1x</span>
+                        </div>
+                        <div className="flex flex-col">
+                          <span className="text-xs font-bold text-white">Vé sự kiện chính thức</span>
+                          <span className="text-[11px] text-[#aa8984]">Khu vực kiểm soát điện tử</span>
+                        </div>
+                      </div>
+
+                      <div className="text-right">
+                        <span className="font-display font-bold text-sm text-white">
+                          {rawSubtotal.toLocaleString('vi-VN')}
+                        </span>
+                        <span className="text-[10px] text-[#aa8984] block">VNĐ</span>
+                      </div>
                     </div>
-                  </div>
+                  )}
 
                   {/* Perforation Break */}
                   <div className="relative py-2 flex items-center justify-between overflow-hidden">
@@ -505,10 +710,19 @@ export const StorefrontCheckoutPage: React.FC = () => {
 
                   {/* Ledger Pricing */}
                   <div className="flex flex-col gap-1.5 text-xs">
-                    <div className="flex justify-between items-center text-[#aa8984]">
-                      <span>Giá gốc vé (2 vé VIP)</span>
-                      <span className="font-medium text-white">{rawSubtotal.toLocaleString('vi-VN')} VNĐ</span>
-                    </div>
+                    {stateData?.selectedTiers && stateData.selectedTiers.length > 0 ? (
+                      stateData.selectedTiers.map((tier) => (
+                        <div key={tier.tierId} className="flex justify-between items-center text-[#aa8984]">
+                          <span>{tier.quantity}x {tier.tierName}</span>
+                          <span className="font-medium text-white">{tier.subtotal.toLocaleString('vi-VN')} VNĐ</span>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="flex justify-between items-center text-[#aa8984]">
+                        <span>Giá gốc vé (Tạm tính)</span>
+                        <span className="font-medium text-white">{rawSubtotal.toLocaleString('vi-VN')} VNĐ</span>
+                      </div>
+                    )}
                     <div className="flex justify-between items-center text-[#aa8984]">
                       <span className="flex items-center gap-1">
                         Phí bảo hiểm Cyber-Escrow & Giữ vé
@@ -533,28 +747,98 @@ export const StorefrontCheckoutPage: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Recipient Information Card */}
-                <div className="px-5 py-3.5 bg-[#1d1f28] flex flex-col gap-1.5 border-t border-[#33343d]/30 text-xs">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[10px] text-[#aa8984] uppercase tracking-wider font-bold">
-                      Thông tin nhận vé (E-Ticket)
-                    </span>
-                    <span className="material-symbols-outlined text-[16px] text-[#aa8984]">alternate_email</span>
+                {/* BUYER INFORMATION FORM (FE-7.2.2 - NO HARDCODING) */}
+                <div id="buyer-info-section" className="p-5 bg-[#1a1c26] border-t border-[#33343d]/40 flex flex-col gap-3.5 text-xs">
+                  <div className="flex items-center justify-between border-b border-white/5 pb-2">
+                    <div className="flex items-center gap-1.5 font-display font-bold text-sm text-white">
+                      <span className="material-symbols-outlined text-[18px] text-[#ff5945]">person</span>
+                      <span>Thông tin người nhận vé (Bắt buộc nhập)</span>
+                    </div>
                   </div>
 
-                  <div className="flex flex-col gap-1 pt-1">
-                    <div className="flex items-center justify-between">
-                      <span className="font-bold text-white">Nguyễn Hải Đăng</span>
-                      <span className="text-[11px] text-[#ffb4a8] font-semibold">Tài khoản VIP</span>
-                    </div>
-                    <div className="flex items-center justify-between text-[#aa8984]">
-                      <span>Email:</span>
-                      <span className="text-white font-mono">haidang.music@gmail.com</span>
-                    </div>
-                    <div className="flex items-center justify-between text-[#aa8984]">
-                      <span>Số điện thoại:</span>
-                      <span className="text-white font-mono">0988 ••• 421</span>
-                    </div>
+                  {/* Input: Họ và tên */}
+                  <div className="space-y-1">
+                    <label className="text-[11px] font-semibold text-[#aa8984] flex items-center justify-between">
+                      <span>Họ và tên người nhận vé <span className="text-[#ff5945]">*</span></span>
+                      {formErrors.name && <span className="text-[10px] text-[#ff5945] font-bold">{formErrors.name}</span>}
+                    </label>
+                    <input
+                      type="text"
+                      value={buyerName}
+                      onChange={(e) => {
+                        setBuyerName(e.target.value);
+                        if (formErrors.name) setFormErrors((prev) => ({ ...prev, name: undefined }));
+                      }}
+                      placeholder="Ví dụ: Nguyễn Văn A"
+                      className={`w-full px-3.5 py-2.5 rounded-xl bg-[#0e1017] border text-white text-xs placeholder:text-[#64748b] transition-all focus:outline-none ${
+                        formErrors.name
+                          ? 'border-[#ff5945] ring-1 ring-[#ff5945]'
+                          : 'border-white/10 focus:border-[#4cd7f6] focus:ring-1 focus:ring-[#4cd7f6]'
+                      }`}
+                    />
+                  </div>
+
+                  {/* Input: Email */}
+                  <div className="space-y-1">
+                    <label className="text-[11px] font-semibold text-[#aa8984] flex items-center justify-between">
+                      <span>Email nhận mã vé điện tử <span className="text-[#ff5945]">*</span></span>
+                      {formErrors.email && <span className="text-[10px] text-[#ff5945] font-bold">{formErrors.email}</span>}
+                    </label>
+                    <input
+                      type="email"
+                      value={buyerEmail}
+                      onChange={(e) => {
+                        setBuyerEmail(e.target.value);
+                        if (formErrors.email) setFormErrors((prev) => ({ ...prev, email: undefined }));
+                      }}
+                      placeholder="name@example.com"
+                      className={`w-full px-3.5 py-2.5 rounded-xl bg-[#0e1017] border text-white text-xs placeholder:text-[#64748b] transition-all focus:outline-none ${
+                        formErrors.email
+                          ? 'border-[#ff5945] ring-1 ring-[#ff5945]'
+                          : 'border-white/10 focus:border-[#4cd7f6] focus:ring-1 focus:ring-[#4cd7f6]'
+                      }`}
+                    />
+                  </div>
+
+                  {/* Input: Số điện thoại */}
+                  <div className="space-y-1">
+                    <label className="text-[11px] font-semibold text-[#aa8984] flex items-center justify-between">
+                      <span>Số điện thoại liên hệ <span className="text-[#ff5945]">*</span></span>
+                      {formErrors.phone && <span className="text-[10px] text-[#ff5945] font-bold">{formErrors.phone}</span>}
+                    </label>
+                    <input
+                      type="tel"
+                      value={buyerPhone}
+                      onChange={(e) => {
+                        setBuyerPhone(e.target.value);
+                        if (formErrors.phone) setFormErrors((prev) => ({ ...prev, phone: undefined }));
+                      }}
+                      placeholder="0901234567"
+                      className={`w-full px-3.5 py-2.5 rounded-xl bg-[#0e1017] border text-white text-xs placeholder:text-[#64748b] transition-all focus:outline-none ${
+                        formErrors.phone
+                          ? 'border-[#ff5945] ring-1 ring-[#ff5945]'
+                          : 'border-white/10 focus:border-[#4cd7f6] focus:ring-1 focus:ring-[#4cd7f6]'
+                      }`}
+                    />
+                  </div>
+
+                  {/* Checkbox: Đồng ý điều khoản */}
+                  <div className="pt-1">
+                    <label className="flex items-start gap-2.5 cursor-pointer select-none">
+                      <input
+                        type="checkbox"
+                        checked={agreedTerms}
+                        onChange={(e) => {
+                          setAgreedTerms(e.target.checked);
+                          if (formErrors.terms) setFormErrors((prev) => ({ ...prev, terms: undefined }));
+                        }}
+                        className="mt-0.5 w-4 h-4 rounded bg-[#0e1017] border border-white/20 text-[#ff5945] focus:ring-0 cursor-pointer"
+                      />
+                      <span className="text-[11px] text-[#aa8984] leading-snug">
+                        Tôi xác nhận thông tin trên là chính xác để nhận mã vé điện tử chính hãng từ Ban Tổ Chức.
+                      </span>
+                    </label>
+                    {formErrors.terms && <p className="text-[10px] text-[#ff5945] mt-1 font-bold pl-6">{formErrors.terms}</p>}
                   </div>
                 </div>
 
@@ -572,23 +856,14 @@ export const StorefrontCheckoutPage: React.FC = () => {
                 <div className="p-5 flex flex-col gap-3">
                   <button
                     type="button"
-                    disabled={isVerifying || isConfirmed}
-                    onClick={handleConfirmed}
-                    className={`w-full h-12 rounded-xl text-white font-bold text-sm flex items-center justify-center gap-2 transition-all active:scale-[0.98] ${
-                      isConfirmed
-                        ? 'bg-emerald-600 shadow-[0_0_24px_rgba(16,185,129,0.4)]'
-                        : 'bg-[#ff5945] hover:bg-[#ff7252] shadow-[0_0_24px_rgba(255,89,69,0.35)]'
-                    }`}
+                    disabled={isVerifying}
+                    onClick={handleMockPaymentSuccess}
+                    className="w-full h-12 rounded-xl text-white font-bold text-sm flex items-center justify-center gap-2 transition-all active:scale-[0.98] bg-[#ff5945] hover:bg-[#ff7252] shadow-[0_0_24px_rgba(255,89,69,0.35)] cursor-pointer"
                   >
                     {isVerifying ? (
                       <>
                         <span className="material-symbols-outlined text-[20px] animate-spin">refresh</span>
                         <span>Đang xác thực hệ thống Escrow...</span>
-                      </>
-                    ) : isConfirmed ? (
-                      <>
-                        <span className="material-symbols-outlined text-[20px]">task_alt</span>
-                        <span>Đã thanh toán thành công!</span>
                       </>
                     ) : (
                       <>
@@ -598,10 +873,22 @@ export const StorefrontCheckoutPage: React.FC = () => {
                     )}
                   </button>
 
+                  {/* Nút Test Mock Thanh toán thành công */}
+                  <button
+                    type="button"
+                    disabled={isVerifying}
+                    onClick={handleMockPaymentSuccess}
+                    className="w-full py-2.5 px-3 rounded-xl bg-gradient-to-r from-emerald-500/20 via-emerald-500/30 to-teal-500/20 hover:from-emerald-500/30 hover:to-teal-500/30 border border-emerald-500/50 text-emerald-300 font-bold text-xs flex items-center justify-center gap-2 transition-all active:scale-[0.98] cursor-pointer"
+                    title="Bấm để kích hoạt thanh toán thành công và hiển thị mã vé điện tử ngay"
+                  >
+                    <span className="material-symbols-outlined text-[18px] text-emerald-400">bolt</span>
+                    <span>⚡ Nút Test: Thanh toán thành công & Xuất mã vé ngay</span>
+                  </button>
+
                   <button
                     type="button"
                     onClick={handleCancelOrder}
-                    className="w-full py-2 rounded-xl text-[#aa8984] hover:text-[#ffb4ab] hover:bg-[#1d1f28] text-xs font-semibold transition-all text-center"
+                    className="w-full py-2 rounded-xl text-[#aa8984] hover:text-[#ffb4ab] hover:bg-[#1d1f28] text-xs font-semibold transition-all text-center cursor-pointer"
                   >
                     Hủy phiên giao dịch đơn hàng này
                   </button>

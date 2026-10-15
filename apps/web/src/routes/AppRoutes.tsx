@@ -25,6 +25,7 @@ import { StorefrontTicketSelectPage } from '../pages/storefront/StorefrontTicket
 import { StorefrontCheckoutPage } from '../pages/storefront/StorefrontCheckoutPage';
 import { StorefrontPage } from '../pages/storefront/StorefrontPage';
 import { StorefrontEventListPage } from '../pages/storefront/StorefrontEventListPage';
+import { OGTicketStorePage } from '../pages/storefront/OGTicketStorePage';
 import { AdminLayout } from '../components/admin/layout/AdminLayout';
 import { ProtectedRoute, GuestRoute, StaffRoute, AdminRoute, UserRoute } from './ProtectedRoute';
 import { useAuthStore } from '../stores/authStore';
@@ -53,11 +54,14 @@ export const AppRoutes: React.FC = () => {
         <Route path="/storefront" element={<StorefrontDiscoveryPage />} />
         <Route path="/storefront/events" element={<StorefrontEventListPage />} />
         <Route path="/storefront/event/:eventId" element={<StorefrontEventDetailPage />} />
-        <Route path="/storefront/event/:eventId/select-seat" element={<StorefrontTicketSelectPage />} />
+        <Route path="/storefront/event/:eventId/select-seat" element={<OGTicketStorePage />} />
+        <Route path="/storefront/event/:eventId/tiers" element={<OGTicketStorePage />} />
+        <Route path="/storefront/event/:eventId/og-store" element={<OGTicketStorePage />} />
+        <Route path="/storefront/event/:eventId/interactive-map" element={<StorefrontTicketSelectPage />} />
         <Route path="/storefront/event/:eventId/checkout" element={<StorefrontCheckoutPage />} />
         {/* Support previous/short routes and aliases */}
         <Route path="/storefront/:eventId" element={<StorefrontEventDetailPage />} />
-        <Route path="/events/:eventId/tickets" element={<StorefrontTicketSelectPage />} />
+        <Route path="/events/:eventId/tickets" element={<OGTicketStorePage />} />
         <Route path="/origin" element={<Navigate to="/storefront" replace />} />
 
         {/* Protected User Pages */}
