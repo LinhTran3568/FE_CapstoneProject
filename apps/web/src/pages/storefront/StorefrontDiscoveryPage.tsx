@@ -641,129 +641,145 @@ export const StorefrontDiscoveryPage: React.FC = () => {
       {/* 4. SECTION: SẮP DIỄN RA TRONG TUẦN (HORIZONTAL CAROUSEL SLIDER) */}
       <HorizontalEventCarousel />
 
-      {/* 5. SECTION: VÉ RESALE ĐƯỢC XÁC THỰC BỞI TICKETSHIELD (CYBER-ESCROW SPOTLIGHT) */}
-      <section className="w-full max-w-7xl mx-auto px-4 lg:px-12 py-16">
-        <div className="relative rounded-3xl overflow-hidden bg-gradient-to-br from-[#1d1f28] via-[#191b23] to-[#0c0e16] p-6 lg:p-12 shadow-2xl border border-[#33343d]/40">
+      {/* 5. SECTION: ĐẶC QUYỀN VÉ CHÍNH HÃNG TỪ BAN TỔ CHỨC (OFFICIAL CONCERT PASS & VIP PRIVILEGES) */}
+      <section className="w-full max-w-7xl mx-auto px-4 lg:px-12 py-10">
+        <div className="relative rounded-3xl overflow-hidden bg-gradient-to-br from-[#1d1f28] via-[#191b23] to-[#0c0e16] p-5 sm:p-7 lg:p-8 shadow-2xl border border-[#33343d]/40">
           {/* Ambient Glows */}
-          <div className="absolute -right-20 -bottom-20 w-96 h-96 bg-[#571bc1]/20 rounded-full blur-[100px] pointer-events-none" />
-          <div className="absolute -left-20 -top-20 w-80 h-80 bg-[#00a0bb]/15 rounded-full blur-[100px] pointer-events-none" />
+          <div className="absolute -right-20 -bottom-20 w-80 h-80 bg-[#ff5945]/15 rounded-full blur-[90px] pointer-events-none" />
+          <div className="absolute -left-20 -top-20 w-64 h-64 bg-[#4cd7f6]/15 rounded-full blur-[90px] pointer-events-none" />
 
-          <div className="relative z-10 flex flex-col lg:flex-row items-center justify-between gap-10">
+          <div className="relative z-10 flex flex-col lg:flex-row items-center justify-between gap-6 lg:gap-8">
             {/* Left Guarantee Pillars */}
-            <div className="flex flex-col gap-4 max-w-xl">
-              <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-[#571bc1]/30 text-[#d0bcff] w-fit text-xs uppercase tracking-wider font-bold border border-[#571bc1]/40">
-                <span className="material-symbols-outlined text-[18px]">gshield</span>
-                Hệ thống Cyber-Escrow độc quyền
+            <div className="flex flex-col gap-3.5 max-w-xl">
+              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#ff5945]/20 text-[#ffb4a8] w-fit text-[11px] uppercase tracking-wider font-bold border border-[#ff5945]/40">
+                <span className="material-symbols-outlined text-[16px]">workspace_premium</span>
+                <span>Quy chuẩn vé gốc chính hãng từ BTC</span>
               </div>
 
-              <h2 className="font-display font-extrabold text-2xl sm:text-4xl text-white tracking-tight leading-tight">
-                Chợ vé Resale minh bạch, <br />
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#d0bcff] via-[#4cd7f6] to-[#ff5945]">
-                  Chống lừa đảo & Đội giá 100%
+              <h2 className="font-display font-bold text-xl sm:text-2xl lg:text-3xl text-white tracking-tight leading-snug">
+                Bảo chứng vé gốc trực tiếp, <br />
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#ffb4a8] via-[#ff5945] to-[#4cd7f6]">
+                  Đặc quyền Fan & Trải nghiệm VIP 100%
                 </span>
               </h2>
 
-              <p className="text-xs sm:text-sm text-[#e3beb8] leading-relaxed">
-                Bạn lỡ hẹn mở bán chính thức? Yên tâm tìm mua vé sang nhượng từ người hâm mộ khác. Tiền chỉ được chuyển giao cho người bán sau khi bạn đã check-in thành công qua cửa quét mã của ban tổ chức.
+              <p className="text-xs text-[#aa8984] leading-relaxed max-w-lg">
+                Vé phát hành trực tiếp từ hệ thống độc quyền của Ban Tổ Chức (BTC). Tận hưởng đặc quyền Fanzone, Soundcheck, mã Dynamic QR chống vé giả và làn check-in ưu tiên tại SVĐ.
               </p>
 
               {/* 3 Value Pillars */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2">
-                <div className="flex flex-col gap-1 p-3 rounded-xl bg-[#282a32]/60 backdrop-blur-md border border-[#33343d]/40">
-                  <span className="material-symbols-outlined text-[#4cd7f6] text-[24px]">verified</span>
-                  <span className="text-xs text-white font-bold">Mã vé chuẩn gốc</span>
-                  <span className="text-[11px] text-[#aa8984]">Xác thực tự động qua API nhà phát hành.</span>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-1">
+                <div className="flex flex-col gap-1 p-2.5 rounded-xl bg-[#282a32]/60 backdrop-blur-md border border-[#33343d]/40">
+                  <span className="material-symbols-outlined text-[#4cd7f6] text-[20px]">qr_code_scanner</span>
+                  <span className="text-xs text-white font-bold">Dynamic QR</span>
+                  <span className="text-[10px] text-[#aa8984] leading-normal">Đổi token mỗi 30s, chống chụp màn hình.</span>
                 </div>
-                <div className="flex flex-col gap-1 p-3 rounded-xl bg-[#282a32]/60 backdrop-blur-md border border-[#33343d]/40">
-                  <span className="material-symbols-outlined text-[#ff5945] text-[24px]">price_check</span>
-                  <span className="text-xs text-white font-bold">Trần giá công bằng</span>
-                  <span className="text-[11px] text-[#aa8984]">Không cho phép phe vé độn giá quá +15%.</span>
+                <div className="flex flex-col gap-1 p-2.5 rounded-xl bg-[#282a32]/60 backdrop-blur-md border border-[#33343d]/40">
+                  <span className="material-symbols-outlined text-[#ff5945] text-[20px]">chair</span>
+                  <span className="text-xs text-white font-bold">Giữ chỗ sơ đồ 100%</span>
+                  <span className="text-[10px] text-[#aa8984] leading-normal">Giữ đúng số ghế và khu vực VIP/GA đã chọn.</span>
                 </div>
-                <div className="flex flex-col gap-1 p-3 rounded-xl bg-[#282a32]/60 backdrop-blur-md border border-[#33343d]/40">
-                  <span className="material-symbols-outlined text-[#d0bcff] text-[24px]">lock_clock</span>
-                  <span className="text-xs text-white font-bold">Giữ tiền Escrow</span>
-                  <span className="text-[11px] text-[#aa8984]">Hoàn 100% tiền ngay lập tức nếu có sự cố.</span>
+                <div className="flex flex-col gap-1 p-2.5 rounded-xl bg-[#282a32]/60 backdrop-blur-md border border-[#33343d]/40">
+                  <span className="material-symbols-outlined text-[#d0bcff] text-[20px]">card_membership</span>
+                  <span className="text-xs text-white font-bold">Đặc quyền VIP Fan</span>
+                  <span className="text-[10px] text-[#aa8984] leading-normal">Tặng Merch Kit, Lightstick và Soundcheck.</span>
                 </div>
               </div>
 
-              <div className="flex items-center gap-4 pt-2">
+              <div className="flex flex-wrap items-center gap-3 pt-1">
                 <Link
-                  to="/marketplace"
-                  className="px-6 py-3 rounded-xl bg-[#571bc1] hover:bg-[#6c28e8] text-white font-semibold text-xs transition-all flex items-center gap-2 shadow-lg shadow-[#571bc1]/30 active:scale-95"
+                  to="/storefront/events"
+                  className="px-4 py-2 rounded-xl bg-[#ff5945] hover:bg-[#e04330] text-white font-bold text-xs transition-all flex items-center gap-1.5 shadow-md shadow-[#ff5945]/30 active:scale-95"
                 >
-                  <span>Vào Chợ vé Marketplace</span>
-                  <span className="material-symbols-outlined text-[18px]">storefront</span>
-                </Link>
-                <Link
-                  to="/sell-ticket"
-                  className="text-xs text-[#aa8984] hover:text-white transition-colors flex items-center gap-1 font-semibold"
-                >
-                  <span>Đăng bán vé của bạn</span>
-                  <span className="material-symbols-outlined text-[16px]">north_east</span>
+                  <span>Khám phá toàn bộ concert</span>
+                  <span className="material-symbols-outlined text-[16px]">arrow_forward</span>
                 </Link>
               </div>
             </div>
 
-            {/* Visual Live Ticket Stub Mockup on Right */}
-            <div className="w-full lg:w-96 flex flex-col rounded-2xl overflow-hidden bg-[#282a32]/90 backdrop-blur-xl shadow-2xl border border-[#33343d]/50">
+            {/* Visual Official VIP Concert Pass Mockup on Right - Compact & Sleek */}
+            <div className="w-full lg:w-[320px] max-w-sm shrink-0 flex flex-col rounded-2xl overflow-hidden bg-[#282a32]/90 backdrop-blur-xl shadow-2xl border border-[#33343d]/50">
               {/* Stub Header */}
-              <div className="p-4 bg-[#33343d] flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <span className="material-symbols-outlined text-[#4cd7f6] text-[20px]">format_image_left</span>
-                  <span className="text-xs uppercase tracking-wider text-white font-bold">Verified Ticket Pass</span>
+              <div className="px-3.5 py-2.5 bg-[#33343d] flex items-center justify-between">
+                <div className="flex items-center gap-1.5">
+                  <span className="material-symbols-outlined text-[#ff5945] text-[18px]">confirmation_number</span>
+                  <span className="text-[11px] uppercase tracking-wider text-white font-bold">Official Concert Pass</span>
                 </div>
-                <span className="px-2 py-0.5 rounded bg-[#00a0bb]/30 text-[#4cd7f6] text-[10px] font-mono font-bold">
-                  ESCROW READY
+                <span className="px-2 py-0.5 rounded bg-[#00a0bb]/20 text-[#4cd7f6] text-[9px] font-mono font-bold flex items-center gap-1 border border-[#00a0bb]/40">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#4cd7f6] animate-pulse" />
+                  VERIFIED BY BTC
                 </span>
               </div>
 
               {/* Stub Body */}
-              <div className="p-5 flex flex-col gap-3">
-                <span className="text-xs text-[#ff5945] uppercase tracking-widest font-bold">
-                  VIP ZONE A1 • GHẾ VIP-108
-                </span>
-                <h4 className="font-display font-bold text-base text-white leading-snug">
-                  SOOBIN - THE FIRST LIVE CONCERT: BẬT NÓC NHÀ
-                </h4>
-                <div className="flex items-center justify-between text-xs text-[#aa8984] pt-1">
-                  <span>Người bán: <strong className="text-white">tuan_anh_9x</strong> (★ 4.9)</span>
-                  <span className="text-[#4cd7f6] font-semibold">Đã xác minh CCCD</span>
+              <div className="p-3.5 flex flex-col gap-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] text-[#ff5945] uppercase tracking-wider font-bold">
+                    DIAMOND VIP • FANZONE A1
+                  </span>
+                  <span className="text-[10px] text-[#4cd7f6] font-semibold">Cổng Fast-track 01</span>
                 </div>
-                <div className="flex items-center justify-between py-2 px-3 rounded-lg bg-[#191b23]">
-                  <span className="text-xs text-[#aa8984]">Giá chuyển nhượng:</span>
-                  <div className="flex items-baseline gap-1.5">
-                    <span className="font-display font-bold text-base text-[#ff5945]">1.850.000₫</span>
-                    <span className="text-[11px] text-[#aa8984] line-through">Gốc: 1.800.000₫</span>
+                <h4 className="font-display font-bold text-sm text-white leading-snug">
+                  ANH TRAI SAY HI LIVE CONCERT 2025
+                </h4>
+                <div className="text-[11px] text-[#aa8984]">
+                  BTC: <strong className="text-white">VieON & Vie Channel</strong>
+                </div>
+
+                {/* Exclusive Perks Box */}
+                <div className="p-2 rounded-lg bg-[#191b23] border border-white/5 space-y-1 text-[10px]">
+                  <div className="text-[9px] text-[#ffb4a8] font-bold uppercase tracking-wider">
+                    Đặc quyền kèm theo:
+                  </div>
+                  <div className="text-[#e1e1ed] flex items-center gap-1">
+                    <span className="material-symbols-outlined text-[#4cd7f6] text-[13px]">check_circle</span>
+                    <span>Quyền tham gia Soundcheck & Tổng duyệt</span>
+                  </div>
+                  <div className="text-[#e1e1ed] flex items-center gap-1">
+                    <span className="material-symbols-outlined text-[#4cd7f6] text-[13px]">check_circle</span>
+                    <span>Exclusive Lightstick & VIP Merch Kit</span>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between py-1.5 px-2.5 rounded-lg bg-[#191b23]">
+                  <span className="text-[11px] text-[#aa8984]">Giá vé niêm yết:</span>
+                  <div className="flex items-baseline gap-1">
+                    <span className="font-display font-bold text-base text-[#ff5945]">2.500.000₫</span>
+                    <span className="text-[10px] text-emerald-400 font-mono">Vé gốc</span>
                   </div>
                 </div>
               </div>
 
               {/* Perforation Dashed Line with Circular Cuts */}
               <div className="relative w-full flex items-center justify-between px-2">
-                <div className="w-4 h-8 bg-[#11131b] rounded-r-full -ml-4" />
+                <div className="w-3 h-6 bg-[#11131b] rounded-r-full -ml-3" />
                 <div className="flex-1 border-t-2 border-dashed border-[#33343d] mx-2" />
-                <div className="w-4 h-8 bg-[#11131b] rounded-l-full -mr-4" />
+                <div className="w-3 h-6 bg-[#11131b] rounded-l-full -mr-3" />
               </div>
 
-              {/* Stub Barcode */}
-              <div className="p-5 flex flex-col items-center gap-2 bg-[#282a32]/60">
-                <div className="w-full h-10 flex items-center justify-between gap-1 px-4 py-1 bg-white rounded-lg">
-                  <div className="w-1.5 h-full bg-[#0c0e16]" />
-                  <div className="w-0.5 h-full bg-[#0c0e16]" />
-                  <div className="w-2 h-full bg-[#0c0e16]" />
-                  <div className="w-1 h-full bg-[#0c0e16]" />
-                  <div className="w-3 h-full bg-[#0c0e16]" />
-                  <div className="w-0.5 h-full bg-[#0c0e16]" />
-                  <div className="w-2 h-full bg-[#0c0e16]" />
-                  <div className="w-1.5 h-full bg-[#0c0e16]" />
-                  <div className="w-0.5 h-full bg-[#0c0e16]" />
-                  <div className="w-2 h-full bg-[#0c0e16]" />
-                  <div className="w-1 h-full bg-[#0c0e16]" />
-                  <div className="w-3 h-full bg-[#0c0e16]" />
+              {/* Stub Dynamic QR Code Mockup - Compact */}
+              <div className="p-3 flex flex-col items-center gap-1.5 bg-[#282a32]/60">
+                <div className="relative p-1.5 bg-white rounded-lg shadow-inner flex items-center justify-center">
+                  <div className="w-20 h-20 bg-[#0c0e16] rounded p-1 flex flex-col justify-between relative overflow-hidden">
+                    <div className="w-full h-0.5 bg-[#ff5945] shadow-[0_0_8px_#ff5945] animate-bounce" />
+                    <div className="grid grid-cols-5 gap-0.5 w-full h-full p-0.5 opacity-90">
+                      {Array.from({ length: 25 }).map((_, i) => (
+                        <div
+                          key={i}
+                          className={`rounded-[1px] ${
+                            [0, 1, 3, 4, 5, 8, 10, 12, 14, 16, 19, 20, 21, 23, 24].includes(i)
+                              ? 'bg-white'
+                              : 'bg-transparent'
+                          }`}
+                        />
+                      ))}
+                    </div>
+                  </div>
                 </div>
-                <span className="text-[10px] text-[#aa8984] font-mono tracking-widest uppercase">
-                  MÃ CHECK-IN KHÓA ĐẾN GIỜ GIAO NHẬN
-                </span>
+                <div className="flex items-center gap-1 text-[9px] text-[#4cd7f6] font-mono tracking-wider uppercase font-semibold">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#4cd7f6] animate-ping" />
+                  MÃ QR DYNAMIC • LÀM MỚI MỖI 30S
+                </div>
               </div>
             </div>
           </div>
