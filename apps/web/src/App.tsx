@@ -116,17 +116,20 @@ const AppContent: React.FC = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, [location.pathname]);
 
-  // Auth pages and Admin console handle their own dedicated layout
+  // Auth pages, Admin console, and Organizer Storefront handle their own dedicated layout
   const isAuthPage = ['/login', '/register', '/forgot-password', '/reset-password'].includes(
     location.pathname
   );
   const isAdminRoute = location.pathname.startsWith('/admin') || location.pathname.startsWith('/disputes');
-  const showPublicChrome = !isAuthPage && !isAdminRoute;
+  const isStorefrontRoute = location.pathname.startsWith('/storefront') || location.pathname.startsWith('/origin') || location.pathname.startsWith('/events');
+  const showPublicChrome = !isAuthPage && !isAdminRoute && !isStorefrontRoute;
 
   return (
     <div className={`min-h-screen flex flex-col font-sans antialiased ${
       isAdminRoute
         ? 'bg-[#F5F7FA] text-[#101722]'
+        : isStorefrontRoute
+        ? 'bg-[#0B0F17] text-[#CBD5E1] selection:bg-[#E11D48] selection:text-white'
         : 'bg-[#05070A] text-[#F5F5F2] selection:bg-[#FF5A36] selection:text-white'
     }`}>
       {showPublicChrome && <Navbar />}

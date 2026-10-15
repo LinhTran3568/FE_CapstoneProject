@@ -19,6 +19,12 @@ import { DisputeConsolePage } from '../pages/DisputeConsolePage';
 import { AdminConfigPage } from '../pages/AdminConfigPage';
 import { AdminDashboardPage } from '../pages/AdminDashboardPage';
 import { AdminUsersPage } from '../pages/AdminUsersPage';
+import { StorefrontDiscoveryPage } from '../pages/storefront/StorefrontDiscoveryPage';
+import { StorefrontEventDetailPage } from '../pages/storefront/StorefrontEventDetailPage';
+import { StorefrontTicketSelectPage } from '../pages/storefront/StorefrontTicketSelectPage';
+import { StorefrontCheckoutPage } from '../pages/storefront/StorefrontCheckoutPage';
+import { StorefrontPage } from '../pages/storefront/StorefrontPage';
+import { StorefrontEventListPage } from '../pages/storefront/StorefrontEventListPage';
 import { AdminLayout } from '../components/admin/layout/AdminLayout';
 import { ProtectedRoute, GuestRoute, StaffRoute, AdminRoute, UserRoute } from './ProtectedRoute';
 import { useAuthStore } from '../stores/authStore';
@@ -42,6 +48,17 @@ export const AppRoutes: React.FC = () => {
         <Route path="/p/:shareToken" element={<PrivateListingPage />} />
         <Route path="/organizer" element={<OrganizerPortalPage />} />
         {import.meta.env.DEV && <Route path="/preview/doanh-thu" element={<RevenuePreviewPage />} />}
+
+        {/* Organizer Public Storefront (US-7.2 - Dedicated Origin Storefront) */}
+        <Route path="/storefront" element={<StorefrontDiscoveryPage />} />
+        <Route path="/storefront/events" element={<StorefrontEventListPage />} />
+        <Route path="/storefront/event/:eventId" element={<StorefrontEventDetailPage />} />
+        <Route path="/storefront/event/:eventId/select-seat" element={<StorefrontTicketSelectPage />} />
+        <Route path="/storefront/event/:eventId/checkout" element={<StorefrontCheckoutPage />} />
+        {/* Support previous/short routes and aliases */}
+        <Route path="/storefront/:eventId" element={<StorefrontEventDetailPage />} />
+        <Route path="/events/:eventId/tickets" element={<StorefrontTicketSelectPage />} />
+        <Route path="/origin" element={<Navigate to="/storefront" replace />} />
 
         {/* Protected User Pages */}
         <Route element={<ProtectedRoute />}>
