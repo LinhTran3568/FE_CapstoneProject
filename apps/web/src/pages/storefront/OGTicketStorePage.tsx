@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useParams, Link } from 'react-router-dom';
 import { StorefrontLayout } from '../../components/storefront/layout/StorefrontLayout';
 import { StageLayoutModal } from '../../components/storefront/StageLayoutModal';
 import { CheckoutModal } from '../../components/storefront/CheckoutModal';
@@ -29,7 +29,6 @@ export interface EnrichedTier extends StorefrontTier {
 
 export const OGTicketStorePage: React.FC = () => {
   const { eventId } = useParams<{ eventId?: string }>();
-  const navigate = useNavigate();
 
   // 1. Resolve event metadata from catalog
   const event: StorefrontEvent = getStorefrontEventById(eventId);

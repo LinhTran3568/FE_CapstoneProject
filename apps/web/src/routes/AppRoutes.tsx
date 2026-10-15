@@ -23,7 +23,6 @@ import { StorefrontDiscoveryPage } from '../pages/storefront/StorefrontDiscovery
 import { StorefrontEventDetailPage } from '../pages/storefront/StorefrontEventDetailPage';
 import { StorefrontTicketSelectPage } from '../pages/storefront/StorefrontTicketSelectPage';
 import { StorefrontCheckoutPage } from '../pages/storefront/StorefrontCheckoutPage';
-import { StorefrontPage } from '../pages/storefront/StorefrontPage';
 import { StorefrontEventListPage } from '../pages/storefront/StorefrontEventListPage';
 import { OGTicketStorePage } from '../pages/storefront/OGTicketStorePage';
 import { AdminLayout } from '../components/admin/layout/AdminLayout';
