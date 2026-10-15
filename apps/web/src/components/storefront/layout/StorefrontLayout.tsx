@@ -84,15 +84,9 @@ export const StorefrontLayout: React.FC<StorefrontLayoutProps> = ({
             <Link
               to="/"
               id="nav-link-home-marketplace"
-              className="text-sm font-semibold text-[#4cd7f6] hover:text-[#7ee6fc] transition-colors py-1 flex items-center gap-1.5 group"
+              className="text-sm font-semibold text-[#aa8984] hover:text-white transition-colors py-1"
             >
-              <span className="material-symbols-outlined text-[16px] text-[#4cd7f6] group-hover:scale-110 transition-transform">
-                sync_alt
-              </span>
-              <span>Sàn bán lại vé</span>
-              <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-[#4cd7f6]/10 text-[#4cd7f6] border border-[#4cd7f6]/30 uppercase font-bold">
-                P2P
-              </span>
+              Sàn bán lại vé
             </Link>
           </nav>
 
