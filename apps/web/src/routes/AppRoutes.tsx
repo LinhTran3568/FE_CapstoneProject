@@ -25,6 +25,7 @@ import { StorefrontTicketSelectPage } from '../pages/storefront/StorefrontTicket
 import { StorefrontCheckoutPage } from '../pages/storefront/StorefrontCheckoutPage';
 import { StorefrontEventListPage } from '../pages/storefront/StorefrontEventListPage';
 import { OGTicketStorePage } from '../pages/storefront/OGTicketStorePage';
+import { AdminOrganizersPage } from '../pages/AdminOrganizersPage';
 import { AdminLayout } from '../components/admin/layout/AdminLayout';
 import { ProtectedRoute, GuestRoute, StaffRoute, AdminRoute, UserRoute } from './ProtectedRoute';
 import { useAuthStore } from '../stores/authStore';
@@ -101,6 +102,7 @@ export const AppRoutes: React.FC = () => {
           <Route path="/admin/fees" element={<Navigate to="/admin/config?tab=fees" replace />} />
           <Route path="/admin/fee-settings" element={<Navigate to="/admin/config?tab=fees" replace />} />
           <Route path="/admin/users" element={<AdminUsersPage />} />
+          <Route path="/admin/organizers" element={<AdminOrganizersPage />} />
         </Route>
       </Route>
 
