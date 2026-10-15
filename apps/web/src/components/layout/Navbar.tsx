@@ -155,6 +155,18 @@ export const Navbar: React.FC = () => {
                 <Ticket className="w-3.5 h-3.5" />
                 <span>Marketplace</span>
               </Link>
+
+              <Link
+                to="/storefront"
+                className={`px-3.5 py-1.5 rounded-full text-xs font-mono font-bold uppercase tracking-wider whitespace-nowrap transition-all flex items-center gap-1.5 ${
+                  location.pathname.startsWith('/storefront')
+                    ? 'bg-[#FF5A36] text-white shadow-[0_2px_15px_rgba(255,90,54,0.4)]'
+                    : 'text-[#94A3B8] hover:text-white hover:bg-white/[0.06]'
+                }`}
+              >
+                <Building2 className="w-3.5 h-3.5" />
+                <span>Origin Store</span>
+              </Link>
             </>
           )}
 
@@ -377,6 +389,14 @@ export const Navbar: React.FC = () => {
                 <span>Marketplace</span>
               </Link>
               <Link
+                to="/storefront"
+                onClick={() => setMobileMenuOpen(false)}
+                className="px-4 py-2.5 rounded-xl text-xs font-mono font-bold uppercase text-[#4cd7f6] hover:bg-white/10 flex items-center gap-2"
+              >
+                <Building2 className="w-4 h-4 text-[#4cd7f6]" />
+                <span>Origin Store</span>
+              </Link>
+              <Link
                 to="/sell-ticket"
                 onClick={() => setMobileMenuOpen(false)}
                 className="px-4 py-2.5 rounded-xl text-xs font-mono font-bold uppercase text-white hover:bg-white/10 flex items-center gap-2"
@@ -411,6 +431,14 @@ export const Navbar: React.FC = () => {
                   >
                     <Ticket className="w-4 h-4 text-[#FF5A36]" />
                     <span>Marketplace</span>
+                  </Link>
+                  <Link
+                    to="/storefront"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="px-4 py-2.5 rounded-xl text-xs font-mono font-bold uppercase text-[#4cd7f6] hover:bg-white/10 flex items-center gap-2"
+                  >
+                    <Building2 className="w-4 h-4 text-[#4cd7f6]" />
+                    <span>Origin Store</span>
                   </Link>
                 </>
               )}
