@@ -50,33 +50,8 @@ export interface OrganizerGenerateTicketRequest {
   ownerName?: string;
   ownerPhone?: string;
   organizerId?: string;
-}
-
-export interface OrganizerBatchCheckoutItem {
-  tierId: string;
-  quantity: number;
-}
-
-export interface OrganizerBatchCheckoutRequest {
   eventId?: string;
-  buyerEmail: string;
-  items: OrganizerBatchCheckoutItem[];
-}
-
-export interface OrganizerBatchCheckoutResponse {
-  orderId: string;
-  orderIds: string[];
-  eventId: string;
-  totalAmount: number;
-  items: Array<{
-    tierId: string;
-    tierName: string;
-    quantity: number;
-    unitPrice: number;
-    totalAmount: number;
-    remainingAvailable: number;
-  }>;
-  status: string;
+  tierId?: string;
 }
 
 export const organizerStoreApi = {
@@ -127,49 +102,6 @@ export const organizerStoreApi = {
     }
 
     return res.json();
-  },
-
-  /**
-   * Checkout nhiều hạng vé nguyên tử (Atomic Multi-Tier Checkout)
-   * Trừ tồn kho đồng thời trong cùng 1 transaction, tự động rollback nếu 1 hạng thất bại
-   */
-  checkoutBatch: async (request: OrganizerBatchCheckoutRequest): Promise<OrganizerBatchCheckoutResponse> => {
-    const base = getOrganizerApiBase();
-    const res = await fetch(`${base}/orders/checkout-batch`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-      body: JSON.stringify(request),
-    });
-
-    if (!res.ok) {
-      let errMsg = `Lỗi thanh toán nhiều hạng vé (HTTP ${res.status})`;
-      try {
-        const errorJson = await res.json();
-        if (errorJson.message) {
-          errMsg = errorJson.message;
-        }
-      } catch {
-        // Keep default error message
-      }
-      throw new Error(errMsg);
-    }
-
-    return res.json();
-  },
-
-  /**
-   * Rollback / Hủy đơn hàng và hoàn lại tồn kho
-   */
-  cancelOrder: async (orderId: string): Promise<void> => {
-    const base = getOrganizerApiBase();
-    try {
-      await fetch(`${base}/orders/cancel/${encodeURIComponent(orderId)}`, {
-        method: 'POST',
-        headers: { Accept: 'application/json' },
-      });
-    } catch {
-      // Best-effort cancel
-    }
   },
 
   /**

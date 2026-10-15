@@ -551,6 +551,7 @@ export const OGTicketStorePage: React.FC = () => {
                             <div className="flex items-center bg-[#1e2029] border border-white/10 rounded-xl p-1 shadow-inner">
                               <button
                                 type="button"
+                                id={`decrease-${tier.id}`}
                                 onClick={() => handleQuantityChange(tier.id, -1)}
                                 disabled={qty === 0}
                                 title="Giảm số lượng"
@@ -569,6 +570,7 @@ export const OGTicketStorePage: React.FC = () => {
 
                               <button
                                 type="button"
+                                id={`increase-${tier.id}`}
                                 onClick={() => handleQuantityChange(tier.id, 1)}
                                 disabled={qty >= maxAllowed}
                                 title="Tăng số lượng"
@@ -707,6 +709,7 @@ export const OGTicketStorePage: React.FC = () => {
                   {/* CTA BUTTON */}
                   <button
                     type="button"
+                    id="btn-proceed-checkout"
                     onClick={handleProceedToCheckout}
                     className="w-full py-3.5 px-4 rounded-xl bg-gradient-to-r from-[#ff5945] to-[#d03724] hover:opacity-95 text-white font-bold text-sm transition-all shadow-xl shadow-[#ff5945]/25 flex items-center justify-center gap-2 group cursor-pointer"
                   >

@@ -119,41 +119,22 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
     let backendOrderId: string | null = null;
     const completedItems: SelectedTierItem[] = [];
 
-    // 1. Call Backend Checkout atomically (Atomic Transaction via checkout-batch or single checkout)
-    if (selectedItems.length > 1) {
+    // 1. Call Backend Checkout for each selected tier
+    for (const item of selectedItems) {
       try {
-        const batchRes = await organizerStoreApi.checkoutBatch({
-          eventId: event.id,
-          buyerEmail: finalBuyerEmail,
-          items: selectedItems.map((it) => ({
-            tierId: it.tier.id,
-            quantity: it.quantity,
-          })),
-        });
-        backendOrderId = batchRes.orderId;
-        completedItems.push(...selectedItems);
-      } catch (err: unknown) {
-        setIsSubmitting(false);
-        const errMsg = err instanceof Error ? err.message : 'Lỗi hệ thống khi thanh toán với Ban Tổ Chức';
-        setApiError(errMsg);
-        return;
-      }
-    } else if (selectedItems.length === 1) {
-      try {
-        const item = selectedItems[0];
         const checkoutRes = await organizerStoreApi.checkout({
           tierId: item.tier.id,
           quantity: item.quantity,
           buyerEmail: finalBuyerEmail,
         });
 
-        if (checkoutRes.orderId) {
+        if (!backendOrderId && checkoutRes.orderId) {
           backendOrderId = checkoutRes.orderId;
         }
         completedItems.push(item);
       } catch (err: unknown) {
         setIsSubmitting(false);
-        const errMsg = err instanceof Error ? err.message : 'Lỗi hệ thống khi thanh toán với Ban Tổ Chức';
+        const errMsg = err instanceof Error ? err.message : `Lỗi hệ thống khi thanh toán hạng vé ${item.tier.tierName}`;
         setApiError(errMsg);
         return;
       }
@@ -195,6 +176,8 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
               ownerEmail: finalBuyerEmail,
               ownerName: finalBuyerName,
               ownerPhone: finalBuyerPhone,
+              eventId: event.id,
+              tierId: item.tier.id,
             });
             confirmedTicketCode = candidateCode;
             break;
@@ -320,6 +303,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                 </label>
                 <input
                   type="text"
+                  id="buyer-name-input"
                   value={buyerName}
                   onChange={(e) => {
                     setBuyerName(e.target.value);
@@ -345,6 +329,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                 </label>
                 <input
                   type="email"
+                  id="buyer-email-input"
                   value={buyerEmail}
                   onChange={(e) => {
                     setBuyerEmail(e.target.value);
@@ -372,6 +357,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                 </label>
                 <input
                   type="tel"
+                  id="buyer-phone-input"
                   value={buyerPhone}
                   onChange={(e) => {
                     setBuyerPhone(e.target.value);
@@ -391,6 +377,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                 <label className="flex items-start gap-2.5 cursor-pointer select-none">
                   <input
                     type="checkbox"
+                    id="buyer-terms-checkbox"
                     checked={agreedTerms}
                     onChange={(e) => {
                       setAgreedTerms(e.target.checked);
@@ -427,6 +414,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                 </button>
                 <button
                   type="submit"
+                  id="btn-confirm-checkout"
                   disabled={isSubmitting}
                   className="w-full sm:w-2/3 py-3 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/25 active:scale-[0.98] transition-all cursor-pointer"
                 >
@@ -476,7 +464,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                 <h5 className="font-display font-bold text-sm text-white flex items-center justify-between">
                   <span>Mã vé gốc & QR vào cổng ({orderResult.tickets.length} vé)</span>
                   <span className="text-[10px] font-mono text-emerald-400 bg-emerald-950/60 px-2 py-0.5 rounded border border-emerald-500/30">
-                    OFFICIAL ISSUED
+                    VÉ CHÍNH THỨC
                   </span>
                 </h5>
 
@@ -524,7 +512,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                         <div className="p-2 bg-white rounded-lg shadow-md shrink-0 flex flex-col items-center">
                           <QRCodeCanvas value={qrData} size={84} level="H" marginSize={1} />
                           <span className="text-[8px] font-bold text-gray-800 tracking-wider mt-0.5">
-                            SCAN TO ENTER
+                            QUÉT VÀO CỔNG
                           </span>
                         </div>
                       </div>
