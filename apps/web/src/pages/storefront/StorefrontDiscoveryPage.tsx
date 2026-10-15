@@ -474,22 +474,26 @@ export const StorefrontDiscoveryPage: React.FC = () => {
               <span className="material-symbols-outlined text-[18px]">arrow_forward</span>
             </Link>
 
-            <button
-              type="button"
-              onClick={scrollEventsLeft}
-              className="w-10 h-10 rounded-full bg-[#191b23] hover:bg-[#ff5945] text-white flex items-center justify-center border border-[#33343d]/60 transition-all shadow-md active:scale-95"
-              aria-label="Cuộn sang trái"
-            >
-              <span className="material-symbols-outlined text-[22px]">chevron_left</span>
-            </button>
-            <button
-              type="button"
-              onClick={scrollEventsRight}
-              className="w-10 h-10 rounded-full bg-[#191b23] hover:bg-[#ff5945] text-white flex items-center justify-center border border-[#33343d]/60 transition-all shadow-md active:scale-95"
-              aria-label="Cuộn sang phải"
-            >
-              <span className="material-symbols-outlined text-[22px]">chevron_right</span>
-            </button>
+            {filteredEvents.length > 3 && (
+              <>
+                <button
+                  type="button"
+                  onClick={scrollEventsLeft}
+                  className="w-10 h-10 rounded-full bg-[#191b23] hover:bg-[#ff5945] text-white flex items-center justify-center border border-[#33343d]/60 transition-all shadow-md active:scale-95"
+                  aria-label="Cuộn sang trái"
+                >
+                  <span className="material-symbols-outlined text-[22px]">chevron_left</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={scrollEventsRight}
+                  className="w-10 h-10 rounded-full bg-[#191b23] hover:bg-[#ff5945] text-white flex items-center justify-center border border-[#33343d]/60 transition-all shadow-md active:scale-95"
+                  aria-label="Cuộn sang phải"
+                >
+                  <span className="material-symbols-outlined text-[22px]">chevron_right</span>
+                </button>
+              </>
+            )}
           </div>
         </div>
 
@@ -543,18 +547,30 @@ export const StorefrontDiscoveryPage: React.FC = () => {
             </button>
           </div>
         ) : (
-          /* Auto-Sliding Horizontal Track (10 Concerts moving to the left via CSS translate) */
-          <div className="overflow-hidden w-full relative py-3">
+          /* Event Cards: Responsive 3-col Grid when <= 3, Horizontal Slide when > 3 */
+          <div className="w-full relative py-2">
             <div
-              className="flex items-stretch gap-5 transition-transform duration-700 ease-out"
-              style={{
-                transform: `translateX(-${eventSlideIndex * 335}px)`,
-              }}
+              className={
+                filteredEvents.length <= 3
+                  ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 w-full"
+                  : "flex items-stretch gap-5 transition-transform duration-700 ease-out overflow-hidden"
+              }
+              style={
+                filteredEvents.length > 3
+                  ? {
+                      transform: `translateX(-${eventSlideIndex * 335}px)`,
+                    }
+                  : undefined
+              }
             >
               {filteredEvents.map((event) => (
                 <article
                   key={event.id}
-                  className="w-[285px] sm:w-[315px] shrink-0 group relative flex flex-col rounded-2xl overflow-hidden bg-[#191b23] border border-[#33343d]/40 hover:-translate-y-1.5 transition-all duration-300 shadow-xl hover:shadow-[0_0_32px_-8px_rgba(255,89,69,0.35)]"
+                  className={`${
+                    filteredEvents.length <= 3
+                      ? "w-full"
+                      : "w-[285px] sm:w-[315px] shrink-0"
+                  } group relative flex flex-col rounded-2xl overflow-hidden bg-[#191b23] border border-[#33343d]/40 hover:-translate-y-1.5 transition-all duration-300 shadow-xl hover:shadow-[0_0_32px_-8px_rgba(255,89,69,0.35)]`}
                 >
                   {/* Poster Graphic */}
                   <div className="relative w-full aspect-[3/4] overflow-hidden bg-[#282a32]">
