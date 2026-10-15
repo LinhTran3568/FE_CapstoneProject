@@ -81,6 +81,19 @@ export const StorefrontLayout: React.FC<StorefrontLayoutProps> = ({
             >
               Lịch diễn sắp tới
             </Link>
+            <Link
+              to="/"
+              id="nav-link-home-marketplace"
+              className="text-sm font-semibold text-[#4cd7f6] hover:text-[#7ee6fc] transition-colors py-1 flex items-center gap-1.5 group"
+            >
+              <span className="material-symbols-outlined text-[16px] text-[#4cd7f6] group-hover:scale-110 transition-transform">
+                sync_alt
+              </span>
+              <span>Sàn bán lại vé</span>
+              <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-[#4cd7f6]/10 text-[#4cd7f6] border border-[#4cd7f6]/30 uppercase font-bold">
+                P2P
+              </span>
+            </Link>
           </nav>
 
           {/* Right Action: Profile (if authenticated) */}
@@ -135,6 +148,10 @@ export const StorefrontLayout: React.FC<StorefrontLayoutProps> = ({
               </Link>
               <Link to="/storefront#featured-events" className="text-[#aa8984] hover:text-[#e1e1ed] transition-colors">
                 Concert nổi bật
+              </Link>
+              <Link to="/" className="text-[#4cd7f6] hover:text-white transition-colors flex items-center gap-1 font-medium">
+                <span>Sàn bán lại vé P2P</span>
+                <span className="material-symbols-outlined text-[14px]">arrow_outward</span>
               </Link>
               <span className="text-[#aa8984]">Sân vận động & Hội trường</span>
               <span className="text-[#aa8984]">Nghệ sĩ & Tour diễn</span>

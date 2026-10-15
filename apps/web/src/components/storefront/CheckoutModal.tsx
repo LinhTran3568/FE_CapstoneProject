@@ -521,38 +521,33 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                 </div>
               </div>
 
-              {/* Nút tắt sang sàn TicketShield */}
-              <div className="p-4 rounded-xl bg-[#161822] border border-white/5 space-y-3">
-                <div className="flex items-center gap-2 text-xs font-bold text-white">
-                  <span className="material-symbols-outlined text-[16px] text-[#ff5945]">bolt</span>
-                  <span>Nút tắt sang hệ sinh thái sàn TicketShield:</span>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                  <Link
-                    to="/my-tickets"
-                    className="p-3 rounded-lg bg-[#0e1017] hover:bg-[#1f2230] border border-white/10 text-center transition-all group"
-                  >
-                    <div className="text-xs font-bold text-white group-hover:text-[#ff5945]">Ví vé cá nhân</div>
-                    <div className="text-[10px] text-[#aa8984] mt-0.5">Quản lý vé vừa mua</div>
-                  </Link>
-
-                  <Link
-                    to="/sell-ticket"
-                    className="p-3 rounded-lg bg-[#0e1017] hover:bg-[#1f2230] border border-white/10 text-center transition-all group"
-                  >
-                    <div className="text-xs font-bold text-white group-hover:text-[#4cd7f6]">Ký gửi bán lại vé</div>
-                    <div className="text-[10px] text-[#aa8984] mt-0.5">Đăng bán trên sàn Escrow</div>
-                  </Link>
-
-                  <Link
-                    to="/marketplace"
-                    className="p-3 rounded-lg bg-[#0e1017] hover:bg-[#1f2230] border border-white/10 text-center transition-all group"
-                  >
-                    <div className="text-xs font-bold text-white group-hover:text-[#ffb4a8]">Sàn TicketShield</div>
-                    <div className="text-[10px] text-[#aa8984] mt-0.5">Khám phá sự kiện khác</div>
-                  </Link>
-                </div>
+              {/* Nút chuyển sang sàn TicketShield */}
+              <div className="p-3.5 rounded-xl bg-[#161822] border border-white/5">
+                <Link
+                  to="/"
+                  id="btn-goto-marketplace-modal"
+                  className="w-full p-3.5 rounded-xl bg-gradient-to-r from-[#191b26] to-[#202336] hover:from-[#202336] hover:to-[#2c3148] border border-[#4cd7f6]/30 hover:border-[#4cd7f6]/60 flex items-center justify-between transition-all group shadow-lg"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-lg bg-[#4cd7f6]/15 flex items-center justify-center text-[#4cd7f6] group-hover:bg-[#4cd7f6] group-hover:text-black transition-colors shrink-0">
+                      <span className="material-symbols-outlined text-[20px]">storefront</span>
+                    </div>
+                    <div className="text-left">
+                      <div className="text-xs font-bold text-white group-hover:text-[#4cd7f6] transition-colors flex items-center gap-1.5">
+                        <span>Chuyển sang sàn đối tác TicketShield</span>
+                        <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-[#4cd7f6]/15 text-[#4cd7f6] border border-[#4cd7f6]/30 uppercase font-bold">
+                          Marketplace
+                        </span>
+                      </div>
+                      <div className="text-[11px] text-[#aa8984] mt-0.5">
+                        Khám phá các sự kiện âm nhạc & mua bán lại vé được bảo hộ Escrow
+                      </div>
+                    </div>
+                  </div>
+                  <span className="material-symbols-outlined text-[#4cd7f6] group-hover:translate-x-1 transition-transform text-[20px] shrink-0">
+                    arrow_forward
+                  </span>
+                </Link>
               </div>
 
               {/* Close Button */}
