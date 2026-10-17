@@ -1,3 +1,5 @@
+import type { MockTicketDto } from '@ticketshield/types';
+
 export const getOrganizerApiBase = (): string => {
   if (typeof window !== 'undefined') {
     const envUrl =
@@ -27,6 +29,9 @@ export interface OrganizerCheckoutRequest {
   tierId: string;
   quantity: number;
   buyerEmail: string;
+  buyerName?: string;
+  buyerPhone?: string;
+  sessionToken?: string;
 }
 
 export interface OrganizerCheckoutResponse {
@@ -39,6 +44,13 @@ export interface OrganizerCheckoutResponse {
   totalAmount: number;
   status: string;
   remainingAvailable: number;
+  tickets?: MockTicketDto[];
+  telemetry?: {
+    timeToCheckoutSeconds?: number;
+    concurrentHoldCount?: number;
+    executionDurationMs?: number;
+    isSessionValid?: boolean;
+  };
 }
 
 export interface OrganizerGenerateTicketRequest {
@@ -101,6 +113,23 @@ export const organizerStoreApi = {
       throw new Error(errMsg);
     }
 
+    return res.json();
+  },
+
+  /**
+   * Lấy danh sách toàn bộ vé có sẵn từ hệ thống Ban Tổ Chức (/api/organizer/tickets)
+   */
+  getTickets: async (search?: string, status?: string): Promise<MockTicketDto[]> => {
+    const base = getOrganizerApiBase();
+    const params = new URLSearchParams();
+    if (search) params.append('search', search);
+    if (status) params.append('status', status);
+    const res = await fetch(`${base}/tickets?${params.toString()}`, {
+      headers: { Accept: 'application/json' },
+    });
+    if (!res.ok) {
+      throw new Error(`Không thể lấy danh sách vé từ Ban Tổ Chức (HTTP ${res.status})`);
+    }
     return res.json();
   },
 

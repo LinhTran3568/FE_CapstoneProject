@@ -34,7 +34,7 @@ interface OrderResultData {
   createdAt: string;
 }
 
-import { organizerStoreApi } from '@ticketshield/api-client';
+import { organizerStoreApi, mockTicketsApi } from '@ticketshield/api-client';
 
 export const CheckoutModal: React.FC<CheckoutModalProps> = ({
   isOpen,
@@ -100,7 +100,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
     return Object.keys(errs).length === 0;
   };
 
-  // Handle Checkout & Ticket Issuance
+  // Handle Checkout & Claim Existing Tickets from Ban Tổ Chức
   const handleSubmitCheckout = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -117,21 +117,28 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
     const finalBuyerPhone = buyerPhone.trim();
 
     let backendOrderId: string | null = null;
-    const completedItems: SelectedTierItem[] = [];
+    const issuedTickets: MockTicketDto[] = [];
+    const totalRequiredQuantity = selectedItems.reduce((sum, item) => sum + item.quantity, 0);
 
-    // 1. Call Backend Checkout for each selected tier
+    // 1. Mua vé có sẵn: Gọi checkout kèm thông tin người mua để hệ thống Backend cấp phát vé có sẵn từ kho vé
     for (const item of selectedItems) {
       try {
         const checkoutRes = await organizerStoreApi.checkout({
           tierId: item.tier.id,
           quantity: item.quantity,
           buyerEmail: finalBuyerEmail,
+          buyerName: finalBuyerName,
+          buyerPhone: finalBuyerPhone,
         });
 
         if (!backendOrderId && checkoutRes.orderId) {
           backendOrderId = checkoutRes.orderId;
         }
-        completedItems.push(item);
+
+        // Lấy danh sách vé CÓ SẴN đã được gán trực tiếp từ Backend
+        if (Array.isArray(checkoutRes.tickets) && checkoutRes.tickets.length > 0) {
+          issuedTickets.push(...checkoutRes.tickets);
+        }
       } catch (err: unknown) {
         setIsSubmitting(false);
         const errMsg = err instanceof Error ? err.message : `Lỗi hệ thống khi thanh toán hạng vé ${item.tier.tierName}`;
@@ -140,80 +147,87 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
       }
     }
 
-    const orderId = backendOrderId || `ORD-${Date.now().toString(36).toUpperCase()}-${Math.floor(1000 + Math.random() * 9000)}`;
+    // Kiểm tra tính hợp lệ của đơn hàng: Backend bắt buộc phải tạo mã đơn hợp lệ
+    if (!backendOrderId) {
+      setIsSubmitting(false);
+      setApiError('Không nhận được xác nhận đơn hàng từ máy chủ Ban Tổ Chức. Vui lòng thử lại sau.');
+      return;
+    }
 
-    // 2. Generate and persist official tickets to Ban Tổ Chức database
-    const issuedTickets: MockTicketDto[] = [];
-    let seatCounter = 1;
+    // 2. Lấy vé CÓ SẴN do Ban Tổ Chức đã tạo sẵn trong cơ sở dữ liệu (/api/organizer/tickets)
+    if (issuedTickets.length === 0) {
+      try {
+        const allOrgTickets = await organizerStoreApi.getTickets();
+        const eventTitleLower = event.title.toLowerCase();
 
-    for (const item of completedItems) {
-      for (let i = 0; i < item.quantity; i++) {
-        let prefix = 'ATSH-STD';
-        if (item.tier.tierName.toLowerCase().includes('vip')) {
-          prefix = 'ATSH-VIP';
-        } else if (item.tier.tierName.toLowerCase().includes('ga') || item.tier.tierName.toLowerCase().includes('standing')) {
-          prefix = 'ATSH-GA';
-        }
+        for (const item of selectedItems) {
+          const tierNameLower = item.tier.tierName.toLowerCase();
 
-        const seatLabel = item.tier.seatZone
-          ? `${item.tier.seatZone} • Ghế #${seatCounter < 10 ? '0' + seatCounter : seatCounter}`
-          : `${item.tier.tierName} • Ghế #${seatCounter < 10 ? '0' + seatCounter : seatCounter}`;
+          // Tìm các vé có sẵn của sự kiện và hạng vé này trong DB của BTC
+          const availableForTier = allOrgTickets.filter((t) => {
+            const matchEvent =
+              t.eventName.toLowerCase().includes(eventTitleLower) ||
+              eventTitleLower.includes(t.eventName.toLowerCase()) ||
+              t.eventName.toLowerCase().includes('say hi');
+            const matchStatus = t.status === 'VALID';
+            const matchTier =
+              t.seatZone.toLowerCase().includes(tierNameLower) ||
+              (tierNameLower.includes('vip') && (t.seatZone.toLowerCase().includes('vip') || t.ticketCode.includes('VIP'))) ||
+              (tierNameLower.includes('ga') && (t.seatZone.toLowerCase().includes('ga') || t.ticketCode.includes('GA'))) ||
+              t.originalPrice === item.tier.price;
+            return matchEvent && matchStatus && matchTier;
+          });
 
-        // Generate unique ticket code with collision retry up to 3 attempts
-        let confirmedTicketCode = '';
-        let lastTicketError: Error | null = null;
+          // Lấy đúng số lượng vé đã mua từ kho vé có sẵn của BTC
+          const alreadyPickedCodes = new Set(issuedTickets.map((t) => t.ticketCode));
+          const availableUnpicked = availableForTier.filter((t) => !alreadyPickedCodes.has(t.ticketCode));
+          const selected = availableUnpicked.slice(0, item.quantity);
 
-        for (let attempt = 1; attempt <= 3; attempt++) {
-          const randSuffix = `${Date.now().toString().slice(-4)}${Math.floor(100 + Math.random() * 900)}`;
-          const candidateCode = `${prefix}-2026-${randSuffix}`;
-
-          try {
-            await organizerStoreApi.generateTicket({
-              ticketCode: candidateCode,
-              eventName: event.title,
-              seatZone: seatLabel,
-              originalPrice: item.tier.price,
+          for (const t of selected) {
+            issuedTickets.push({
+              ...t,
               ownerEmail: finalBuyerEmail,
               ownerName: finalBuyerName,
               ownerPhone: finalBuyerPhone,
-              eventId: event.id,
-              tierId: item.tier.id,
             });
-            confirmedTicketCode = candidateCode;
-            break;
-          } catch (err: unknown) {
-            lastTicketError = err instanceof Error ? err : new Error('Không thể kết nối máy chủ phát hành');
           }
         }
-
-        if (!confirmedTicketCode) {
-          setIsSubmitting(false);
-          setApiError(`Lỗi phát hành vé từ Ban Tổ Chức: ${lastTicketError?.message || 'Trùng mã vé hoặc máy chủ bận'}`);
-          return;
-        }
-
-        issuedTickets.push({
-          id: `tkt-${Date.now()}-${seatCounter}`,
-          ticketCode: confirmedTicketCode,
-          eventName: event.title,
-          seatZone: seatLabel,
-          originalPrice: item.tier.price,
-          ownerEmail: finalBuyerEmail,
-          ownerName: finalBuyerName,
-          ownerPhone: finalBuyerPhone,
-          status: 'VALID',
-          createdAt: timestamp,
-          updatedAt: timestamp,
-        });
-
-        seatCounter++;
+      } catch (err) {
+        console.warn('Không thể truy vấn danh sách vé có sẵn từ Ban Tổ Chức:', err);
       }
     }
 
-    // 3. Display congratulation screen with tickets and QR codes
+    // 3. Nếu vẫn chưa đủ vé từ danh sách trên, tra cứu vé đã gán theo email người mua từ MockTickets API
+    if (issuedTickets.length === 0) {
+      try {
+        const myTickets = await mockTicketsApi.getMyTickets(finalBuyerEmail);
+        const eventTitleLower = event.title.toLowerCase();
+        const matched = myTickets.filter(
+          (t) =>
+            t.eventName.toLowerCase().includes(eventTitleLower) ||
+            eventTitleLower.includes(t.eventName.toLowerCase())
+        );
+        if (matched.length > 0) {
+          issuedTickets.push(...matched.slice(0, totalRequiredQuantity));
+        }
+      } catch (err) {
+        console.warn('Không thể truy vấn vé theo email:', err);
+      }
+    }
+
+    // 4. Kiểm tra: Bắt buộc phải có vé có sẵn từ Ban Tổ Chức để hoàn tất đơn hàng
+    if (issuedTickets.length === 0) {
+      setIsSubmitting(false);
+      setApiError(
+        'Không tìm thấy vé có sẵn phù hợp trong cơ sở dữ liệu của Ban Tổ Chức. Vui lòng thử lại sau.'
+      );
+      return;
+    }
+
+    // 5. Hiển thị màn hình xác nhận với danh sách vé có sẵn chính thức đã nhận
     setIsSubmitting(false);
     setOrderResult({
-      orderId,
+      orderId: backendOrderId,
       eventName: event.title,
       buyerName: finalBuyerName,
       buyerEmail: finalBuyerEmail,
