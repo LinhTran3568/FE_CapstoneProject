@@ -27,6 +27,15 @@ export interface OrganizerCheckoutRequest {
   tierId: string;
   quantity: number;
   buyerEmail: string;
+  buyerName?: string;
+  buyerPhone?: string;
+  sessionToken?: string;
+  deviceFingerprint?: string;
+  telemetry?: {
+    actionIntervalStdDev?: number;
+    isWebdriver?: number;
+    deviceFingerprint?: string;
+  };
 }
 
 export interface OrganizerCheckoutResponse {
@@ -39,6 +48,14 @@ export interface OrganizerCheckoutResponse {
   totalAmount: number;
   status: string;
   remainingAvailable: number;
+  tickets?: Array<{
+    ticketCode: string;
+    seatZone: string;
+    ownerEmail: string;
+    ownerName?: string;
+    ownerPhone?: string;
+    status: string;
+  }>;
 }
 
 export interface OrganizerGenerateTicketRequest {
@@ -55,6 +72,20 @@ export interface OrganizerGenerateTicketRequest {
 }
 
 export const organizerStoreApi = {
+  /**
+   * Cấp phát session token chứa timestamp server phục vụ đo time_to_checkout (BE-PIPE-8.2.1)
+   */
+  createSession: async (tierId: string): Promise<{ sessionToken: string; tierId: string; issuedAtUtc: string; expiresInSeconds: number }> => {
+    const base = getOrganizerApiBase();
+    const res = await fetch(`${base}/orders/session?tierId=${encodeURIComponent(tierId)}`, {
+      headers: { Accept: 'application/json' },
+    });
+    if (!res.ok) {
+      throw new Error(`Không thể khởi tạo phiên thanh toán (HTTP ${res.status})`);
+    }
+    return res.json();
+  },
+
   /**
    * Lấy danh sách các hạng vé trực tiếp từ Ban Tổ Chức (BE-MOCK-7.1.1)
    */

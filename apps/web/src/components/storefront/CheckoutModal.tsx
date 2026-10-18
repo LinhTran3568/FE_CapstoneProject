@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { QRCodeCanvas } from 'qrcode.react';
 import { Link } from 'react-router-dom';
 import { StorefrontEvent } from '../../data/storefrontCatalog';
@@ -64,6 +64,17 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [orderResult, setOrderResult] = useState<OrderResultData | null>(null);
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
+  const [sessionToken, setSessionToken] = useState<string | null>(null);
+
+  // Pre-fetch Anti-Bot session token when modal opens
+  useEffect(() => {
+    if (isOpen && selectedItems.length > 0) {
+      organizerStoreApi
+        .createSession(selectedItems[0].tier.id)
+        .then((res) => setSessionToken(res.sessionToken))
+        .catch((err) => console.warn('Không thể khởi tạo Anti-Bot session:', err));
+    }
+  }, [isOpen, selectedItems]);
 
   if (!isOpen) return null;
 
@@ -117,21 +128,46 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
     const finalBuyerPhone = buyerPhone.trim();
 
     let backendOrderId: string | null = null;
-    const completedItems: SelectedTierItem[] = [];
+    const issuedTickets: MockTicketDto[] = [];
 
-    // 1. Call Backend Checkout for each selected tier
+    // 1. Call Backend Checkout for each selected tier (Atomic inventory lock & ticket issuance)
     for (const item of selectedItems) {
       try {
         const checkoutRes = await organizerStoreApi.checkout({
           tierId: item.tier.id,
           quantity: item.quantity,
           buyerEmail: finalBuyerEmail,
+          buyerName: finalBuyerName,
+          buyerPhone: finalBuyerPhone,
+          sessionToken: sessionToken || undefined,
+          deviceFingerprint: typeof window !== 'undefined' ? (window.navigator?.userAgent || 'browser') : undefined,
+          telemetry: {
+            isWebdriver: typeof window !== 'undefined' && Boolean((window.navigator as unknown as { webdriver?: boolean }).webdriver) ? 1 : 0,
+          },
         });
 
         if (!backendOrderId && checkoutRes.orderId) {
           backendOrderId = checkoutRes.orderId;
         }
-        completedItems.push(item);
+
+        // Nhận danh sách vé chính thức do Backend cấp phát trực tiếp
+        if (checkoutRes.tickets && checkoutRes.tickets.length > 0) {
+          for (const t of checkoutRes.tickets) {
+            issuedTickets.push({
+              id: t.ticketCode,
+              ticketCode: t.ticketCode,
+              eventName: event.title,
+              seatZone: t.seatZone || item.tier.tierName,
+              originalPrice: item.tier.price,
+              ownerEmail: t.ownerEmail || finalBuyerEmail,
+              ownerName: t.ownerName || finalBuyerName,
+              ownerPhone: t.ownerPhone || finalBuyerPhone,
+              status: t.status || 'VALID',
+              createdAt: timestamp,
+              updatedAt: timestamp,
+            });
+          }
+        }
       } catch (err: unknown) {
         setIsSubmitting(false);
         const errMsg = err instanceof Error ? err.message : `Lỗi hệ thống khi thanh toán hạng vé ${item.tier.tierName}`;
@@ -140,77 +176,15 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
       }
     }
 
-    const orderId = backendOrderId || `ORD-${Date.now().toString(36).toUpperCase()}-${Math.floor(1000 + Math.random() * 9000)}`;
-
-    // 2. Generate and persist official tickets to Ban Tổ Chức database
-    const issuedTickets: MockTicketDto[] = [];
-    let seatCounter = 1;
-
-    for (const item of completedItems) {
-      for (let i = 0; i < item.quantity; i++) {
-        let prefix = 'ATSH-STD';
-        if (item.tier.tierName.toLowerCase().includes('vip')) {
-          prefix = 'ATSH-VIP';
-        } else if (item.tier.tierName.toLowerCase().includes('ga') || item.tier.tierName.toLowerCase().includes('standing')) {
-          prefix = 'ATSH-GA';
-        }
-
-        const seatLabel = item.tier.seatZone
-          ? `${item.tier.seatZone} • Ghế #${seatCounter < 10 ? '0' + seatCounter : seatCounter}`
-          : `${item.tier.tierName} • Ghế #${seatCounter < 10 ? '0' + seatCounter : seatCounter}`;
-
-        // Generate unique ticket code with collision retry up to 3 attempts
-        let confirmedTicketCode = '';
-        let lastTicketError: Error | null = null;
-
-        for (let attempt = 1; attempt <= 3; attempt++) {
-          const randSuffix = `${Date.now().toString().slice(-4)}${Math.floor(100 + Math.random() * 900)}`;
-          const candidateCode = `${prefix}-2026-${randSuffix}`;
-
-          try {
-            await organizerStoreApi.generateTicket({
-              ticketCode: candidateCode,
-              eventName: event.title,
-              seatZone: seatLabel,
-              originalPrice: item.tier.price,
-              ownerEmail: finalBuyerEmail,
-              ownerName: finalBuyerName,
-              ownerPhone: finalBuyerPhone,
-              eventId: event.id,
-              tierId: item.tier.id,
-            });
-            confirmedTicketCode = candidateCode;
-            break;
-          } catch (err: unknown) {
-            lastTicketError = err instanceof Error ? err : new Error('Không thể kết nối máy chủ phát hành');
-          }
-        }
-
-        if (!confirmedTicketCode) {
-          setIsSubmitting(false);
-          setApiError(`Lỗi phát hành vé từ Ban Tổ Chức: ${lastTicketError?.message || 'Trùng mã vé hoặc máy chủ bận'}`);
-          return;
-        }
-
-        issuedTickets.push({
-          id: `tkt-${Date.now()}-${seatCounter}`,
-          ticketCode: confirmedTicketCode,
-          eventName: event.title,
-          seatZone: seatLabel,
-          originalPrice: item.tier.price,
-          ownerEmail: finalBuyerEmail,
-          ownerName: finalBuyerName,
-          ownerPhone: finalBuyerPhone,
-          status: 'VALID',
-          createdAt: timestamp,
-          updatedAt: timestamp,
-        });
-
-        seatCounter++;
-      }
+    if (issuedTickets.length === 0) {
+      setIsSubmitting(false);
+      setApiError('Không thể nhận thông tin vé từ hệ thống Ban Tổ Chức. Vui lòng thử lại.');
+      return;
     }
 
-    // 3. Display congratulation screen with tickets and QR codes
+    const orderId = backendOrderId || `ORD-${Date.now().toString(36).toUpperCase()}-${Math.floor(1000 + Math.random() * 9000)}`;
+
+    // 2. Display congratulation screen with tickets and QR codes
     setIsSubmitting(false);
     setOrderResult({
       orderId,
