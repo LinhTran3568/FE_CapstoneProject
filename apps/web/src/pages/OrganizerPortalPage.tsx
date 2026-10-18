@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { Copy, RefreshCw, Plus, RotateCcw, Check, Ticket, KeyRound, Activity, Sliders, AlertCircle } from 'lucide-react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { Copy, RefreshCw, Plus, RotateCcw, Check, Ticket, KeyRound, Activity, Sliders, AlertCircle, Minus } from 'lucide-react';
 import { useUIStore } from '../stores/uiStore';
 import {
   getOrganizerApiBase,
@@ -50,6 +50,91 @@ export const OrganizerPortalPage: React.FC = () => {
   const [challengeMode, setChallengeMode] = useState<'recaptcha' | 'turnstile' | 'sequential'>('recaptcha');
   const [isSavingPolicy, setIsSavingPolicy] = useState<boolean>(false);
   const [policyError, setPolicyError] = useState<string | null>(null);
+  const hasInitializedPolicy = useRef<boolean>(false);
+
+  // Interactive Dual-Thumb Range Bar Drag state
+  const barRef = useRef<HTMLDivElement>(null);
+  const [activeDrag, setActiveDrag] = useState<'allow' | 'block' | null>(null);
+
+  const handlePointerDown = (which: 'allow' | 'block') => (e: React.PointerEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setActiveDrag(which);
+    e.currentTarget.setPointerCapture(e.pointerId);
+  };
+
+  const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!activeDrag || !barRef.current) return;
+    const rect = barRef.current.getBoundingClientRect();
+    const ratio = (e.clientX - rect.left) / rect.width;
+    const val = Math.max(0.01, Math.min(0.99, Math.round(ratio * 100) / 100));
+
+    if (activeDrag === 'allow') {
+      const maxVal = Math.max(0.01, Math.round((blockThreshold - 0.02) * 100) / 100);
+      setAllowThreshold(Math.min(val, maxVal));
+    } else if (activeDrag === 'block') {
+      const minVal = Math.min(0.99, Math.round((allowThreshold + 0.02) * 100) / 100);
+      setBlockThreshold(Math.max(val, minVal));
+    }
+  };
+
+  const handlePointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (activeDrag) {
+      try {
+        e.currentTarget.releasePointerCapture(e.pointerId);
+      } catch {}
+      setActiveDrag(null);
+    }
+  };
+
+  const handleBarClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!barRef.current) return;
+    const rect = barRef.current.getBoundingClientRect();
+    const ratio = (e.clientX - rect.left) / rect.width;
+    const val = Math.max(0.01, Math.min(0.99, Math.round(ratio * 100) / 100));
+
+    const distToAllow = Math.abs(val - allowThreshold);
+    const distToBlock = Math.abs(val - blockThreshold);
+    if (distToAllow <= distToBlock) {
+      const maxVal = Math.max(0.01, Math.round((blockThreshold - 0.02) * 100) / 100);
+      setAllowThreshold(Math.min(val, maxVal));
+    } else {
+      const minVal = Math.min(0.99, Math.round((allowThreshold + 0.02) * 100) / 100);
+      setBlockThreshold(Math.max(val, minVal));
+    }
+  };
+
+  const stepAllow = (delta: number) => {
+    setAllowThreshold((prev) => {
+      const next = Math.round((prev + delta) * 100) / 100;
+      const minVal = 0.01;
+      const maxVal = Math.max(0.01, Math.round((blockThreshold - 0.01) * 100) / 100);
+      return Math.max(minVal, Math.min(maxVal, next));
+    });
+  };
+
+  const stepBlock = (delta: number) => {
+    setBlockThreshold((prev) => {
+      const next = Math.round((prev + delta) * 100) / 100;
+      const minVal = Math.min(0.99, Math.round((allowThreshold + 0.01) * 100) / 100);
+      const maxVal = 0.99;
+      return Math.max(minVal, Math.min(maxVal, next));
+    });
+  };
+
+  const handleAllowInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = parseFloat(e.target.value);
+    if (isNaN(val)) return;
+    const maxVal = Math.max(0.01, Math.round((blockThreshold - 0.01) * 100) / 100);
+    setAllowThreshold(Math.max(0.01, Math.min(maxVal, val)));
+  };
+
+  const handleBlockInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = parseFloat(e.target.value);
+    if (isNaN(val)) return;
+    const minVal = Math.min(0.99, Math.round((allowThreshold + 0.01) * 100) / 100);
+    setBlockThreshold(Math.max(minVal, Math.min(0.99, val)));
+  };
 
   const fetchInventory = useCallback(async () => {
     try {
@@ -77,16 +162,18 @@ export const OrganizerPortalPage: React.FC = () => {
     }
   }, []);
 
-  const fetchAnalytics = useCallback(async () => {
+  const fetchAnalytics = useCallback(async (forceSyncForm = false) => {
     try {
       const data = await organizerStoreApi.getAntiBotAnalytics();
       setAnalytics(data);
-      if (data.currentPolicy) {
+      // Chỉ khởi tạo giá trị form vào lần đầu tiên hoặc khi yêu cầu forceSyncForm (tránh ghi đè khi đang chỉnh sửa)
+      if (data.currentPolicy && (!hasInitializedPolicy.current || forceSyncForm)) {
         setAllowThreshold(data.currentPolicy.allowThreshold);
         setBlockThreshold(data.currentPolicy.blockThreshold);
         if (data.currentPolicy.challengeMode) {
           setChallengeMode(data.currentPolicy.challengeMode);
         }
+        hasInitializedPolicy.current = true;
       }
       setIsConnected(true);
     } catch {
@@ -96,12 +183,12 @@ export const OrganizerPortalPage: React.FC = () => {
 
   useEffect(() => {
     fetchInventory();
-    fetchAnalytics();
+    fetchAnalytics(false);
     const interval = setInterval(() => {
       if (activeTab === 'inventory') {
         fetchInventory();
       } else {
-        fetchAnalytics();
+        fetchAnalytics(false);
       }
     }, 3000);
     return () => clearInterval(interval);
@@ -245,9 +332,9 @@ export const OrganizerPortalPage: React.FC = () => {
 
           <div className="flex flex-wrap items-center gap-2">
             <button
-              onClick={activeTab === 'inventory' ? fetchInventory : fetchAnalytics}
+              onClick={activeTab === 'inventory' ? fetchInventory : () => fetchAnalytics(true)}
               disabled={isLoading}
-              className="px-3 py-2 bg-white/10 hover:bg-white/15 text-white text-xs font-medium rounded-xl transition-all flex items-center gap-1.5 cursor-pointer"
+              className="px-3 py-2 bg-white/10 hover:bg-white/10 text-white text-xs font-medium rounded-xl transition-all flex items-center gap-1.5 cursor-pointer"
             >
               <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin' : ''}`} />
               <span>Làm mới</span>
@@ -338,9 +425,33 @@ export const OrganizerPortalPage: React.FC = () => {
                 <div className="flex items-center gap-2">
                   <button
                     type="button"
+                    onClick={() => {
+                      setAllowThreshold(0.10);
+                      setBlockThreshold(0.75);
+                    }}
+                    disabled={isSavingPolicy}
+                    className="px-2.5 py-1.5 bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/20 text-xs font-medium rounded-xl transition-all cursor-pointer"
+                    title="Hạ ngưỡng cho phép xuống 0.10 để ép bật CAPTCHA trên web"
+                  >
+                    Bật CAPTCHA (0.10 / 0.75)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setAllowThreshold(0.10);
+                      setBlockThreshold(0.20);
+                    }}
+                    disabled={isSavingPolicy}
+                    className="px-2.5 py-1.5 bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 border border-rose-500/20 text-xs font-medium rounded-xl transition-all cursor-pointer"
+                    title="Hạ ngưỡng chặn xuống 0.20 để ép chặn 429 trên web"
+                  >
+                    Chặn Bot (0.10 / 0.20)
+                  </button>
+                  <button
+                    type="button"
                     onClick={handleResetPolicy}
                     disabled={isSavingPolicy}
-                    className="px-3 py-1.5 bg-white/5 hover:bg-white/10 text-slate-300 text-xs font-medium rounded-xl transition-all cursor-pointer"
+                    className="px-2.5 py-1.5 bg-white/5 hover:bg-white/10 text-slate-300 text-xs font-medium rounded-xl transition-all cursor-pointer"
                   >
                     Mặc định (0.35 / 0.75)
                   </button>
@@ -348,67 +459,162 @@ export const OrganizerPortalPage: React.FC = () => {
               </div>
 
               <form onSubmit={handleSavePolicy} className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div className="p-4 bg-[#080c14] border border-white/5 rounded-xl space-y-2">
-                    <label className="text-xs font-medium text-slate-300 block">
-                      Ngưỡng Cho phép (Allow Threshold)
-                    </label>
-                    <input
-                      type="number"
-                      step="0.05"
-                      min="0.01"
-                      max="0.95"
-                      value={allowThreshold}
-                      onChange={(e) => setAllowThreshold(parseFloat(e.target.value) || 0)}
-                      className="w-full px-3 py-2 bg-[#0d131d] border border-white/10 rounded-lg text-sm text-white font-mono focus:outline-none focus:border-[#FF5A36]"
-                    />
-                    <span className="text-[11px] text-slate-400 block">Điểm dưới mức này được thanh toán ngay</span>
-                  </div>
-
-                  <div className="p-4 bg-[#080c14] border border-white/5 rounded-xl space-y-2">
-                    <label className="text-xs font-medium text-slate-300 block">
-                      Ngưỡng Tạm dừng (Block Threshold)
-                    </label>
-                    <input
-                      type="number"
-                      step="0.05"
-                      min="0.05"
-                      max="0.99"
-                      value={blockThreshold}
-                      onChange={(e) => setBlockThreshold(parseFloat(e.target.value) || 0)}
-                      className="w-full px-3 py-2 bg-[#0d131d] border border-white/10 rounded-lg text-sm text-white font-mono focus:outline-none focus:border-[#FF5A36]"
-                    />
-                    <span className="text-[11px] text-slate-400 block">Điểm từ mức này trở lên sẽ tạm dừng giao dịch</span>
-                  </div>
-
-                  <div className="p-4 bg-[#080c14] border border-white/5 rounded-xl space-y-2">
-                    <label className="text-xs font-medium text-slate-300 block">
-                      Phương thức Thử thách (Tier 2)
-                    </label>
+                {/* Method selector for Tier 2 Challenge */}
+                <div className="flex flex-wrap items-center justify-between gap-3 p-3 bg-[#080c14] border border-white/5 rounded-xl">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-medium text-slate-300 whitespace-nowrap">
+                      Phương thức Thử thách (Tier 2):
+                    </span>
                     <select
                       value={challengeMode}
                       onChange={(e) => setChallengeMode(e.target.value as 'recaptcha' | 'turnstile' | 'sequential')}
-                      className="w-full px-3 py-2 bg-[#0d131d] border border-white/10 rounded-lg text-xs text-white font-medium focus:outline-none focus:border-[#FF5A36]"
+                      className="px-3 py-1.5 bg-[#0d131d] border border-white/10 rounded-lg text-xs text-white font-medium focus:outline-none focus:border-[#FF5A36]"
                     >
                       <option value="recaptcha">Google reCAPTCHA v2 (Hình ảnh)</option>
                       <option value="sequential">Tuần tự 2 bước (Turnstile → reCAPTCHA)</option>
                       <option value="turnstile">Cloudflare Turnstile (Tự động)</option>
                     </select>
-                    <span className="text-[11px] text-slate-400 block">Thử thách bật lên khi nghi vấn</span>
                   </div>
+                  <span className="text-[11px] text-slate-400">
+                    Kích hoạt khi điểm rủi ro rơi vào Vùng xám (giữa Ngưỡng Cho phép và Ngưỡng Tạm dừng)
+                  </span>
                 </div>
 
-                {/* Visual Distribution Range Bar */}
-                <div className="space-y-1.5 pt-1">
-                  <div className="flex justify-between text-[11px] font-mono text-slate-400">
-                    <span className="text-emerald-400">Cho phép (&lt; {allowThreshold})</span>
-                    <span className="text-amber-400">Xác minh ({allowThreshold} - {blockThreshold})</span>
-                    <span className="text-rose-400">Tạm dừng (&ge; {blockThreshold})</span>
+                {/* Interactive Multi-segment Dual-Thumb Range Bar with Direct Stepper Inputs */}
+                <div className="space-y-3 pt-1">
+                  <div className="flex justify-between items-center text-xs font-mono">
+                    <span className="text-emerald-400 font-medium flex items-center gap-1.5">
+                      <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block"></span>
+                      Cho phép (&lt; {allowThreshold.toFixed(2)})
+                    </span>
+                    <span className="text-amber-400 font-medium flex items-center gap-1.5">
+                      <span className="w-2 h-2 rounded-full bg-amber-500 inline-block"></span>
+                      Xác minh ({allowThreshold.toFixed(2)} - {blockThreshold.toFixed(2)})
+                    </span>
+                    <span className="text-rose-400 font-medium flex items-center gap-1.5">
+                      <span className="w-2 h-2 rounded-full bg-rose-500 inline-block"></span>
+                      Tạm dừng (&ge; {blockThreshold.toFixed(2)})
+                    </span>
                   </div>
-                  <div className="w-full h-2.5 bg-white/10 rounded-full overflow-hidden flex">
-                    <div style={{ width: `${Math.min(allowThreshold * 100, 100)}%` }} className="h-full bg-emerald-500" />
-                    <div style={{ width: `${Math.max((blockThreshold - allowThreshold) * 100, 0)}%` }} className="h-full bg-amber-500" />
-                    <div style={{ width: `${Math.max((1 - blockThreshold) * 100, 0)}%` }} className="h-full bg-rose-500" />
+
+                  {/* Dual Thumb Draggable Track with Embedded Steppers */}
+                  <div className="relative py-12 select-none touch-none">
+                    {/* The Multi-color background bar */}
+                    <div
+                      ref={barRef}
+                      onClick={handleBarClick}
+                      className="w-full h-4 bg-white/10 rounded-full overflow-hidden flex cursor-pointer relative shadow-inner"
+                      title="Bấm hoặc kéo các mốc tròn trên thanh để chỉnh ngưỡng trực tiếp"
+                    >
+                      <div
+                        style={{ width: `${Math.min(Math.max(allowThreshold * 100, 0), 100)}%` }}
+                        className="h-full bg-emerald-500 transition-[width] duration-75"
+                      />
+                      <div
+                        style={{ width: `${Math.min(Math.max((blockThreshold - allowThreshold) * 100, 0), 100)}%` }}
+                        className="h-full bg-amber-500 transition-[width] duration-75"
+                      />
+                      <div
+                        style={{ width: `${Math.min(Math.max((1 - blockThreshold) * 100, 0), 100)}%` }}
+                        className="h-full bg-rose-500 transition-[width] duration-75"
+                      />
+                    </div>
+
+                    {/* Drag Handle 1: Allow Threshold (Emerald Knob + Stepper Tooltip) */}
+                    <div
+                      style={{ left: `${Math.min(Math.max(allowThreshold * 100, 0), 100)}%` }}
+                      onPointerDown={handlePointerDown('allow')}
+                      onPointerMove={handlePointerMove}
+                      onPointerUp={handlePointerUp}
+                      onPointerCancel={handlePointerUp}
+                      className={`absolute top-1/2 -translate-y-1/2 -translate-x-1/2 z-20 w-6 h-6 rounded-full bg-[#0d131d] border-2 border-emerald-400 shadow-xl shadow-black/80 flex items-center justify-center cursor-ew-resize hover:scale-110 transition-transform ${
+                        activeDrag === 'allow' ? 'scale-115 ring-4 ring-emerald-500/40' : ''
+                      }`}
+                      title={`Kéo để đổi Ngưỡng Cho phép (${allowThreshold.toFixed(2)})`}
+                    >
+                      <div className="w-2 h-2 rounded-full bg-emerald-400" />
+                      
+                      {/* Floating Stepper Tooltip Above Handle 1 */}
+                      <div
+                        onPointerDown={(e) => e.stopPropagation()}
+                        onClick={(e) => e.stopPropagation()}
+                        className="absolute -top-11 left-1/2 -translate-x-1/2 flex items-center gap-0.5 px-1.5 py-0.5 rounded-lg bg-[#0d131d] border border-emerald-500/50 shadow-2xl shadow-black z-30 select-none backdrop-blur-md"
+                      >
+                        <button
+                          type="button"
+                          onClick={() => stepAllow(-0.01)}
+                          className="w-5 h-5 flex items-center justify-center rounded hover:bg-emerald-500/20 text-emerald-400 transition-colors cursor-pointer"
+                          title="Giảm 0.01"
+                        >
+                          <Minus className="w-3 h-3" />
+                        </button>
+                        <input
+                          type="number"
+                          step="0.01"
+                          min="0.01"
+                          max={blockThreshold - 0.01}
+                          value={allowThreshold}
+                          onChange={handleAllowInputChange}
+                          className="w-12 bg-transparent text-center font-mono text-xs font-bold text-emerald-300 focus:outline-none focus:bg-emerald-950/40 rounded py-0.5"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => stepAllow(0.01)}
+                          className="w-5 h-5 flex items-center justify-center rounded hover:bg-emerald-500/20 text-emerald-400 transition-colors cursor-pointer"
+                          title="Tăng 0.01"
+                        >
+                          <Plus className="w-3 h-3" />
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Drag Handle 2: Block Threshold (Rose Knob + Stepper Tooltip) */}
+                    <div
+                      style={{ left: `${Math.min(Math.max(blockThreshold * 100, 0), 100)}%` }}
+                      onPointerDown={handlePointerDown('block')}
+                      onPointerMove={handlePointerMove}
+                      onPointerUp={handlePointerUp}
+                      onPointerCancel={handlePointerUp}
+                      className={`absolute top-1/2 -translate-y-1/2 -translate-x-1/2 z-20 w-6 h-6 rounded-full bg-[#0d131d] border-2 border-rose-400 shadow-xl shadow-black/80 flex items-center justify-center cursor-ew-resize hover:scale-110 transition-transform ${
+                        activeDrag === 'block' ? 'scale-115 ring-4 ring-rose-500/40' : ''
+                      }`}
+                      title={`Kéo để đổi Ngưỡng Tạm dừng (${blockThreshold.toFixed(2)})`}
+                    >
+                      <div className="w-2 h-2 rounded-full bg-rose-400" />
+
+                      {/* Floating Stepper Tooltip Below Handle 2 */}
+                      <div
+                        onPointerDown={(e) => e.stopPropagation()}
+                        onClick={(e) => e.stopPropagation()}
+                        className="absolute -bottom-11 left-1/2 -translate-x-1/2 flex items-center gap-0.5 px-1.5 py-0.5 rounded-lg bg-[#0d131d] border border-rose-500/50 shadow-2xl shadow-black z-30 select-none backdrop-blur-md"
+                      >
+                        <button
+                          type="button"
+                          onClick={() => stepBlock(-0.01)}
+                          className="w-5 h-5 flex items-center justify-center rounded hover:bg-rose-500/20 text-rose-400 transition-colors cursor-pointer"
+                          title="Giảm 0.01"
+                        >
+                          <Minus className="w-3 h-3" />
+                        </button>
+                        <input
+                          type="number"
+                          step="0.01"
+                          min={allowThreshold + 0.01}
+                          max="0.99"
+                          value={blockThreshold}
+                          onChange={handleBlockInputChange}
+                          className="w-12 bg-transparent text-center font-mono text-xs font-bold text-rose-300 focus:outline-none focus:bg-rose-950/40 rounded py-0.5"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => stepBlock(0.01)}
+                          className="w-5 h-5 flex items-center justify-center rounded hover:bg-rose-500/20 text-rose-400 transition-colors cursor-pointer"
+                          title="Tăng 0.01"
+                        >
+                          <Plus className="w-3 h-3" />
+                        </button>
+                      </div>
+                    </div>
                   </div>
                 </div>
 
