@@ -25,6 +25,28 @@ export interface OrganizerBackendTier {
   createdAt?: string;
 }
 
+/**
+ * Tín hiệu do Client Telemetry SDK đo trong trình duyệt (Spec 08 + SCRUM-247).
+ * Tên trường giữ snake_case đúng hợp đồng với MockOrganizer.API.
+ */
+export interface ClientTelemetry {
+  is_webdriver: 0 | 1;
+  /** Bỏ trường khi có ít hơn 3 lần bấm. */
+  action_interval_std_dev?: number;
+  device_fingerprint: string;
+  nonce: string;
+  /** Epoch ms đã chỉnh theo giờ server. */
+  client_timestamp: number;
+}
+
+/** Session token cấp khi mở trang chọn vé, dùng đo time_to_checkout (BE-PIPE-8.2.1). */
+export interface SessionTokenResponse {
+  sessionToken: string;
+  tierId: string;
+  issuedAtUtc: string;
+  expiresInSeconds: number;
+}
+
 export interface OrganizerCheckoutRequest {
   tierId: string;
   quantity: number;
@@ -32,6 +54,7 @@ export interface OrganizerCheckoutRequest {
   buyerName?: string;
   buyerPhone?: string;
   sessionToken?: string;
+  telemetry?: ClientTelemetry;
 }
 
 export interface OrganizerCheckoutResponse {
@@ -82,6 +105,20 @@ export const organizerStoreApi = {
   },
 
   /**
+   * Lấy session token cho một hạng vé khi mở trang chọn vé (BE-PIPE-8.2.1)
+   */
+  getCheckoutSession: async (tierId: string): Promise<SessionTokenResponse> => {
+    const base = getOrganizerApiBase();
+    const res = await fetch(`${base}/orders/session?tierId=${encodeURIComponent(tierId)}`, {
+      headers: { Accept: 'application/json' },
+    });
+    if (!res.ok) {
+      throw new Error(`Không lấy được phiên đặt vé cho hạng vé ${tierId} (HTTP ${res.status})`);
+    }
+    return res.json();
+  },
+
+  /**
    * Gọi checkout trừ kho nguyên tử từ Ban Tổ Chức (BE-MOCK-7.1.2)
    */
   checkout: async (request: OrganizerCheckoutRequest): Promise<OrganizerCheckoutResponse> => {
@@ -96,7 +133,14 @@ export const organizerStoreApi = {
       let errMsg = `Lỗi đặt vé từ Ban Tổ Chức (HTTP ${res.status})`;
       try {
         const errorJson = await res.json();
-        if (errorJson.message) {
+        // Anti-Bot (US-8.1 / US-8.4): 409 có `code` là bị chặn phát lại, 403 cần xác minh, 429 bị chặn
+        if (res.status === 409 && errorJson.code) {
+          errMsg = 'Phiên đặt vé đã hết hiệu lực. Vui lòng tải lại trang rồi đặt vé lại.';
+        } else if (res.status === 403 && errorJson.challengeRequired) {
+          errMsg = 'Cần xác minh thêm trước khi đặt vé. Vui lòng thử lại sau ít phút.';
+        } else if (res.status === 429) {
+          errMsg = 'Giao dịch đang bị tạm chặn vì có thao tác bất thường. Vui lòng thử lại sau.';
+        } else if (errorJson.message) {
           if (res.status === 409) {
             errMsg = `Hạng vé đã hết hoặc không đủ tồn kho (Còn lại: ${errorJson.available ?? 0} vé)`;
           } else if (res.status === 404) {

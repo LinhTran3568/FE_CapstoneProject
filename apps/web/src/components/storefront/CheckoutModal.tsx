@@ -21,6 +21,8 @@ export interface CheckoutModalProps {
   event: StorefrontEvent;
   selectedItems: SelectedTierItem[];
   grandTotal: number;
+  /** Session token theo tierId, lấy khi mở trang chọn vé (US-8.1). */
+  sessionTokens: Record<string, SessionTokenResponse>;
 }
 
 interface OrderResultData {
@@ -34,7 +36,8 @@ interface OrderResultData {
   createdAt: string;
 }
 
-import { organizerStoreApi, mockTicketsApi } from '@ticketshield/api-client';
+import { organizerStoreApi, mockTicketsApi, SessionTokenResponse } from '@ticketshield/api-client';
+import { antiBotSdk } from '../../lib/anti-bot-sdk';
 
 export const CheckoutModal: React.FC<CheckoutModalProps> = ({
   isOpen,
@@ -42,6 +45,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
   event,
   selectedItems,
   grandTotal,
+  sessionTokens,
 }) => {
   // Form states - completely empty by default, no hardcoded accounts
   const [buyerName, setBuyerName] = useState('');
@@ -123,12 +127,16 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
     // 1. Mua vé có sẵn: Gọi checkout kèm thông tin người mua để hệ thống Backend cấp phát vé có sẵn từ kho vé
     for (const item of selectedItems) {
       try {
+        // US-8.1: mỗi hạng vé một request, mỗi request một nonce mới và token của đúng hạng vé đó
+        const telemetry = await antiBotSdk.collect();
         const checkoutRes = await organizerStoreApi.checkout({
           tierId: item.tier.id,
           quantity: item.quantity,
           buyerEmail: finalBuyerEmail,
           buyerName: finalBuyerName,
           buyerPhone: finalBuyerPhone,
+          sessionToken: sessionTokens[item.tier.id]?.sessionToken,
+          telemetry,
         });
 
         if (!backendOrderId && checkoutRes.orderId) {
