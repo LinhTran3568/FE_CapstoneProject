@@ -5,6 +5,7 @@ import {
   AlertCircle,
   Calendar,
   Check,
+  Clock,
   Copy,
   Download,
   Loader2,
@@ -24,6 +25,10 @@ import { useUIStore } from '../stores/uiStore';
 import { formatEventDateTime, formatVND } from '../utils/formatters';
 import { SeatAdjacencyBadge } from '../components/ui/SeatAdjacencyBadge';
 import { DisputeSubmissionModal } from '../components/dispute/DisputeSubmissionModal';
+import {
+  DisputeProgressDrawer,
+  type DisputeProgressTarget,
+} from '../components/dispute/DisputeProgressDrawer';
 
 
 const entryPayload = (ticket: PurchasedTicketDto) =>
@@ -40,7 +45,7 @@ const canShowEntryQr = (ticket: PurchasedTicketDto) => {
   return Boolean(ticket.qrCodeImageUrl || ticket.qrCodeData || ticket.ticketPassCode);
 };
 
-const getDisputedBadge = (ticket: PurchasedTicketDto) => {
+const getDisputeStatusBadge = (ticket: PurchasedTicketDto) => {
   const status = (ticket.status || '').trim().toUpperCase();
   if (status === 'DISPUTED') {
     return {
@@ -49,13 +54,21 @@ const getDisputedBadge = (ticket: PurchasedTicketDto) => {
       dotClass: 'bg-rose-400',
     };
   }
+  if (status === 'REFUNDED') {
+    return {
+      label: 'ĐÃ HOÀN TIỀN',
+      classes: 'bg-black/80 text-indigo-300 border border-indigo-400/50 backdrop-blur-md shadow-sm',
+      dotClass: 'bg-indigo-400',
+    };
+  }
   return null;
 };
 
 export const MyTicketsPage: React.FC = () => {
-  const { data: tickets = [], isPending, isError, error, refetch, isFetching } = useMyTickets();
+  const { data: tickets = [], isPending, isError, error, refetch, isFetching } = useMyTickets({ includeDisputeHistory: true });
   const [qrTicket, setQrTicket] = useState<PurchasedTicketDto | null>(null);
   const [disputeTicket, setDisputeTicket] = useState<PurchasedTicketDto | null>(null);
+  const [progressTarget, setProgressTarget] = useState<DisputeProgressTarget | null>(null);
   const [filter, setFilter] = useState<'all' | 'ready'>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const showToast = useUIStore((state) => state.showToast);
@@ -331,6 +344,14 @@ export const MyTicketsPage: React.FC = () => {
                 ticket={ticket}
                 onViewQr={() => setQrTicket(ticket)}
                 onOpenDispute={() => setDisputeTicket(ticket)}
+                onOpenProgress={() => {
+                  if (!ticket.disputeId) return;
+                  setProgressTarget({
+                    disputeId: ticket.disputeId,
+                    eventName: ticket.eventName,
+                    ticketCode: ticket.ticketPassCode,
+                  });
+                }}
               />
             ))}
           </div>
@@ -345,6 +366,11 @@ export const MyTicketsPage: React.FC = () => {
       {/* Dispute Submission Modal */}
       {disputeTicket && (
         <DisputeSubmissionModal ticket={disputeTicket} onClose={() => setDisputeTicket(null)} />
+      )}
+
+      {/* Dispute Progress Drawer */}
+      {progressTarget && (
+        <DisputeProgressDrawer target={progressTarget} onClose={() => setProgressTarget(null)} />
       )}
     </div>
   );
@@ -413,14 +439,17 @@ interface OfficialTicketPassCardProps {
   ticket: PurchasedTicketDto;
   onViewQr: () => void;
   onOpenDispute: () => void;
+  onOpenProgress: () => void;
 }
 
-const OfficialTicketPassCard: React.FC<OfficialTicketPassCardProps> = ({ ticket, onViewQr, onOpenDispute }) => {
+const OfficialTicketPassCard: React.FC<OfficialTicketPassCardProps> = ({ ticket, onViewQr, onOpenDispute, onOpenProgress }) => {
   const showToast = useUIStore((state) => state.showToast);
   const [copied, setCopied] = useState(false);
-  const disputeBadge = getDisputedBadge(ticket);
+  const disputeBadge = getDisputeStatusBadge(ticket);
   const zoneStyle = getZoneStyle(ticket.seatZone || ticket.tierName || '');
   const hasQr = canShowEntryQr(ticket);
+  const isRefunded = (ticket.status || '').trim().toUpperCase() === 'REFUNDED';
+  const hasDispute = Boolean(ticket.disputeId);
   const code = ticket.ticketPassCode || (hasQr ? entryPayload(ticket) : '');
   const backdropUrl = getEventBackdrop(ticket.eventName);
   const formattedDate = ticket.eventStartAt ? formatEventDateTime(ticket.eventStartAt) : 'Date & Time Announced by Organizer';
@@ -613,7 +642,7 @@ const OfficialTicketPassCard: React.FC<OfficialTicketPassCardProps> = ({ ticket,
             className="px-1.5 py-0.5 rounded bg-slate-300/80 border border-slate-400/50 flex items-center gap-1 cursor-pointer hover:bg-slate-300 transition-colors min-w-0 shrink"
           >
             <span className="font-mono text-[9.5px] sm:text-[10.5px] font-bold tracking-tight text-slate-800 truncate max-w-[130px] sm:max-w-[150px]">
-              {code || 'ISSUING...'}
+              {code || (isRefunded ? '—' : 'ISSUING...')}
             </span>
             {code ? (
               copied ? (
@@ -664,7 +693,7 @@ const OfficialTicketPassCard: React.FC<OfficialTicketPassCardProps> = ({ ticket,
               <span>{isCombo ? `VIEW QRS (${totalTicketsCount})` : 'VIEW ENTRY QR'}</span>
               <span className="transition-transform duration-150 group-hover/btn:translate-x-0.5">→</span>
             </button>
-          ) : (
+          ) : isRefunded ? null : (
             <button
               type="button"
               disabled
@@ -675,10 +704,22 @@ const OfficialTicketPassCard: React.FC<OfficialTicketPassCardProps> = ({ ticket,
             </button>
           )}
 
-          {ticket.status === 'DISPUTED' ? (
-            <div className="w-full py-1 px-1.5 bg-rose-500/15 border border-rose-500/40 text-rose-700 font-bold text-[9.5px] sm:text-[10px] tracking-tight rounded-lg flex items-center justify-center gap-1 text-center select-none">
-              <ShieldAlert className="w-3 h-3 text-rose-600 shrink-0 animate-pulse" />
-              <span>DISPUTE OPEN</span>
+          {hasDispute ? (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onOpenProgress();
+              }}
+              className="w-full py-1.5 px-1.5 bg-slate-800 hover:bg-slate-900 border border-slate-900 text-white font-bold text-[9.5px] sm:text-[10px] tracking-tight rounded-lg flex items-center justify-center gap-1 transition-colors cursor-pointer"
+            >
+              <Clock className="w-3 h-3 shrink-0" />
+              <span>XEM TIẾN ĐỘ KHIẾU NẠI</span>
+            </button>
+          ) : ticket.status === 'DISPUTED' ? (
+            <div className="w-full py-1 px-1.5 bg-amber-100 border border-amber-500/50 text-amber-800 font-bold text-[9.5px] sm:text-[10px] tracking-tight rounded-lg flex items-center justify-center gap-1 text-center select-none">
+              <ShieldAlert className="w-3 h-3 text-amber-700 shrink-0" />
+              <span>Người mua đang khiếu nại</span>
             </div>
           ) : (
             ticket.escrowId &&
