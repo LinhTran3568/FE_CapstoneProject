@@ -38,10 +38,6 @@ import { SellerBankAccountModal } from '../components/profile/SellerBankAccountM
 import { PayoutSuccessModal } from '../components/seller/PayoutSuccessModal';
 import { RevenueTab } from '../components/seller/RevenueTab';
 import { ConfirmModal } from '../components/ui/ConfirmModal';
-import {
-  DisputeProgressDrawer,
-  type DisputeProgressTarget,
-} from '../components/dispute/DisputeProgressDrawer';
 import { formatEventDateTime, formatVND } from '../utils/formatters';
 import { buildPrivateShareLink, copyToClipboard } from '../utils/shareLink';
 
@@ -252,7 +248,6 @@ export const MyListingsPage: React.FC = () => {
 
   const [isAddBankModalOpen, setIsAddBankModalOpen] = useState(false);
   const [payoutSuccessData, setPayoutSuccessData] = useState<SignalRPayoutPayload | null>(null);
-  const [progressTarget, setProgressTarget] = useState<DisputeProgressTarget | null>(null);
 
   // SignalR Realtime Payout & Payment Listener (NOTIF-SETTLE-5.4.3a & FE-SETTLE-5.4.5)
   useSellerPayoutSignalR({
@@ -709,24 +704,6 @@ export const MyListingsPage: React.FC = () => {
                                 </span>
                               </div>
 
-                              <div className="flex items-center gap-2 shrink-0">
-                                {listing.disputeId && (
-                                  <button
-                                    type="button"
-                                    onClick={(event) => {
-                                      event.stopPropagation();
-                                      setProgressTarget({
-                                        disputeId: listing.disputeId as string,
-                                        eventName: listing.eventName,
-                                        ticketCode: listing.originalTicketCode,
-                                      });
-                                    }}
-                                    className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-rose-500/20 hover:bg-rose-500/30 border border-rose-500/40 text-rose-200 text-[11px] font-mono font-bold transition-colors shrink-0 cursor-pointer"
-                                  >
-                                    <Clock className="w-3.5 h-3.5" />
-                                    <span>Xem tiến độ</span>
-                                  </button>
-                                )}
                               <div className="flex items-center gap-1 px-2 py-0.5 rounded-lg bg-rose-500/20 text-rose-300 group-hover:bg-rose-500/30 text-[11px] font-mono font-bold transition-colors shrink-0">
                                 <span>{expandedBreakdownId === listing.listingId ? 'Đóng' : 'Chi tiết'}</span>
                                 <ChevronDown
@@ -734,7 +711,6 @@ export const MyListingsPage: React.FC = () => {
                                     expandedBreakdownId === listing.listingId ? 'rotate-180' : ''
                                   }`}
                                 />
-                              </div>
                               </div>
                             </div>
                           ) : listing.escrowStatus === 'Disputed' ? (
@@ -755,24 +731,6 @@ export const MyListingsPage: React.FC = () => {
                                 </span>
                               </div>
 
-                              <div className="flex items-center gap-2 shrink-0">
-                                {listing.disputeId && (
-                                  <button
-                                    type="button"
-                                    onClick={(event) => {
-                                      event.stopPropagation();
-                                      setProgressTarget({
-                                        disputeId: listing.disputeId as string,
-                                        eventName: listing.eventName,
-                                        ticketCode: listing.originalTicketCode,
-                                      });
-                                    }}
-                                    className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-amber-200 text-[11px] font-mono font-bold transition-colors shrink-0 cursor-pointer"
-                                  >
-                                    <Clock className="w-3.5 h-3.5" />
-                                    <span>Xem tiến độ</span>
-                                  </button>
-                                )}
                               <div className="flex items-center gap-1 px-2 py-0.5 rounded-lg bg-amber-500/20 text-amber-300 group-hover:bg-amber-500/30 text-[11px] font-mono font-bold transition-colors shrink-0">
                                 <span>{expandedBreakdownId === listing.listingId ? 'Đóng' : 'Chi tiết'}</span>
                                 <ChevronDown
@@ -781,37 +739,6 @@ export const MyListingsPage: React.FC = () => {
                                   }`}
                                 />
                               </div>
-                              </div>
-                            </div>
-                          ) : listing.disputeId ? (
-                            <div className="p-2 sm:p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-between gap-3 text-xs text-amber-200">
-                              <div className="flex items-center gap-2 min-w-0">
-                                <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0" />
-                                <span>
-                                  {listing.escrowStatus === 'Disputed' ? (
-                                    <>
-                                      <strong className="text-amber-300 font-semibold">Người mua đang khiếu nại.</strong>{' '}
-                                      Tiền chưa chuyển cho bạn, đang chờ xử lý.
-                                    </>
-                                  ) : (
-                                    <strong className="text-amber-300 font-semibold">Khiếu nại đã có kết quả.</strong>
-                                  )}
-                                </span>
-                              </div>
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  setProgressTarget({
-                                    disputeId: listing.disputeId as string,
-                                    eventName: listing.eventName,
-                                    ticketCode: listing.originalTicketCode,
-                                  })
-                                }
-                                className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-amber-200 text-[11px] font-mono font-bold transition-colors shrink-0 cursor-pointer"
-                              >
-                                <Clock className="w-3.5 h-3.5" />
-                                <span>Xem tiến độ</span>
-                              </button>
                             </div>
                           ) : listing.inSettlementBuffer ? (
                             <SettlementCountdownBanner
@@ -1011,11 +938,6 @@ export const MyListingsPage: React.FC = () => {
         </div>
         </div>
       </div>
-
-      {/* Dispute Progress Drawer */}
-      {progressTarget && (
-        <DisputeProgressDrawer target={progressTarget} onClose={() => setProgressTarget(null)} />
-      )}
 
       {/* Cancel Confirmation Modal */}
       <ConfirmModal

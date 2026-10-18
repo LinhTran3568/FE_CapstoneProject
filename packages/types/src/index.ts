@@ -221,8 +221,6 @@ export interface SellerListingDto {
   payoutBankCode?: string | null;
   payoutAccountNumber?: string | null;
   bankTransactionReference?: string | null;
-  /** Dispute filed on the latest sale of this listing; opens the dispute progress drawer */
-  disputeId?: string | null;
   createdAt: string;
   bundleId?: string | null;
   bundleTotalTickets?: number | null;
@@ -284,8 +282,6 @@ export interface PurchasedTicketDto {
   qrCodeData: string;
   qrCodeImageUrl: string;
   purchasedAt: string;
-  /** Only set for the buyer who paid; empty for a recipient who got the ticket by email */
-  disputeId?: string | null;
 
   bundleId?: string | null;
   bundleTotalTickets?: number | null;

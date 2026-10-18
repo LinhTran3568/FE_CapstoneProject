@@ -21,7 +21,6 @@ import { myPurchasedTicketsQueryKey } from '../../hooks/useMyTickets';
 import { useMyBankAccounts } from '../../hooks/useMyBankAccounts';
 import { SellerBankAccountModal } from '../profile/SellerBankAccountModal';
 import { useUIStore } from '../../stores/uiStore';
-import { DISPUTE_REASONS } from './disputeReasons';
 
 interface DisputeSubmissionModalProps {
   ticket: PurchasedTicketDto;
@@ -336,7 +335,23 @@ export const DisputeSubmissionModal: React.FC<DisputeSubmissionModalProps> = ({
               Lý do khiếu nại <span className="text-rose-400">*</span>
             </label>
             <div className={`grid grid-cols-1 gap-1.5 ${createdDispute ? 'pointer-events-none opacity-60' : ''}`}>
-              {DISPUTE_REASONS.map((item) => (
+              {[
+                {
+                  code: DisputeReasonCode.TicketInvalid,
+                  title: 'Vé không hợp lệ / Không quét được mã',
+                  desc: 'Mã QR bị từ chối hoặc máy quét tại cổng báo không đúng dữ liệu.',
+                },
+                {
+                  code: DisputeReasonCode.DuplicateEntry,
+                  title: 'Vé trùng lặp / Đã có người quét trước',
+                  desc: 'Vé đã được người khác sử dụng để vào cổng trước bạn.',
+                },
+                {
+                  code: DisputeReasonCode.FakeTicket,
+                  title: 'Vé giả / Sai thông tin niêm yết',
+                  desc: 'Khán đài, vị trí ghế hoặc chi tiết sự kiện không đúng cam kết.',
+                },
+              ].map((item) => (
                 <div
                   key={item.code}
                   onClick={() => setReasonCode(item.code)}
