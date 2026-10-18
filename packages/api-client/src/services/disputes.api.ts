@@ -90,6 +90,44 @@ export interface DisputeRecommendationResponse {
   scans: GateScanDto[];
 }
 
+/** One step of the dispute timeline; `step` is SUBMITTED, GATE_LOG_CHECK or RESOLVED */
+export interface DisputeTimelineStepDto {
+  step: string;
+  /** DONE, CURRENT, PENDING or SKIPPED */
+  state: string;
+  at?: string | null;
+}
+
+export interface DisputeMoneyDto {
+  /** REFUND (buyer) or PAYOUT (seller) */
+  kind: string;
+  amount: number;
+  status: string;
+  processedAt?: string | null;
+}
+
+/**
+ * GET /api/v1/disputes/my-disputes/{id} → backend `MyDisputeProgressDto`.
+ * Only holds what the buyer or seller may see.
+ */
+export interface MyDisputeProgressDto {
+  disputeId: string;
+  disputeCode: string;
+  /** BUYER or SELLER */
+  viewerRole: string;
+  reasonCode: DisputeReasonCode | number;
+  /** OPEN, RESOLVED or REJECTED */
+  status: string;
+  createdAt: string;
+  /** Only sent to the buyer */
+  description?: string | null;
+  timeline: DisputeTimelineStepDto[];
+  /** REFUND_BUYER or RELEASE_SELLER once decided */
+  outcome?: string | null;
+  resolutionMessage?: string | null;
+  money?: DisputeMoneyDto | null;
+}
+
 export const disputesApi = {
   /**
    * Submit a dispute for an Escrow transaction
@@ -151,6 +189,13 @@ export const disputesApi = {
       method: 'POST',
       body: JSON.stringify(body),
     });
+  },
+
+  /**
+   * Progress of one dispute for the buyer or the seller of that sale
+   */
+  getMyDisputeProgress: async (disputeId: string): Promise<MyDisputeProgressDto> => {
+    return await httpClient<MyDisputeProgressDto>(`/disputes/my-disputes/${disputeId}`);
   },
 
   /**

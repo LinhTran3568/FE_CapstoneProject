@@ -8,7 +8,8 @@ import {
   StorefrontEvent,
   StorefrontTier,
 } from '../../data/storefrontCatalog';
-import { organizerStoreApi, OrganizerBackendTier } from '@ticketshield/api-client';
+import { organizerStoreApi, OrganizerBackendTier, SessionTokenResponse } from '@ticketshield/api-client';
+import { antiBotSdk } from '../../lib/anti-bot-sdk';
 
 export type BackendTier = OrganizerBackendTier;
 
@@ -44,6 +45,34 @@ export const OGTicketStorePage: React.FC = () => {
   const [isStageModalOpen, setIsStageModalOpen] = useState<boolean>(false);
   const [isCheckoutModalOpen, setIsCheckoutModalOpen] = useState<boolean>(false);
   const [alertNotice, setAlertNotice] = useState<string | null>(null);
+  const [sessionTokens, setSessionTokens] = useState<Record<string, SessionTokenResponse>>({});
+
+  // US-8.1: Client Telemetry SDK đo nhịp bấm ngay từ lúc mở trang chọn vé
+  useEffect(() => {
+    antiBotSdk.start();
+    return () => antiBotSdk.stop();
+  }, []);
+
+  // US-8.1: Lấy session token cho từng hạng vé của BTC khi mở trang (đo time_to_checkout).
+  // Token đã có thì giữ nguyên, bấm "làm mới" không đặt lại mốc thời gian.
+  const fetchCheckoutSessions = useCallback(async (backendTiers: OrganizerBackendTier[]) => {
+    const results = await Promise.allSettled(
+      backendTiers.map((t) => organizerStoreApi.getCheckoutSession(t.id))
+    );
+
+    const fetched: Record<string, SessionTokenResponse> = {};
+    results.forEach((result, i) => {
+      if (result.status === 'fulfilled') {
+        fetched[backendTiers[i].id] = result.value;
+      }
+    });
+
+    const first = Object.values(fetched)[0];
+    if (first) {
+      antiBotSdk.setServerClock(first.issuedAtUtc);
+    }
+    setSessionTokens((prev) => ({ ...fetched, ...prev }));
+  }, []);
 
   // 3. Connect to Ban Tổ Chức API (GET /api/organizer/events/{id}/tiers)
   const fetchBackendTiers = useCallback(async () => {
@@ -112,6 +141,7 @@ export const OGTicketStorePage: React.FC = () => {
           return updated;
         });
 
+        void fetchCheckoutSessions(liveTiers);
         setBackendStatus('connected');
         setLastSyncedTime(new Date().toLocaleTimeString('vi-VN'));
         setAlertNotice('Đã cập nhật tình trạng vé mới nhất từ Ban Tổ Chức');
@@ -124,7 +154,7 @@ export const OGTicketStorePage: React.FC = () => {
     } finally {
       setIsBackendLoading(false);
     }
-  }, [event.id]);
+  }, [event.id, fetchCheckoutSessions]);
 
   useEffect(() => {
     fetchBackendTiers();
@@ -760,6 +790,7 @@ export const OGTicketStorePage: React.FC = () => {
         event={event}
         selectedItems={selectedItems}
         grandTotal={grandTotal}
+        sessionTokens={sessionTokens}
       />
     </StorefrontLayout>
   );

@@ -21,6 +21,8 @@ export interface CheckoutModalProps {
   event: StorefrontEvent;
   selectedItems: SelectedTierItem[];
   grandTotal: number;
+  /** Session token theo tierId, lấy khi mở trang chọn vé (US-8.1). */
+  sessionTokens: Record<string, SessionTokenResponse>;
 }
 
 interface OrderResultData {
@@ -34,7 +36,8 @@ interface OrderResultData {
   createdAt: string;
 }
 
-import { organizerStoreApi } from '@ticketshield/api-client';
+import { organizerStoreApi, mockTicketsApi, SessionTokenResponse } from '@ticketshield/api-client';
+import { antiBotSdk } from '../../lib/anti-bot-sdk';
 
 export const CheckoutModal: React.FC<CheckoutModalProps> = ({
   isOpen,
@@ -42,6 +45,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
   event,
   selectedItems,
   grandTotal,
+  sessionTokens,
 }) => {
   // Form states - completely empty by default, no hardcoded accounts
   const [buyerName, setBuyerName] = useState('');
@@ -111,7 +115,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
     return Object.keys(errs).length === 0;
   };
 
-  // Handle Checkout & Ticket Issuance
+  // Handle Checkout & Claim Existing Tickets from Ban Tổ Chức
   const handleSubmitCheckout = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -130,27 +134,28 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
     let backendOrderId: string | null = null;
     const issuedTickets: MockTicketDto[] = [];
 
-    // 1. Call Backend Checkout for each selected tier (Atomic inventory lock & ticket issuance)
+    // 1. Mua vé sơ cấp: Gọi checkout kèm thông tin người mua, Anti-Bot telemetry và session token
     for (const item of selectedItems) {
       try {
+        // US-8.1: mỗi hạng vé một request, mỗi request một nonce mới và token của đúng hạng vé đó
+        const telemetry = await antiBotSdk.collect();
+        const effectiveToken = sessionTokens?.[item.tier.id]?.sessionToken || sessionToken || undefined;
+
         const checkoutRes = await organizerStoreApi.checkout({
           tierId: item.tier.id,
           quantity: item.quantity,
           buyerEmail: finalBuyerEmail,
           buyerName: finalBuyerName,
           buyerPhone: finalBuyerPhone,
-          sessionToken: sessionToken || undefined,
-          deviceFingerprint: typeof window !== 'undefined' ? (window.navigator?.userAgent || 'browser') : undefined,
-          telemetry: {
-            isWebdriver: typeof window !== 'undefined' && Boolean((window.navigator as unknown as { webdriver?: boolean }).webdriver) ? 1 : 0,
-          },
+          sessionToken: effectiveToken,
+          telemetry,
         });
 
         if (!backendOrderId && checkoutRes.orderId) {
           backendOrderId = checkoutRes.orderId;
         }
 
-        // Nhận danh sách vé chính thức do Backend cấp phát trực tiếp
+        // Nhận danh sách vé chính thức do Backend cấp phát trực tiếp trong transaction
         if (checkoutRes.tickets && checkoutRes.tickets.length > 0) {
           for (const t of checkoutRes.tickets) {
             issuedTickets.push({
@@ -176,18 +181,16 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
       }
     }
 
-    if (issuedTickets.length === 0) {
+    if (!backendOrderId || issuedTickets.length === 0) {
       setIsSubmitting(false);
-      setApiError('Không thể nhận thông tin vé từ hệ thống Ban Tổ Chức. Vui lòng thử lại.');
+      setApiError('Không nhận được vé chính thức từ hệ thống Ban Tổ Chức. Vui lòng thử lại sau.');
       return;
     }
 
-    const orderId = backendOrderId || `ORD-${Date.now().toString(36).toUpperCase()}-${Math.floor(1000 + Math.random() * 9000)}`;
-
-    // 2. Display congratulation screen with tickets and QR codes
+    // 2. Hiển thị màn hình xác nhận với danh sách vé chính thức đã nhận từ Backend
     setIsSubmitting(false);
     setOrderResult({
-      orderId,
+      orderId: backendOrderId,
       eventName: event.title,
       buyerName: finalBuyerName,
       buyerEmail: finalBuyerEmail,
