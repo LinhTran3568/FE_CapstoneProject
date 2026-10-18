@@ -38,6 +38,7 @@ interface OrderResultData {
 
 import { organizerStoreApi, mockTicketsApi, SessionTokenResponse } from '@ticketshield/api-client';
 import { antiBotSdk } from '../../lib/anti-bot-sdk';
+import { ChallengeModal } from './ChallengeModal';
 
 export const CheckoutModal: React.FC<CheckoutModalProps> = ({
   isOpen,
@@ -69,6 +70,10 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
   const [orderResult, setOrderResult] = useState<OrderResultData | null>(null);
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
   const [sessionToken, setSessionToken] = useState<string | null>(null);
+
+  // Challenge State (Google reCAPTCHA v2 / Cloudflare Turnstile / Sequential)
+  const [isChallengeOpen, setIsChallengeOpen] = useState(false);
+  const [preferredChallengeProvider, setPreferredChallengeProvider] = useState<'turnstile' | 'recaptcha' | 'sequential'>('recaptcha');
 
   // Pre-fetch Anti-Bot session token when modal opens
   useEffect(() => {
@@ -116,13 +121,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
   };
 
   // Handle Checkout & Claim Existing Tickets from Ban Tổ Chức
-  const handleSubmitCheckout = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (!validateForm()) {
-      return;
-    }
-
+  const performCheckout = async (challengeToken?: string, challengeProvider?: 'turnstile' | 'recaptcha' | 'sequential') => {
     setApiError(null);
     setIsSubmitting(true);
 
@@ -160,6 +159,8 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
           buyerPhone: finalBuyerPhone,
           sessionToken: effectiveToken,
           telemetry,
+          challengeToken,
+          challengeProvider,
         });
 
         if (!backendOrderId && checkoutRes.orderId) {
@@ -186,6 +187,19 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
         }
       } catch (err: unknown) {
         setIsSubmitting(false);
+
+        // Tier 2: Challenge Required -> Mở popup Google reCAPTCHA / Cloudflare Turnstile
+        if (
+          err &&
+          typeof err === 'object' &&
+          ('challengeRequired' in err || (err as Error).message === 'CHALLENGE_REQUIRED')
+        ) {
+          const prov = (err as { preferredProvider?: 'turnstile' | 'recaptcha' | 'sequential' }).preferredProvider || 'recaptcha';
+          setPreferredChallengeProvider(prov);
+          setIsChallengeOpen(true);
+          return;
+        }
+
         const errMsg = err instanceof Error ? err.message : `Lỗi hệ thống khi thanh toán hạng vé ${item.tier.tierName}`;
         setApiError(errMsg);
         return;
@@ -210,6 +224,17 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
       tickets: issuedTickets,
       createdAt: timestamp,
     });
+  };
+
+  const handleSubmitCheckout = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!validateForm()) return;
+    await performCheckout();
+  };
+
+  const handleChallengeSuccess = async (token: string, provider: 'turnstile' | 'recaptcha' | 'sequential') => {
+    setIsChallengeOpen(false);
+    await performCheckout(token, provider);
   };
 
   const handleCopyCode = (code: string) => {
@@ -550,6 +575,14 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
           )}
         </div>
       </div>
+
+      {/* Tier 2 Anti-Bot Verification Challenge Modal (Cloudflare Turnstile & Google reCAPTCHA) */}
+      <ChallengeModal
+        isOpen={isChallengeOpen}
+        onClose={() => setIsChallengeOpen(false)}
+        onSuccess={handleChallengeSuccess}
+        initialProvider={preferredChallengeProvider}
+      />
     </div>
   );
 };

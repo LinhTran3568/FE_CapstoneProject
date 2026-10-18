@@ -15,6 +15,11 @@ export const getOrganizerApiBase = (): string => {
   return 'http://localhost:5001/api/organizer';
 };
 
+export const getMockOrganizerBaseUrl = (): string => {
+  const orgBase = getOrganizerApiBase();
+  return orgBase.replace(/\/api\/organizer$/, '');
+};
+
 export interface OrganizerBackendTier {
   id: string;
   eventId: string;
@@ -56,6 +61,8 @@ export interface OrganizerCheckoutRequest {
   sessionToken?: string;
   deviceFingerprint?: string;
   telemetry?: ClientTelemetry;
+  challengeToken?: string;
+  challengeProvider?: string;
 }
 
 export interface OrganizerCheckoutResponse {
@@ -82,6 +89,47 @@ export interface OrganizerCheckoutResponse {
     executionDurationMs?: number;
     isSessionValid?: boolean;
   };
+}
+
+export interface AntiBotPolicyConfig {
+  allowThreshold: number;
+  blockThreshold: number;
+  challengeMode?: 'recaptcha' | 'turnstile' | 'sequential';
+  lastUpdatedAtUtc: string;
+  updatedBy: string;
+}
+
+export interface UpdateAntiBotPolicyRequest {
+  allowThreshold: number;
+  blockThreshold: number;
+  challengeMode?: 'recaptcha' | 'turnstile' | 'sequential';
+  eventId?: string;
+  updatedBy?: string;
+}
+
+export interface AntiBotEvaluationLog {
+  requestId: string;
+  timestampUtc: string;
+  buyerEmail: string;
+  eventId?: string;
+  decision: 'Allow' | 'Challenge' | 'Block';
+  riskScore: number;
+  latencyMs: number;
+  isFailOpen: boolean;
+  reason: string;
+}
+
+export interface AntiBotAnalyticsSummary {
+  totalEvaluations: number;
+  allowCount: number;
+  challengeCount: number;
+  blockCount: number;
+  allowPercentage: number;
+  challengePercentage: number;
+  blockPercentage: number;
+  averageLatencyMs: number;
+  currentPolicy: AntiBotPolicyConfig;
+  recentLogs: AntiBotEvaluationLog[];
 }
 
 export interface OrganizerGenerateTicketRequest {
@@ -146,13 +194,25 @@ export const organizerStoreApi = {
 
     if (!res.ok) {
       let errMsg = `Lỗi đặt vé từ Ban Tổ Chức (HTTP ${res.status})`;
+      let errorJson: Record<string, any> | null = null;
       try {
-        const errorJson = await res.json();
+        errorJson = await res.json();
+      } catch {
+        // Non-JSON response
+      }
+
+      if (errorJson) {
         // Anti-Bot (US-8.1 / US-8.4): 409 có `code` là bị chặn phát lại, 403 cần xác minh, 429 bị chặn
         if (res.status === 409 && errorJson.code) {
           errMsg = 'Phiên đặt vé đã hết hiệu lực. Vui lòng tải lại trang rồi đặt vé lại.';
-        } else if (res.status === 403 && errorJson.challengeRequired) {
-          errMsg = 'Cần xác minh thêm trước khi đặt vé. Vui lòng thử lại sau ít phút.';
+        } else if (res.status === 403 && (errorJson.challengeRequired || errorJson.decision === 'Challenge')) {
+          const challengeErr = new Error('CHALLENGE_REQUIRED');
+          Object.assign(challengeErr, {
+            challengeRequired: true,
+            preferredProvider: errorJson.preferredProvider || 'turnstile',
+            riskScore: errorJson.riskScore,
+          });
+          throw challengeErr;
         } else if (res.status === 429) {
           errMsg = 'Giao dịch đang bị tạm chặn vì có thao tác bất thường. Vui lòng thử lại sau.';
         } else if (errorJson.message) {
@@ -166,8 +226,6 @@ export const organizerStoreApi = {
             errMsg = errorJson.message;
           }
         }
-      } catch {
-        // Keep default error message
       }
       throw new Error(errMsg);
     }
@@ -208,5 +266,64 @@ export const organizerStoreApi = {
       throw new Error(`Không thể phát hành vé vào hệ thống Ban Tổ Chức (${msg})`);
     }
     return res.json();
+  },
+
+  /**
+   * Lấy cấu hình ngưỡng phân luồng quyết định (US-8.4, SCRUM-260)
+   */
+  getAntiBotPolicy: async (eventId?: string): Promise<AntiBotPolicyConfig> => {
+    const base = getMockOrganizerBaseUrl();
+    const url = eventId ? `${base}/api/anti-bot/policy?eventId=${encodeURIComponent(eventId)}` : `${base}/api/anti-bot/policy`;
+    const res = await fetch(url, { headers: { Accept: 'application/json' } });
+    if (!res.ok) throw new Error(`Không thể tải cấu hình ngưỡng (HTTP ${res.status})`);
+    return res.json();
+  },
+
+  /**
+   * Cập nhật ngưỡng động không cần restart server (US-8.4, SCRUM-260)
+   */
+  updateAntiBotPolicy: async (payload: UpdateAntiBotPolicyRequest): Promise<AntiBotPolicyConfig> => {
+    const base = getMockOrganizerBaseUrl();
+    const res = await fetch(`${base}/api/anti-bot/policy`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok) {
+      const errJson = await res.json().catch(() => null);
+      throw new Error(errJson?.message || `Cập nhật ngưỡng thất bại (HTTP ${res.status})`);
+    }
+    return res.json();
+  },
+
+  /**
+   * Đặt lại ngưỡng về mặc định ban đầu
+   */
+  resetAntiBotPolicy: async (eventId?: string): Promise<AntiBotPolicyConfig> => {
+    const base = getMockOrganizerBaseUrl();
+    const url = eventId ? `${base}/api/anti-bot/policy/reset?eventId=${encodeURIComponent(eventId)}` : `${base}/api/anti-bot/policy/reset`;
+    const res = await fetch(url, { method: 'POST', headers: { Accept: 'application/json' } });
+    if (!res.ok) throw new Error(`Không thể đặt lại cấu hình ngưỡng (HTTP ${res.status})`);
+    return res.json();
+  },
+
+  /**
+   * Lấy báo cáo phân tích lưu lượng an ninh (US-8.4, SCRUM-259)
+   */
+  getAntiBotAnalytics: async (eventId?: string): Promise<AntiBotAnalyticsSummary> => {
+    const base = getMockOrganizerBaseUrl();
+    const url = eventId ? `${base}/api/anti-bot/analytics?eventId=${encodeURIComponent(eventId)}` : `${base}/api/anti-bot/analytics`;
+    const res = await fetch(url, { headers: { Accept: 'application/json' } });
+    if (!res.ok) throw new Error(`Không thể tải số liệu phân tích lưu lượng (HTTP ${res.status})`);
+    return res.json();
+  },
+
+  /**
+   * Đặt lại số liệu thống kê phân tích
+   */
+  resetAntiBotAnalytics: async (eventId?: string): Promise<void> => {
+    const base = getMockOrganizerBaseUrl();
+    const url = eventId ? `${base}/api/anti-bot/analytics/reset?eventId=${encodeURIComponent(eventId)}` : `${base}/api/anti-bot/analytics/reset`;
+    await fetch(url, { method: 'POST' });
   },
 };
