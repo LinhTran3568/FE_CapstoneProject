@@ -137,9 +137,20 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
     // 1. Mua vé sơ cấp: Gọi checkout kèm thông tin người mua, Anti-Bot telemetry và session token
     for (const item of selectedItems) {
       try {
-        // US-8.1: mỗi hạng vé một request, mỗi request một nonce mới và token của đúng hạng vé đó
+        // Lấy session token chuẩn cho đúng tierId hoặc fetch trực tiếp nếu thiếu để tránh TIER_MISMATCH
+        let effectiveToken = sessionTokens?.[item.tier.id]?.sessionToken;
+        if (!effectiveToken) {
+          try {
+            const sessionRes = await organizerStoreApi.createSession(item.tier.id);
+            effectiveToken = sessionRes.sessionToken;
+            antiBotSdk.setServerClock(sessionRes.issuedAtUtc);
+          } catch (e) {
+            console.warn(`Không lấy được session token cho tier ${item.tier.id}:`, e);
+          }
+        }
+
+        // US-8.1: mỗi hạng vé một request, mỗi request một nonce mới và telemetry chuẩn
         const telemetry = await antiBotSdk.collect();
-        const effectiveToken = sessionTokens?.[item.tier.id]?.sessionToken || sessionToken || undefined;
 
         const checkoutRes = await organizerStoreApi.checkout({
           tierId: item.tier.id,
