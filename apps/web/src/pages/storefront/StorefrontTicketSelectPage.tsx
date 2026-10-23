@@ -78,8 +78,8 @@ export const StorefrontTicketSelectPage: React.FC = () => {
     (ticketQuantities.vipa || 0) +
     (ticketQuantities.ga || 0);
 
-  const fee = Math.round(rawSubtotal * 0.02); // 2% Cyber-Escrow fee
-  const grandTotal = rawSubtotal + fee;
+  const fee = 0; // 0₫ fee for direct organizer sale (Khớp BE MockOrganizer)
+  const grandTotal = rawSubtotal;
 
   const activeNames = Object.entries(ticketQuantities)
     .filter(([_, qty]) => qty > 0)
@@ -483,10 +483,10 @@ export const StorefrontTicketSelectPage: React.FC = () => {
               </div>
               <div className="flex items-center justify-between gap-4 text-[#aa8984]">
                 <span className="flex items-center gap-1">
-                  Phí Cyber-Escrow & BH:
-                  <span className="material-symbols-outlined text-[13px] text-[#4cd7f6]">security</span>
+                  Phí dịch vụ & xuất vé:
+                  <span className="material-symbols-outlined text-[13px] text-emerald-400">verified</span>
                 </span>
-                <span className="text-white font-medium">{fee.toLocaleString('vi-VN')} đ</span>
+                <span className="text-emerald-400 font-medium">0 đ (Miễn phí)</span>
               </div>
             </div>
           </div>

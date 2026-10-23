@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { adminApi, ResaleFeeConfigDto, UpdateFeeSettingsRequest } from '@ticketshield/api-client';
 import {
   Percent,
@@ -13,6 +14,7 @@ import {
 } from 'lucide-react';
 
 export const FeeSettingsControlPanel: React.FC = () => {
+  const queryClient = useQueryClient();
   const [loading, setLoading] = useState<boolean>(true);
   const [saving, setSaving] = useState<boolean>(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
@@ -25,7 +27,7 @@ export const FeeSettingsControlPanel: React.FC = () => {
   const [buyerFeePercent, setBuyerFeePercent] = useState<number>(5.0);
   const [sellerFeePercent, setSellerFeePercent] = useState<number>(3.0);
   const [minBuyerFee, setMinBuyerFee] = useState<number>(10000);
-  const [minSellerFee, setMinSellerFee] = useState<number>(10000);
+  const [minSellerFee, setMinSellerFee] = useState<number>(5000);
 
   // Live Simulator Test Price state
   const [simulatedPrice, setSimulatedPrice] = useState<number>(1000000);
@@ -90,6 +92,7 @@ export const FeeSettingsControlPanel: React.FC = () => {
       };
 
       await adminApi.updateFeeSettings(payload);
+      await queryClient.invalidateQueries({ queryKey: ['resale-fee-config'] });
       setSavedConfig({
         buyerFeePercentage: payload.buyerFeePercentage,
         sellerFeePercentage: payload.sellerFeePercentage,

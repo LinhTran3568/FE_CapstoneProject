@@ -446,6 +446,14 @@ export interface CancelResaleListingResponse {
   cancelledAt: string;
 }
 
+export interface ResaleFeeConfigDto {
+  buyerFeePercentage: number;
+  sellerFeePercentage: number;
+  minimumBuyerFee: number;
+  minimumSellerFee: number;
+  settlementBufferDurationSeconds?: number;
+}
+
 export interface Order {
   id: string;
   orderNumber: string;
@@ -456,6 +464,10 @@ export interface Order {
   eventTitle: string;
   ticketQuantity: number;
   unitPrice: number;
+  /**
+   * Phí dịch vụ (nếu có). Lưu ý: Trong luồng mua vé sơ cấp (Organizer store), phí này bằng 0 (miễn phí).
+   * Trong luồng mua vé thứ cấp (Resale/Marketplace), phí được lưu chi tiết qua buyerFee/sellerFee trên EscrowTransaction.
+   */
   serviceFee: number;
   totalAmount: number;
   currency: string;

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { UserBankAccountDto } from '@ticketshield/types';
 import { Ticket, Globe, Lock, Check, AlertCircle, Loader2, X, Layers, Split, ChevronDown, ChevronUp, AlertTriangle } from 'lucide-react';
+import { useResaleFeeConfig } from '../../hooks/useResaleFeeConfig';
 
 export interface Step5ReviewPublishProps {
   /** Mã của từng vé thật trong gói (1–3 vé). */
@@ -58,11 +59,14 @@ export const Step5ReviewPublish: React.FC<Step5ReviewPublishProps> = ({
   onEditTicketPrice,
 }) => {
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState<boolean>(false);
+  const { sellerFeePercent, minSellerFee, calcSellerFee } = useResaleFeeConfig();
   const ticketCount = Math.max(tickets?.length || ticketCodes.length, 1);
   const totalResalePrice = tickets && tickets.length > 0
     ? tickets.reduce((sum, t) => sum + (t.resalePrice || 0), 0)
     : resalePrice * ticketCount;
-  const totalSellerFee = Math.max(Math.round(totalResalePrice * 0.03), 5000 * ticketCount);
+  const totalSellerFee = tickets && tickets.length > 0
+    ? tickets.reduce((sum, t) => sum + calcSellerFee(t.resalePrice || 0).sellerFee, 0)
+    : calcSellerFee(resalePrice * ticketCount).sellerFee;
   const totalYouReceive = Math.max(totalResalePrice - totalSellerFee, 0);
 
   // Kiểm tra xem có vé nào bị giảm sâu >= 70% không
@@ -271,7 +275,7 @@ export const Step5ReviewPublish: React.FC<Step5ReviewPublishProps> = ({
                 title={tickets && tickets.length > 1 ? (expandFeeDetails ? 'Thu gọn phí từng vé' : 'Bung xem phí từng vé') : undefined}
               >
                 <div className="flex items-center gap-1.5">
-                  <span>Seller Fee · 3%</span>
+                  <span>Seller Fee · {sellerFeePercent}%</span>
                   <button
                     type="button"
                     onClick={(e) => {
@@ -294,9 +298,9 @@ export const Step5ReviewPublish: React.FC<Step5ReviewPublishProps> = ({
                         onClick={(e) => e.stopPropagation()}
                         className="absolute left-0 top-full mt-1.5 w-72 p-3 bg-[#131822] border border-gray-700 rounded-xl shadow-2xl text-[11px] text-gray-200 z-30"
                       >
-                        <div className="font-semibold text-white mb-1 font-sans">Phí nền tảng người bán (3%)</div>
+                        <div className="font-semibold text-white mb-1 font-sans">Phí nền tảng người bán ({sellerFeePercent}%)</div>
                         <div className="leading-relaxed font-sans text-zinc-300">
-                          TicketShield khấu trừ tự động 3% từ tổng giá bán khi giao dịch thành công để duy trì dịch vụ bảo đảm an toàn vé và đối soát Ban tổ chức (tối thiểu 5.000đ/vé).
+                          TicketShield khấu trừ tự động {sellerFeePercent}% từ tổng giá bán khi giao dịch thành công để duy trì dịch vụ bảo đảm an toàn vé và đối soát Ban tổ chức (tối thiểu {minSellerFee.toLocaleString('vi-VN')}đ/vé).
                         </div>
                       </motion.div>
                     )}
@@ -344,7 +348,7 @@ export const Step5ReviewPublish: React.FC<Step5ReviewPublishProps> = ({
                     <div className="pt-1.5 pb-0.5">
                       <div className="space-y-1.5 pl-3 py-1.5 border-l-2 border-amber-500/40 bg-amber-500/[0.03] rounded-r-xl text-[11px]">
                         {tickets.map((t, idx) => {
-                          const ticketFee = Math.max(Math.round((t.resalePrice || 0) * 0.03), 5000);
+                          const ticketFee = calcSellerFee(t.resalePrice || 0).sellerFee;
                           return (
                             <div key={t.code} className="flex justify-between items-center text-amber-300/80">
                               <span>- Phí Vé #{idx + 1} ({t.code}):</span>
@@ -656,7 +660,7 @@ export const Step5ReviewPublish: React.FC<Step5ReviewPublishProps> = ({
                   </div>
 
                   <div className="flex justify-between items-center">
-                    <span className="text-zinc-400">You'll receive (after 3% fee):</span>
+                    <span className="text-zinc-400">You'll receive (after {sellerFeePercent}% fee):</span>
                     <span className="text-emerald-400 font-bold text-sm tabular-nums">
                       {totalYouReceive.toLocaleString('vi-VN')} VND
                     </span>

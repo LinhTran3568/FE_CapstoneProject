@@ -5,6 +5,7 @@ export interface ResaleFeeConfigDto {
   sellerFeePercentage: number;
   minimumBuyerFee: number;
   minimumSellerFee: number;
+  settlementBufferDurationSeconds?: number;
 }
 
 export interface UpdateFeeSettingsRequest {

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ShieldCheck, ArrowRight, ArrowLeft, XCircle, Minus, Plus, AlertTriangle } from 'lucide-react';
+import { useResaleFeeConfig } from '../../hooks/useResaleFeeConfig';
 
 export interface TicketPriceItem {
   code: string;
@@ -36,8 +37,9 @@ export const Step4SetPrice: React.FC<Step4SetPriceProps> = ({
 }) => {
   const isCombo = tickets.length > 1;
   const [showFeeTooltip, setShowFeeTooltip] = useState<boolean>(false);
+  const { sellerFeePercent, minSellerFee, calcSellerFee } = useResaleFeeConfig();
 
-  const getTicketSellerFee = (price: number) => Math.max(Math.round(price * 0.03), 5000);
+  const getTicketSellerFee = (price: number) => calcSellerFee(price).sellerFee;
 
   const currentTicket = tickets[activeTicketIndex] || tickets[0] || {
     code: '',
@@ -137,8 +139,12 @@ export const Step4SetPrice: React.FC<Step4SetPriceProps> = ({
   };
 
   const totalComboPrice = tickets.reduce((sum, t) => sum + (t.resalePrice || 0), 0);
-  const totalSellerFee = Math.max(Math.round(totalComboPrice * 0.03), 5000 * tickets.length);
+  const totalSellerFee = tickets.reduce((sum, t) => sum + getTicketSellerFee(t.resalePrice || 0), 0);
   const totalYouReceive = Math.max(totalComboPrice - totalSellerFee, 0);
+
+  const isMinFeeApplied = isCombo
+    ? tickets.some((t) => calcSellerFee(t.resalePrice || 0).isMinimumApplied)
+    : (resalePrice > 0 && calcSellerFee(resalePrice).isMinimumApplied);
 
   const allTicketsValid = tickets.every((t) => t.resalePrice > 0 && t.resalePrice <= t.priceCeiling);
   const isCurrentTicketValid = resalePrice > 0 && resalePrice <= priceCeiling;
@@ -400,7 +406,7 @@ export const Step4SetPrice: React.FC<Step4SetPriceProps> = ({
                 <span>Bạn sẽ nhận được</span>
               </div>
               <span className="text-[10px] font-mono text-emerald-300 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
-                3% phí dịch vụ
+                {isMinFeeApplied ? `Phí tối thiểu (${minSellerFee.toLocaleString('vi-VN')}đ)` : `${sellerFeePercent}% phí dịch vụ`}
               </span>
             </div>
 
@@ -416,7 +422,7 @@ export const Step4SetPrice: React.FC<Step4SetPriceProps> = ({
               </div>
               <div className="flex justify-between items-center text-zinc-400 relative">
                 <div className="flex items-center gap-1.5">
-                  <span>Phí nền tảng (3%):</span>
+                  <span>Phí nền tảng {isMinFeeApplied ? '(Tối thiểu)' : `(${sellerFeePercent}%)`}:</span>
                   <button
                     type="button"
                     onClick={() => setShowFeeTooltip(!showFeeTooltip)}
@@ -436,7 +442,7 @@ export const Step4SetPrice: React.FC<Step4SetPriceProps> = ({
                         className="absolute left-0 top-full mt-1.5 w-72 p-3 bg-[#0E131F] border border-white/20 rounded-xl shadow-2xl text-[11px] text-zinc-200 z-50 space-y-1.5"
                       >
                         <div className="flex items-center justify-between font-bold text-white pb-1 border-b border-white/10">
-                          <span>Phí nền tảng người bán (3%)</span>
+                          <span>Phí nền tảng người bán ({sellerFeePercent}%)</span>
                           <button
                             type="button"
                             onClick={() => setShowFeeTooltip(false)}
@@ -446,7 +452,7 @@ export const Step4SetPrice: React.FC<Step4SetPriceProps> = ({
                           </button>
                         </div>
                         <p className="text-zinc-300 leading-relaxed font-sans">
-                          Phí nền tảng 3% được khấu trừ tự động khi vé bán thành công, dùng để duy trì hệ thống bảo vệ giao dịch và đối soát vé với Ban tổ chức (tối thiểu 5.000đ/vé).
+                          Phí nền tảng {sellerFeePercent}% được khấu trừ tự động khi vé bán thành công, dùng để duy trì hệ thống bảo vệ giao dịch và đối soát vé với Ban tổ chức (tối thiểu {minSellerFee.toLocaleString('vi-VN')}đ/vé).
                         </p>
                       </motion.div>
                     )}

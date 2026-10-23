@@ -72,7 +72,7 @@ export const PayoutSuccessModal: React.FC<PayoutSuccessModalProps> = ({
         {/* Amount Box */}
         <div className="my-3 p-3.5 rounded-xl bg-gradient-to-br from-emerald-500/15 via-emerald-500/5 to-transparent border border-emerald-500/30 text-center space-y-0.5">
           <span className="text-[10px] font-mono text-emerald-400 font-semibold uppercase tracking-wider block">
-            Số tiền thực nhận (Đã trừ 3% phí sàn)
+            Số tiền thực nhận (Đã khấu trừ phí dịch vụ sàn)
           </span>
           <div className="text-2xl font-extrabold font-display text-emerald-300 tracking-tight">
             +{formatVND(amount)}

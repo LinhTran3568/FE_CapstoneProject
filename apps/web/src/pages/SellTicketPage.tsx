@@ -5,6 +5,7 @@ import { resaleApi, bankAccountsApi, SellerListingDto } from '@ticketshield/api-
 import { UserBankAccountDto, PurchasedTicketDto } from '@ticketshield/types';
 import { useMyTickets } from '../hooks/useMyTickets';
 import { useOrganizers } from '../hooks/useOrganizers';
+import { useResaleFeeConfig } from '../hooks/useResaleFeeConfig';
 import { PrivateResaleScenarioModal } from '../components/ui/PrivateResaleScenarioModal';
 import { SellerBankAccountModal } from '../components/profile/SellerBankAccountModal';
 import { buildPrivateShareLink, buildPublicShareLink, copyToClipboard } from '../utils/shareLink';
@@ -23,6 +24,7 @@ export const SellTicketPage: React.FC = () => {
   const navigate = useNavigate();
   const { showToast } = useUIStore();
   const { data: purchasedTickets = [], isPending: isLoadingPurchased } = useMyTickets();
+  const { minSellerFee } = useResaleFeeConfig();
 
   const purchasedPassCode = (ticket: PurchasedTicketDto) =>
     (ticket.ticketPassCode || ticket.qrCodeData || '').trim();
@@ -701,9 +703,9 @@ const DRAFT_STORAGE_KEY = 'ticketshield_sell_draft';
         );
         return;
       }
-      if (p < 5000) {
+      if (p < minSellerFee) {
         showToast(
-          `Giá bán vé ${s.code} phải tối thiểu 5.000 VND. Vui lòng tăng giá.`,
+          `Giá bán vé ${s.code} phải tối thiểu ${minSellerFee.toLocaleString('vi-VN')} VND (phí sàn tối thiểu). Vui lòng tăng giá.`,
           'warning'
         );
         return;

@@ -6,6 +6,7 @@ import type {
   PaymentStatusDto,
   PaginatedList,
   PurchasedTicketDto,
+  ResaleFeeConfigDto,
   ResaleListingDetailDto,
   SellerListingDto,
 } from '@ticketshield/types';
@@ -151,6 +152,16 @@ export const resaleListingsApi = {
         transferAmount: amount,
         referenceCode: `DEMO_${Date.now()}`,
       }),
+    });
+  },
+
+  /**
+   * Lấy biểu phí chuyển nhượng công khai (phí người mua, phí người bán / phí sàn, mức phí tối thiểu)
+   * GET /resale-listings/fee-policy hoặc /fee-settings/public
+   */
+  getFeePolicy: async (): Promise<ResaleFeeConfigDto> => {
+    return httpClient<ResaleFeeConfigDto>('/resale-listings/fee-policy', {
+      method: 'GET',
     });
   },
 };

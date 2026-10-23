@@ -25,6 +25,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '../../stores/authStore';
 import { useUIStore } from '../../stores/uiStore';
 import { usePaymentCountdown } from '../../hooks/usePaymentCountdown';
+import { useResaleFeeConfig } from '../../hooks/useResaleFeeConfig';
 import { SeatAdjacencyBadge } from '../ui/SeatAdjacencyBadge';
 import { usePaymentSignalR, SignalRPaymentPayload } from '../../hooks/usePaymentSignalR';
 
@@ -59,9 +60,7 @@ export const BuyTicketModal: React.FC<BuyTicketModalProps> = ({
   const [email, setEmail] = useState(user?.email || '');
   const [idCard, setIdCard] = useState('');
   const [showIdCardInput, setShowIdCardInput] = useState(false);
-  const [coupon, setCoupon] = useState('');
-  const [discountAmount, setDiscountAmount] = useState(0);
-  const [couponApplied, setCouponApplied] = useState(false);
+  const { buyerFeePercent, minBuyerFee, calcBuyerFee } = useResaleFeeConfig();
 
   // Step 2: Hold Transaction State
   const [isHolding, setIsHolding] = useState(false);
@@ -227,11 +226,22 @@ export const BuyTicketModal: React.FC<BuyTicketModalProps> = ({
       ? listing.resalePrice * listing.bundleTotalTickets
       : listing.resalePrice;
 
-  // Fee Calculation: 5% Buyer Fee (Min 10,000 VND)
-  const buyerFeeRate = 0.05;
-  const minBuyerFee = 10000;
-  const estimatedBuyerFee = Math.max(Math.round(baseTicketPrice * buyerFeeRate), minBuyerFee);
-  const totalBuyerPaidEstimated = Math.max(0, baseTicketPrice + estimatedBuyerFee - discountAmount);
+  // Dynamic Fee Calculation from System Resale Fee Config
+  // BE tính phí theo từng vé trong gói (HoldListingForPurchaseCommandHandler.cs:413):
+  // mỗi vé riêng áp dụng max(price * buyerFeeRate, minBuyerFee)
+  const estimatedBuyerFee = effectiveBundleListings.length > 1
+    ? effectiveBundleListings.reduce((sum, l) => sum + calcBuyerFee(l.resalePrice).buyerFee, 0)
+    : (listing.bundleTotalTickets && listing.bundleTotalTickets >= 2)
+      ? calcBuyerFee(listing.resalePrice).buyerFee * listing.bundleTotalTickets
+      : calcBuyerFee(baseTicketPrice).buyerFee;
+
+  const isMinBuyerFeeApplied = effectiveBundleListings.length > 1
+    ? effectiveBundleListings.some((l) => calcBuyerFee(l.resalePrice).isMinimumApplied)
+    : (listing.bundleTotalTickets && listing.bundleTotalTickets >= 2)
+      ? calcBuyerFee(listing.resalePrice).isMinimumApplied
+      : calcBuyerFee(baseTicketPrice).isMinimumApplied;
+
+  const totalBuyerPaidEstimated = baseTicketPrice + estimatedBuyerFee;
 
   // Dynamic QR Code URL directly from backend VietQR service or dynamic construct
   const displayQrUrl =
@@ -239,17 +249,6 @@ export const BuyTicketModal: React.FC<BuyTicketModalProps> = ({
     (holdData && holdData.bankBin && holdData.accountNumber
       ? `https://img.vietqr.io/image/${holdData.bankBin}-${holdData.accountNumber}-compact2.png?amount=${holdData.totalBuyerPaid}&addInfo=${encodeURIComponent(holdData.paymentReference)}&accountName=${encodeURIComponent(holdData.accountName || '')}`
       : '');
-
-  const handleApplyCoupon = () => {
-    const code = coupon.trim().toUpperCase();
-    if (code === 'SAYHI' || code === 'TICKETSHIELD' || code === 'VIP100K') {
-      setDiscountAmount(100000);
-      setCouponApplied(true);
-      showToast('Discount voucher of 100,000 VND applied successfully!', 'success');
-    } else {
-      showToast('Invalid promo code. Try: SAYHI or TICKETSHIELD', 'warning');
-    }
-  };
 
   const handleCancelAndClose = async () => {
     if (holdData && !countdown.isExpired && !paidHandledRef.current && listing) {
@@ -608,35 +607,19 @@ export const BuyTicketModal: React.FC<BuyTicketModalProps> = ({
                       </div>
                     )}
 
-                    {/* Row 4: Compact Promo Code */}
-                    <div className="pt-1">
-                      <label className="text-xs font-medium text-zinc-300 block mb-1">
-                        Promo Code
-                      </label>
-                      <div className="flex gap-2">
-                        <input
-                          type="text"
-                          placeholder="Enter code (e.g. SAYHI)"
-                          value={coupon}
-                          onChange={(e) => setCoupon(e.target.value)}
-                          disabled={couponApplied}
-                          className="flex-1 h-10 px-3 rounded-lg bg-[#1A2335] border border-[#28354D] text-sm text-white uppercase placeholder-zinc-500 focus:outline-none focus:border-[#ff5722] focus:ring-1 focus:ring-[#ff5722]/30 transition-all"
-                        />
-                        <button
-                          type="button"
-                          onClick={handleApplyCoupon}
-                          disabled={couponApplied || !coupon.trim()}
-                          className="h-10 px-4 bg-[#ff5722] hover:bg-[#f4511e] disabled:opacity-40 text-xs font-bold rounded-lg text-white transition-colors cursor-pointer shrink-0 active:scale-95"
-                        >
-                          {couponApplied ? 'Applied' : 'Apply'}
-                        </button>
-                      </div>
-                      {couponApplied && (
-                        <p className="text-xs text-[#ff5722] mt-1 flex items-center gap-1 font-medium">
-                          <Check className="w-3.5 h-3.5 text-[#ff5722]" />
-                          <span>100,000 VND discount voucher applied!</span>
+                    {/* Escrow Guarantee & Transparent Fee Notice */}
+                    <div className="pt-2">
+                      <div className="p-3 rounded-xl bg-gradient-to-r from-emerald-500/10 via-[#ff5722]/5 to-transparent border border-emerald-500/20 text-xs text-zinc-300 space-y-1">
+                        <div className="flex items-center gap-1.5 font-bold text-emerald-400">
+                          <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />
+                          <span>Bảo đảm an toàn giao dịch Cyber-Escrow</span>
+                        </div>
+                        <p className="text-[11px] text-zinc-400 leading-relaxed font-sans">
+                          {isMinBuyerFeeApplied
+                            ? `Áp dụng mức phí dịch vụ tối thiểu (${formatVND(minBuyerFee)}/vé) để xác thực vé chính chủ với Ban tổ chức và giữ tiền ký quỹ an toàn 24h.`
+                            : `Phí dịch vụ bảo chứng (${buyerFeePercent}%) được áp dụng tự động để xác thực vé chính chủ với Ban tổ chức và giữ tiền ký quỹ an toàn 24h.`}
                         </p>
-                      )}
+                      </div>
                     </div>
                   </form>
                 </div>
@@ -659,21 +642,14 @@ export const BuyTicketModal: React.FC<BuyTicketModalProps> = ({
                     <div className="flex justify-between items-center text-zinc-400">
                       <span className="flex items-center gap-1">
                         <span>Escrow & Service Fee</span>
-                        <span className="text-xs text-zinc-500">(5%)</span>
+                        <span className="text-xs text-amber-400 font-mono">
+                          {isMinBuyerFeeApplied ? `(Tối thiểu)` : `(${buyerFeePercent}%)`}
+                        </span>
                       </span>
                       <span className="font-medium text-amber-400 font-mono tabular-nums">
                         + {formatVND(estimatedBuyerFee)}
                       </span>
                     </div>
-
-                    {discountAmount > 0 && (
-                      <div className="flex justify-between items-center text-[#ff5722]">
-                        <span>Voucher Discount</span>
-                        <span className="font-medium font-mono tabular-nums">
-                          - {formatVND(discountAmount)}
-                        </span>
-                      </div>
-                    )}
                   </div>
 
                   <div className="pt-3.5 border-t border-[#28354D] space-y-1">
@@ -770,6 +746,54 @@ export const BuyTicketModal: React.FC<BuyTicketModalProps> = ({
                       paymentReference={holdData.paymentReference}
                     />
                   </div>
+                </div>
+
+                {/* 4. Verified Fee & Transaction Snapshot from Escrow Backend */}
+                <div className="p-4 rounded-xl bg-[#0C101A] border border-[#28354D] space-y-3">
+                  <div className="flex items-center justify-between text-xs">
+                    <div className="flex items-center gap-1.5 font-bold text-zinc-300 uppercase tracking-wider text-[11px]">
+                      <ShieldCheck className="w-4 h-4 text-emerald-400" />
+                      <span>Chi tiết thanh toán Escrow (Xác thực bởi Backend)</span>
+                    </div>
+                    <span className="text-[10px] text-emerald-400 bg-emerald-500/10 px-2.5 py-0.5 rounded-full border border-emerald-500/20 font-mono font-semibold">
+                      CHỐT BIỂU PHÍ
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 text-xs font-mono">
+                    <div className="p-2.5 rounded-lg bg-white/[0.02] border border-white/5">
+                      <div className="text-zinc-500 text-[10px] uppercase">Giá vé gốc</div>
+                      <div className="text-white font-bold text-sm mt-0.5 tabular-nums">
+                        {formatVND(holdData.resalePrice || baseTicketPrice)}
+                      </div>
+                    </div>
+                    <div className="p-2.5 rounded-lg bg-amber-500/[0.05] border border-amber-500/20">
+                      <div className="text-amber-400/80 text-[10px] uppercase">Phí bảo chứng (Buyer Fee)</div>
+                      <div className="text-amber-300 font-bold text-sm mt-0.5 tabular-nums">
+                        +{formatVND(holdData.buyerFee)}
+                      </div>
+                    </div>
+                    <div className="p-2.5 rounded-lg bg-[#ff5722]/10 border border-[#ff5722]/30">
+                      <div className="text-[#ff8a65] text-[10px] uppercase font-bold">Tổng thanh toán (QR)</div>
+                      <div className="text-[#ff5722] font-extrabold text-sm mt-0.5 tabular-nums">
+                        {formatVND(holdData.totalBuyerPaid)}
+                      </div>
+                    </div>
+                  </div>
+
+                  {holdData.bundleItems && holdData.bundleItems.length > 1 && (
+                    <div className="pt-2 border-t border-white/5 space-y-1 text-[11px] font-mono text-zinc-400">
+                      <div className="text-[10px] text-zinc-500 uppercase font-semibold">
+                        Chi tiết từng vé trong gói combo ({holdData.bundleItems.length} vé):
+                      </div>
+                      {holdData.bundleItems.map((item, idx) => (
+                        <div key={item.listingId} className="flex justify-between items-center text-zinc-300">
+                          <span>Vé #{idx + 1}: {formatVND(item.resalePrice)}</span>
+                          <span className="text-amber-400/80">+ Phí: {formatVND(item.buyerFee)}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
             )}
