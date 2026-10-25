@@ -44,8 +44,8 @@ const mapBackendUserToFE = (dto: BackendAuthResult | BackendUserProfile): User =
     const s = String(r).trim().toUpperCase();
     if (s === '3' || s === 'ADMIN') return 'ADMIN';
     if (s === '2' || s === 'ORGANIZER') return 'ORGANIZER';
+    if (s === '4' || s === 'MODERATOR') return 'MODERATOR';
     if (s === 'CSKH') return 'CSKH';
-    if (s === 'MODERATOR') return 'MODERATOR';
     if (s === 'RESELLER' || s === 'SELLER') return 'RESELLER';
     return 'BUYER';
   };

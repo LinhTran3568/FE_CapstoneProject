@@ -390,7 +390,9 @@ export const AdminLayout: React.FC = () => {
                   <span className="text-xs font-semibold text-[#101722] leading-tight truncate max-w-[180px] lg:max-w-[240px]">
                     {user?.fullName || 'Admin'}
                   </span>
-                  <span className="text-[10px] text-[#667085] leading-tight font-mono">Quản trị viên</span>
+                  <span className="text-[10px] text-[#667085] leading-tight font-mono">
+                    {isAdmin ? 'Quản trị viên' : 'Kiểm duyệt viên (CSKH)'}
+                  </span>
                 </div>
                 <ChevronDown className={`w-3.5 h-3.5 text-slate-400 transition-transform ${profileDropdownOpen ? 'rotate-180' : ''}`} />
               </button>
@@ -401,14 +403,16 @@ export const AdminLayout: React.FC = () => {
                     <p className="font-bold text-[#101722] truncate">{user?.fullName}</p>
                     <p className="text-[11px] text-[#667085] font-mono truncate">{user?.email}</p>
                   </div>
-                  <Link
-                    to="/admin/config"
-                    onClick={() => setProfileDropdownOpen(false)}
-                    className="flex items-center gap-2 px-3.5 py-2 text-[#101722] hover:bg-slate-50 transition-colors"
-                  >
-                    <Sliders className="w-3.5 h-3.5 text-[#F45135]" />
-                    <span>Cấu hình hệ thống</span>
-                  </Link>
+                  {isAdmin && (
+                    <Link
+                      to="/admin/config"
+                      onClick={() => setProfileDropdownOpen(false)}
+                      className="flex items-center gap-2 px-3.5 py-2 text-[#101722] hover:bg-slate-50 transition-colors"
+                    >
+                      <Sliders className="w-3.5 h-3.5 text-[#F45135]" />
+                      <span>Cấu hình hệ thống</span>
+                    </Link>
+                  )}
                   <Link
                     to="/admin/disputes"
                     onClick={() => setProfileDropdownOpen(false)}

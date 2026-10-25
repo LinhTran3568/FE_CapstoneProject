@@ -299,7 +299,12 @@ const DRAFT_STORAGE_KEY = 'ticketshield_sell_draft';
 
   const ticketsPriceList = useMemo<TicketPriceItem[]>(() => {
     return sessions.map((s) => {
-      const price = ticketPrices[s.code] ?? s.originalPrice ?? 0;
+      const price =
+        ticketPrices[s.code] !== undefined && ticketPrices[s.code] > 0
+          ? ticketPrices[s.code]
+          : s.originalPrice > 0
+            ? s.originalPrice
+            : 0;
       return {
         code: s.code,
         originalPrice: s.originalPrice,
@@ -455,7 +460,18 @@ const DRAFT_STORAGE_KEY = 'ticketshield_sell_draft';
 
       const initialPrices: Record<string, number> = {};
       created.forEach((s) => {
-        initialPrices[s.code] = s.originalPrice > 0 ? s.originalPrice : 50000;
+        const owned = allPurchasedTickets.find(
+          (t) => purchasedPassCode(t).toUpperCase() === s.code.toUpperCase()
+        );
+        const original =
+          s.originalPrice > 0
+            ? s.originalPrice
+            : owned?.totalAmountPaid && owned.totalAmountPaid > 0
+              ? owned.totalAmountPaid
+              : 0;
+        if (original > 0) {
+          initialPrices[s.code] = original;
+        }
       });
       setTicketPrices(initialPrices);
       setActiveTicketIndex(0);
@@ -536,7 +552,7 @@ const DRAFT_STORAGE_KEY = 'ticketshield_sell_draft';
       if (result.originalPrice && result.originalPrice > 0) {
         setTicketPrices((prev) => ({
           ...prev,
-          [entry.code]: prev[entry.code] || result.originalPrice || 50000,
+          [entry.code]: result.originalPrice!,
         }));
       }
 
