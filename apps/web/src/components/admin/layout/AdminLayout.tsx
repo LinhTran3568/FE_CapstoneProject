@@ -19,7 +19,8 @@ import {
   ChevronDown,
   Bell,
   PanelLeftClose,
-  PanelLeftOpen
+  PanelLeftOpen,
+  User,
 } from 'lucide-react';
 import { TicketShieldLogo } from '../../ui/TicketShieldLogo';
 
@@ -101,6 +102,15 @@ export const AdminLayout: React.FC = () => {
       adminOnly: false,
     },
     {
+      to: '/admin/profile',
+      aliases: ['/admin/profile', '/profile'],
+      label: 'Hồ sơ cá nhân',
+      icon: User,
+      badge: null,
+      adminOnly: false,
+      hideForAdmin: true,
+    },
+    {
       to: '/admin/users',
       aliases: ['/admin/users'],
       label: 'Users & Staff',
@@ -126,7 +136,12 @@ export const AdminLayout: React.FC = () => {
     },
   ];
 
-  const visibleNavItems = navItems.filter((item) => (isAdmin ? true : !item.adminOnly));
+  const visibleNavItems = navItems.filter((item) => {
+    if (isAdmin) {
+      return !item.hideForAdmin;
+    }
+    return !item.adminOnly;
+  });
 
   const getBreadcrumbs = () => {
     const p = location.pathname;
@@ -149,6 +164,12 @@ export const AdminLayout: React.FC = () => {
       return [
         { label: portalPrefix, to: portalHome },
         { label: 'Dispute Resolution Console', to: '/admin/disputes' }
+      ];
+    }
+    if (p.startsWith('/admin/profile') || p.startsWith('/profile')) {
+      return [
+        { label: portalPrefix, to: portalHome },
+        { label: 'Hồ sơ cá nhân', to: '/admin/profile' }
       ];
     }
     if (p.startsWith('/admin/users')) {
@@ -403,6 +424,14 @@ export const AdminLayout: React.FC = () => {
                     <p className="font-bold text-[#101722] truncate">{user?.fullName}</p>
                     <p className="text-[11px] text-[#667085] font-mono truncate">{user?.email}</p>
                   </div>
+                  <Link
+                    to="/admin/profile"
+                    onClick={() => setProfileDropdownOpen(false)}
+                    className="flex items-center gap-2 px-3.5 py-2 text-[#101722] hover:bg-slate-50 transition-colors"
+                  >
+                    <User className="w-3.5 h-3.5 text-blue-500" />
+                    <span>Hồ sơ cá nhân</span>
+                  </Link>
                   {isAdmin && (
                     <Link
                       to="/admin/config"

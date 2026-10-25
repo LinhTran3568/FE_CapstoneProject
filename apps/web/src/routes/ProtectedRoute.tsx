@@ -38,12 +38,16 @@ export const ProtectedRoute: React.FC = () => {
  */
 export const UserRoute: React.FC = () => {
   const { user, isAuthenticated, isLoading } = useAuthStore();
+  const location = useLocation();
 
   if (isLoading) {
     return <RouteLoadingScreen />;
   }
 
   if (isAuthenticated && user && isAdminRole(user.role)) {
+    if (location.pathname === '/profile') {
+      return <Outlet />;
+    }
     return <Navigate to="/admin/dashboard" replace />;
   }
 

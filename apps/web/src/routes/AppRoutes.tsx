@@ -19,6 +19,7 @@ import { DisputeConsolePage } from '../pages/DisputeConsolePage';
 import { AdminConfigPage } from '../pages/AdminConfigPage';
 import { AdminDashboardPage } from '../pages/AdminDashboardPage';
 import { AdminUsersPage } from '../pages/AdminUsersPage';
+import { AdminProfilePage } from '../pages/AdminProfilePage';
 import { StorefrontDiscoveryPage } from '../pages/storefront/StorefrontDiscoveryPage';
 import { StorefrontEventDetailPage } from '../pages/storefront/StorefrontEventDetailPage';
 import { StorefrontTicketSelectPage } from '../pages/storefront/StorefrontTicketSelectPage';
@@ -88,6 +89,7 @@ export const AppRoutes: React.FC = () => {
         <Route element={<AdminLayout />}>
           <Route path="/disputes/console" element={<DisputeConsolePage />} />
           <Route path="/admin/disputes" element={<DisputeConsolePage />} />
+          <Route path="/admin/profile" element={<AdminProfilePage />} />
         </Route>
       </Route>
 
