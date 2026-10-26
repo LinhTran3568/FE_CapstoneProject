@@ -12,7 +12,8 @@ export const getOrganizerApiBase = (): string => {
       return clean.endsWith('/api/organizer') ? clean : `${clean}/api/organizer`;
     }
   }
-  return 'http://localhost:5001/api/organizer';
+  // Gateway-First: Mặc định định tuyến qua TicketShield.AntiBot.Gateway (:5006) để lọc Bot
+  return 'http://localhost:5006/api/organizer';
 };
 
 export const getMockOrganizerBaseUrl = (): string => {
