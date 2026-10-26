@@ -164,5 +164,15 @@ export const resaleListingsApi = {
       method: 'GET',
     });
   },
+
+  /**
+   * Alias cho getFeePolicy để đảm bảo tương thích ngược
+   * GET /resale-listings/fee-policy hoặc /resale-listings/fee-config
+   */
+  getFeeConfig: async (): Promise<ResaleFeeConfigDto> => {
+    return httpClient<ResaleFeeConfigDto>('/resale-listings/fee-policy', {
+      method: 'GET',
+    });
+  },
 };
 
