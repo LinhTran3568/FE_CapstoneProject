@@ -40,7 +40,7 @@ export default function MobileProfileScreen() {
           style: 'destructive',
           onPress: async () => {
             await logout();
-            router.replace('/(auth)/login');
+            // Điều hướng về /(auth)/login được tự động xử lý bởi AuthNavigationCoordinator trong _layout.tsx
           },
         },
       ]

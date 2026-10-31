@@ -49,15 +49,11 @@ export default function LoginScreen() {
     clearError();
     if (!validate()) return;
 
-    const success = await login({
+    await login({
       email: email.trim(),
       password,
     });
-
-    if (success) {
-      // Transition to Main Tabs
-      router.replace('/(tabs)');
-    }
+    // Điều hướng vào /(tabs) được tự động xử lý bởi AuthNavigationCoordinator trong _layout.tsx
   };
 
   const handleQuickFill = (demoEmail: string, demoPass: string) => {
