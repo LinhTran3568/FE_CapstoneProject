@@ -13,6 +13,7 @@ export default defineConfig(({ mode }) => {
   for (const key of Object.keys(allEnv)) {
     if (key.startsWith('VITE_')) {
       viteEnvVars[`import.meta.env.${key}`] = JSON.stringify(allEnv[key]);
+      viteEnvVars[`process.env.${key}`] = JSON.stringify(allEnv[key]);
     }
   }
 

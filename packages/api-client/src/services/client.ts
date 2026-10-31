@@ -18,14 +18,15 @@ export const setApiBaseUrl = (url: string): void => {
 export const getApiBaseUrl = (): string => {
   if (customBaseUrl) return customBaseUrl;
   try {
-    if (typeof window !== 'undefined') {
-      const meta = typeof import.meta !== 'undefined' ? (import.meta as any)?.env : undefined;
-      const envUrl = meta?.VITE_API_BASE_URL || meta?.VITE_API_URL || (window as any)?.__ENV__?.VITE_API_BASE_URL;
-      if (envUrl) return envUrl;
-    }
+    const globalObj = typeof globalThis !== 'undefined' ? (globalThis as any) : {};
+    const win = typeof window !== 'undefined' ? (window as any) : {};
+    const env = globalObj?.process?.env || win?.__ENV__ || {};
+    const envUrl = env.VITE_API_BASE_URL || env.VITE_API_URL || env.EXPO_PUBLIC_API_BASE_URL;
+    if (envUrl) return envUrl;
   } catch {
-    // Fallback if import.meta is unavailable
+    // Ignore env error
   }
+
   return 'http://localhost:5000/api/v1';
 };
 

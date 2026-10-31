@@ -1,17 +1,17 @@
 import type { MockTicketDto } from '@ticketshield/types';
 
 export const getOrganizerApiBase = (): string => {
-  if (typeof window !== 'undefined') {
-    const envUrl =
-      ((import.meta as any)?.env || {}).VITE_ORGANIZER_API_BASE_URL ||
-      ((import.meta as any)?.env || {}).VITE_ORGANIZER_API_URL ||
-      (window as { __ENV__?: { VITE_ORGANIZER_API_BASE_URL?: string } }).__ENV__
-        ?.VITE_ORGANIZER_API_BASE_URL;
+  try {
+    const globalObj = typeof globalThis !== 'undefined' ? (globalThis as any) : {};
+    const win = typeof window !== 'undefined' ? (window as any) : {};
+    const env = globalObj?.process?.env || win?.__ENV__ || {};
+    const envUrl = env.VITE_ORGANIZER_API_BASE_URL || env.VITE_ORGANIZER_API_URL;
     if (envUrl) {
       const clean = String(envUrl).replace(/\/$/, '');
       return clean.endsWith('/api/organizer') ? clean : `${clean}/api/organizer`;
     }
-  }
+  } catch {}
+
   // Gateway-First: Mặc định định tuyến qua TicketShield.AntiBot.Gateway (:5006) để lọc Bot
   return 'http://localhost:5006/api/organizer';
 };

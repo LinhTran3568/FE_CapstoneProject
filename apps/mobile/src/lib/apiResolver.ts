@@ -23,28 +23,28 @@ function extractMetroHostIp(): string | null {
   try {
     const constantsObj = (Constants as any)?.default || Constants;
 
-    // Expo SDK 49+ / 50 Expo Config hostUri (e.g. "192.168.1.15:8081")
+    // 1. Expo SDK 49+ / 50 Expo Config hostUri (e.g. "192.168.1.88:8081")
     const hostUri = constantsObj?.expoConfig?.hostUri;
-    if (hostUri) {
+    if (hostUri && typeof hostUri === 'string') {
       const ip = hostUri.split(':')[0];
       if (ip && ip !== 'localhost' && ip !== '127.0.0.1') {
         return ip;
       }
     }
 
-    // Expo Go manifest2 fallback
-    const manifest2DebuggerHost = constantsObj?.manifest2?.extra?.expoGo?.debuggerHost;
-    if (manifest2DebuggerHost && typeof manifest2DebuggerHost === 'string') {
-      const ip = manifest2DebuggerHost.split(':')[0];
+    // 2. Expo Go v2 configuration (SDK 49/50+)
+    const expoGoDebuggerHost = constantsObj?.expoGoConfig?.debuggerHost;
+    if (expoGoDebuggerHost && typeof expoGoDebuggerHost === 'string') {
+      const ip = expoGoDebuggerHost.split(':')[0];
       if (ip && ip !== 'localhost' && ip !== '127.0.0.1') {
         return ip;
       }
     }
 
-    // Older manifest fallback
-    const manifestDebuggerHost = constantsObj?.manifest?.debuggerHost;
-    if (manifestDebuggerHost && typeof manifestDebuggerHost === 'string') {
-      const ip = manifestDebuggerHost.split(':')[0];
+    // 3. Expo Go manifest2 fallback
+    const manifest2DebuggerHost = constantsObj?.manifest2?.extra?.expoGo?.debuggerHost;
+    if (manifest2DebuggerHost && typeof manifest2DebuggerHost === 'string') {
+      const ip = manifest2DebuggerHost.split(':')[0];
       if (ip && ip !== 'localhost' && ip !== '127.0.0.1') {
         return ip;
       }
