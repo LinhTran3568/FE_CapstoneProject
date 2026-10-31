@@ -101,7 +101,7 @@ export const EventPoster: React.FC<EventPosterProps> = ({
     <View
       style={[styles.container, { height }, rounded && styles.rounded, style]}
       accessibilityRole="image"
-      accessibilityLabel="Hình nền sân khấu sự kiện"
+      accessibilityLabel="Event concert stage poster"
     >
       <Svg width="100%" height="100%" viewBox="0 0 400 200" preserveAspectRatio="xMidYMid slice">
         <Defs>

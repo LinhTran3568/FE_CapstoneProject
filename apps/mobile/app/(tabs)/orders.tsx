@@ -20,10 +20,22 @@ import {
 } from 'lucide-react-native';
 import { theme } from '../../src/theme';
 import { fontFamilies } from '../../src/theme/typography';
-import { ticketService } from '../../src/services/ticketService';
-import type { MobileEscrowOrder } from '../../src/services/marketplaceService';
+import { resaleListingsApi } from '@ticketshield/api-client';
 import { FintechButton } from '../../src/components/FintechButton';
 import { formatPrice, formatEventDateTime } from '../../src/utils/format';
+
+interface MobileEscrowOrder {
+  orderId: string;
+  listingId: string;
+  eventName: string;
+  tierName: string;
+  seatZone: string;
+  totalPaid: number;
+  paymentReference: string;
+  status: 'ESCROW_HOLDING' | 'COMPLETED' | 'CANCELLED';
+  createdAt: string;
+  ticketPassCode: string;
+}
 
 export default function MobileOrdersScreen() {
   const router = useRouter();
@@ -36,8 +48,20 @@ export default function MobileOrdersScreen() {
     if (!silent) setLoading(true);
     setError(null);
     try {
-      const data = await ticketService.getUserOrders();
-      setOrders(data);
+      const tickets = await resaleListingsApi.getMyPurchasedTickets();
+      const mappedOrders: MobileEscrowOrder[] = (tickets || []).map((t) => ({
+        orderId: t.escrowId ? `ORD-${t.escrowId.slice(-8).toUpperCase()}` : `ORD-${t.ticketPassCode}`,
+        listingId: t.listingId,
+        eventName: t.eventName,
+        tierName: t.tierName,
+        seatZone: t.seatZone || 'General Admission',
+        totalPaid: t.totalAmountPaid,
+        paymentReference: t.paymentReference || 'TS-ESCROW',
+        status: t.status === 'VALID' ? 'COMPLETED' : t.status === 'CANCELLED' ? 'CANCELLED' : 'COMPLETED',
+        createdAt: t.purchasedAt || new Date().toISOString(),
+        ticketPassCode: t.ticketPassCode,
+      }));
+      setOrders(mappedOrders);
     } catch (err) {
       const message =
         err instanceof Error ? err.message : 'Unable to load orders. Please try again.';

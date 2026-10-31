@@ -150,7 +150,7 @@ export async function checkGatewayHealth(
     return {
       ok: false,
       latencyMs,
-      error: err?.message || 'Không thể kết nối đến Gateway',
+      error: err?.message || 'Unable to connect to Gateway',
     };
   }
 }

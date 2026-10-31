@@ -70,7 +70,7 @@ async function run() {
   // 2. Dynamic API Gateway Resolver
   total++;
   try {
-    const { resolveApiGatewayUrl, initApiGateway } = require('../services/apiResolver.ts');
+    const { resolveApiGatewayUrl, initApiGateway } = require('../lib/apiResolver.ts');
     const { getApiBaseUrl, API_CONFIG } = require('@ticketshield/api-client');
 
     const gw = await resolveApiGatewayUrl();
@@ -94,7 +94,7 @@ async function run() {
   // 3. SecureStore Token Management & Adapter
   total++;
   try {
-    const { secureStorage, mobileSecureStoreAdapter } = require('../services/secureStore.ts');
+    const { secureStorage, mobileSecureStoreAdapter } = require('../lib/secureStore.ts');
     const { setTokenAdapter, getTokenAdapter } = require('@ticketshield/api-client');
 
     // Clear initial
@@ -143,7 +143,7 @@ async function run() {
   // 4. Gherkin Acceptance Criteria (First Launch -> Login -> Tabs -> Logout)
   total++;
   try {
-    const { secureStorage } = require('../services/secureStore.ts');
+    const { secureStorage } = require('../lib/secureStore.ts');
 
     // GIVEN ứng dụng di động TicketShield khởi động lần đầu
     // WHEN chưa có token trong SecureStore

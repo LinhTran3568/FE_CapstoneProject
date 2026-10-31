@@ -2,8 +2,8 @@ import { create } from 'zustand';
 import { User } from '@ticketshield/types';
 import { LoginFormData, RegisterFormData } from '@ticketshield/validation';
 import { authApi, onUnauthorized } from '@ticketshield/api-client';
-import { secureStorage } from '../services/secureStore';
-import { initApiGateway, GatewayInfo } from '../services/apiResolver';
+import { secureStorage } from '../lib/secureStore';
+import { initApiGateway, GatewayInfo } from '../lib/apiResolver';
 
 interface AuthState {
   user: User | null;
@@ -68,7 +68,7 @@ export const useAuthStore = create<AuthState>((set, get) => {
         const errorMsg =
           err?.message ||
           err?.response?.data?.message ||
-          'Đăng nhập thất bại. Vui lòng kiểm tra lại thông tin hoặc kết nối máy chủ.';
+          'Sign in failed. Please check your credentials or server connection.';
         set({
           isLoading: false,
           error: errorMsg,
@@ -103,7 +103,7 @@ export const useAuthStore = create<AuthState>((set, get) => {
         const errorMsg =
           err?.message ||
           err?.response?.data?.message ||
-          'Đăng ký thất bại. Vui lòng kiểm tra lại thông tin.';
+          'Registration failed. Please check your information.';
         set({
           isLoading: false,
           error: errorMsg,

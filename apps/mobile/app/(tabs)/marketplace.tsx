@@ -28,10 +28,10 @@ import {
   RefreshCw,
   Ticket,
 } from 'lucide-react-native';
-import type { ResaleListingDetailDto } from '@ticketshield/types';
+import type { ResaleListingDetailDto, HoldListingForPurchaseResponse } from '@ticketshield/types';
+import { resaleListingsApi } from '@ticketshield/api-client';
 import { theme } from '../../src/theme';
 import { fontFamilies } from '../../src/theme/typography';
-import { marketplaceService } from '../../src/services/marketplaceService';
 import { useAuthStore } from '../../src/stores/authStore';
 import { EventPoster } from '../../src/components/EventPoster';
 import { FintechButton } from '../../src/components/FintechButton';
@@ -73,9 +73,7 @@ export default function MarketplaceScreen() {
   const [error, setError] = useState<string | null>(null);
 
   const [selectedListing, setSelectedListing] = useState<ResaleListingDetailDto | null>(null);
-  const [holdData, setHoldData] = useState<Awaited<
-    ReturnType<typeof marketplaceService.holdListing>
-  > | null>(null);
+  const [holdData, setHoldData] = useState<HoldListingForPurchaseResponse | null>(null);
   const [isHolding, setIsHolding] = useState(false);
   const [isCheckingTransfer, setIsCheckingTransfer] = useState(false);
   const [purchaseSuccess, setPurchaseSuccess] = useState(false);
@@ -91,8 +89,11 @@ export default function MarketplaceScreen() {
     if (!silent) setLoading(true);
     setError(null);
     try {
-      const data = await marketplaceService.getListings({ keyword: term });
-      setListings(data);
+      const res = await resaleListingsApi.getMarketplaceListings({
+        keyword: term.trim() || undefined,
+        size: 50,
+      });
+      setListings(res?.items || []);
     } catch (err) {
       const message =
         err instanceof Error ? err.message : 'Unable to load marketplace. Please try again.';
@@ -154,7 +155,10 @@ export default function MarketplaceScreen() {
     setIsHolding(true);
     setPaymentNote(null);
     try {
-      const hold = await marketplaceService.holdListing(selectedListing, buyerInfo);
+      const hold = await resaleListingsApi.holdListing(selectedListing.listingId, {
+        recipientName: buyerInfo.fullName,
+        recipientEmail: buyerInfo.email,
+      });
       setHoldData(hold);
     } catch (err) {
       const message =
@@ -170,7 +174,7 @@ export default function MarketplaceScreen() {
     setIsCheckingTransfer(true);
     setPaymentNote(null);
     try {
-      const status = await marketplaceService.checkPaymentStatus(selectedListing.listingId);
+      const status = await resaleListingsApi.getPaymentStatus(selectedListing.listingId);
       const escrowStatus = status?.escrowStatus?.toLowerCase();
       const listingStatus = status?.listingStatus?.toLowerCase();
       const hasFunds =
@@ -186,9 +190,6 @@ export default function MarketplaceScreen() {
         return;
       }
 
-      await marketplaceService.completeEscrowPurchase(selectedListing, holdData, buyerInfo, {
-        simulateWebhook: false,
-      });
       setPurchaseSuccess(true);
     } catch (err) {
       const message =
@@ -205,7 +206,14 @@ export default function MarketplaceScreen() {
     if (!selectedListing || !holdData) return;
     setIsCheckingTransfer(true);
     try {
-      await marketplaceService.completeEscrowPurchase(selectedListing, holdData, buyerInfo);
+      try {
+        await resaleListingsApi.simulatePaymentSuccess(selectedListing.listingId);
+      } catch {
+        await resaleListingsApi.simulatePaymentWebhook(
+          holdData.paymentReference,
+          holdData.totalBuyerPaid
+        );
+      }
       setPurchaseSuccess(true);
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Payment simulation failed.';

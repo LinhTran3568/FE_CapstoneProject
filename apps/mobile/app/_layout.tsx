@@ -52,7 +52,7 @@ function AuthNavigationCoordinator() {
         <StatusBar style="light" />
         <FintechShieldLogo size={64} showSubtitle={false} />
         <ActivityIndicator size="large" color={theme.colors.primary} style={styles.spinner} />
-        <Text style={styles.loadingText}>Đang khởi tạo bảo mật TicketShield...</Text>
+        <Text style={styles.loadingText}>Securing TicketShield session...</Text>
       </View>
     );
   }
@@ -73,9 +73,9 @@ function AuthNavigationCoordinator() {
       >
         <Stack.Screen name="(auth)" options={{ headerShown: false }} />
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="event/[id]" options={{ title: 'Chi tiết sự kiện' }} />
-        <Stack.Screen name="ticket/[id]" options={{ title: 'Vé điện tử' }} />
-        <Stack.Screen name="verify" options={{ title: 'Xác thực vé' }} />
+        <Stack.Screen name="event/[id]" options={{ title: 'Event Details' }} />
+        <Stack.Screen name="ticket/[id]" options={{ title: 'Digital Pass' }} />
+        <Stack.Screen name="verify" options={{ title: 'Verify Ticket' }} />
       </Stack>
     </>
   );

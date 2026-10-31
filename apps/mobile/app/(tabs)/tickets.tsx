@@ -27,7 +27,8 @@ import {
 import { theme } from '../../src/theme';
 import { fontFamilies } from '../../src/theme/typography';
 import type { PurchasedTicketDto } from '@ticketshield/types';
-import { ticketService } from '../../src/services/ticketService';
+import { resaleListingsApi } from '@ticketshield/api-client';
+import { generateRotatingToken } from '../../src/utils/totp';
 import { FintechButton } from '../../src/components/FintechButton';
 import { EventPoster } from '../../src/components/EventPoster';
 import { formatEventDate } from '../../src/utils/format';
@@ -57,7 +58,7 @@ export default function MobileTicketsScreen() {
     if (!silent) setLoading(true);
     setError(null);
     try {
-      const data = await ticketService.getUserTickets();
+      const data = await resaleListingsApi.getMyPurchasedTickets();
       setTickets(data);
     } catch (err) {
       const message =
@@ -83,7 +84,7 @@ export default function MobileTicketsScreen() {
     setQrLoadFailed(false);
 
     const updateToken = () => {
-      const res = ticketService.generateRotatingToken(selectedTicket.ticketPassCode);
+      const res = generateRotatingToken(selectedTicket.ticketPassCode);
       setRotatingToken(res.token);
       setSecondsRemaining(res.secondsRemaining);
     };

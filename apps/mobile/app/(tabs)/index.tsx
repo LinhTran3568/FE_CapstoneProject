@@ -1,5 +1,12 @@
-import React from 'react';
-import { View, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import React, { useEffect, useState, useCallback } from 'react';
+import {
+  View,
+  StyleSheet,
+  ScrollView,
+  TouchableOpacity,
+  ActivityIndicator,
+  RefreshControl,
+} from 'react-native';
 import { Text } from '../../src/components/AppText';
 import { useRouter } from 'expo-router';
 import {
@@ -11,52 +18,64 @@ import {
   MapPin,
   ScanLine,
   Building2,
-  ChevronRight,
+  AlertTriangle,
 } from 'lucide-react-native';
+import { eventsApi, TrendingEventDto } from '@ticketshield/api-client';
 import { theme } from '../../src/theme';
 import { useAuthStore } from '../../src/stores/authStore';
 import { GatewayStatusBadge } from '../../src/components/GatewayStatusBadge';
 import { EventPoster } from '../../src/components/EventPoster';
-import { formatPrice, initialsOf } from '../../src/utils/format';
-
-const FEATURED_EVENT = {
-  id: 'atsh-2026',
-  title: 'Anh Trai Say Hi Live Concert 2026',
-  tour: 'The Grand Arena World Tour',
-  dateLabel: 'Saturday, Sep 19, 2026 • 19:30',
-  venue: 'Military Zone 7 Stadium, HCMC',
-  priceFrom: 800000,
-  organizer: 'VieON & Vie Channel',
-};
-
-const TRENDING_EVENTS = [
-  {
-    id: 'my-tam-tri-am',
-    title: 'My Tam - Live Concert Tri Am',
-    dateLabel: 'Saturday, May 10, 2026',
-    venue: 'My Dinh National Stadium, Hanoi',
-    priceFrom: 1200000,
-    category: 'Concert & Live',
-  },
-  {
-    id: 'ravolution-asia',
-    title: 'Ravolution Music Festival Asia 2026',
-    dateLabel: 'Sunday, Dec 20, 2026',
-    venue: 'SECC, District 7, HCMC',
-    priceFrom: 750000,
-    category: 'Festival EDM',
-  },
-];
+import { formatPrice, initialsOf, formatEventDateTime } from '../../src/utils/format';
+import { FintechButton } from '../../src/components/FintechButton';
 
 export default function MobileHomeScreen() {
   const router = useRouter();
   const user = useAuthStore((state) => state.user);
+
+  const [trendingEvents, setTrendingEvents] = useState<TrendingEventDto[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchHomeData = useCallback(async (silent = false) => {
+    if (!silent) setLoading(true);
+    setError(null);
+    try {
+      const events = await eventsApi.getTrendingEvents({ limit: 6 });
+      setTrendingEvents(events || []);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Unable to connect to events service.';
+      setError(msg);
+    } finally {
+      if (!silent) setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchHomeData();
+  }, [fetchHomeData]);
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await fetchHomeData(true);
+    setRefreshing(false);
+  };
+
+  const heroEvent = trendingEvents[0];
+  const listEvents = trendingEvents.slice(1);
 
   return (
     <ScrollView
       style={styles.container}
       contentContainerStyle={styles.content}
       showsVerticalScrollIndicator={false}
+      refreshControl={
+        <RefreshControl
+          refreshing={refreshing}
+          onRefresh={handleRefresh}
+          tintColor={theme.colors.primary}
+        />
+      }
     >
       {/* Top Header */}
       <View style={styles.header}>
@@ -79,136 +98,186 @@ export default function MobileHomeScreen() {
         <GatewayStatusBadge />
       </View>
 
-      {/* Hero Featured Event */}
-      <TouchableOpacity
-        style={styles.heroCard}
-        onPress={() => router.push('/event/atsh-2026')}
-        activeOpacity={0.9}
-      >
-        <EventPoster seed="atsh-2026" height={190} />
-        <View style={styles.heroOverlay}>
-          <View style={styles.heroBadge}>
-            <Calendar size={12} color={theme.colors.text} />
-            <Text style={styles.heroBadgeText}>{FEATURED_EVENT.dateLabel}</Text>
-          </View>
-          <Text style={styles.heroEyebrow}>{FEATURED_EVENT.tour}</Text>
-          <Text style={styles.heroTitle}>{FEATURED_EVENT.title}</Text>
-          <View style={styles.heroFooter}>
-            <View style={styles.heroVenue}>
-              <MapPin size={13} color={theme.colors.textSecondary} />
-              <Text style={styles.heroVenueText} numberOfLines={1}>
-                {FEATURED_EVENT.venue}
-              </Text>
-            </View>
-            <View style={styles.heroCta}>
-              <Text style={styles.heroCtaText}>Get Tickets</Text>
-              <ArrowRight size={14} color={theme.colors.onPrimary} />
-            </View>
-          </View>
+      {/* Loading State */}
+      {loading ? (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={theme.colors.primary} />
+          <Text style={styles.loadingText}>Connecting to TicketShield Gateway...</Text>
         </View>
-      </TouchableOpacity>
-
-      {/* Navigation Quick Menu (Matching Web: Marketplace, Origin Store, Sell, My Tickets) */}
-      <View style={styles.quickGrid}>
-        <TouchableOpacity
-          style={styles.gridItem}
-          onPress={() => router.push('/(tabs)/marketplace')}
-          activeOpacity={0.85}
-        >
-          <View style={styles.gridIcon}>
-            <Store size={22} color={theme.colors.primary} />
-          </View>
-          <Text style={styles.gridTitle}>Marketplace</Text>
-          <Text style={styles.gridSubtitle}>Fan-to-fan resale</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.gridItem}
-          onPress={() => router.push('/event/atsh-2026')}
-          activeOpacity={0.85}
-        >
-          <View style={[styles.gridIcon, styles.gridIconOrigin]}>
-            <Building2 size={22} color="#38BDF8" />
-          </View>
-          <Text style={styles.gridTitle}>Origin Store</Text>
-          <Text style={styles.gridSubtitle}>Direct from organizer</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.gridItem}
-          onPress={() => router.push('/verify')}
-          activeOpacity={0.85}
-        >
-          <View style={[styles.gridIcon, styles.gridIconSell]}>
-            <ScanLine size={22} color={theme.colors.success} />
-          </View>
-          <Text style={styles.gridTitle}>Sell Ticket</Text>
-          <Text style={styles.gridSubtitle}>Verify & list ticket</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.gridItem}
-          onPress={() => router.push('/(tabs)/tickets')}
-          activeOpacity={0.85}
-        >
-          <View style={[styles.gridIcon, styles.gridIconNeutral]}>
-            <Ticket size={22} color={theme.colors.text} />
-          </View>
-          <Text style={styles.gridTitle}>My Tickets</Text>
-          <Text style={styles.gridSubtitle}>Live digital passes</Text>
-        </TouchableOpacity>
-      </View>
-
-      {/* Trust & Escrow Guarantee Banner */}
-      <View style={styles.escrowBanner}>
-        <ShieldCheck size={20} color={theme.colors.success} />
-        <View style={styles.escrowBannerText}>
-          <Text style={styles.escrowBannerTitle}>100% Escrow Protection</Text>
-          <Text style={styles.escrowBannerDesc}>
-            Funds are held in secure escrow and only released to the seller after successful venue entry.
-          </Text>
+      ) : error ? (
+        <View style={styles.errorBox}>
+          <AlertTriangle size={24} color={theme.colors.danger} />
+          <Text style={styles.errorTitle}>Unable to load events</Text>
+          <Text style={styles.errorDesc}>{error}</Text>
+          <FintechButton
+            title="Try Again"
+            onPress={() => fetchHomeData()}
+            variant="secondary"
+            style={styles.retryBtn}
+          />
         </View>
-      </View>
+      ) : (
+        <>
+          {/* Hero Featured Event */}
+          {heroEvent && (
+            <TouchableOpacity
+              style={styles.heroCard}
+              onPress={() => router.push(`/event/${heroEvent.eventId || heroEvent.id || 'featured'}`)}
+              activeOpacity={0.9}
+            >
+              <EventPoster seed={heroEvent.eventId || heroEvent.name} height={190} />
+              <View style={styles.heroOverlay}>
+                <View style={styles.heroBadge}>
+                  <Calendar size={12} color={theme.colors.text} />
+                  <Text style={styles.heroBadgeText}>
+                    {formatEventDateTime(heroEvent.eventStartAt)}
+                  </Text>
+                </View>
+                <Text style={styles.heroEyebrow}>
+                  {heroEvent.category || heroEvent.artist || 'FEATURED EVENT'}
+                </Text>
+                <Text style={styles.heroTitle} numberOfLines={2}>
+                  {heroEvent.name}
+                </Text>
+                <View style={styles.heroFooter}>
+                  <View style={styles.heroVenue}>
+                    <MapPin size={13} color={theme.colors.textSecondary} />
+                    <Text style={styles.heroVenueText} numberOfLines={1}>
+                      {heroEvent.venue}
+                    </Text>
+                  </View>
+                  <View style={styles.heroCta}>
+                    <Text style={styles.heroCtaText}>Get Tickets</Text>
+                    <ArrowRight size={14} color={theme.colors.onPrimary} />
+                  </View>
+                </View>
+              </View>
+            </TouchableOpacity>
+          )}
 
-      {/* Section Header */}
-      <View style={styles.sectionHeader}>
-        <Text style={styles.sectionHeading}>Trending Events</Text>
-        <TouchableOpacity
-          onPress={() => router.push('/(tabs)/marketplace')}
-          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-        >
-          <Text style={styles.viewMoreText}>See All</Text>
-        </TouchableOpacity>
-      </View>
+          {/* Quick Navigation Grid */}
+          <View style={styles.quickGrid}>
+            <TouchableOpacity
+              style={styles.gridItem}
+              onPress={() => router.push('/(tabs)/marketplace')}
+              activeOpacity={0.85}
+            >
+              <View style={styles.gridIcon}>
+                <Store size={22} color={theme.colors.primary} />
+              </View>
+              <Text style={styles.gridTitle}>Marketplace</Text>
+              <Text style={styles.gridSubtitle}>Fan-to-fan resale</Text>
+            </TouchableOpacity>
 
-      {/* Event Cards */}
-      {TRENDING_EVENTS.map((event) => (
-        <TouchableOpacity
-          key={event.id}
-          style={styles.eventCard}
-          onPress={() => router.push('/(tabs)/marketplace')}
-          activeOpacity={0.9}
-        >
-          <EventPoster seed={event.id} height={120} />
-          <View style={styles.eventBody}>
-            <View style={styles.eventTopRow}>
-              <Text style={styles.eventCategory}>{event.category}</Text>
-              <Text style={styles.eventPriceFrom}>From {formatPrice(event.priceFrom)}</Text>
-            </View>
-            <Text style={styles.eventTitle}>{event.title}</Text>
-            <View style={styles.eventMetaRow}>
-              <Calendar size={13} color={theme.colors.textSecondary} />
-              <Text style={styles.eventMetaText}>{event.dateLabel}</Text>
-            </View>
-            <View style={styles.eventMetaRow}>
-              <MapPin size={13} color={theme.colors.textSecondary} />
-              <Text style={styles.eventMetaText} numberOfLines={1}>
-                {event.venue}
+            <TouchableOpacity
+              style={styles.gridItem}
+              onPress={() =>
+                router.push(
+                  heroEvent
+                    ? `/event/${heroEvent.eventId || heroEvent.id}`
+                    : '/(tabs)/marketplace'
+                )
+              }
+              activeOpacity={0.85}
+            >
+              <View style={[styles.gridIcon, styles.gridIconOrigin]}>
+                <Building2 size={22} color="#38BDF8" />
+              </View>
+              <Text style={styles.gridTitle}>Origin Store</Text>
+              <Text style={styles.gridSubtitle}>Direct from organizer</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.gridItem}
+              onPress={() => router.push('/verify')}
+              activeOpacity={0.85}
+            >
+              <View style={[styles.gridIcon, styles.gridIconSell]}>
+                <ScanLine size={22} color={theme.colors.success} />
+              </View>
+              <Text style={styles.gridTitle}>Sell Ticket</Text>
+              <Text style={styles.gridSubtitle}>Verify & list ticket</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.gridItem}
+              onPress={() => router.push('/(tabs)/tickets')}
+              activeOpacity={0.85}
+            >
+              <View style={[styles.gridIcon, styles.gridIconNeutral]}>
+                <Ticket size={22} color={theme.colors.text} />
+              </View>
+              <Text style={styles.gridTitle}>My Tickets</Text>
+              <Text style={styles.gridSubtitle}>Live digital passes</Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* Trust Banner */}
+          <View style={styles.escrowBanner}>
+            <ShieldCheck size={20} color={theme.colors.success} />
+            <View style={styles.escrowBannerText}>
+              <Text style={styles.escrowBannerTitle}>100% Escrow Protection</Text>
+              <Text style={styles.escrowBannerDesc}>
+                Funds are held in secure escrow and only released to the seller after successful venue entry.
               </Text>
             </View>
           </View>
-        </TouchableOpacity>
-      ))}
+
+          {/* Section Header */}
+          {listEvents.length > 0 && (
+            <>
+              <View style={styles.sectionHeader}>
+                <Text style={styles.sectionHeading}>Trending Events</Text>
+                <TouchableOpacity
+                  onPress={() => router.push('/(tabs)/marketplace')}
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                >
+                  <Text style={styles.viewMoreText}>See All</Text>
+                </TouchableOpacity>
+              </View>
+
+              {/* Event Cards */}
+              {listEvents.map((event) => {
+                const eventKey = event.eventId || event.id || event.name;
+                const price = event.minResalePrice || event.originalPriceFrom || 0;
+                return (
+                  <TouchableOpacity
+                    key={eventKey}
+                    style={styles.eventCard}
+                    onPress={() => router.push(`/event/${eventKey}`)}
+                    activeOpacity={0.9}
+                  >
+                    <EventPoster seed={eventKey} height={120} />
+                    <View style={styles.eventBody}>
+                      <View style={styles.eventTopRow}>
+                        <Text style={styles.eventCategory}>
+                          {event.category || event.artist || 'LIVE'}
+                        </Text>
+                        {price > 0 && (
+                          <Text style={styles.eventPriceFrom}>From {formatPrice(price)}</Text>
+                        )}
+                      </View>
+                      <Text style={styles.eventTitle}>{event.name}</Text>
+                      <View style={styles.eventMetaRow}>
+                        <Calendar size={13} color={theme.colors.textSecondary} />
+                        <Text style={styles.eventMetaText}>
+                          {formatEventDateTime(event.eventStartAt)}
+                        </Text>
+                      </View>
+                      <View style={styles.eventMetaRow}>
+                        <MapPin size={13} color={theme.colors.textSecondary} />
+                        <Text style={styles.eventMetaText} numberOfLines={1}>
+                          {event.venue}
+                        </Text>
+                      </View>
+                    </View>
+                  </TouchableOpacity>
+                );
+              })}
+            </>
+          )}
+        </>
+      )}
     </ScrollView>
   );
 }
@@ -253,6 +322,41 @@ const styles = StyleSheet.create({
   },
   gatewaySlot: {
     marginBottom: theme.spacing.xs,
+  },
+  loadingContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: theme.spacing['3xl'],
+    gap: theme.spacing.md,
+  },
+  loadingText: {
+    fontSize: theme.typography.sizes.sm,
+    color: theme.colors.textSecondary,
+  },
+  errorBox: {
+    backgroundColor: theme.colors.surface,
+    borderWidth: 1,
+    borderColor: theme.colors.dangerBorder,
+    borderRadius: theme.radii.xl,
+    padding: theme.spacing.xl,
+    alignItems: 'center',
+    gap: theme.spacing.sm,
+    marginVertical: theme.spacing.xl,
+  },
+  errorTitle: {
+    fontSize: theme.typography.sizes.base,
+    fontWeight: theme.typography.weights.bold,
+    color: theme.colors.text,
+  },
+  errorDesc: {
+    fontSize: theme.typography.sizes.xs,
+    color: theme.colors.textSecondary,
+    textAlign: 'center',
+    maxWidth: 280,
+  },
+  retryBtn: {
+    marginTop: theme.spacing.sm,
+    minWidth: 140,
   },
   heroCard: {
     backgroundColor: theme.colors.surface,

@@ -3,7 +3,7 @@ import { View, StyleSheet, TouchableOpacity } from 'react-native';
 import { Text } from './AppText';
 import { Wifi, RefreshCw } from 'lucide-react-native';
 import { theme } from '../theme';
-import { checkGatewayHealth } from '../services/apiResolver';
+import { checkGatewayHealth } from '../lib/apiResolver';
 import { useAuthStore } from '../stores/authStore';
 
 interface GatewayStatusBadgeProps {
