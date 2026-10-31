@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import {
   View,
-  Text,
   StyleSheet,
   ScrollView,
   KeyboardAvoidingView,
@@ -9,6 +8,7 @@ import {
   TouchableOpacity,
   Alert,
 } from 'react-native';
+import { Text } from '../../src/components/AppText';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Mail, Lock, User as UserIcon, Phone, ShieldCheck, ArrowLeft } from 'lucide-react-native';
@@ -34,29 +34,27 @@ export default function RegisterScreen() {
     const errors: Record<string, string> = {};
 
     if (!fullName.trim() || fullName.trim().length < 2) {
-      errors.fullName = 'Họ và tên phải có ít nhất 2 ký tự';
+      errors.fullName = 'Full name must be at least 2 characters';
     }
 
     if (!email.trim()) {
-      errors.email = 'Vui lòng nhập địa chỉ email';
+      errors.email = 'Please enter your email address';
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
-      errors.email = 'Địa chỉ email không đúng định dạng';
+      errors.email = 'Please enter a valid email address';
     }
 
     if (!phoneNumber.trim()) {
-      errors.phoneNumber = 'Vui lòng nhập số điện thoại';
-    } else if (!/(84|0[3|5|7|8|9])+([0-9]{8})\b/.test(phoneNumber.trim())) {
-      errors.phoneNumber = 'Số điện thoại Việt Nam không hợp lệ';
+      errors.phoneNumber = 'Please enter your phone number';
     }
 
     if (!password) {
-      errors.password = 'Vui lòng nhập mật khẩu';
+      errors.password = 'Please enter a password';
     } else if (password.length < 8) {
-      errors.password = 'Mật khẩu phải có ít nhất 8 ký tự';
+      errors.password = 'Password must be at least 8 characters';
     }
 
     if (password !== confirmPassword) {
-      errors.confirmPassword = 'Mật khẩu xác nhận không khớp';
+      errors.confirmPassword = 'Passwords do not match';
     }
 
     setValidationErrors(errors);
@@ -79,11 +77,11 @@ export default function RegisterScreen() {
 
     if (success) {
       Alert.alert(
-        'Đăng Ký Thành Công!',
-        'Tài khoản của bạn đã được khởi tạo và phiên bảo mật đã được lưu an toàn.',
+        'Account Created',
+        'Your TicketShield account is ready. Welcome to verified escrow ticketing.',
         [
           {
-            text: 'Bắt đầu sử dụng',
+            text: 'Get Started',
             onPress: () => router.replace('/(tabs)'),
           },
         ]
@@ -102,24 +100,21 @@ export default function RegisterScreen() {
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          {/* Back button */}
           <TouchableOpacity
             style={styles.backRow}
             onPress={() => router.back()}
             activeOpacity={0.7}
           >
             <ArrowLeft size={18} color={theme.colors.textSecondary} />
-            <Text style={styles.backRowText}>Quay lại Đăng nhập</Text>
+            <Text style={styles.backRowText}>Back to Sign In</Text>
           </TouchableOpacity>
 
-          {/* Logo */}
-          <FintechShieldLogo size={46} showSubtitle={false} />
+          <FintechShieldLogo size={48} showSubtitle={false} />
 
-          {/* Card */}
           <View style={styles.card}>
-            <Text style={styles.cardTitle}>Tạo Tài Khoản Mới</Text>
+            <Text style={styles.cardTitle}>Create Account</Text>
             <Text style={styles.cardSubtitle}>
-              Tham gia mạng lưới giao dịch vé an toàn TicketShield AI
+              Join TicketShield for verified, escrow-backed ticket exchange
             </Text>
 
             {error && (
@@ -129,8 +124,8 @@ export default function RegisterScreen() {
             )}
 
             <FintechInput
-              label="Họ và Tên"
-              placeholder="Nguyễn Văn A"
+              label="Full Name"
+              placeholder="e.g. Alex Morgan"
               value={fullName}
               onChangeText={(text) => {
                 setFullName(text);
@@ -141,8 +136,8 @@ export default function RegisterScreen() {
             />
 
             <FintechInput
-              label="Email"
-              placeholder="nhap.email@vidu.com"
+              label="Email Address"
+              placeholder="name@example.com"
               value={email}
               onChangeText={(text) => {
                 setEmail(text);
@@ -155,8 +150,8 @@ export default function RegisterScreen() {
             />
 
             <FintechInput
-              label="Số điện thoại"
-              placeholder="0987654321"
+              label="Phone Number"
+              placeholder="0912 345 678"
               value={phoneNumber}
               onChangeText={(text) => {
                 setPhoneNumber(text);
@@ -167,35 +162,34 @@ export default function RegisterScreen() {
               error={validationErrors.phoneNumber}
             />
 
-            {/* Role selection */}
             <View style={styles.roleContainer}>
-              <Text style={styles.roleLabel}>Mục đích sử dụng chính:</Text>
-              <View style={styles.roleRow}>
+              <Text style={styles.roleLabel}>I want to:</Text>
+              <View style={styles.roleSegment}>
                 <TouchableOpacity
-                  style={[styles.roleBtn, role === 'BUYER' && styles.roleBtnActive]}
+                  style={[styles.roleOption, role === 'BUYER' && styles.roleOptionActive]}
                   onPress={() => setRole('BUYER')}
                   activeOpacity={0.8}
                 >
-                  <Text style={[styles.roleBtnText, role === 'BUYER' && styles.roleBtnTextActive]}>
-                    Người Mua Vé
+                  <Text style={[styles.roleOptionText, role === 'BUYER' && styles.roleOptionTextActive]}>
+                    Buy Tickets
                   </Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity
-                  style={[styles.roleBtn, role === 'RESELLER' && styles.roleBtnActive]}
+                  style={[styles.roleOption, role === 'RESELLER' && styles.roleOptionActive]}
                   onPress={() => setRole('RESELLER')}
                   activeOpacity={0.8}
                 >
-                  <Text style={[styles.roleBtnText, role === 'RESELLER' && styles.roleBtnTextActive]}>
-                    Người Bán Sang Nhượng
+                  <Text style={[styles.roleOptionText, role === 'RESELLER' && styles.roleOptionTextActive]}>
+                    Resell Tickets
                   </Text>
                 </TouchableOpacity>
               </View>
             </View>
 
             <FintechInput
-              label="Mật khẩu (Tối thiểu 8 ký tự)"
-              placeholder="••••••••"
+              label="Password"
+              placeholder="At least 8 characters"
               value={password}
               onChangeText={(text) => {
                 setPassword(text);
@@ -207,8 +201,8 @@ export default function RegisterScreen() {
             />
 
             <FintechInput
-              label="Xác nhận mật khẩu"
-              placeholder="••••••••"
+              label="Confirm Password"
+              placeholder="Re-enter password"
               value={confirmPassword}
               onChangeText={(text) => {
                 setConfirmPassword(text);
@@ -220,19 +214,17 @@ export default function RegisterScreen() {
             />
 
             <FintechButton
-              title="Đăng Ký Tài Khoản"
+              title="Create Account"
               onPress={handleRegister}
               loading={isLoading}
-              variant="primary"
-              icon={<ShieldCheck size={18} color="#0b0f19" />}
+              icon={<ShieldCheck size={18} color={theme.colors.onPrimary} />}
               style={styles.submitBtn}
             />
 
-            {/* Login Link */}
-            <View style={styles.footerLinkRow}>
-              <Text style={styles.footerLinkText}>Đã có tài khoản?</Text>
-              <TouchableOpacity onPress={() => router.push('/(auth)/login')}>
-                <Text style={styles.footerLinkHighlight}>Đăng nhập ngay</Text>
+            <View style={styles.loginRow}>
+              <Text style={styles.loginText}>Already have an account?</Text>
+              <TouchableOpacity onPress={() => router.push('/(auth)/login')} activeOpacity={0.7}>
+                <Text style={styles.loginHighlight}>Sign In</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -252,107 +244,110 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingHorizontal: theme.spacing.lg,
-    paddingBottom: theme.spacing['4xl'],
-    alignItems: 'center',
+    paddingVertical: theme.spacing.md,
   },
   backRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    alignSelf: 'flex-start',
-    marginVertical: theme.spacing.sm,
+    gap: 8,
+    marginBottom: theme.spacing.sm,
   },
   backRowText: {
-    fontSize: 13,
+    fontSize: theme.typography.sizes.sm,
     color: theme.colors.textSecondary,
     fontWeight: theme.typography.weights.medium,
   },
   card: {
     backgroundColor: theme.colors.surface,
+    borderRadius: theme.radii['2xl'],
     borderWidth: 1,
     borderColor: theme.colors.border,
-    borderRadius: theme.radii.xl,
     padding: theme.spacing.xl,
-    width: '100%',
-    ...theme.shadows.md,
+    marginTop: theme.spacing.sm,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.35,
+    shadowRadius: 16,
+    elevation: 8,
   },
   cardTitle: {
-    fontSize: theme.typography.sizes.xl,
+    fontSize: theme.typography.sizes['2xl'],
     fontWeight: theme.typography.weights.bold,
     color: theme.colors.text,
-    marginBottom: 4,
   },
   cardSubtitle: {
     fontSize: theme.typography.sizes.sm,
     color: theme.colors.textSecondary,
-    marginBottom: theme.spacing.xl,
+    marginTop: theme.spacing.xs,
+    marginBottom: theme.spacing.md,
   },
   errorBox: {
     backgroundColor: theme.colors.dangerLight,
     borderWidth: 1,
-    borderColor: theme.colors.danger,
+    borderColor: theme.colors.dangerBorder,
     borderRadius: theme.radii.md,
     padding: theme.spacing.md,
-    marginBottom: theme.spacing.lg,
+    marginBottom: theme.spacing.md,
   },
   errorBoxText: {
-    color: theme.colors.danger,
     fontSize: theme.typography.sizes.sm,
-    fontWeight: theme.typography.weights.medium,
+    color: theme.colors.danger,
+    lineHeight: 18,
   },
   roleContainer: {
-    marginBottom: theme.spacing.lg,
+    marginBottom: theme.spacing.md,
   },
   roleLabel: {
-    fontSize: theme.typography.sizes.sm,
-    fontWeight: theme.typography.weights.medium,
+    fontSize: theme.typography.sizes.xs,
+    fontWeight: theme.typography.weights.semibold,
     color: theme.colors.textSecondary,
-    marginBottom: theme.spacing.xs,
+    marginBottom: 6,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
-  roleRow: {
+  roleSegment: {
     flexDirection: 'row',
-    gap: theme.spacing.sm,
+    gap: 8,
+    backgroundColor: theme.colors.surfaceElevated,
+    padding: 3,
+    borderRadius: theme.radii.lg,
   },
-  roleBtn: {
+  roleOption: {
     flex: 1,
-    paddingVertical: 10,
-    borderRadius: theme.radii.md,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    backgroundColor: theme.colors.inputBackground,
+    paddingVertical: 9,
     alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: theme.radii.md,
   },
-  roleBtnActive: {
-    borderColor: theme.colors.primary,
-    backgroundColor: 'rgba(6, 182, 212, 0.12)',
+  roleOptionActive: {
+    backgroundColor: theme.colors.primary,
   },
-  roleBtnText: {
-    fontSize: 12,
-    fontWeight: theme.typography.weights.medium,
+  roleOptionText: {
+    fontSize: theme.typography.sizes.xs,
+    fontWeight: theme.typography.weights.semibold,
     color: theme.colors.textSecondary,
   },
-  roleBtnTextActive: {
-    color: theme.colors.primary,
+  roleOptionTextActive: {
+    color: theme.colors.onPrimary,
     fontWeight: theme.typography.weights.bold,
   },
   submitBtn: {
-    marginTop: theme.spacing.sm,
-    marginBottom: theme.spacing.lg,
+    marginTop: theme.spacing.md,
   },
-  footerLinkRow: {
+  loginRow: {
     flexDirection: 'row',
+    alignItems: 'center',
     justifyContent: 'center',
-    gap: 6,
-    paddingTop: theme.spacing.sm,
+    gap: theme.spacing.xs,
+    marginTop: theme.spacing.lg,
   },
-  footerLinkText: {
-    fontSize: 13,
+  loginText: {
+    fontSize: theme.typography.sizes.sm,
     color: theme.colors.textSecondary,
   },
-  footerLinkHighlight: {
-    fontSize: 13,
+  loginHighlight: {
+    fontSize: theme.typography.sizes.sm,
     fontWeight: theme.typography.weights.bold,
     color: theme.colors.primary,
   },
 });
-

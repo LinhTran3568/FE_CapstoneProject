@@ -50,18 +50,18 @@ async function run() {
   let passed = 0;
   let total = 0;
 
-  // 1. Verify Dark Fintech Theme Palette
+  // 1. Verify Warm Concert-First Theme Palette
   total++;
   try {
     const { theme } = require('../theme/index.ts');
-    assert(theme.colors.background === '#0b0f19', 'Background must be #0b0f19 (Obsidian Navy)');
-    assert(theme.colors.surface === '#161e2e', 'Surface must be #161e2e (Dark Slate)');
-    assert(theme.colors.primary === '#06b6d4', 'Primary brand must be #06b6d4 (Cyber Cyan)');
-    assert(theme.colors.success === '#10b981', 'Success must be #10b981 (Escrow Shield Green)');
-    assert(theme.colors.secondary === '#3b82f6', 'Secondary must be #3b82f6 (Fintech Blue)');
+    assert(theme.colors.background === '#0C0A09', 'Background must be #0C0A09 (Warm Near-Black)');
+    assert(theme.colors.surface === '#1C1714', 'Surface must be #1C1714 (Warm Surface)');
+    assert(theme.colors.primary === '#FF6B4A', 'Primary brand must be #FF6B4A (Signature Orange)');
+    assert(theme.colors.success === '#34D399', 'Success must be #34D399 (Escrow Shield Green)');
+    assert(theme.colors.info === '#60A5FA', 'Info must be #60A5FA (Escrow Blue)');
     assert(theme.typography.sizes.base === 15, 'Base typography must be 15');
     assert(theme.isDark === true, 'Theme must be dark mode');
-    console.log(' [PASS] 1. Dark Fintech Theme Palette verified (#0b0f19, #161e2e, #06b6d4, #10b981)');
+    console.log(' [PASS] 1. Warm Concert-First Theme Palette verified (#0C0A09, #1C1714, #FF6B4A, #34D399)');
     passed++;
   } catch (err) {
     console.error(' [FAIL] 1. Theme Palette:', err.message);

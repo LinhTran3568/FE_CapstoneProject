@@ -1,391 +1,647 @@
-import React, { useState, useEffect } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   View,
-  Text,
   StyleSheet,
-  ScrollView,
+  FlatList,
   TextInput,
   TouchableOpacity,
   Modal,
-  Image,
   ActivityIndicator,
-  Alert,
+  Image,
+  ScrollView,
 } from 'react-native';
+import { Text } from '../../src/components/AppText';
 import { useRouter } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   Search,
-  ShieldCheck,
-  Tag,
-  MapPin,
-  Calendar,
   X,
-  CreditCard,
-  Zap,
-  CheckCircle2,
+  ShieldCheck,
+  Calendar,
+  MapPin,
+  Tag,
   Clock,
+  CheckCircle2,
   ArrowRight,
-  Filter,
+  UserRound,
+  AlertTriangle,
+  RefreshCw,
+  Ticket,
 } from 'lucide-react-native';
+import type { ResaleListingDetailDto } from '@ticketshield/types';
 import { theme } from '../../src/theme';
-import { useAuthStore } from '../../src/stores/authStore';
-import { ResaleListingDetailDto, HoldListingForPurchaseResponse } from '@ticketshield/types';
+import { fontFamilies } from '../../src/theme/typography';
 import { marketplaceService } from '../../src/services/marketplaceService';
+import { useAuthStore } from '../../src/stores/authStore';
+import { EventPoster } from '../../src/components/EventPoster';
 import { FintechButton } from '../../src/components/FintechButton';
+import { formatPrice, formatEventDateTime } from '../../src/utils/format';
 
-export default function MobileMarketplaceScreen() {
+type PriceBand = 'ALL' | 'UNDER_1M' | 'FROM_1M_TO_2M' | 'OVER_2M';
+
+const PRICE_BANDS: { key: PriceBand; label: string }[] = [
+  { key: 'ALL', label: 'All' },
+  { key: 'UNDER_1M', label: '< 1M ₫' },
+  { key: 'FROM_1M_TO_2M', label: '1M – 2M ₫' },
+  { key: 'OVER_2M', label: '> 2M ₫' },
+];
+
+function matchesBand(price: number, band: PriceBand): boolean {
+  if (band === 'UNDER_1M') return price < 1_000_000;
+  if (band === 'FROM_1M_TO_2M') return price >= 1_000_000 && price <= 2_000_000;
+  if (band === 'OVER_2M') return price > 2_000_000;
+  return true;
+}
+
+function formatCountdown(totalSeconds: number): string {
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+}
+
+export default function MarketplaceScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const user = useAuthStore((state) => state.user);
 
   const [keyword, setKeyword] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState<'ALL' | 'CONCERT' | 'SPORTS' | 'EDM'>('ALL');
+  const [debouncedKeyword, setDebouncedKeyword] = useState('');
+  const [priceBand, setPriceBand] = useState<PriceBand>('ALL');
   const [listings, setListings] = useState<ResaleListingDetailDto[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  // Buy Modal State
   const [selectedListing, setSelectedListing] = useState<ResaleListingDetailDto | null>(null);
+  const [holdData, setHoldData] = useState<Awaited<
+    ReturnType<typeof marketplaceService.holdListing>
+  > | null>(null);
   const [isHolding, setIsHolding] = useState(false);
-  const [holdData, setHoldData] = useState<HoldListingForPurchaseResponse | null>(null);
-  const [isSimulatingPayment, setIsSimulatingPayment] = useState(false);
+  const [isCheckingTransfer, setIsCheckingTransfer] = useState(false);
   const [purchaseSuccess, setPurchaseSuccess] = useState(false);
-
-  const loadListings = async () => {
-    setLoading(true);
-    const data = await marketplaceService.getListings({ keyword });
-    setListings(data);
-    setLoading(false);
-  };
+  const [paymentNote, setPaymentNote] = useState<string | null>(null);
+  const [secondsLeft, setSecondsLeft] = useState(0);
 
   useEffect(() => {
-    loadListings();
+    const timer = setTimeout(() => setDebouncedKeyword(keyword.trim()), 350);
+    return () => clearTimeout(timer);
   }, [keyword]);
 
-  const handleOpenBuyModal = (listing: ResaleListingDetailDto) => {
-    setSelectedListing(listing);
-    setHoldData(null);
-    setPurchaseSuccess(false);
+  const loadListings = useCallback(async (term: string, silent = false) => {
+    if (!silent) setLoading(true);
+    setError(null);
+    try {
+      const data = await marketplaceService.getListings({ keyword: term });
+      setListings(data);
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : 'Unable to load marketplace. Please try again.';
+      setError(message);
+    } finally {
+      if (!silent) setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadListings(debouncedKeyword);
+  }, [debouncedKeyword, loadListings]);
+
+  useEffect(() => {
+    if (!holdData?.unlockAt) {
+      setSecondsLeft(0);
+      return;
+    }
+    const deadline = new Date(holdData.unlockAt).getTime();
+    const tick = () =>
+      setSecondsLeft(Math.max(0, Math.floor((deadline - Date.now()) / 1000)));
+    tick();
+    const interval = setInterval(tick, 1000);
+    return () => clearInterval(interval);
+  }, [holdData?.unlockAt]);
+
+  const filteredListings = useMemo(
+    () => listings.filter((listing) => matchesBand(listing.resalePrice, priceBand)),
+    [listings, priceBand]
+  );
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await loadListings(debouncedKeyword, true);
+    setRefreshing(false);
   };
 
-  const handleCloseModal = () => {
+  const resetFilters = () => {
+    setPriceBand('ALL');
+    setKeyword('');
+  };
+
+  const closeModal = () => {
+    if (isCheckingTransfer || isHolding) return;
     setSelectedListing(null);
     setHoldData(null);
     setPurchaseSuccess(false);
+    setPaymentNote(null);
   };
 
-  const handleHoldListing = async () => {
+  const buyerInfo = {
+    fullName: user?.fullName || 'TicketShield Buyer',
+    email: user?.email || 'buyer@ticketshield.vn',
+    phone: user?.phoneNumber || '0900000000',
+  };
+
+  const handleStartPurchase = async () => {
     if (!selectedListing) return;
     setIsHolding(true);
+    setPaymentNote(null);
     try {
-      const res = await marketplaceService.holdListing(selectedListing, {
-        fullName: user?.fullName || 'Khách Hàng',
-        email: user?.email || 'buyer@ticketshield.vn',
-        phone: user?.phoneNumber || '0987654321',
-      });
-      setHoldData(res);
-    } catch (err: any) {
-      Alert.alert('Lỗi khóa vé', err?.message || 'Không thể khóa vé lúc này.');
+      const hold = await marketplaceService.holdListing(selectedListing, buyerInfo);
+      setHoldData(hold);
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : 'Unable to reserve ticket right now. Please try again.';
+      setPaymentNote(message);
     } finally {
       setIsHolding(false);
     }
   };
 
-  const handleSimulatePayment = async () => {
+  const handleConfirmTransfer = async () => {
     if (!selectedListing || !holdData) return;
-    setIsSimulatingPayment(true);
+    setIsCheckingTransfer(true);
+    setPaymentNote(null);
     try {
-      await marketplaceService.completeEscrowPurchase(selectedListing, holdData, {
-        fullName: user?.fullName || 'Khách Hàng',
-        email: user?.email || 'buyer@ticketshield.vn',
-        phone: user?.phoneNumber || '0987654321',
+      const status = await marketplaceService.checkPaymentStatus(selectedListing.listingId);
+      const escrowStatus = status?.escrowStatus?.toLowerCase();
+      const listingStatus = status?.listingStatus?.toLowerCase();
+      const hasFunds =
+        escrowStatus === 'funded' ||
+        escrowStatus === 'released' ||
+        listingStatus === 'transacting' ||
+        listingStatus === 'sold';
+
+      if (!hasFunds) {
+        setPaymentNote(
+          'Payment not detected yet. Please ensure the exact reference was included in your transfer and retry in a moment.'
+        );
+        return;
+      }
+
+      await marketplaceService.completeEscrowPurchase(selectedListing, holdData, buyerInfo, {
+        simulateWebhook: false,
       });
       setPurchaseSuccess(true);
-    } catch (err: any) {
-      Alert.alert('Lỗi thanh toán', err?.message || 'Thanh toán chưa hoàn tất.');
+    } catch (err) {
+      const message =
+        err instanceof Error
+          ? err.message
+          : 'Unable to confirm payment. Please try again.';
+      setPaymentNote(message);
     } finally {
-      setIsSimulatingPayment(false);
+      setIsCheckingTransfer(false);
     }
   };
 
-  const formatPrice = (val: number) => {
-    return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(val);
+  const handleSimulatePayment = async () => {
+    if (!selectedListing || !holdData) return;
+    setIsCheckingTransfer(true);
+    try {
+      await marketplaceService.completeEscrowPurchase(selectedListing, holdData, buyerInfo);
+      setPurchaseSuccess(true);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Payment simulation failed.';
+      setPaymentNote(message);
+    } finally {
+      setIsCheckingTransfer(false);
+    }
+  };
+
+  const renderListing = ({ item }: { item: ResaleListingDetailDto }) => {
+    const hasDiscount = item.discountPercentage > 0;
+    return (
+      <TouchableOpacity
+        style={styles.card}
+        activeOpacity={0.92}
+        onPress={() => {
+          setSelectedListing(item);
+          setHoldData(null);
+          setPurchaseSuccess(false);
+          setPaymentNote(null);
+        }}
+      >
+        <View style={styles.posterWrap}>
+          <EventPoster seed={`${item.eventId}-${item.listingId}`} height={148} />
+          <View style={styles.badgeRow}>
+            <View style={styles.verifiedBadge}>
+              <ShieldCheck size={12} color={theme.colors.success} />
+              <Text style={styles.verifiedBadgeText}>VERIFIED ESCROW</Text>
+            </View>
+            {hasDiscount && (
+              <View style={styles.discountBadge}>
+                <Tag size={12} color={theme.colors.onPrimary} />
+                <Text style={styles.discountBadgeText}>
+                  -{Math.round(item.discountPercentage)}%
+                </Text>
+              </View>
+            )}
+          </View>
+        </View>
+
+        <View style={styles.cardBody}>
+          <Text style={styles.organizer} numberOfLines={1}>
+            {item.organizerName || 'Verified Organizer'}
+          </Text>
+          <Text style={styles.eventName} numberOfLines={2}>
+            {item.eventName}
+          </Text>
+
+          <View style={styles.metaRow}>
+            <Calendar size={14} color={theme.colors.textMuted} />
+            <Text style={styles.metaText} numberOfLines={1}>
+              {formatEventDateTime(item.eventStartAt)}
+            </Text>
+          </View>
+          <View style={styles.metaRow}>
+            <MapPin size={14} color={theme.colors.textMuted} />
+            <Text style={styles.metaText} numberOfLines={1}>
+              {item.eventVenue}
+            </Text>
+          </View>
+
+          <View style={styles.seatRow}>
+            <View style={styles.seatChip}>
+              <Text style={styles.seatLabel}>Tier</Text>
+              <Text style={styles.seatValue} numberOfLines={1}>
+                {item.tierName}
+              </Text>
+            </View>
+            <View style={styles.seatDivider} />
+            <View style={styles.seatChip}>
+              <Text style={styles.seatLabel}>Zone / Seat</Text>
+              <Text style={styles.seatValue} numberOfLines={1}>
+                {item.seatZone || 'General Admission'}
+              </Text>
+            </View>
+          </View>
+
+          <View style={styles.priceRow}>
+            <View style={styles.sellerRow}>
+              <UserRound size={14} color={theme.colors.textMuted} />
+              <Text style={styles.sellerName} numberOfLines={1}>
+                {item.sellerFullName}
+              </Text>
+            </View>
+            <View style={styles.priceBlock}>
+              {hasDiscount && (
+                <Text style={styles.originalPrice}>{formatPrice(item.originalPrice)}</Text>
+              )}
+              <Text style={styles.resalePrice}>{formatPrice(item.resalePrice)}</Text>
+            </View>
+          </View>
+
+          <View style={styles.cardCta}>
+            <Text style={styles.cardCtaText}>Buy with Escrow</Text>
+            <ArrowRight size={16} color={theme.colors.primary} />
+          </View>
+        </View>
+      </TouchableOpacity>
+    );
   };
 
   return (
     <View style={styles.container}>
-      {/* Search Header */}
-      <View style={styles.searchHeader}>
-        <View style={styles.searchBar}>
-          <Search size={18} color={theme.colors.textSecondary} />
-          <TextInput
-            style={styles.searchInput}
-            placeholder="Tìm theo sự kiện, ca sĩ, địa điểm..."
-            placeholderTextColor={theme.colors.textPlaceholder}
-            value={keyword}
-            onChangeText={setKeyword}
-          />
-          {keyword.length > 0 && (
-            <TouchableOpacity onPress={() => setKeyword('')}>
-              <X size={16} color={theme.colors.textSecondary} />
-            </TouchableOpacity>
-          )}
+      <View style={styles.header}>
+        <View>
+          <Text style={styles.title}>Marketplace</Text>
+          <Text style={styles.subtitle}>Verified fan-to-fan resale tickets</Text>
         </View>
-
-        {/* Category Pills */}
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.categoryRow}>
-          {[
-            { id: 'ALL', label: 'Tất Cả Vé' },
-            { id: 'CONCERT', label: 'Concert & Live' },
-            { id: 'EDM', label: 'Festival EDM' },
-            { id: 'SPORTS', label: 'Thể Thao' },
-          ].map((cat) => (
-            <TouchableOpacity
-              key={cat.id}
-              style={[
-                styles.categoryPill,
-                selectedCategory === cat.id && styles.categoryPillActive,
-              ]}
-              onPress={() => setSelectedCategory(cat.id as any)}
-            >
-              <Text
-                style={[
-                  styles.categoryPillText,
-                  selectedCategory === cat.id && styles.categoryPillTextActive,
-                ]}
-              >
-                {cat.label}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
+        <TouchableOpacity
+          style={styles.refreshButton}
+          onPress={handleRefresh}
+          accessibilityRole="button"
+          accessibilityLabel="Refresh listings"
+        >
+          <RefreshCw size={18} color={theme.colors.textSecondary} />
+        </TouchableOpacity>
       </View>
 
-      {/* Listings List */}
+      <View style={styles.searchBar}>
+        <Search size={18} color={theme.colors.textMuted} />
+        <TextInput
+          style={styles.searchInput}
+          placeholder="Search events, artists, venues..."
+          placeholderTextColor={theme.colors.textPlaceholder}
+          value={keyword}
+          onChangeText={setKeyword}
+          returnKeyType="search"
+          autoCapitalize="none"
+          autoCorrect={false}
+        />
+        {keyword.length > 0 && (
+          <TouchableOpacity
+            style={styles.clearButton}
+            onPress={() => setKeyword('')}
+            accessibilityRole="button"
+            accessibilityLabel="Clear search"
+          >
+            <X size={16} color={theme.colors.textSecondary} />
+          </TouchableOpacity>
+        )}
+      </View>
+
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        style={styles.filtersScroll}
+        contentContainerStyle={styles.filtersRow}
+      >
+        {PRICE_BANDS.map((band) => {
+          const active = priceBand === band.key;
+          return (
+            <TouchableOpacity
+              key={band.key}
+              style={[styles.filterPill, active && styles.filterPillActive]}
+              onPress={() => setPriceBand(band.key)}
+              activeOpacity={0.8}
+            >
+              <Text style={[styles.filterText, active && styles.filterTextActive]}>
+                {band.label}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
+      </ScrollView>
+
       {loading ? (
-        <View style={styles.loadingContainer}>
+        <View style={styles.stateBox}>
           <ActivityIndicator size="large" color={theme.colors.primary} />
-          <Text style={styles.loadingText}>Đang tải vé sang nhượng đã xác thực...</Text>
+          <Text style={styles.stateText}>Loading marketplace...</Text>
+        </View>
+      ) : error ? (
+        <View style={styles.stateBox}>
+          <View style={styles.stateIcon}>
+            <AlertTriangle size={26} color={theme.colors.danger} />
+          </View>
+          <Text style={styles.stateTitle}>Unable to load marketplace</Text>
+          <Text style={styles.stateText}>{error}</Text>
+          <View style={styles.stateAction}>
+            <FintechButton
+              title="Try Again"
+              onPress={() => loadListings(debouncedKeyword)}
+              variant="secondary"
+            />
+          </View>
         </View>
       ) : (
-        <ScrollView contentContainerStyle={styles.listContent}>
-          <View style={styles.escrowNoticeBanner}>
-            <ShieldCheck size={18} color={theme.colors.success} />
-            <Text style={styles.escrowNoticeText}>
-              100% vé được Ban Tổ Chức khóa và bảo vệ tiền cọc trong Escrow đến khi check-in thành công.
-            </Text>
-          </View>
-
-          {listings.map((item) => (
-            <View key={item.listingId} style={styles.ticketCard}>
-              {/* Header card */}
-              <View style={styles.cardTopRow}>
-                <View style={styles.verifiedBadge}>
-                  <ShieldCheck size={12} color={theme.colors.success} />
-                  <Text style={styles.verifiedBadgeText}>VERIFIED ESCROW</Text>
-                </View>
-                {item.discountPercentage > 0 && (
-                  <View style={styles.discountBadge}>
-                    <Tag size={12} color={theme.colors.primary} />
-                    <Text style={styles.discountBadgeText}>Tiết kiệm {item.discountPercentage}%</Text>
-                  </View>
-                )}
-              </View>
-
-              {/* Event title */}
-              <Text style={styles.eventName}>{item.eventName}</Text>
-
-              {/* Meta details */}
-              <View style={styles.metaRow}>
-                <Calendar size={13} color={theme.colors.textSecondary} />
-                <Text style={styles.metaText}>
-                  {new Date(item.eventStartAt).toLocaleDateString('vi-VN', {
-                    weekday: 'short',
-                    day: 'numeric',
-                    month: 'numeric',
-                    year: 'numeric',
-                  })}
+        <FlatList
+          data={filteredListings}
+          keyExtractor={(item) => item.listingId}
+          renderItem={renderListing}
+          contentContainerStyle={styles.listContent}
+          showsVerticalScrollIndicator={false}
+          refreshing={refreshing}
+          onRefresh={handleRefresh}
+          ListHeaderComponent={
+            <View style={styles.listHeader}>
+              <View style={styles.notice}>
+                <ShieldCheck size={18} color={theme.colors.success} />
+                <Text style={styles.noticeText}>
+                  Seller only receives payment after your ticket is scanned at the venue.
                 </Text>
               </View>
-
-              <View style={styles.metaRow}>
-                <MapPin size={13} color={theme.colors.textSecondary} />
-                <Text style={styles.metaText} numberOfLines={1}>
-                  {item.eventVenue}
-                </Text>
+              <Text style={styles.resultCount}>{filteredListings.length} listings available</Text>
+            </View>
+          }
+          ListEmptyComponent={
+            <View style={styles.stateBox}>
+              <View style={styles.stateIcon}>
+                <Ticket size={26} color={theme.colors.textMuted} />
               </View>
-
-              {/* Ticket zone & seat info */}
-              <View style={styles.seatInfoBox}>
-                <View style={styles.tierNameCol}>
-                  <Text style={styles.tierNameLabel}>Hạng vé</Text>
-                  <Text style={styles.tierNameText}>{item.tierName}</Text>
-                </View>
-                <View style={styles.seatZoneCol}>
-                  <Text style={styles.seatZoneLabel}>Vị trí chỗ ngồi</Text>
-                  <Text style={styles.seatZoneText}>{item.seatZone || 'Khán đài tự do'}</Text>
-                </View>
-              </View>
-
-              {/* Price row & action */}
-              <View style={styles.priceRow}>
-                <View>
-                  <Text style={styles.priceLabel}>Giá sang nhượng</Text>
-                  <View style={styles.priceGroup}>
-                    <Text style={styles.resalePriceText}>{formatPrice(item.resalePrice)}</Text>
-                    {item.originalPrice > item.resalePrice && (
-                      <Text style={styles.originalPriceText}>{formatPrice(item.originalPrice)}</Text>
-                    )}
-                  </View>
-                </View>
-
-                <TouchableOpacity
-                  style={styles.buyNowBtn}
-                  onPress={() => handleOpenBuyModal(item)}
-                  activeOpacity={0.8}
-                >
-                  <Text style={styles.buyNowBtnText}>Mua Qua Escrow</Text>
-                  <ArrowRight size={14} color="#0b0f19" />
-                </TouchableOpacity>
-              </View>
-
-              {/* Seller footer */}
-              <View style={styles.cardFooter}>
-                <Text style={styles.sellerText}>Người bán: {item.sellerFullName}</Text>
-                <Text style={styles.ticketCodeText}>{item.maskedTicketCode}</Text>
+              <Text style={styles.stateTitle}>No tickets found</Text>
+              <Text style={styles.stateText}>
+                Try searching with different keywords or adjust your price filter.
+              </Text>
+              <View style={styles.stateAction}>
+                <FintechButton title="Reset Filters" onPress={resetFilters} variant="secondary" />
               </View>
             </View>
-          ))}
-        </ScrollView>
+          }
+        />
       )}
 
-      {/* Buy & Escrow Hold Modal */}
       <Modal
         visible={!!selectedListing}
-        transparent
         animationType="slide"
-        onRequestClose={handleCloseModal}
+        transparent
+        onRequestClose={closeModal}
       >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalSheet}>
-            {/* Modal Header */}
-            <View style={styles.modalHeader}>
-              <View style={styles.modalTitleRow}>
-                <ShieldCheck size={20} color={theme.colors.success} />
-                <Text style={styles.modalTitle}>Khóa Escrow & Mua Vé</Text>
-              </View>
-              <TouchableOpacity onPress={handleCloseModal} style={styles.closeBtn}>
+        <View style={styles.modalBackdrop}>
+          <View style={[styles.modalSheet, { paddingBottom: insets.bottom + theme.spacing.lg }]}>
+            <View style={styles.sheetHandle} />
+            <View style={styles.sheetHeader}>
+              <Text style={styles.sheetTitle}>
+                {purchaseSuccess
+                  ? 'Purchase Complete'
+                  : holdData
+                    ? 'Escrow Payment'
+                    : 'Ticket Details'}
+              </Text>
+              <TouchableOpacity
+                style={styles.closeButton}
+                onPress={closeModal}
+                accessibilityRole="button"
+                accessibilityLabel="Close"
+              >
                 <X size={20} color={theme.colors.textSecondary} />
               </TouchableOpacity>
             </View>
 
-            {selectedListing && (
-              <ScrollView contentContainerStyle={styles.modalScroll}>
-                {purchaseSuccess ? (
-                  // Success State
-                  <View style={styles.successBox}>
-                    <CheckCircle2 size={60} color={theme.colors.success} />
-                    <Text style={styles.successTitle}>Giao Dịch Escrow Thành Công!</Text>
-                    <Text style={styles.successDesc}>
-                      Vé điện tử đã được chuyển vào ví vé của bạn. Tiền thanh toán sẽ được khóa trong tài khoản Escrow an toàn đến khi check-in.
+            {!selectedListing ? null : purchaseSuccess ? (
+              <View style={styles.successBox}>
+                <View style={styles.successIcon}>
+                  <CheckCircle2 size={38} color={theme.colors.success} />
+                </View>
+                <Text style={styles.successTitle}>Ticket Added to Your Wallet</Text>
+                <Text style={styles.successText}>
+                  Escrow is securely holding the funds. They will only be released to the seller after your check-in at the venue.
+                </Text>
+                <FintechButton
+                  title="View My Tickets"
+                  onPress={() => {
+                    closeModal();
+                    router.push('/(tabs)/tickets');
+                  }}
+                />
+                <View style={styles.successSecondary}>
+                  <FintechButton title="Close" onPress={closeModal} variant="outline" />
+                </View>
+              </View>
+            ) : (
+              <ScrollView
+                style={styles.sheetScroll}
+                contentContainerStyle={styles.sheetScrollContent}
+                showsVerticalScrollIndicator={false}
+              >
+                <View style={styles.sheetEventRow}>
+                  <EventPoster
+                    seed={`${selectedListing.eventId}-${selectedListing.listingId}`}
+                    height={72}
+                    style={styles.sheetPoster}
+                    rounded
+                  />
+                  <View style={styles.sheetEventInfo}>
+                    <Text style={styles.sheetEventName} numberOfLines={2}>
+                      {selectedListing.eventName}
                     </Text>
-                    <FintechButton
-                      title="Mở Ví Vé Của Tôi Ngay"
-                      onPress={() => {
-                        handleCloseModal();
-                        router.push('/(tabs)/tickets');
-                      }}
-                      variant="primary"
-                      style={styles.goToTicketsBtn}
-                    />
+                    <Text style={styles.sheetEventMeta} numberOfLines={1}>
+                      {selectedListing.tierName} • {selectedListing.seatZone || 'General Admission'}
+                    </Text>
+                    <Text style={styles.sheetEventMeta} numberOfLines={1}>
+                      {formatEventDateTime(selectedListing.eventStartAt)}
+                    </Text>
                   </View>
-                ) : !holdData ? (
-                  // Step 1: Review & Lock Escrow
-                  <>
-                    <View style={styles.modalItemCard}>
-                      <Text style={styles.modalEventName}>{selectedListing.eventName}</Text>
-                      <Text style={styles.modalTierName}>{selectedListing.tierName}</Text>
-                      <Text style={styles.modalSeatName}>{selectedListing.seatZone || 'Khán đài tự do'}</Text>
-                    </View>
+                </View>
 
-                    <View style={styles.feeBreakdown}>
-                      <View style={styles.feeRow}>
-                        <Text style={styles.feeLabel}>Giá vé chuyển nhượng</Text>
-                        <Text style={styles.feeValue}>{formatPrice(selectedListing.resalePrice)}</Text>
+                {!holdData ? (
+                  <>
+                    <View style={styles.pricePanel}>
+                      <View style={styles.pricePanelRow}>
+                        <Text style={styles.pricePanelLabel}>Listing Price</Text>
+                        <Text style={styles.pricePanelValue}>
+                          {formatPrice(selectedListing.resalePrice)}
+                        </Text>
                       </View>
-                      <View style={styles.feeRow}>
-                        <Text style={styles.feeLabel}>Phí bảo vệ Escrow (3%)</Text>
-                        <Text style={styles.feeValue}>{formatPrice(Math.round(selectedListing.resalePrice * 0.03))}</Text>
+                      <View style={styles.pricePanelRow}>
+                        <Text style={styles.pricePanelLabel}>Escrow Protection Fee (3%)</Text>
+                        <Text style={styles.pricePanelValue}>
+                          {formatPrice(Math.round(selectedListing.resalePrice * 0.03))}
+                        </Text>
                       </View>
-                      <View style={[styles.feeRow, styles.totalFeeRow]}>
-                        <Text style={styles.totalFeeLabel}>Tổng tiền thanh toán</Text>
-                        <Text style={styles.totalFeeValue}>
-                          {formatPrice(selectedListing.resalePrice + Math.round(selectedListing.resalePrice * 0.03))}
+                      <View style={styles.pricePanelDivider} />
+                      <View style={styles.pricePanelRow}>
+                        <Text style={styles.pricePanelTotal}>Total Amount</Text>
+                        <Text style={styles.pricePanelTotalValue}>
+                          {formatPrice(Math.round(selectedListing.resalePrice * 1.03))}
                         </Text>
                       </View>
                     </View>
 
-                    <View style={styles.escrowGuaranteeNotice}>
-                      <Clock size={16} color={theme.colors.warning} />
-                      <Text style={styles.escrowGuaranteeText}>
-                        Sau khi bấm khóa vé, hệ thống sẽ giữ vé trong 10 phút để bạn chuyển khoản. Nếu hết hạn vé sẽ tự động mở lại cho người khác.
+                    <View style={styles.sheetNote}>
+                      <ShieldCheck size={16} color={theme.colors.success} />
+                      <Text style={styles.sheetNoteText}>
+                        This ticket will be reserved exclusively for you for 10 minutes.
                       </Text>
                     </View>
 
+                    {paymentNote && (
+                      <View style={styles.errorNote}>
+                        <AlertTriangle size={16} color={theme.colors.danger} />
+                        <Text style={styles.errorNoteText}>{paymentNote}</Text>
+                      </View>
+                    )}
+
                     <FintechButton
-                      title="Khóa Vé & Tạo Mã VietQR (10 Phút)"
-                      onPress={handleHoldListing}
+                      title={isHolding ? 'Reserving Ticket...' : 'Reserve & Proceed to Payment'}
+                      onPress={handleStartPurchase}
                       loading={isHolding}
-                      variant="primary"
-                      style={styles.modalActionBtn}
                     />
                   </>
                 ) : (
-                  // Step 2: VietQR & Payment Simulation
-                  <View style={styles.qrSection}>
-                    <View style={styles.countdownBadge}>
-                      <Clock size={14} color={theme.colors.warning} />
-                      <Text style={styles.countdownText}>Thời gian giữ vé: 10 phút</Text>
+                  <>
+                    <View style={styles.countdownRow}>
+                      <View style={styles.countdownBadge}>
+                        <Clock size={14} color={theme.colors.warning} />
+                        <Text style={styles.countdownText}>
+                          {secondsLeft > 0
+                            ? `Held for ${formatCountdown(secondsLeft)}`
+                            : 'Hold Expired'}
+                        </Text>
+                      </View>
+                      <Text style={styles.countdownHint}>Scan VietQR or Bank Transfer</Text>
                     </View>
 
-                    <Text style={styles.qrPrompt}>Quét mã VietQR bằng app ngân hàng bất kỳ:</Text>
-
-                    <View style={styles.qrImageContainer}>
+                    <View style={styles.qrCard}>
                       <Image
                         source={{ uri: holdData.qrImageUrl }}
-                        style={styles.vietQrImage}
+                        style={styles.qrImage}
                         resizeMode="contain"
                       />
+                      <Text style={styles.qrHint}>Open your banking app and scan VietQR</Text>
                     </View>
 
-                    {/* Bank Transfer Details */}
-                    <View style={styles.bankDetailCard}>
+                    <View style={styles.bankPanel}>
                       <View style={styles.bankRow}>
-                        <Text style={styles.bankLabel}>Ngân hàng thụ hưởng:</Text>
-                        <Text style={styles.bankValue}>MBBank (Quân Đội)</Text>
+                        <Text style={styles.bankLabel}>Bank</Text>
+                        <Text style={styles.bankValue}>BIN {holdData.bankBin}</Text>
                       </View>
                       <View style={styles.bankRow}>
-                        <Text style={styles.bankLabel}>Số tài khoản Escrow:</Text>
-                        <Text style={styles.bankValueHighlight}>{holdData.accountNumber}</Text>
+                        <Text style={styles.bankLabel}>Account Number</Text>
+                        <Text style={styles.bankValue}>{holdData.accountNumber}</Text>
                       </View>
                       <View style={styles.bankRow}>
-                        <Text style={styles.bankLabel}>Nội dung chuyển khoản:</Text>
-                        <Text style={styles.bankValueHighlight}>{holdData.paymentReference}</Text>
+                        <Text style={styles.bankLabel}>Account Holder</Text>
+                        <Text style={styles.bankValue} numberOfLines={1}>
+                          {holdData.accountName}
+                        </Text>
                       </View>
                       <View style={styles.bankRow}>
-                        <Text style={styles.bankLabel}>Số tiền chính xác:</Text>
-                        <Text style={styles.bankValueAmount}>{formatPrice(holdData.totalBuyerPaid)}</Text>
+                        <Text style={styles.bankLabel}>Amount</Text>
+                        <Text style={styles.bankAmount}>{formatPrice(holdData.totalBuyerPaid)}</Text>
+                      </View>
+                      <View style={styles.bankRow}>
+                        <Text style={styles.bankLabel}>Reference</Text>
+                        <Text style={styles.bankReference}>{holdData.paymentReference}</Text>
                       </View>
                     </View>
 
-                    {/* Demo Simulation Helper */}
-                    <View style={styles.demoHelperSection}>
-                      <FintechButton
-                        title="Mô Phỏng Thanh Toán Thành Công (Demo SePay)"
-                        onPress={handleSimulatePayment}
-                        loading={isSimulatingPayment}
-                        variant="success"
-                        icon={<Zap size={16} color="#ffffff" />}
-                      />
-                    </View>
-                  </View>
+                    {secondsLeft === 0 && (
+                      <View style={styles.errorNote}>
+                        <Clock size={16} color={theme.colors.danger} />
+                        <Text style={styles.errorNoteText}>
+                          Hold session expired. Close and reserve again to generate a new payment code.
+                        </Text>
+                      </View>
+                    )}
+
+                    {paymentNote && (
+                      <View style={styles.errorNote}>
+                        <AlertTriangle size={16} color={theme.colors.danger} />
+                        <Text style={styles.errorNoteText}>{paymentNote}</Text>
+                      </View>
+                    )}
+
+                    <FintechButton
+                      title={
+                        isCheckingTransfer ? 'Verifying Transfer...' : 'I Have Transferred'
+                      }
+                      onPress={handleConfirmTransfer}
+                      loading={isCheckingTransfer}
+                      disabled={secondsLeft === 0}
+                    />
+
+                    {secondsLeft === 0 && (
+                      <View style={styles.successSecondary}>
+                        <FintechButton
+                          title="Choose Another Ticket"
+                          onPress={closeModal}
+                          variant="outline"
+                        />
+                      </View>
+                    )}
+
+                    {__DEV__ && (
+                      <View style={styles.devBox}>
+                        <FintechButton
+                          title="Simulate Payment Success"
+                          onPress={handleSimulatePayment}
+                          variant="success"
+                          disabled={isCheckingTransfer}
+                        />
+                        <Text style={styles.devHint}>
+                          Developer button for testing escrow settlement flow.
+                        </Text>
+                      </View>
+                    )}
+                  </>
                 )}
               </ScrollView>
             )}
@@ -400,119 +656,158 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: theme.colors.background,
-  },
-  searchHeader: {
-    backgroundColor: theme.colors.surface,
     paddingTop: theme.spacing.md,
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     paddingHorizontal: theme.spacing.lg,
-    paddingBottom: theme.spacing.sm,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.colors.border,
+  },
+  title: {
+    fontSize: theme.typography.sizes['2xl'],
+    fontWeight: theme.typography.weights.extrabold,
+    color: theme.colors.text,
+  },
+  subtitle: {
+    fontSize: theme.typography.sizes.sm,
+    color: theme.colors.textSecondary,
+    marginTop: 2,
+  },
+  refreshButton: {
+    width: theme.layout.tapTarget,
+    height: theme.layout.tapTarget,
+    borderRadius: theme.radii.full,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: theme.colors.surface,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
   },
   searchBar: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: theme.spacing.sm,
+    marginHorizontal: theme.spacing.lg,
+    marginTop: theme.spacing.lg,
+    paddingLeft: theme.spacing.md,
+    paddingRight: theme.spacing.xs,
+    minHeight: theme.layout.controlHeight,
+    borderRadius: theme.radii.lg,
     backgroundColor: theme.colors.inputBackground,
     borderWidth: 1,
     borderColor: theme.colors.border,
-    borderRadius: theme.radii.md,
-    paddingHorizontal: theme.spacing.md,
-    height: 44,
-    gap: theme.spacing.sm,
   },
   searchInput: {
     flex: 1,
     color: theme.colors.text,
     fontSize: theme.typography.sizes.sm,
+    fontFamily: fontFamilies.regular,
+    paddingVertical: 0,
   },
-  categoryRow: {
-    flexDirection: 'row',
-    gap: theme.spacing.xs,
-    paddingVertical: theme.spacing.md,
+  clearButton: {
+    padding: theme.spacing.sm,
   },
-  categoryPill: {
-    paddingHorizontal: 14,
-    paddingVertical: 7,
+  filtersScroll: {
+    marginTop: theme.spacing.md,
+    maxHeight: 46,
+  },
+  filtersRow: {
+    paddingHorizontal: theme.spacing.lg,
+    gap: theme.spacing.sm,
+    alignItems: 'center',
+  },
+  filterPill: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
     borderRadius: theme.radii.full,
-    backgroundColor: theme.colors.inputBackground,
+    backgroundColor: theme.colors.surface,
     borderWidth: 1,
     borderColor: theme.colors.border,
   },
-  categoryPillActive: {
-    backgroundColor: 'rgba(6, 182, 212, 0.15)',
+  filterPillActive: {
+    backgroundColor: theme.colors.primary,
     borderColor: theme.colors.primary,
   },
-  categoryPillText: {
-    fontSize: 12,
-    fontWeight: theme.typography.weights.medium,
+  filterText: {
+    fontSize: theme.typography.sizes.xs,
+    fontFamily: fontFamilies.semibold,
     color: theme.colors.textSecondary,
   },
-  categoryPillTextActive: {
-    color: theme.colors.primary,
+  filterTextActive: {
+    color: theme.colors.onPrimary,
     fontWeight: theme.typography.weights.bold,
-  },
-  loadingContainer: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: theme.spacing.xl,
-  },
-  loadingText: {
-    marginTop: theme.spacing.md,
-    color: theme.colors.textSecondary,
-    fontSize: theme.typography.sizes.sm,
   },
   listContent: {
     padding: theme.spacing.lg,
     paddingBottom: theme.spacing['4xl'],
+    gap: theme.spacing.lg,
   },
-  escrowNoticeBanner: {
+  listHeader: {
+    gap: theme.spacing.md,
+    marginBottom: theme.spacing.xs,
+  },
+  notice: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: theme.spacing.sm,
+    padding: theme.spacing.md,
+    borderRadius: theme.radii.lg,
     backgroundColor: theme.colors.successLight,
     borderWidth: 1,
-    borderColor: theme.colors.success,
-    borderRadius: theme.radii.md,
-    padding: theme.spacing.md,
-    marginBottom: theme.spacing.lg,
+    borderColor: theme.colors.successBorder,
   },
-  escrowNoticeText: {
+  noticeText: {
     flex: 1,
-    fontSize: 12,
-    color: theme.colors.success,
+    fontSize: theme.typography.sizes.xs,
+    color: theme.colors.textSecondary,
     lineHeight: 18,
-    fontWeight: theme.typography.weights.medium,
   },
-  ticketCard: {
+  resultCount: {
+    fontSize: theme.typography.sizes.xs,
+    fontFamily: fontFamilies.semibold,
+    color: theme.colors.textMuted,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  card: {
     backgroundColor: theme.colors.surface,
+    borderRadius: theme.radii.xl,
+    overflow: 'hidden',
     borderWidth: 1,
     borderColor: theme.colors.border,
-    borderRadius: theme.radii.lg,
-    padding: theme.spacing.lg,
-    marginBottom: theme.spacing.lg,
-    ...theme.shadows.md,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    elevation: 4,
   },
-  cardTopRow: {
+  posterWrap: {
+    position: 'relative',
+  },
+  badgeRow: {
+    position: 'absolute',
+    top: theme.spacing.md,
+    left: theme.spacing.md,
+    right: theme.spacing.md,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: theme.spacing.sm,
   },
   verifiedBadge: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: theme.colors.successLight,
     paddingHorizontal: 8,
-    paddingVertical: 3,
+    paddingVertical: 4,
     borderRadius: theme.radii.sm,
+    backgroundColor: theme.colors.badgeScrim,
     borderWidth: 1,
-    borderColor: theme.colors.success,
+    borderColor: theme.colors.successBorder,
   },
   verifiedBadgeText: {
     fontSize: 10,
-    fontWeight: theme.typography.weights.extrabold,
+    fontWeight: theme.typography.weights.bold,
     color: theme.colors.success,
     letterSpacing: 0.5,
   },
@@ -520,133 +815,155 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: 'rgba(6, 182, 212, 0.12)',
     paddingHorizontal: 8,
-    paddingVertical: 3,
+    paddingVertical: 4,
     borderRadius: theme.radii.sm,
+    backgroundColor: theme.colors.primary,
   },
   discountBadgeText: {
     fontSize: 10,
     fontWeight: theme.typography.weights.bold,
+    color: theme.colors.onPrimary,
+  },
+  cardBody: {
+    padding: theme.spacing.lg,
+    gap: theme.spacing.xs,
+  },
+  organizer: {
+    fontSize: theme.typography.sizes.xs,
     color: theme.colors.primary,
+    fontFamily: fontFamilies.semibold,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
   eventName: {
     fontSize: theme.typography.sizes.lg,
     fontWeight: theme.typography.weights.bold,
     color: theme.colors.text,
-    marginBottom: theme.spacing.xs,
+    lineHeight: 24,
   },
   metaRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    marginBottom: 4,
+    gap: theme.spacing.xs,
+    marginTop: 2,
   },
   metaText: {
-    fontSize: 12,
+    flex: 1,
+    fontSize: theme.typography.sizes.xs,
     color: theme.colors.textSecondary,
-    flex: 1,
   },
-  seatInfoBox: {
+  seatRow: {
     flexDirection: 'row',
-    backgroundColor: theme.colors.inputBackground,
-    borderWidth: 1,
-    borderColor: theme.colors.borderSubtle,
+    alignItems: 'center',
+    backgroundColor: theme.colors.surfaceElevated,
     borderRadius: theme.radii.md,
-    padding: theme.spacing.md,
-    marginVertical: theme.spacing.md,
+    padding: theme.spacing.sm,
+    marginTop: theme.spacing.sm,
   },
-  tierNameCol: {
+  seatChip: {
     flex: 1,
-    borderRightWidth: 1,
-    borderRightColor: theme.colors.borderSubtle,
-    paddingRight: theme.spacing.sm,
   },
-  tierNameLabel: {
+  seatLabel: {
     fontSize: 10,
     color: theme.colors.textMuted,
+    textTransform: 'uppercase',
   },
-  tierNameText: {
-    fontSize: 13,
+  seatValue: {
+    fontSize: theme.typography.sizes.xs,
     fontWeight: theme.typography.weights.bold,
-    color: theme.colors.primary,
-    marginTop: 2,
-  },
-  seatZoneCol: {
-    flex: 1.2,
-    paddingLeft: theme.spacing.md,
-  },
-  seatZoneLabel: {
-    fontSize: 10,
-    color: theme.colors.textMuted,
-  },
-  seatZoneText: {
-    fontSize: 12,
-    fontWeight: theme.typography.weights.semibold,
     color: theme.colors.text,
     marginTop: 2,
+  },
+  seatDivider: {
+    width: 1,
+    height: 24,
+    backgroundColor: theme.colors.borderSubtle,
+    marginHorizontal: theme.spacing.sm,
   },
   priceRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: theme.spacing.sm,
+    alignItems: 'flex-end',
+    marginTop: theme.spacing.md,
+    paddingTop: theme.spacing.sm,
+    borderTopWidth: 1,
+    borderTopColor: theme.colors.borderSubtle,
   },
-  priceLabel: {
-    fontSize: 11,
-    color: theme.colors.textMuted,
-  },
-  priceGroup: {
+  sellerRow: {
     flexDirection: 'row',
-    alignItems: 'baseline',
+    alignItems: 'center',
     gap: 6,
-    marginTop: 2,
+    flex: 1,
   },
-  resalePriceText: {
-    fontSize: theme.typography.sizes.lg,
-    fontWeight: theme.typography.weights.extrabold,
-    color: theme.colors.primary,
+  sellerName: {
+    fontSize: theme.typography.sizes.xs,
+    color: theme.colors.textMuted,
+    flex: 1,
   },
-  originalPriceText: {
-    fontSize: 12,
+  priceBlock: {
+    alignItems: 'flex-end',
+  },
+  originalPrice: {
+    fontSize: theme.typography.sizes.xs,
     color: theme.colors.textMuted,
     textDecorationLine: 'line-through',
   },
-  buyNowBtn: {
+  resalePrice: {
+    fontSize: theme.typography.sizes.xl,
+    fontWeight: theme.typography.weights.extrabold,
+    color: theme.colors.primary,
+  },
+  cardCta: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
     gap: 6,
-    backgroundColor: theme.colors.primary,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
+    backgroundColor: theme.colors.primaryLight,
     borderRadius: theme.radii.md,
-    ...theme.shadows.glow,
+    paddingVertical: 10,
+    marginTop: theme.spacing.sm,
   },
-  buyNowBtnText: {
-    fontSize: 13,
+  cardCtaText: {
+    fontSize: theme.typography.sizes.xs,
     fontWeight: theme.typography.weights.bold,
-    color: '#0b0f19',
+    color: theme.colors.primary,
   },
-  cardFooter: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    borderTopWidth: 1,
-    borderTopColor: theme.colors.borderSubtle,
-    paddingTop: theme.spacing.sm,
-    marginTop: theme.spacing.xs,
-  },
-  sellerText: {
-    fontSize: 11,
-    color: theme.colors.textSecondary,
-  },
-  ticketCodeText: {
-    fontSize: 11,
-    color: theme.colors.textMuted,
-    fontFamily: 'monospace',
-  },
-  modalOverlay: {
+  stateBox: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.75)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: theme.spacing['2xl'],
+    gap: theme.spacing.md,
+  },
+  stateIcon: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    backgroundColor: theme.colors.surfaceElevated,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  stateTitle: {
+    fontSize: theme.typography.sizes.lg,
+    fontWeight: theme.typography.weights.bold,
+    color: theme.colors.text,
+    textAlign: 'center',
+  },
+  stateText: {
+    fontSize: theme.typography.sizes.sm,
+    color: theme.colors.textSecondary,
+    textAlign: 'center',
+    lineHeight: 20,
+  },
+  stateAction: {
+    marginTop: theme.spacing.sm,
+    width: '100%',
+    maxWidth: 240,
+  },
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: theme.colors.backdrop,
     justifyContent: 'flex-end',
   },
   modalSheet: {
@@ -654,113 +971,124 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: theme.radii['2xl'],
     borderTopRightRadius: theme.radii['2xl'],
     maxHeight: '90%',
-    padding: theme.spacing.xl,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
   },
-  modalHeader: {
+  sheetHandle: {
+    width: 36,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: theme.colors.border,
+    alignSelf: 'center',
+    marginTop: theme.spacing.sm,
+  },
+  sheetHeader: {
     flexDirection: 'row',
+    alignItems: 'center',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: theme.spacing.lg,
+    paddingHorizontal: theme.spacing.xl,
+    paddingVertical: theme.spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: theme.colors.borderSubtle,
   },
-  modalTitleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  modalTitle: {
+  sheetTitle: {
     fontSize: theme.typography.sizes.lg,
     fontWeight: theme.typography.weights.bold,
     color: theme.colors.text,
   },
-  closeBtn: {
-    padding: 6,
+  closeButton: {
+    padding: theme.spacing.xs,
   },
-  modalScroll: {
-    paddingBottom: theme.spacing['3xl'],
+  sheetScroll: {
+    maxHeight: 520,
   },
-  modalItemCard: {
-    backgroundColor: theme.colors.inputBackground,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    borderRadius: theme.radii.md,
-    padding: theme.spacing.md,
-    marginBottom: theme.spacing.lg,
+  sheetScrollContent: {
+    padding: theme.spacing.xl,
+    gap: theme.spacing.lg,
   },
-  modalEventName: {
+  sheetEventRow: {
+    flexDirection: 'row',
+    gap: theme.spacing.md,
+    alignItems: 'center',
+  },
+  sheetPoster: {
+    width: 64,
+  },
+  sheetEventInfo: {
+    flex: 1,
+    gap: 2,
+  },
+  sheetEventName: {
     fontSize: theme.typography.sizes.base,
     fontWeight: theme.typography.weights.bold,
     color: theme.colors.text,
-    marginBottom: 4,
   },
-  modalTierName: {
-    fontSize: 13,
-    fontWeight: theme.typography.weights.semibold,
-    color: theme.colors.primary,
-  },
-  modalSeatName: {
-    fontSize: 12,
+  sheetEventMeta: {
+    fontSize: theme.typography.sizes.xs,
     color: theme.colors.textSecondary,
-    marginTop: 2,
   },
-  feeBreakdown: {
-    backgroundColor: theme.colors.inputBackground,
-    borderRadius: theme.radii.md,
+  pricePanel: {
+    backgroundColor: theme.colors.surfaceElevated,
+    borderRadius: theme.radii.lg,
     padding: theme.spacing.md,
-    marginBottom: theme.spacing.lg,
     gap: theme.spacing.sm,
   },
-  feeRow: {
+  pricePanelRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+    alignItems: 'center',
   },
-  feeLabel: {
-    fontSize: 13,
+  pricePanelLabel: {
+    fontSize: theme.typography.sizes.xs,
     color: theme.colors.textSecondary,
   },
-  feeValue: {
-    fontSize: 13,
-    fontWeight: theme.typography.weights.medium,
+  pricePanelValue: {
+    fontSize: theme.typography.sizes.sm,
     color: theme.colors.text,
+    fontFamily: fontFamilies.semibold,
   },
-  totalFeeRow: {
-    borderTopWidth: 1,
-    borderTopColor: theme.colors.border,
-    paddingTop: theme.spacing.sm,
-    marginTop: theme.spacing.xs,
+  pricePanelDivider: {
+    height: 1,
+    backgroundColor: theme.colors.borderSubtle,
+    marginVertical: 2,
   },
-  totalFeeLabel: {
-    fontSize: 14,
+  pricePanelTotal: {
+    fontSize: theme.typography.sizes.sm,
     fontWeight: theme.typography.weights.bold,
     color: theme.colors.text,
   },
-  totalFeeValue: {
-    fontSize: 16,
+  pricePanelTotalValue: {
+    fontSize: theme.typography.sizes.lg,
     fontWeight: theme.typography.weights.extrabold,
     color: theme.colors.primary,
   },
-  escrowGuaranteeNotice: {
+  sheetNote: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
+    alignItems: 'center',
     gap: 8,
-    backgroundColor: theme.colors.warningLight,
-    borderWidth: 1,
-    borderColor: theme.colors.warning,
-    borderRadius: theme.radii.md,
+    backgroundColor: theme.colors.successLight,
     padding: theme.spacing.md,
-    marginBottom: theme.spacing.xl,
+    borderRadius: theme.radii.md,
   },
-  escrowGuaranteeText: {
+  sheetNoteText: {
     flex: 1,
-    fontSize: 12,
-    color: theme.colors.warning,
-    lineHeight: 18,
+    fontSize: theme.typography.sizes.xs,
+    color: theme.colors.textSecondary,
   },
-  modalActionBtn: {
-    marginBottom: theme.spacing.lg,
+  errorNote: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: theme.colors.dangerLight,
+    padding: theme.spacing.md,
+    borderRadius: theme.radii.md,
   },
-  qrSection: {
+  errorNoteText: {
+    flex: 1,
+    fontSize: theme.typography.sizes.xs,
+    color: theme.colors.danger,
+  },
+  countdownRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
   },
   countdownBadge: {
@@ -768,93 +1096,108 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 6,
     backgroundColor: theme.colors.warningLight,
-    borderWidth: 1,
-    borderColor: theme.colors.warning,
-    paddingHorizontal: 12,
+    paddingHorizontal: 10,
     paddingVertical: 5,
     borderRadius: theme.radii.full,
-    marginBottom: theme.spacing.md,
   },
   countdownText: {
-    fontSize: 12,
+    fontSize: theme.typography.sizes.xs,
     fontWeight: theme.typography.weights.bold,
     color: theme.colors.warning,
   },
-  qrPrompt: {
-    fontSize: 13,
-    color: theme.colors.textSecondary,
-    marginBottom: theme.spacing.md,
+  countdownHint: {
+    fontSize: theme.typography.sizes.xs,
+    color: theme.colors.textMuted,
   },
-  qrImageContainer: {
-    width: 220,
-    height: 220,
-    backgroundColor: '#ffffff',
-    borderRadius: theme.radii.lg,
-    padding: 10,
+  qrCard: {
     alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: theme.spacing.lg,
+    backgroundColor: '#ffffff',
+    borderRadius: theme.radii.xl,
+    padding: theme.spacing.lg,
   },
-  vietQrImage: {
+  qrImage: {
     width: 200,
     height: 200,
   },
-  bankDetailCard: {
-    width: '100%',
-    backgroundColor: theme.colors.inputBackground,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    borderRadius: theme.radii.md,
+  qrHint: {
+    fontSize: theme.typography.sizes.xs,
+    color: '#333333',
+    marginTop: 8,
+    fontWeight: theme.typography.weights.medium,
+  },
+  bankPanel: {
+    backgroundColor: theme.colors.surfaceElevated,
+    borderRadius: theme.radii.lg,
     padding: theme.spacing.md,
     gap: 8,
-    marginBottom: theme.spacing.lg,
   },
   bankRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+    alignItems: 'center',
   },
   bankLabel: {
-    fontSize: 12,
+    fontSize: theme.typography.sizes.xs,
     color: theme.colors.textMuted,
   },
   bankValue: {
-    fontSize: 12,
-    fontWeight: theme.typography.weights.medium,
+    fontSize: theme.typography.sizes.xs,
+    fontWeight: theme.typography.weights.semibold,
     color: theme.colors.text,
   },
-  bankValueHighlight: {
-    fontSize: 13,
+  bankAmount: {
+    fontSize: theme.typography.sizes.base,
     fontWeight: theme.typography.weights.bold,
     color: theme.colors.primary,
   },
-  bankValueAmount: {
-    fontSize: 14,
-    fontWeight: theme.typography.weights.extrabold,
-    color: theme.colors.success,
-  },
-  demoHelperSection: {
-    width: '100%',
-    marginTop: theme.spacing.sm,
+  bankReference: {
+    fontSize: theme.typography.sizes.xs,
+    fontFamily: fontFamilies.mono,
+    color: theme.colors.accent,
+    fontWeight: theme.typography.weights.bold,
   },
   successBox: {
     alignItems: 'center',
-    paddingVertical: theme.spacing.xl,
+    padding: theme.spacing.xl,
+    gap: theme.spacing.md,
+  },
+  successIcon: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: theme.colors.successLight,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   successTitle: {
     fontSize: theme.typography.sizes.xl,
     fontWeight: theme.typography.weights.bold,
     color: theme.colors.text,
-    marginTop: theme.spacing.md,
-    marginBottom: theme.spacing.sm,
+    textAlign: 'center',
   },
-  successDesc: {
+  successText: {
     fontSize: theme.typography.sizes.sm,
     color: theme.colors.textSecondary,
     textAlign: 'center',
     lineHeight: 20,
-    marginBottom: theme.spacing.xl,
+    marginBottom: theme.spacing.sm,
   },
-  goToTicketsBtn: {
+  successSecondary: {
     width: '100%',
+    marginTop: theme.spacing.xs,
+  },
+  devBox: {
+    marginTop: theme.spacing.sm,
+    padding: theme.spacing.md,
+    backgroundColor: theme.colors.surfaceElevated,
+    borderRadius: theme.radii.md,
+    borderWidth: 1,
+    borderColor: theme.colors.borderSubtle,
+    gap: 6,
+  },
+  devHint: {
+    fontSize: 11,
+    color: theme.colors.textMuted,
+    textAlign: 'center',
   },
 });

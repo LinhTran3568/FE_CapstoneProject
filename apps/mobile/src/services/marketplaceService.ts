@@ -1,4 +1,5 @@
 import {
+  PaymentStatusDto,
   ResaleListingDetailDto,
   HoldListingForPurchaseResponse,
   PurchasedTicketDto,
@@ -31,9 +32,9 @@ export const SEEDED_MARKETPLACE_LISTINGS: ResaleListingDetailDto[] = [
     eventId: 'atsh-2026',
     organizerId: 'e0000000-0000-0000-0000-000000000001',
     organizerName: 'VieON & Vie Channel',
-    eventName: 'ANH TRAI SAY HI LIVE CONCERT 2025',
+    eventName: 'Anh Trai Say Hi Live Concert 2026',
     eventVenue: 'Sân vận động Quân Khu 7, TP.HCM',
-    eventStartAt: '2025-04-19T19:30:00Z',
+    eventStartAt: '2026-09-19T19:30:00+07:00',
     tierId: 'tier-vip-a',
     tierName: 'VIP A - Sát Sân Khấu',
     seatZone: 'Khu A1 - Hàng 03 - Ghế 14',
@@ -54,9 +55,9 @@ export const SEEDED_MARKETPLACE_LISTINGS: ResaleListingDetailDto[] = [
     eventId: 'atsh-2026',
     organizerId: 'e0000000-0000-0000-0000-000000000001',
     organizerName: 'VieON & Vie Channel',
-    eventName: 'ANH TRAI SAY HI LIVE CONCERT 2025',
+    eventName: 'Anh Trai Say Hi Live Concert 2026',
     eventVenue: 'Sân vận động Quân Khu 7, TP.HCM',
-    eventStartAt: '2025-04-19T19:30:00Z',
+    eventStartAt: '2026-09-19T19:30:00+07:00',
     tierId: 'tier-ga',
     tierName: 'GA STANDING - Khu B',
     seatZone: 'Khu B2 - Cửa Gate 3',
@@ -79,7 +80,7 @@ export const SEEDED_MARKETPLACE_LISTINGS: ResaleListingDetailDto[] = [
     organizerName: 'MT Entertainment',
     eventName: 'MỸ TÂM - LIVE CONCERT TRI ÂM',
     eventVenue: 'Sân vận động Quốc gia Mỹ Đình, Hà Nội',
-    eventStartAt: '2025-05-10T19:00:00Z',
+    eventStartAt: '2026-10-10T19:00:00+07:00',
     tierId: 'tier-diamond',
     tierName: 'DIAMOND LOUNGE VIP',
     seatZone: 'Khu D - Hàng 01 - Ghế 08',
@@ -100,9 +101,9 @@ export const SEEDED_MARKETPLACE_LISTINGS: ResaleListingDetailDto[] = [
     eventId: 'soobin-space',
     organizerId: 'e0000000-0000-0000-0000-000000000003',
     organizerName: 'SpaceSpeakers Group',
-    eventName: 'SOOBIN - THE PLAYAH CONCERT TOUR',
+    eventName: 'Soobin � The Playah Concert Tour',
     eventVenue: 'Trung tâm Triển lãm SECC, Quận 7, TP.HCM',
-    eventStartAt: '2025-06-01T20:00:00Z',
+    eventStartAt: '2026-11-01T20:00:00+07:00',
     tierId: 'tier-vip',
     tierName: 'VIP EARLY ENTRY',
     seatZone: 'Khu VIP 1 - Ghế 22',
@@ -139,11 +140,15 @@ export const marketplaceService = {
       if (response && response.items && response.items.length > 0) {
         return response.items;
       }
+      if (!__DEV__) {
+        return [];
+      }
     } catch (err) {
+      if (!__DEV__) throw err;
       console.warn('[MarketplaceService] Remote fetch fallback to seeded listings:', err);
     }
 
-    // Fallback filter
+    // Fallback filter (development demo data only)
     let results = [...SEEDED_MARKETPLACE_LISTINGS];
     if (params?.keyword && params.keyword.trim()) {
       const kw = params.keyword.toLowerCase().trim();
@@ -176,10 +181,15 @@ export const marketplaceService = {
         return res;
       }
     } catch (err) {
+      if (!__DEV__) throw err;
       console.warn('[MarketplaceService] Remote hold fallback to local escrow session:', err);
     }
 
-    // Create fallback local escrow session
+    if (!__DEV__) {
+      throw new Error('Không thể giữ vé trên hệ thống. Vui lòng thử lại sau.');
+    }
+
+    // Create fallback local escrow session (development only)
     const refCode = `TS${Math.floor(100000 + Math.random() * 900000)}`;
     const buyerFee = Math.round(listing.resalePrice * 0.03); // 3% escrow fee
     const totalBuyerPaid = listing.resalePrice + buyerFee;
@@ -212,22 +222,63 @@ export const marketplaceService = {
   /**
    * Hoàn tất thanh toán Escrow và lưu vé vào ví số của người dùng
    */
+  checkPaymentStatus: async (listingId: string): Promise<PaymentStatusDto | null> => {
+    try {
+      return await resaleListingsApi.getPaymentStatus(listingId);
+    } catch (error) {
+      if (__DEV__) return null;
+      throw error;
+    }
+  },
+
+  /**
+   * Ho�n t?t thanh to�n Escrow v� l�u v� v�o v� s? c?a ng�?i d�ng
+   */
   completeEscrowPurchase: async (
     listing: ResaleListingDetailDto,
     holdData: HoldListingForPurchaseResponse,
-    buyerInfo: { fullName: string; email: string; phone: string }
+    buyerInfo: { fullName: string; email: string; phone: string },
+    options?: { simulateWebhook?: boolean }
   ): Promise<PurchasedTicketDto> => {
-    // 1. Try remote simulate webhook if possible
-    try {
-      await resaleListingsApi.simulatePaymentWebhook(
-        holdData.paymentReference,
-        holdData.totalBuyerPaid
-      );
-    } catch (e) {
-      // Continue locally
+    if (options?.simulateWebhook !== false) {
+      try {
+        await resaleListingsApi.simulatePaymentWebhook(
+          holdData.paymentReference,
+          holdData.totalBuyerPaid
+        );
+      } catch (e) {
+        // Continue locally
+      }
     }
 
-    // 2. Generate Digital Ticket Pass
+    if (!__DEV__) {
+      const purchased = await resaleListingsApi.getMyPurchasedTickets();
+      const issued = purchased.find((item) => item.listingId === listing.listingId);
+      if (!issued) {
+        throw new Error(
+          'Thanh toán đã được ghi nhận nhưng vé chưa phát hành. Vui lòng thử lại sau ít phút.'
+        );
+      }
+      await marketplaceService.saveLocalTicket(issued);
+      await marketplaceService.saveLocalOrder({
+        orderId: holdData.escrowId,
+        listingId: listing.listingId,
+        eventName: issued.eventName,
+        tierName: issued.tierName,
+        seatZone: issued.seatZone,
+        amount: listing.resalePrice,
+        buyerFee: holdData.buyerFee,
+        totalPaid: issued.totalAmountPaid,
+        paymentReference: holdData.paymentReference,
+        status: 'ESCROW_HOLDING',
+        createdAt: issued.purchasedAt,
+        sellerFullName: listing.sellerFullName,
+        ticketPassCode: issued.ticketPassCode,
+      });
+      return issued;
+    }
+
+    // 2. Generate Digital Ticket Pass (development demo flow)
     const ticketPassCode = `TKS-${listing.eventId.toUpperCase().slice(0, 4)}-${Math.floor(
       100000 + Math.random() * 900000
     )}`;

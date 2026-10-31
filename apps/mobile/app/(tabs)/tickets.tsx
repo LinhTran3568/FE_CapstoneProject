@@ -1,15 +1,16 @@
-import React, { useState, useEffect } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   View,
-  Text,
   StyleSheet,
-  ScrollView,
+  FlatList,
   TouchableOpacity,
   Modal,
   Image,
   ActivityIndicator,
   Share,
+  ScrollView,
 } from 'react-native';
+import { Text } from '../../src/components/AppText';
 import { useRouter } from 'expo-router';
 import {
   Ticket,
@@ -17,42 +18,69 @@ import {
   ShieldCheck,
   Calendar,
   MapPin,
-  Clock,
   RefreshCw,
   X,
   Share2,
-  AlertCircle,
-  Sparkles,
+  AlertTriangle,
+  ScanLine,
 } from 'lucide-react-native';
 import { theme } from '../../src/theme';
-import { PurchasedTicketDto } from '@ticketshield/types';
+import { fontFamilies } from '../../src/theme/typography';
+import type { PurchasedTicketDto } from '@ticketshield/types';
 import { ticketService } from '../../src/services/ticketService';
 import { FintechButton } from '../../src/components/FintechButton';
+import { EventPoster } from '../../src/components/EventPoster';
+import { formatEventDate } from '../../src/utils/format';
+
+const STATUS_LABELS: Record<string, string> = {
+  VALID: 'Valid for Entry',
+  USED: 'Checked In',
+  EXPIRED: 'Expired',
+  CANCELLED: 'Cancelled',
+  TRANSFERRED: 'Transferred',
+  PENDING_VERIFICATION: 'Pending Verification',
+};
 
 export default function MobileTicketsScreen() {
   const router = useRouter();
   const [tickets, setTickets] = useState<PurchasedTicketDto[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
 
-  // Rotating QR Modal State
   const [selectedTicket, setSelectedTicket] = useState<PurchasedTicketDto | null>(null);
   const [rotatingToken, setRotatingToken] = useState('');
   const [secondsRemaining, setSecondsRemaining] = useState(30);
+  const [qrLoadFailed, setQrLoadFailed] = useState(false);
 
-  const fetchTickets = async () => {
-    setLoading(false);
-    const data = await ticketService.getUserTickets();
-    setTickets(data);
-    setLoading(false);
-  };
+  const fetchTickets = useCallback(async (silent = false) => {
+    if (!silent) setLoading(true);
+    setError(null);
+    try {
+      const data = await ticketService.getUserTickets();
+      setTickets(data);
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : 'Unable to sync tickets. Please try again.';
+      setError(message);
+    } finally {
+      if (!silent) setLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
     fetchTickets();
-  }, []);
+  }, [fetchTickets]);
 
-  // 30-Second Dynamic Rotating Anti-Scalping QR Loop
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await fetchTickets(true);
+    setRefreshing(false);
+  };
+
   useEffect(() => {
     if (!selectedTicket) return;
+    setQrLoadFailed(false);
 
     const updateToken = () => {
       const res = ticketService.generateRotatingToken(selectedTicket.ticketPassCode);
@@ -65,205 +93,245 @@ export default function MobileTicketsScreen() {
     return () => clearInterval(interval);
   }, [selectedTicket]);
 
-  const handleOpenTicket = (ticket: PurchasedTicketDto) => {
-    setSelectedTicket(ticket);
-  };
-
-  const handleCloseModal = () => {
-    setSelectedTicket(null);
-  };
-
   const handleShareTicket = async () => {
     if (!selectedTicket) return;
     try {
       await Share.share({
-        message: `Vé điện tử TicketShield: ${selectedTicket.eventName} - Hạng: ${selectedTicket.tierName} (${selectedTicket.seatZone}). Mã vé: ${selectedTicket.ticketPassCode}`,
+        title: 'TicketShield Pass',
+        message: `I have a ticket for ${selectedTicket.eventName} — Tier ${selectedTicket.tierName} (${selectedTicket.seatZone}). Open TicketShield to view digital pass.`,
       });
-    } catch (e) {
-      // Ignore
+    } catch {
+      // User cancelled share
     }
   };
 
-  const getStatusBadge = (status: string) => {
-    if (status === 'VALID') {
-      return (
-        <View style={styles.validStatusBadge}>
-          <ShieldCheck size={12} color={theme.colors.success} />
-          <Text style={styles.validStatusText}>HỢP LỆ (SẴN SÀNG VÀO CỔNG)</Text>
-        </View>
-      );
-    }
+  const renderStatusBadge = (status: string) => {
+    const isValid = status === 'VALID';
     return (
-      <View style={styles.otherStatusBadge}>
-        <Text style={styles.otherStatusText}>{status}</Text>
+      <View style={[styles.statusBadge, isValid ? styles.statusBadgeValid : styles.statusBadgeMuted]}>
+        {isValid ? (
+          <ShieldCheck size={13} color={theme.colors.success} />
+        ) : (
+          <AlertTriangle size={13} color={theme.colors.textMuted} />
+        )}
+        <Text style={[styles.statusText, isValid && styles.statusTextValid]}>
+          {STATUS_LABELS[status] || status}
+        </Text>
       </View>
     );
   };
+
+  const renderTicket = ({ item }: { item: PurchasedTicketDto }) => (
+    <TouchableOpacity
+      style={styles.ticketCard}
+      onPress={() => setSelectedTicket(item)}
+      activeOpacity={0.9}
+    >
+      <View style={styles.posterWrap}>
+        <EventPoster seed={item.eventId || item.ticketPassCode} height={104} />
+        <View style={styles.posterOverlay}>
+          {renderStatusBadge(item.status)}
+          <View style={styles.openQrPill}>
+            <QrCode size={13} color={theme.colors.onPrimary} />
+            <Text style={styles.openQrPillText}>Show Pass</Text>
+          </View>
+        </View>
+      </View>
+
+      <View style={styles.cardBody}>
+        <Text style={styles.eventName} numberOfLines={2}>
+          {item.eventName}
+        </Text>
+
+        <View style={styles.metaRow}>
+          <Calendar size={14} color={theme.colors.textMuted} />
+          <Text style={styles.metaText}>{formatEventDate(item.eventStartAt)}</Text>
+        </View>
+        <View style={styles.metaRow}>
+          <MapPin size={14} color={theme.colors.textMuted} />
+          <Text style={styles.metaText} numberOfLines={1}>
+            {item.eventVenue}
+          </Text>
+        </View>
+
+        <View style={styles.dottedDivider}>
+          <View style={styles.notchLeft} />
+          <View style={styles.dashLine} />
+          <View style={styles.notchRight} />
+        </View>
+
+        <View style={styles.ticketDetailsRow}>
+          <View style={styles.detailCol}>
+            <Text style={styles.detailLabel}>Tier</Text>
+            <Text style={styles.detailValue} numberOfLines={1}>
+              {item.tierName}
+            </Text>
+          </View>
+          <View style={styles.detailCol}>
+            <Text style={styles.detailLabel}>Zone / Seat</Text>
+            <Text style={styles.detailValue} numberOfLines={1}>
+              {item.seatZone}
+            </Text>
+          </View>
+          <Text style={styles.ticketCode}>•••• {item.ticketPassCode.slice(-4)}</Text>
+        </View>
+      </View>
+    </TouchableOpacity>
+  );
 
   return (
     <View style={styles.container}>
       {loading ? (
         <View style={styles.centerContainer}>
           <ActivityIndicator size="large" color={theme.colors.primary} />
-          <Text style={styles.loadingText}>Đang đồng bộ ví vé điện tử...</Text>
+          <Text style={styles.loadingText}>Syncing your tickets...</Text>
+        </View>
+      ) : error ? (
+        <View style={styles.centerContainer}>
+          <View style={styles.stateIcon}>
+            <AlertTriangle size={26} color={theme.colors.danger} />
+          </View>
+          <Text style={styles.emptyTitle}>Unable to load tickets</Text>
+          <Text style={styles.emptyDesc}>{error}</Text>
+          <FintechButton
+            title="Try Again"
+            onPress={() => fetchTickets()}
+            variant="secondary"
+            style={styles.exploreBtn}
+          />
         </View>
       ) : tickets.length === 0 ? (
-        <View style={styles.emptyContainer}>
-          <Ticket size={64} color={theme.colors.textMuted} />
-          <Text style={styles.emptyTitle}>Ví Vé Đang Trống</Text>
+        <View style={styles.centerContainer}>
+          <View style={styles.stateIcon}>
+            <Ticket size={30} color={theme.colors.textMuted} />
+          </View>
+          <Text style={styles.emptyTitle}>Your Ticket Wallet is Empty</Text>
           <Text style={styles.emptyDesc}>
-            Bạn chưa sở hữu vé điện tử nào. Hãy khám phá Chợ vé để mua vé an toàn được bảo vệ bởi Escrow.
+            You do not own any tickets yet. Explore the Marketplace to purchase verified tickets backed by guaranteed escrow protection.
           </Text>
           <FintechButton
-            title="Khám Phá Chợ Vé Ngay"
+            title="Explore Marketplace"
             onPress={() => router.push('/(tabs)/marketplace')}
-            variant="primary"
             style={styles.exploreBtn}
           />
         </View>
       ) : (
-        <ScrollView contentContainerStyle={styles.scrollList}>
-          {/* Security Banner */}
-          <View style={styles.securityBanner}>
-            <Sparkles size={16} color={theme.colors.accent} />
-            <Text style={styles.securityBannerText}>
-              Mã QR xoay vòng động chống chụp ảnh màn hình bán lại (Anti-Scalping Token).
-            </Text>
-          </View>
-
-          {tickets.map((t) => (
-            <TouchableOpacity
-              key={t.ticketPassCode}
-              style={styles.ticketCard}
-              onPress={() => handleOpenTicket(t)}
-              activeOpacity={0.85}
-            >
-              {/* Ticket Top Notch Bar */}
-              <View style={styles.cardHeader}>
-                {getStatusBadge(t.status)}
-                <Text style={styles.ticketCode}>{t.ticketPassCode}</Text>
-              </View>
-
-              <Text style={styles.eventName}>{t.eventName}</Text>
-
-              {/* Event Meta */}
-              <View style={styles.metaRow}>
-                <Calendar size={13} color={theme.colors.textSecondary} />
-                <Text style={styles.metaText}>
-                  {new Date(t.eventStartAt).toLocaleDateString('vi-VN', {
-                    weekday: 'short',
-                    day: 'numeric',
-                    month: 'numeric',
-                    year: 'numeric',
-                  })}
-                </Text>
-              </View>
-              <View style={styles.metaRow}>
-                <MapPin size={13} color={theme.colors.textSecondary} />
-                <Text style={styles.metaText} numberOfLines={1}>
-                  {t.eventVenue}
-                </Text>
-              </View>
-
-              {/* Dotted Cut Line (Boarding Pass effect) */}
-              <View style={styles.dottedDivider}>
-                <View style={styles.notchLeft} />
-                <View style={styles.dashLine} />
-                <View style={styles.notchRight} />
-              </View>
-
-              {/* Ticket Details Row */}
-              <View style={styles.ticketDetailsRow}>
-                <View>
-                  <Text style={styles.tierLabel}>Hạng vé</Text>
-                  <Text style={styles.tierValue}>{t.tierName}</Text>
-                </View>
-                <View>
-                  <Text style={styles.seatLabel}>Vị trí ghế</Text>
-                  <Text style={styles.seatValue}>{t.seatZone}</Text>
-                </View>
-
-                {/* QR mini button */}
-                <View style={styles.qrMiniBtn}>
-                  <QrCode size={20} color={theme.colors.primary} />
-                  <Text style={styles.qrMiniBtnText}>Mở QR</Text>
-                </View>
-              </View>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
+        <FlatList
+          data={tickets}
+          keyExtractor={(item) => item.ticketPassCode}
+          renderItem={renderTicket}
+          contentContainerStyle={styles.scrollList}
+          showsVerticalScrollIndicator={false}
+          refreshing={refreshing}
+          onRefresh={handleRefresh}
+          ListHeaderComponent={
+            <View style={styles.securityBanner}>
+              <ScanLine size={18} color={theme.colors.success} />
+              <Text style={styles.securityBannerText}>
+                QR code rotates every 30 seconds to prevent duplication and screenshot fraud.
+              </Text>
+            </View>
+          }
+        />
       )}
 
-      {/* Full Digital Ticket & Rotating QR Modal */}
       <Modal
         visible={!!selectedTicket}
         transparent
         animationType="slide"
-        onRequestClose={handleCloseModal}
+        onRequestClose={() => setSelectedTicket(null)}
       >
         <View style={styles.modalOverlay}>
           <View style={styles.ticketModalCard}>
-            {/* Modal Bar */}
             <View style={styles.modalTopBar}>
               <View style={styles.verifiedTag}>
-                <ShieldCheck size={14} color={theme.colors.success} />
-                <Text style={styles.verifiedTagText}>TICKETSHIELD ENTRY PASS</Text>
+                <ShieldCheck size={15} color={theme.colors.success} />
+                <Text style={styles.verifiedTagText}>Official TicketShield Pass</Text>
               </View>
-              <TouchableOpacity onPress={handleCloseModal} style={styles.closeBtn}>
+              <TouchableOpacity
+                style={styles.closeBtn}
+                onPress={() => setSelectedTicket(null)}
+                accessibilityRole="button"
+                accessibilityLabel="Close"
+              >
                 <X size={20} color={theme.colors.textSecondary} />
               </TouchableOpacity>
             </View>
 
             {selectedTicket && (
-              <ScrollView contentContainerStyle={styles.modalScroll}>
+              <ScrollView
+                contentContainerStyle={styles.modalScroll}
+                showsVerticalScrollIndicator={false}
+              >
                 <Text style={styles.modalEventName}>{selectedTicket.eventName}</Text>
 
-                {/* Rotating QR Box */}
                 <View style={styles.qrCodeWrapper}>
-                  <Image
-                    source={{
-                      uri: `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(
-                        rotatingToken || selectedTicket.ticketPassCode
-                      )}`,
-                    }}
-                    style={styles.qrImage}
-                    resizeMode="contain"
-                  />
+                  {qrLoadFailed ? (
+                    <View style={styles.qrFallback}>
+                      <QrCode size={40} color="#0C0A09" />
+                      <Text style={styles.qrFallbackTitle}>Unable to display QR</Text>
+                      <Text style={styles.qrFallbackHint}>
+                        Present your ticket pass code to gate staff:
+                      </Text>
+                      <Text style={styles.qrFallbackCode}>{selectedTicket.ticketPassCode}</Text>
+                    </View>
+                  ) : (
+                    <Image
+                      source={{
+                        uri: `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(
+                          rotatingToken || selectedTicket.ticketPassCode
+                        )}`,
+                      }}
+                      style={styles.qrImage}
+                      resizeMode="contain"
+                      onError={() => setQrLoadFailed(true)}
+                    />
+                  )}
 
-                  {/* Countdown indicator */}
                   <View style={styles.tokenTimerRow}>
-                    <RefreshCw size={14} color={theme.colors.primary} style={styles.spinIcon} />
+                    <RefreshCw size={14} color="#0C0A09" />
                     <Text style={styles.tokenTimerText}>
-                      Tự động xoay mã sau: <Text style={styles.timerHighlight}>{secondsRemaining}s</Text>
+                      Refreshes in{' '}
+                      <Text style={styles.timerHighlight}>{secondsRemaining}s</Text>
                     </Text>
                   </View>
-
-                  <Text style={styles.totpCode} numberOfLines={1}>
-                    {rotatingToken || selectedTicket.ticketPassCode}
-                  </Text>
+                  <View style={styles.progressTrack}>
+                    <View
+                      style={[
+                        styles.progressFill,
+                        { width: `${Math.max(0, Math.min(100, (secondsRemaining / 30) * 100))}%` },
+                      ]}
+                    />
+                  </View>
                 </View>
 
-                {/* Ticket Metadata Card */}
                 <View style={styles.infoGrid}>
                   <View style={styles.infoCol}>
-                    <Text style={styles.infoColLabel}>Hạng vé</Text>
+                    <Text style={styles.infoColLabel}>Tier</Text>
                     <Text style={styles.infoColValue}>{selectedTicket.tierName}</Text>
                   </View>
                   <View style={styles.infoCol}>
-                    <Text style={styles.infoColLabel}>Chỗ ngồi</Text>
+                    <Text style={styles.infoColLabel}>Zone / Seat</Text>
                     <Text style={styles.infoColValue}>{selectedTicket.seatZone}</Text>
                   </View>
                   <View style={styles.infoCol}>
-                    <Text style={styles.infoColLabel}>Người sở hữu</Text>
+                    <Text style={styles.infoColLabel}>Ticket Holder</Text>
                     <Text style={styles.infoColValue}>{selectedTicket.recipientName}</Text>
                   </View>
                   <View style={styles.infoCol}>
-                    <Text style={styles.infoColLabel}>Mã vé</Text>
-                    <Text style={styles.infoColValueMono}>{selectedTicket.ticketPassCode}</Text>
+                    <Text style={styles.infoColLabel}>Event Time</Text>
+                    <Text style={styles.infoColValue}>
+                      {formatEventDate(selectedTicket.eventStartAt, {
+                        day: '2-digit',
+                        month: 'short',
+                        year: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                      })}
+                    </Text>
                   </View>
                 </View>
 
-                {/* Action buttons */}
                 <View style={styles.modalActions}>
                   <TouchableOpacity
                     style={styles.shareBtn}
@@ -271,19 +339,19 @@ export default function MobileTicketsScreen() {
                     activeOpacity={0.8}
                   >
                     <Share2 size={16} color={theme.colors.text} />
-                    <Text style={styles.shareBtnText}>Chia Sẻ Vé</Text>
+                    <Text style={styles.shareBtnText}>Share Pass</Text>
                   </TouchableOpacity>
 
                   <TouchableOpacity
                     style={styles.detailPageBtn}
                     onPress={() => {
-                      const id = selectedTicket.ticketPassCode;
-                      handleCloseModal();
-                      router.push(`/ticket/${id}`);
+                      const ticketId = selectedTicket.ticketPassCode;
+                      setSelectedTicket(null);
+                      router.push(`/ticket/${ticketId}`);
                     }}
                     activeOpacity={0.8}
                   >
-                    <Text style={styles.detailPageBtnText}>Chi Tiết Thẻ Vé</Text>
+                    <Text style={styles.detailPageBtnText}>Full Pass Details</Text>
                   </TouchableOpacity>
                 </View>
               </ScrollView>
@@ -306,16 +374,20 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     padding: theme.spacing.xl,
   },
+  stateIcon: {
+    width: 60,
+    height: 60,
+    borderRadius: theme.radii.full,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: theme.colors.surface,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+  },
   loadingText: {
     marginTop: theme.spacing.md,
     color: theme.colors.textSecondary,
     fontSize: theme.typography.sizes.sm,
-  },
-  emptyContainer: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: theme.spacing.xl,
   },
   emptyTitle: {
     fontSize: theme.typography.sizes.xl,
@@ -329,205 +401,206 @@ const styles = StyleSheet.create({
     color: theme.colors.textSecondary,
     textAlign: 'center',
     lineHeight: 20,
-    marginBottom: theme.spacing.xl,
+    maxWidth: 300,
   },
   exploreBtn: {
-    width: 220,
+    marginTop: theme.spacing.xl,
+    minWidth: 200,
   },
   scrollList: {
     padding: theme.spacing.lg,
     paddingBottom: theme.spacing['4xl'],
+    gap: theme.spacing.lg,
   },
   securityBanner: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    backgroundColor: 'rgba(139, 92, 246, 0.12)',
-    borderWidth: 1,
-    borderColor: theme.colors.accent,
-    borderRadius: theme.radii.md,
+    gap: theme.spacing.sm,
     padding: theme.spacing.md,
-    marginBottom: theme.spacing.lg,
+    borderRadius: theme.radii.lg,
+    backgroundColor: theme.colors.successLight,
+    borderWidth: 1,
+    borderColor: theme.colors.successBorder,
+    marginBottom: theme.spacing.xs,
   },
   securityBannerText: {
     flex: 1,
-    fontSize: 12,
-    color: theme.colors.accent,
+    fontSize: theme.typography.sizes.xs,
+    color: theme.colors.textSecondary,
     lineHeight: 18,
-    fontWeight: theme.typography.weights.medium,
   },
   ticketCard: {
     backgroundColor: theme.colors.surface,
+    borderRadius: theme.radii.xl,
+    overflow: 'hidden',
     borderWidth: 1,
     borderColor: theme.colors.border,
-    borderRadius: theme.radii.lg,
-    padding: theme.spacing.lg,
-    marginBottom: theme.spacing.lg,
-    ...theme.shadows.md,
-    overflow: 'hidden',
   },
-  cardHeader: {
+  posterWrap: {
+    position: 'relative',
+  },
+  posterOverlay: {
+    position: 'absolute',
+    top: theme.spacing.md,
+    left: theme.spacing.md,
+    right: theme.spacing.md,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: theme.spacing.sm,
   },
-  validStatusBadge: {
+  statusBadge: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: theme.colors.successLight,
-    borderWidth: 1,
-    borderColor: theme.colors.success,
     paddingHorizontal: 8,
-    paddingVertical: 3,
+    paddingVertical: 4,
     borderRadius: theme.radii.sm,
+    backgroundColor: theme.colors.badgeScrim,
+    borderWidth: 1,
   },
-  validStatusText: {
-    fontSize: 9,
-    fontWeight: theme.typography.weights.extrabold,
-    color: theme.colors.success,
+  statusBadgeValid: {
+    borderColor: theme.colors.successBorder,
+  },
+  statusBadgeMuted: {
+    borderColor: theme.colors.border,
+  },
+  statusText: {
+    fontSize: 10,
+    fontWeight: theme.typography.weights.bold,
+    color: theme.colors.textMuted,
     letterSpacing: 0.5,
   },
-  otherStatusBadge: {
-    backgroundColor: theme.colors.inputBackground,
+  statusTextValid: {
+    color: theme.colors.success,
+  },
+  openQrPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
     paddingHorizontal: 8,
-    paddingVertical: 3,
+    paddingVertical: 4,
     borderRadius: theme.radii.sm,
+    backgroundColor: theme.colors.primary,
   },
-  otherStatusText: {
+  openQrPillText: {
     fontSize: 10,
-    color: theme.colors.textSecondary,
+    fontWeight: theme.typography.weights.bold,
+    color: theme.colors.onPrimary,
   },
-  ticketCode: {
-    fontSize: 11,
-    color: theme.colors.textMuted,
-    fontFamily: 'monospace',
+  cardBody: {
+    padding: theme.spacing.lg,
   },
   eventName: {
     fontSize: theme.typography.sizes.lg,
     fontWeight: theme.typography.weights.bold,
     color: theme.colors.text,
-    marginBottom: theme.spacing.xs,
+    marginBottom: 6,
   },
   metaRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    marginBottom: 4,
+    gap: theme.spacing.xs,
+    marginTop: 2,
   },
   metaText: {
-    fontSize: 12,
+    fontSize: theme.typography.sizes.xs,
     color: theme.colors.textSecondary,
-    flex: 1,
   },
   dottedDivider: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginVertical: theme.spacing.md,
     position: 'relative',
+    marginVertical: theme.spacing.md,
+    justifyContent: 'center',
   },
   notchLeft: {
+    position: 'absolute',
+    left: -theme.spacing.lg - 1,
     width: 14,
     height: 14,
     borderRadius: 7,
     backgroundColor: theme.colors.background,
-    marginLeft: -25,
-  },
-  dashLine: {
-    flex: 1,
-    height: 1,
-    borderStyle: 'dashed',
-    borderWidth: 1,
-    borderColor: theme.colors.border,
   },
   notchRight: {
+    position: 'absolute',
+    right: -theme.spacing.lg - 1,
     width: 14,
     height: 14,
     borderRadius: 7,
     backgroundColor: theme.colors.background,
-    marginRight: -25,
+  },
+  dashLine: {
+    borderBottomWidth: 1,
+    borderBottomColor: theme.colors.borderSubtle,
+    borderStyle: 'dashed',
+    marginHorizontal: 10,
   },
   ticketDetailsRow: {
     flexDirection: 'row',
+    alignItems: 'center',
     justifyContent: 'space-between',
-    alignItems: 'center',
   },
-  tierLabel: {
+  detailCol: {
+    gap: 2,
+  },
+  detailLabel: {
     fontSize: 10,
     color: theme.colors.textMuted,
+    textTransform: 'uppercase',
   },
-  tierValue: {
-    fontSize: 13,
+  detailValue: {
+    fontSize: theme.typography.sizes.xs,
     fontWeight: theme.typography.weights.bold,
-    color: theme.colors.primary,
-    marginTop: 2,
-  },
-  seatLabel: {
-    fontSize: 10,
-    color: theme.colors.textMuted,
-  },
-  seatValue: {
-    fontSize: 12,
-    fontWeight: theme.typography.weights.semibold,
     color: theme.colors.text,
-    marginTop: 2,
   },
-  qrMiniBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    backgroundColor: 'rgba(6, 182, 212, 0.12)',
-    borderWidth: 1,
-    borderColor: theme.colors.primary,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: theme.radii.md,
-  },
-  qrMiniBtnText: {
-    fontSize: 12,
-    fontWeight: theme.typography.weights.bold,
+  ticketCode: {
+    fontSize: theme.typography.sizes.xs,
+    fontFamily: fontFamilies.mono,
     color: theme.colors.primary,
+    fontWeight: theme.typography.weights.bold,
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.85)',
+    backgroundColor: theme.colors.backdrop,
     justifyContent: 'center',
+    alignItems: 'center',
     padding: theme.spacing.lg,
   },
   ticketModalCard: {
+    width: '100%',
+    maxHeight: '92%',
     backgroundColor: theme.colors.surface,
-    borderRadius: theme.radii.xl,
-    padding: theme.spacing.xl,
+    borderRadius: theme.radii['2xl'],
     borderWidth: 1,
     borderColor: theme.colors.border,
-    maxHeight: '92%',
+    overflow: 'hidden',
   },
   modalTopBar: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: theme.spacing.md,
+    justifyContent: 'space-between',
+    paddingHorizontal: theme.spacing.xl,
+    paddingVertical: theme.spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: theme.colors.borderSubtle,
   },
   verifiedTag: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: 6,
   },
   verifiedTagText: {
-    fontSize: 10,
-    fontWeight: theme.typography.weights.extrabold,
+    fontSize: theme.typography.sizes.xs,
+    fontWeight: theme.typography.weights.bold,
     color: theme.colors.success,
-    letterSpacing: 0.5,
   },
   closeBtn: {
-    padding: 4,
+    padding: theme.spacing.xs,
   },
   modalScroll: {
+    padding: theme.spacing.xl,
     alignItems: 'center',
   },
   modalEventName: {
-    fontSize: theme.typography.sizes.lg,
+    fontSize: theme.typography.sizes.xl,
     fontWeight: theme.typography.weights.bold,
     color: theme.colors.text,
     textAlign: 'center',
@@ -536,72 +609,95 @@ const styles = StyleSheet.create({
   qrCodeWrapper: {
     alignItems: 'center',
     backgroundColor: '#ffffff',
-    borderRadius: theme.radii.lg,
+    borderRadius: theme.radii.xl,
     padding: theme.spacing.lg,
-    width: 250,
-    marginBottom: theme.spacing.lg,
+    width: '100%',
+    maxWidth: 290,
   },
   qrImage: {
-    width: 200,
-    height: 200,
+    width: 220,
+    height: 220,
+  },
+  qrFallback: {
+    width: 220,
+    height: 220,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: theme.spacing.md,
+    gap: 6,
+  },
+  qrFallbackTitle: {
+    fontSize: theme.typography.sizes.sm,
+    fontWeight: theme.typography.weights.bold,
+    color: '#0C0A09',
+  },
+  qrFallbackHint: {
+    fontSize: 11,
+    color: '#666666',
+    textAlign: 'center',
+  },
+  qrFallbackCode: {
+    fontSize: theme.typography.sizes.sm,
+    fontFamily: fontFamilies.mono,
+    color: '#0C0A09',
+    fontWeight: theme.typography.weights.bold,
+    marginTop: 4,
   },
   tokenTimerRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    marginTop: theme.spacing.sm,
-  },
-  spinIcon: {
-    opacity: 0.8,
+    marginTop: theme.spacing.md,
   },
   tokenTimerText: {
-    fontSize: 11,
-    color: '#0b0f19',
+    fontSize: theme.typography.sizes.xs,
+    color: '#333333',
     fontWeight: theme.typography.weights.medium,
   },
   timerHighlight: {
-    fontWeight: theme.typography.weights.extrabold,
-    color: theme.colors.danger,
+    fontWeight: theme.typography.weights.bold,
+    color: theme.colors.primary,
   },
-  totpCode: {
-    fontSize: 9,
-    color: '#64748b',
-    fontFamily: 'monospace',
-    marginTop: 4,
-    maxWidth: 220,
+  progressTrack: {
+    width: '100%',
+    height: 3,
+    backgroundColor: '#EEEEEE',
+    borderRadius: 2,
+    marginTop: 8,
+    overflow: 'hidden',
+  },
+  progressFill: {
+    height: '100%',
+    backgroundColor: theme.colors.primary,
   },
   infoGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    backgroundColor: theme.colors.inputBackground,
-    borderRadius: theme.radii.md,
+    gap: 12,
+    backgroundColor: theme.colors.surfaceElevated,
+    borderRadius: theme.radii.lg,
     padding: theme.spacing.md,
+    marginTop: theme.spacing.lg,
     width: '100%',
-    marginBottom: theme.spacing.lg,
   },
   infoCol: {
-    width: '50%',
-    paddingVertical: theme.spacing.xs,
+    width: '47%',
   },
   infoColLabel: {
     fontSize: 10,
     color: theme.colors.textMuted,
+    textTransform: 'uppercase',
   },
   infoColValue: {
-    fontSize: 12,
+    fontSize: theme.typography.sizes.xs,
     fontWeight: theme.typography.weights.bold,
     color: theme.colors.text,
     marginTop: 2,
   },
-  infoColValueMono: {
-    fontSize: 11,
-    color: theme.colors.primary,
-    fontFamily: 'monospace',
-    marginTop: 2,
-  },
   modalActions: {
     flexDirection: 'row',
-    gap: theme.spacing.sm,
+    gap: 10,
+    marginTop: theme.spacing.xl,
     width: '100%',
   },
   shareBtn: {
@@ -610,14 +706,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
-    backgroundColor: theme.colors.inputBackground,
+    paddingVertical: 12,
+    backgroundColor: theme.colors.surfaceElevated,
+    borderRadius: theme.radii.lg,
     borderWidth: 1,
     borderColor: theme.colors.border,
-    height: 46,
-    borderRadius: theme.radii.md,
   },
   shareBtnText: {
-    fontSize: 13,
+    fontSize: theme.typography.sizes.sm,
     fontWeight: theme.typography.weights.semibold,
     color: theme.colors.text,
   },
@@ -625,13 +721,13 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
+    paddingVertical: 12,
     backgroundColor: theme.colors.primary,
-    height: 46,
-    borderRadius: theme.radii.md,
+    borderRadius: theme.radii.lg,
   },
   detailPageBtnText: {
-    fontSize: 13,
+    fontSize: theme.typography.sizes.sm,
     fontWeight: theme.typography.weights.bold,
-    color: '#0b0f19',
+    color: theme.colors.onPrimary,
   },
 });

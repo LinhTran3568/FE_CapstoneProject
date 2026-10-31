@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, StyleSheet, TouchableOpacity } from 'react-native';
+import { Text } from './AppText';
 import { Wifi, RefreshCw } from 'lucide-react-native';
 import { theme } from '../theme';
-import { GatewayInfo, checkGatewayHealth } from '../services/apiResolver';
+import { checkGatewayHealth } from '../services/apiResolver';
 import { useAuthStore } from '../stores/authStore';
 
 interface GatewayStatusBadgeProps {
@@ -10,7 +11,7 @@ interface GatewayStatusBadgeProps {
   compact?: boolean;
 }
 
-export const GatewayStatusBadge: React.FC<GatewayStatusBadgeProps> = ({ onRefresh, compact = true }) => {
+const GatewayStatusBadgeDev: React.FC<GatewayStatusBadgeProps> = ({ onRefresh }) => {
   const gatewayInfo = useAuthStore((state) => state.gatewayInfo);
   const refreshGateway = useAuthStore((state) => state.refreshGateway);
 
@@ -43,12 +44,7 @@ export const GatewayStatusBadge: React.FC<GatewayStatusBadgeProps> = ({ onRefres
 
   return (
     <View style={styles.pillContainer}>
-      <TouchableOpacity
-        style={styles.pill}
-        onPress={handlePressRefresh}
-        activeOpacity={0.7}
-      >
-        {/* Pulsing Status Dot */}
+      <TouchableOpacity style={styles.pill} onPress={handlePressRefresh} activeOpacity={0.7}>
         <View
           style={[
             styles.dot,
@@ -57,26 +53,26 @@ export const GatewayStatusBadge: React.FC<GatewayStatusBadgeProps> = ({ onRefres
             isOnline === null && styles.dotPending,
           ]}
         />
-
-        <Wifi size={12} color={isOnline ? theme.colors.success : theme.colors.textMuted} />
-
+        <Wifi size={13} color={isOnline ? theme.colors.success : theme.colors.textMuted} />
         <Text style={styles.networkText}>
           {hostDisplay}
           {portDisplay}
         </Text>
-
-        {latency !== null && isOnline && (
-          <Text style={styles.latencyText}>{latency}ms</Text>
-        )}
-
+        {latency !== null && isOnline && <Text style={styles.latencyText}>{latency}ms</Text>}
         <RefreshCw
-          size={11}
+          size={13}
           color={theme.colors.textMuted}
           style={isChecking ? styles.spin : undefined}
         />
       </TouchableOpacity>
     </View>
   );
+};
+
+export const GatewayStatusBadge: React.FC<GatewayStatusBadgeProps> = (props) => {
+  // Developer-only chrome: never ship network host/port/latency to users.
+  if (!__DEV__) return null;
+  return <GatewayStatusBadgeDev {...props} />;
 };
 
 const styles = StyleSheet.create({
@@ -88,12 +84,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: 'rgba(22, 30, 46, 0.85)',
+    backgroundColor: theme.colors.surface,
     borderWidth: 1,
-    borderColor: 'rgba(38, 51, 77, 0.7)',
+    borderColor: theme.colors.border,
     borderRadius: theme.radii.full,
     paddingHorizontal: 12,
-    paddingVertical: 6,
+    paddingVertical: 8,
     ...theme.shadows.sm,
   },
   dot: {
@@ -116,13 +112,13 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.warning,
   },
   networkText: {
-    fontSize: 11,
+    fontSize: theme.typography.sizes.xs,
     fontWeight: theme.typography.weights.semibold,
     color: theme.colors.textSecondary,
-    fontFamily: 'monospace',
+    fontFamily: theme.typography.families.mono,
   },
   latencyText: {
-    fontSize: 10,
+    fontSize: theme.typography.sizes.xs,
     color: theme.colors.success,
     fontWeight: theme.typography.weights.bold,
   },

@@ -1,13 +1,13 @@
 import React from 'react';
 import {
   TouchableOpacity,
-  Text,
   ActivityIndicator,
   StyleSheet,
   ViewStyle,
   TextStyle,
 } from 'react-native';
 import { theme } from '../theme';
+import { Text } from './AppText';
 
 interface FintechButtonProps {
   title: string;
@@ -54,10 +54,27 @@ export const FintechButton: React.FC<FintechButtonProps> = ({
         return styles.textOutline;
       case 'primary':
         return styles.textPrimary;
+      case 'secondary':
+        return styles.textSecondary;
+      case 'success':
+        return styles.textSuccess;
+      case 'danger':
+        return styles.textDanger;
       default:
-        return styles.textLight;
+        return styles.textPrimary;
     }
   };
+
+  const spinnerColor =
+    variant === 'outline'
+      ? theme.colors.primary
+      : variant === 'secondary'
+        ? theme.colors.onSecondary
+        : variant === 'success'
+          ? theme.colors.onSuccess
+          : variant === 'danger'
+            ? theme.colors.onDanger
+            : theme.colors.onPrimary;
 
   return (
     <TouchableOpacity
@@ -70,18 +87,15 @@ export const FintechButton: React.FC<FintechButtonProps> = ({
       onPress={onPress}
       disabled={isActionDisabled}
       activeOpacity={0.8}
+      accessibilityRole="button"
+      accessibilityState={{ disabled: isActionDisabled, busy: loading }}
     >
       {loading ? (
-        <ActivityIndicator
-          size="small"
-          color={variant === 'outline' ? theme.colors.primary : '#0b0f19'}
-        />
+        <ActivityIndicator size="small" color={spinnerColor} />
       ) : (
         <>
           {icon}
-          <Text style={[styles.baseText, getTextStyle(), textStyle]}>
-            {title}
-          </Text>
+          <Text style={[styles.baseText, getTextStyle(), textStyle]}>{title}</Text>
         </>
       )}
     </TouchableOpacity>
@@ -90,8 +104,8 @@ export const FintechButton: React.FC<FintechButtonProps> = ({
 
 const styles = StyleSheet.create({
   baseButton: {
-    height: 50,
-    borderRadius: theme.radii.md,
+    minHeight: theme.spacing['5xl'] + 4,
+    borderRadius: theme.radii.lg,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -105,6 +119,8 @@ const styles = StyleSheet.create({
   },
   btnSecondary: {
     backgroundColor: theme.colors.secondary,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
   },
   btnSuccess: {
     backgroundColor: theme.colors.success,
@@ -123,16 +139,21 @@ const styles = StyleSheet.create({
   baseText: {
     fontSize: theme.typography.sizes.base,
     fontWeight: theme.typography.weights.bold,
-    letterSpacing: 0.3,
+    letterSpacing: 0.2,
   },
   textPrimary: {
-    color: '#0b0f19', // Dark high contrast text on cyan
+    color: theme.colors.onPrimary,
   },
-  textLight: {
-    color: theme.colors.white,
+  textSecondary: {
+    color: theme.colors.onSecondary,
+  },
+  textSuccess: {
+    color: theme.colors.onSuccess,
+  },
+  textDanger: {
+    color: theme.colors.onDanger,
   },
   textOutline: {
     color: theme.colors.text,
   },
 });
-

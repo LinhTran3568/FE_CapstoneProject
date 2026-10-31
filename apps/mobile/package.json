@@ -13,6 +13,7 @@
     "lint": "npx eslint ."
   },
   "dependencies": {
+    "@expo-google-fonts/be-vietnam-pro": "^0.4.1",
     "@tanstack/react-query": "^5.28.4",
     "@ticketshield/api-client": "file:../../packages/api-client",
     "@ticketshield/types": "file:../../packages/types",

@@ -1,180 +1,249 @@
 import React from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
-  Alert,
-  Platform,
-} from 'react-native';
+import { View, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';
+import { Text } from '../../src/components/AppText';
 import { useRouter } from 'expo-router';
 import {
-  User as UserIcon,
-  Shield,
   ShieldCheck,
-  Server,
+  ShieldAlert,
+  Clock3,
+  CircleDashed,
   LogOut,
   Lock,
   Mail,
   Phone,
-  CheckCircle2,
-  KeyRound,
+  Ticket,
+  ReceiptText,
+  Building2,
+  ScanLine,
+  ChevronRight,
+  CreditCard,
 } from 'lucide-react-native';
 import { theme } from '../../src/theme';
 import { useAuthStore } from '../../src/stores/authStore';
 import { GatewayStatusBadge } from '../../src/components/GatewayStatusBadge';
+import { initialsOf } from '../../src/utils/format';
+
+const ROLE_LABELS: Record<string, string> = {
+  BUYER: 'Buyer',
+  RESELLER: 'Seller',
+  ORGANIZER: 'Organizer',
+  ADMIN: 'Administrator',
+};
+
+const KYC_STATES = {
+  VERIFIED: {
+    label: 'ID Verified',
+    color: theme.colors.success,
+    background: theme.colors.successLight,
+    Icon: ShieldCheck,
+  },
+  PENDING: {
+    label: 'Pending Review',
+    color: theme.colors.warning,
+    background: theme.colors.warningLight,
+    Icon: Clock3,
+  },
+  REJECTED: {
+    label: 'Verification Failed',
+    color: theme.colors.danger,
+    background: theme.colors.dangerLight,
+    Icon: ShieldAlert,
+  },
+  NOT_STARTED: {
+    label: 'Unverified',
+    color: theme.colors.textSecondary,
+    background: theme.colors.surfaceHighlight,
+    Icon: CircleDashed,
+  },
+} as const;
 
 export default function MobileProfileScreen() {
   const router = useRouter();
-  const { user, logout, gatewayInfo } = useAuthStore();
+  const { user, logout } = useAuthStore();
+
+  const kyc = KYC_STATES[user?.kycStatus ?? 'NOT_STARTED'];
 
   const handleLogout = () => {
     Alert.alert(
-      'Xác nhận đăng xuất',
-      'Bạn có chắc chắn muốn đăng xuất khỏi TicketShield và xóa phiên bảo mật trên thiết bị này?',
+      'Sign Out',
+      'Are you sure you want to sign out of TicketShield on this device?',
       [
-        { text: 'Hủy', style: 'cancel' },
+        { text: 'Cancel', style: 'cancel' },
         {
-          text: 'Đăng xuất',
+          text: 'Sign Out',
           style: 'destructive',
           onPress: async () => {
             await logout();
-            // Điều hướng về /(auth)/login được tự động xử lý bởi AuthNavigationCoordinator trong _layout.tsx
           },
         },
       ]
     );
   };
 
-  const getRoleBadgeColor = (role?: string) => {
-    switch (role?.toUpperCase()) {
-      case 'ADMIN':
-        return theme.colors.danger;
-      case 'ORGANIZER':
-        return theme.colors.accent;
-      case 'RESELLER':
-        return theme.colors.warning;
-      case 'BUYER':
-      default:
-        return theme.colors.primary;
-    }
-  };
-
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      {/* Profile Header Card */}
+    <ScrollView
+      style={styles.container}
+      contentContainerStyle={styles.content}
+      showsVerticalScrollIndicator={false}
+    >
+      {/* Profile Card */}
       <View style={styles.profileCard}>
-        <View style={styles.avatarWrapper}>
-          <UserIcon size={36} color={theme.colors.primary} />
+        <View style={styles.avatar}>
+          <Text style={styles.avatarText}>{initialsOf(user?.fullName)}</Text>
         </View>
 
-        <Text style={styles.userName}>{user?.fullName || 'Người Dùng TicketShield'}</Text>
-        <Text style={styles.userEmail}>{user?.email || 'user@ticketshield.vn'}</Text>
+        <Text style={styles.userName}>{user?.fullName || 'TicketShield Member'}</Text>
+        <Text style={styles.userEmail}>{user?.email || '—'}</Text>
 
         <View style={styles.badgeRow}>
-          <View
-            style={[
-              styles.roleBadge,
-              { borderColor: getRoleBadgeColor(user?.role) },
-            ]}
-          >
-            <Text
-              style={[
-                styles.roleBadgeText,
-                { color: getRoleBadgeColor(user?.role) },
-              ]}
-            >
-              {user?.role || 'BUYER'}
+          <View style={styles.roleBadge}>
+            <Text style={styles.roleBadgeText}>
+              {ROLE_LABELS[user?.role ?? 'BUYER'] ?? user?.role}
             </Text>
           </View>
 
-          <View style={styles.kycBadge}>
-            <CheckCircle2 size={12} color={theme.colors.success} />
-            <Text style={styles.kycBadgeText}>Đã Xác Minh KYC</Text>
+          <View style={[styles.kycBadge, { backgroundColor: kyc.background }]}>
+            <kyc.Icon size={13} color={kyc.color} />
+            <Text style={[styles.kycBadgeText, { color: kyc.color }]}>{kyc.label}</Text>
           </View>
         </View>
       </View>
 
-      {/* Account Details Section */}
+      {/* Primary Actions (Matching Web: Tickets, Orders) */}
+      <View style={styles.quickRow}>
+        <TouchableOpacity
+          style={styles.quickCard}
+          onPress={() => router.push('/(tabs)/tickets')}
+          activeOpacity={0.85}
+        >
+          <View style={styles.quickIcon}>
+            <Ticket size={20} color={theme.colors.primary} />
+          </View>
+          <Text style={styles.quickTitle}>My Tickets</Text>
+          <Text style={styles.quickSubtitle}>Active digital passes</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.quickCard}
+          onPress={() => router.push('/(tabs)/orders')}
+          activeOpacity={0.85}
+        >
+          <View style={[styles.quickIcon, styles.quickIconNeutral]}>
+            <ReceiptText size={20} color={theme.colors.text} />
+          </View>
+          <Text style={styles.quickTitle}>Orders</Text>
+          <Text style={styles.quickSubtitle}>Escrow transaction logs</Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* Navigation Group matching Web Menu */}
       <View style={styles.sectionCard}>
-        <Text style={styles.sectionTitle}>Thông Tin Tài Khoản</Text>
+        <Text style={styles.sectionTitle}>Activity & Services</Text>
+
+        <TouchableOpacity
+          style={styles.menuRow}
+          onPress={() => router.push('/verify')}
+          activeOpacity={0.7}
+        >
+          <View style={[styles.menuIconSlot, { backgroundColor: theme.colors.successLight }]}>
+            <ScanLine size={18} color={theme.colors.success} />
+          </View>
+          <View style={styles.menuTextSlot}>
+            <Text style={styles.menuTitle}>Sell Ticket</Text>
+            <Text style={styles.menuDesc}>Verify ticket code & list for resale</Text>
+          </View>
+          <ChevronRight size={18} color={theme.colors.textMuted} />
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.menuRow}
+          onPress={() => router.push('/event/atsh-2026')}
+          activeOpacity={0.7}
+        >
+          <View style={[styles.menuIconSlot, { backgroundColor: 'rgba(56, 189, 248, 0.12)' }]}>
+            <Building2 size={18} color="#38BDF8" />
+          </View>
+          <View style={styles.menuTextSlot}>
+            <Text style={styles.menuTitle}>Origin Store</Text>
+            <Text style={styles.menuDesc}>Official organizer box office</Text>
+          </View>
+          <ChevronRight size={18} color={theme.colors.textMuted} />
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[styles.menuRow, styles.noBorderBottom]}
+          onPress={() =>
+            Alert.alert('Payout Accounts', 'Linked bank accounts for receiving resale payouts. Managed via web portal.')
+          }
+          activeOpacity={0.7}
+        >
+          <View style={[styles.menuIconSlot, { backgroundColor: theme.colors.primaryLight }]}>
+            <CreditCard size={18} color={theme.colors.primary} />
+          </View>
+          <View style={styles.menuTextSlot}>
+            <Text style={styles.menuTitle}>Payout Accounts</Text>
+            <Text style={styles.menuDesc}>Bank accounts for resale disbursements</Text>
+          </View>
+          <ChevronRight size={18} color={theme.colors.textMuted} />
+        </TouchableOpacity>
+      </View>
+
+      {/* Account Info */}
+      <View style={styles.sectionCard}>
+        <Text style={styles.sectionTitle}>Account Details</Text>
 
         <View style={styles.detailRow}>
           <View style={styles.detailIconSlot}>
             <Mail size={16} color={theme.colors.textSecondary} />
           </View>
           <View style={styles.detailTextSlot}>
-            <Text style={styles.detailLabel}>Email liên kết</Text>
+            <Text style={styles.detailLabel}>Email Address</Text>
             <Text style={styles.detailValue}>{user?.email || '—'}</Text>
-          </View>
-        </View>
-
-        <View style={styles.detailRow}>
-          <View style={styles.detailIconSlot}>
-            <Phone size={16} color={theme.colors.textSecondary} />
-          </View>
-          <View style={styles.detailTextSlot}>
-            <Text style={styles.detailLabel}>Số điện thoại</Text>
-            <Text style={styles.detailValue}>{user?.phoneNumber || 'Chưa cập nhật'}</Text>
           </View>
         </View>
 
         <View style={[styles.detailRow, styles.noBorderBottom]}>
           <View style={styles.detailIconSlot}>
-            <KeyRound size={16} color={theme.colors.textSecondary} />
+            <Phone size={16} color={theme.colors.textSecondary} />
           </View>
           <View style={styles.detailTextSlot}>
-            <Text style={styles.detailLabel}>Mã định danh User ID</Text>
-            <Text style={styles.detailValueMono} numberOfLines={1}>
-              {user?.id || '—'}
-            </Text>
+            <Text style={styles.detailLabel}>Phone Number</Text>
+            <Text style={styles.detailValue}>{user?.phoneNumber || 'Not provided'}</Text>
           </View>
         </View>
       </View>
 
-      {/* Dynamic Gateway & Security Section */}
+      {/* Device Security */}
       <View style={styles.sectionCard}>
-        <Text style={styles.sectionTitle}>Hạ Tầng Mạng & Bảo Mật (US-9.1)</Text>
+        <Text style={styles.sectionTitle}>Device Security</Text>
 
-        <View style={styles.gatewayWrapper}>
-          <GatewayStatusBadge />
-        </View>
-
-        <View style={styles.securityItem}>
+        <View style={[styles.securityItem, !__DEV__ && styles.noBorderBottom]}>
           <Lock size={16} color={theme.colors.success} />
           <View style={styles.securityTextGroup}>
-            <Text style={styles.securityTitle}>Lưu trữ phiên an toàn (SecureStore)</Text>
+            <Text style={styles.securityTitle}>Encrypted Session Storage</Text>
             <Text style={styles.securityDesc}>
-              Access Token & Refresh Token được mã hóa trong phần cứng Keystore/Keychain.
+              Authentication tokens are securely stored in hardware Keystore/Keychain via SecureStore.
             </Text>
           </View>
         </View>
 
-        <View style={[styles.securityItem, styles.noBorderBottom]}>
-          <Server size={16} color={theme.colors.primary} />
-          <View style={styles.securityTextGroup}>
-            <Text style={styles.securityTitle}>Cổng API Gateway Động</Text>
-            <Text style={styles.securityDesc}>
-              {gatewayInfo?.url || 'http://localhost:5000/api/v1'}
-            </Text>
+        {__DEV__ && (
+          <View style={[styles.securityItem, styles.noBorderBottom]}>
+            <View style={styles.securityTextGroup}>
+              <Text style={styles.securityTitle}>LAN Gateway (Dev)</Text>
+              <View style={styles.gatewayWrapper}>
+                <GatewayStatusBadge />
+              </View>
+            </View>
           </View>
-        </View>
+        )}
       </View>
 
-      {/* Logout Button */}
-      <TouchableOpacity
-        style={styles.logoutBtn}
-        onPress={handleLogout}
-        activeOpacity={0.8}
-      >
+      {/* Sign Out Button */}
+      <TouchableOpacity style={styles.logoutButton} onPress={handleLogout} activeOpacity={0.8}>
         <LogOut size={18} color={theme.colors.danger} />
-        <Text style={styles.logoutBtnText}>Đăng Xuất Khỏi Thiết Bị</Text>
+        <Text style={styles.logoutText}>Sign Out</Text>
       </TouchableOpacity>
-
-      <Text style={styles.versionText}>
-        TicketShield Mobile v1.0.0 • Dark Fintech Edition
-      </Text>
     </ScrollView>
   );
 }
@@ -187,130 +256,183 @@ const styles = StyleSheet.create({
   content: {
     padding: theme.spacing.lg,
     paddingBottom: theme.spacing['4xl'],
+    gap: theme.spacing.lg,
   },
   profileCard: {
     backgroundColor: theme.colors.surface,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
     borderRadius: theme.radii.xl,
     padding: theme.spacing.xl,
     alignItems: 'center',
-    marginBottom: theme.spacing.lg,
-    ...theme.shadows.md,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
   },
-  avatarWrapper: {
-    width: 68,
-    height: 68,
-    borderRadius: 34,
-    backgroundColor: theme.colors.inputBackground,
-    borderWidth: 2,
-    borderColor: 'rgba(6, 182, 212, 0.4)',
+  avatar: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: theme.colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: theme.spacing.md,
-    ...theme.shadows.glow,
+  },
+  avatarText: {
+    fontSize: theme.typography.sizes['2xl'],
+    fontWeight: theme.typography.weights.extrabold,
+    color: theme.colors.onPrimary,
   },
   userName: {
     fontSize: theme.typography.sizes.xl,
     fontWeight: theme.typography.weights.bold,
     color: theme.colors.text,
-    marginBottom: 4,
   },
   userEmail: {
     fontSize: theme.typography.sizes.sm,
     color: theme.colors.textSecondary,
+    marginTop: 2,
     marginBottom: theme.spacing.md,
   },
   badgeRow: {
     flexDirection: 'row',
     gap: theme.spacing.sm,
+    alignItems: 'center',
   },
   roleBadge: {
-    borderWidth: 1,
-    paddingHorizontal: 10,
-    paddingVertical: 3,
+    paddingHorizontal: 12,
+    paddingVertical: 5,
     borderRadius: theme.radii.full,
-    backgroundColor: 'rgba(255, 255, 255, 0.04)',
+    backgroundColor: theme.colors.surfaceElevated,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
   },
   roleBadgeText: {
-    fontSize: 11,
+    fontSize: theme.typography.sizes.xs,
     fontWeight: theme.typography.weights.bold,
+    color: theme.colors.text,
+    textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
   kycBadge: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: theme.colors.successLight,
-    borderWidth: 1,
-    borderColor: theme.colors.success,
     paddingHorizontal: 10,
-    paddingVertical: 3,
+    paddingVertical: 5,
     borderRadius: theme.radii.full,
   },
   kycBadgeText: {
-    fontSize: 11,
+    fontSize: theme.typography.sizes.xs,
     fontWeight: theme.typography.weights.semibold,
-    color: theme.colors.success,
   },
-  sectionCard: {
+  quickRow: {
+    flexDirection: 'row',
+    gap: theme.spacing.md,
+  },
+  quickCard: {
+    flex: 1,
     backgroundColor: theme.colors.surface,
+    borderRadius: theme.radii.xl,
+    padding: theme.spacing.lg,
     borderWidth: 1,
     borderColor: theme.colors.border,
-    borderRadius: theme.radii.lg,
-    padding: theme.spacing.lg,
-    marginBottom: theme.spacing.lg,
   },
-  sectionTitle: {
+  quickIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: theme.colors.primaryLight,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: theme.spacing.sm,
+  },
+  quickIconNeutral: {
+    backgroundColor: theme.colors.surfaceElevated,
+  },
+  quickTitle: {
     fontSize: theme.typography.sizes.base,
     fontWeight: theme.typography.weights.bold,
     color: theme.colors.text,
+  },
+  quickSubtitle: {
+    fontSize: theme.typography.sizes.xs,
+    color: theme.colors.textMuted,
+    marginTop: 2,
+  },
+  sectionCard: {
+    backgroundColor: theme.colors.surface,
+    borderRadius: theme.radii.xl,
+    padding: theme.spacing.lg,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+  },
+  sectionTitle: {
+    fontSize: theme.typography.sizes.xs,
+    fontWeight: theme.typography.weights.bold,
+    color: theme.colors.textMuted,
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
     marginBottom: theme.spacing.md,
+  },
+  menuRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: theme.spacing.md,
+    paddingVertical: theme.spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: theme.colors.borderSubtle,
+  },
+  menuIconSlot: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  menuTextSlot: {
+    flex: 1,
+  },
+  menuTitle: {
+    fontSize: theme.typography.sizes.sm,
+    fontWeight: theme.typography.weights.bold,
+    color: theme.colors.text,
+  },
+  menuDesc: {
+    fontSize: theme.typography.sizes.xs,
+    color: theme.colors.textSecondary,
+    marginTop: 2,
   },
   detailRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: theme.spacing.sm,
+    gap: theme.spacing.md,
+    paddingVertical: theme.spacing.md,
     borderBottomWidth: 1,
     borderBottomColor: theme.colors.borderSubtle,
   },
+  noBorderBottom: {
+    borderBottomWidth: 0,
+    paddingBottom: 0,
+  },
   detailIconSlot: {
     width: 32,
-    height: 32,
-    borderRadius: 8,
-    backgroundColor: theme.colors.inputBackground,
     alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: theme.spacing.md,
   },
   detailTextSlot: {
     flex: 1,
   },
   detailLabel: {
-    fontSize: 11,
+    fontSize: 10,
     color: theme.colors.textMuted,
+    textTransform: 'uppercase',
+    letterSpacing: 0.4,
   },
   detailValue: {
     fontSize: theme.typography.sizes.sm,
-    fontWeight: theme.typography.weights.medium,
     color: theme.colors.text,
+    fontWeight: theme.typography.weights.medium,
     marginTop: 2,
-  },
-  detailValueMono: {
-    fontSize: 11,
-    color: theme.colors.textSecondary,
-    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
-    marginTop: 2,
-  },
-  noBorderBottom: {
-    borderBottomWidth: 0,
-  },
-  gatewayWrapper: {
-    marginBottom: theme.spacing.md,
   },
   securityItem: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
     gap: theme.spacing.md,
     paddingVertical: theme.spacing.sm,
     borderBottomWidth: 1,
@@ -325,32 +447,29 @@ const styles = StyleSheet.create({
     color: theme.colors.text,
   },
   securityDesc: {
-    fontSize: 11,
+    fontSize: theme.typography.sizes.xs,
     color: theme.colors.textSecondary,
     marginTop: 2,
-    lineHeight: 16,
+    lineHeight: 18,
   },
-  logoutBtn: {
+  gatewayWrapper: {
+    marginTop: 6,
+    alignSelf: 'flex-start',
+  },
+  logoutButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: theme.spacing.sm,
     backgroundColor: theme.colors.dangerLight,
-    borderWidth: 1.2,
-    borderColor: theme.colors.danger,
-    borderRadius: theme.radii.md,
-    height: 48,
-    marginTop: theme.spacing.sm,
-    marginBottom: theme.spacing.xl,
+    borderWidth: 1,
+    borderColor: theme.colors.dangerBorder,
+    borderRadius: theme.radii.xl,
+    paddingVertical: 14,
   },
-  logoutBtnText: {
-    color: theme.colors.danger,
-    fontSize: theme.typography.sizes.base,
+  logoutText: {
+    fontSize: theme.typography.sizes.sm,
     fontWeight: theme.typography.weights.bold,
-  },
-  versionText: {
-    textAlign: 'center',
-    fontSize: 11,
-    color: theme.colors.textMuted,
+    color: theme.colors.danger,
   },
 });

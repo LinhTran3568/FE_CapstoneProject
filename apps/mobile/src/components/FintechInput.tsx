@@ -1,14 +1,14 @@
 import React, { useState } from 'react';
 import {
   View,
-  Text,
   TextInput,
   StyleSheet,
   TouchableOpacity,
   TextInputProps,
 } from 'react-native';
 import { Eye, EyeOff } from 'lucide-react-native';
-import { theme } from '../theme';
+import { theme, fontFamilies } from '../theme';
+import { Text } from './AppText';
 
 interface FintechInputProps extends TextInputProps {
   label: string;
@@ -47,6 +47,7 @@ export const FintechInput: React.FC<FintechInputProps> = ({
           onBlur={() => setIsFocused(false)}
           selectionColor={theme.colors.primary}
           autoCapitalize="none"
+          allowFontScaling
           {...props}
         />
         {isPassword && (
@@ -54,6 +55,9 @@ export const FintechInput: React.FC<FintechInputProps> = ({
             style={styles.eyeBtn}
             onPress={() => setShowPassword((prev) => !prev)}
             activeOpacity={0.7}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            accessibilityRole="button"
+            accessibilityLabel={showPassword ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'}
           >
             {showPassword ? (
               <EyeOff size={18} color={theme.colors.textSecondary} />
@@ -85,14 +89,13 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.inputBackground,
     borderWidth: 1.2,
     borderColor: theme.colors.border,
-    borderRadius: theme.radii.md,
+    borderRadius: theme.radii.lg,
     paddingHorizontal: theme.spacing.md,
-    height: 50,
+    minHeight: theme.spacing['5xl'] + 4,
   },
   inputFocused: {
     borderColor: theme.colors.primary,
-    backgroundColor: '#121b2d',
-    ...theme.shadows.glow,
+    backgroundColor: theme.colors.surface,
   },
   inputError: {
     borderColor: theme.colors.danger,
@@ -103,18 +106,22 @@ const styles = StyleSheet.create({
   input: {
     flex: 1,
     color: theme.colors.text,
+    fontFamily: fontFamilies.regular,
     fontSize: theme.typography.sizes.base,
-    height: '100%',
+    minHeight: theme.spacing['5xl'] + 2,
+    paddingVertical: theme.spacing.sm,
   },
   eyeBtn: {
-    padding: theme.spacing.xs,
+    width: theme.spacing['5xl'] - 4,
+    height: theme.spacing['5xl'] - 4,
+    alignItems: 'center',
+    justifyContent: 'center',
     marginLeft: theme.spacing.xs,
   },
   errorText: {
     fontSize: theme.typography.sizes.xs,
     color: theme.colors.danger,
-    marginTop: 4,
+    marginTop: theme.spacing.xs,
     fontWeight: theme.typography.weights.medium,
   },
 });
-

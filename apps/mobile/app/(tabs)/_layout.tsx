@@ -1,7 +1,7 @@
 import React from 'react';
 import { Tabs } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
-import { theme } from '../../src/theme';
+import { Home, ReceiptText, Store, Ticket, UserRound } from 'lucide-react-native';
+import { theme, fontFamilies } from '../../src/theme';
 
 export default function TabLayout() {
   return (
@@ -10,67 +10,75 @@ export default function TabLayout() {
         tabBarStyle: {
           backgroundColor: theme.colors.surface,
           borderTopColor: theme.colors.border,
-          height: 62,
-          paddingBottom: 8,
+          borderTopWidth: 1,
           paddingTop: 6,
+          height: 60,
         },
         tabBarActiveTintColor: theme.colors.primary,
         tabBarInactiveTintColor: theme.colors.textMuted,
+        tabBarLabelStyle: {
+          fontSize: theme.typography.sizes.xs,
+          fontFamily: fontFamilies.semibold,
+          letterSpacing: 0.3,
+          marginBottom: 6,
+        },
+        tabBarHideOnKeyboard: true,
         headerStyle: { backgroundColor: theme.colors.background },
         headerTintColor: theme.colors.text,
         headerTitleStyle: {
-          fontWeight: theme.typography.weights.bold,
+          fontFamily: fontFamilies.bold,
           fontSize: theme.typography.sizes.lg,
         },
+        headerShadowVisible: false,
       }}
     >
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Trang Chủ',
-          headerTitle: 'TicketShield AI',
+          title: 'Home',
+          headerTitle: 'TicketShield',
           tabBarIcon: ({ color, size, focused }) => (
-            <Ionicons name={focused ? 'home' : 'home-outline'} size={size || 22} color={color} />
+            <Home size={size || 22} color={color} strokeWidth={focused ? 2.4 : 1.8} />
           ),
         }}
       />
       <Tabs.Screen
         name="marketplace"
         options={{
-          title: 'Chợ Vé',
-          headerTitle: 'Sàn Sang Nhượng Verified',
+          title: 'Marketplace',
+          headerTitle: 'Ticket Marketplace',
           tabBarIcon: ({ color, size, focused }) => (
-            <Ionicons name={focused ? 'storefront' : 'storefront-outline'} size={size || 22} color={color} />
+            <Store size={size || 22} color={color} strokeWidth={focused ? 2.4 : 1.8} />
           ),
         }}
       />
       <Tabs.Screen
         name="tickets"
         options={{
-          title: 'Ví Vé',
-          headerTitle: 'Ví Vé Điện Tử Của Tôi',
+          title: 'My Tickets',
+          headerTitle: 'My Ticket Wallet',
           tabBarIcon: ({ color, size, focused }) => (
-            <Ionicons name={focused ? 'ticket' : 'ticket-outline'} size={size || 22} color={color} />
+            <Ticket size={size || 22} color={color} strokeWidth={focused ? 2.4 : 1.8} />
           ),
         }}
       />
       <Tabs.Screen
         name="orders"
         options={{
-          title: 'Đơn Hàng',
-          headerTitle: 'Lịch Sử & Khóa Escrow',
+          title: 'Orders',
+          headerTitle: 'Orders & Escrow',
           tabBarIcon: ({ color, size, focused }) => (
-            <Ionicons name={focused ? 'shield-checkmark' : 'shield-checkmark-outline'} size={size || 22} color={color} />
+            <ReceiptText size={size || 22} color={color} strokeWidth={focused ? 2.4 : 1.8} />
           ),
         }}
       />
       <Tabs.Screen
         name="profile"
         options={{
-          title: 'Tài Khoản',
-          headerTitle: 'Cài Đặt An Ninh & KYC',
+          title: 'Profile',
+          headerTitle: 'Account & Settings',
           tabBarIcon: ({ color, size, focused }) => (
-            <Ionicons name={focused ? 'person' : 'person-outline'} size={size || 22} color={color} />
+            <UserRound size={size || 22} color={color} strokeWidth={focused ? 2.4 : 1.8} />
           ),
         }}
       />

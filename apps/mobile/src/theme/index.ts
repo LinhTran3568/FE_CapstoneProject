@@ -1,7 +1,7 @@
-// TicketShield Dark Fintech Unified Theme System
+// TicketShield Mobile Unified Theme System
 import { colors } from './colors';
 import { typography } from './typography';
-import { spacing, radii, shadows } from './spacing';
+import { spacing, radii, shadows, layout } from './spacing';
 
 export const theme = {
   colors,
@@ -9,6 +9,7 @@ export const theme = {
   spacing,
   radii,
   shadows,
+  layout,
   isDark: true,
 } as const;
 

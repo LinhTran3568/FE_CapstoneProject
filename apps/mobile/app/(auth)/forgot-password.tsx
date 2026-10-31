@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import {
   View,
-  Text,
   StyleSheet,
   ScrollView,
   KeyboardAvoidingView,
@@ -9,9 +8,10 @@ import {
   TouchableOpacity,
   Alert,
 } from 'react-native';
+import { Text } from '../../src/components/AppText';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { Mail, Lock, KeyRound, ArrowLeft, CheckCircle2, ShieldAlert } from 'lucide-react-native';
+import { Mail, Lock, KeyRound, ArrowLeft, CheckCircle2 } from 'lucide-react-native';
 import { theme } from '../../src/theme';
 import { authApi } from '@ticketshield/api-client';
 import { FintechShieldLogo } from '../../src/components/FintechShieldLogo';
@@ -32,7 +32,7 @@ export default function ForgotPasswordScreen() {
   const handleRequestOtp = async () => {
     setError(null);
     if (!email.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
-      setError('Vui lòng nhập địa chỉ email hợp lệ');
+      setError('Please enter a valid email address');
       return;
     }
 
@@ -41,11 +41,11 @@ export default function ForgotPasswordScreen() {
       await authApi.forgotPassword(email.trim());
       setStep('RESET_PASS');
       Alert.alert(
-        'Đã gửi mã OTP!',
-        `Mã xác nhận khôi phục mật khẩu đã được gửi đến email ${email.trim()}.`
+        'Code Sent',
+        `Password recovery instructions have been sent to ${email.trim()}.`
       );
     } catch (err: any) {
-      setError(err?.message || 'Không thể gửi mã khôi phục. Vui lòng thử lại sau.');
+      setError(err?.message || 'Unable to send recovery code. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -54,15 +54,15 @@ export default function ForgotPasswordScreen() {
   const handleResetPassword = async () => {
     setError(null);
     if (!otp.trim()) {
-      setError('Vui lòng nhập mã OTP');
+      setError('Please enter the verification code');
       return;
     }
     if (!newPassword || newPassword.length < 8) {
-      setError('Mật khẩu mới phải có ít nhất 8 ký tự');
+      setError('New password must be at least 8 characters');
       return;
     }
     if (newPassword !== confirmPassword) {
-      setError('Mật khẩu xác nhận không trùng khớp');
+      setError('Passwords do not match');
       return;
     }
 
@@ -75,17 +75,17 @@ export default function ForgotPasswordScreen() {
       });
 
       Alert.alert(
-        'Đổi Mật Khẩu Thành Công!',
-        'Mật khẩu của bạn đã được cập nhật thành công. Hãy đăng nhập bằng mật khẩu mới.',
+        'Password Reset Successful',
+        'Your password has been updated. You can now sign in with your new password.',
         [
           {
-            text: 'Đăng nhập ngay',
+            text: 'Sign In Now',
             onPress: () => router.replace('/(auth)/login'),
           },
         ]
       );
     } catch (err: any) {
-      setError(err?.message || 'Đặt lại mật khẩu thất bại. Vui lòng kiểm tra lại mã OTP.');
+      setError(err?.message || 'Password reset failed. Please check the code.');
     } finally {
       setLoading(false);
     }
@@ -102,26 +102,23 @@ export default function ForgotPasswordScreen() {
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          {/* Back button */}
           <TouchableOpacity
             style={styles.backRow}
             onPress={() => router.back()}
             activeOpacity={0.7}
           >
             <ArrowLeft size={18} color={theme.colors.textSecondary} />
-            <Text style={styles.backRowText}>Quay lại Đăng nhập</Text>
+            <Text style={styles.backRowText}>Back to Sign In</Text>
           </TouchableOpacity>
 
-          {/* Logo */}
-          <FintechShieldLogo size={46} showSubtitle={false} />
+          <FintechShieldLogo size={48} showSubtitle={false} />
 
-          {/* Form Card */}
           <View style={styles.card}>
-            <Text style={styles.cardTitle}>Khôi Phục Mật Khẩu</Text>
+            <Text style={styles.cardTitle}>Reset Password</Text>
             <Text style={styles.cardSubtitle}>
               {step === 'REQUEST_OTP'
-                ? 'Nhập email liên kết với tài khoản để nhận mã OTP xác thực'
-                : `Nhập mã OTP đã gửi đến ${email} và mật khẩu mới`}
+                ? "Enter your email address and we'll send you a recovery code"
+                : `Enter the code sent to ${email}`}
             </Text>
 
             {error && (
@@ -133,8 +130,8 @@ export default function ForgotPasswordScreen() {
             {step === 'REQUEST_OTP' ? (
               <>
                 <FintechInput
-                  label="Email tài khoản"
-                  placeholder="nhap.email@vidu.com"
+                  label="Email Address"
+                  placeholder="name@example.com"
                   value={email}
                   onChangeText={setEmail}
                   keyboardType="email-address"
@@ -143,18 +140,18 @@ export default function ForgotPasswordScreen() {
                 />
 
                 <FintechButton
-                  title="Gửi Mã Xác Nhận OTP"
+                  title="Send Recovery Code"
                   onPress={handleRequestOtp}
                   loading={loading}
-                  variant="primary"
+                  icon={<Mail size={18} color={theme.colors.onPrimary} />}
                   style={styles.submitBtn}
                 />
               </>
             ) : (
               <>
                 <FintechInput
-                  label="Mã xác thực OTP"
-                  placeholder="Nhập mã 6 chữ số"
+                  label="Verification Code (OTP)"
+                  placeholder="6-digit code"
                   value={otp}
                   onChangeText={setOtp}
                   keyboardType="number-pad"
@@ -162,8 +159,8 @@ export default function ForgotPasswordScreen() {
                 />
 
                 <FintechInput
-                  label="Mật khẩu mới (Tối thiểu 8 ký tự)"
-                  placeholder="••••••••"
+                  label="New Password"
+                  placeholder="At least 8 characters"
                   value={newPassword}
                   onChangeText={setNewPassword}
                   isPassword
@@ -171,8 +168,8 @@ export default function ForgotPasswordScreen() {
                 />
 
                 <FintechInput
-                  label="Xác nhận mật khẩu mới"
-                  placeholder="••••••••"
+                  label="Confirm New Password"
+                  placeholder="Re-enter password"
                   value={confirmPassword}
                   onChangeText={setConfirmPassword}
                   isPassword
@@ -180,22 +177,22 @@ export default function ForgotPasswordScreen() {
                 />
 
                 <FintechButton
-                  title="Cập Nhật Mật Khẩu"
+                  title="Confirm & Reset"
                   onPress={handleResetPassword}
                   loading={loading}
-                  variant="primary"
-                  icon={<CheckCircle2 size={18} color="#0b0f19" />}
+                  icon={<CheckCircle2 size={18} color={theme.colors.onPrimary} />}
                   style={styles.submitBtn}
                 />
+
+                <TouchableOpacity
+                  style={styles.retryRow}
+                  onPress={() => setStep('REQUEST_OTP')}
+                  activeOpacity={0.7}
+                >
+                  <Text style={styles.retryText}>Resend code / Change email</Text>
+                </TouchableOpacity>
               </>
             )}
-
-            {/* Link back */}
-            <View style={styles.footerLinkRow}>
-              <TouchableOpacity onPress={() => router.push('/(auth)/login')}>
-                <Text style={styles.footerLinkHighlight}>Trở lại màn hình Đăng nhập</Text>
-              </TouchableOpacity>
-            </View>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -212,69 +209,69 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
+    flexGrow: 1,
     paddingHorizontal: theme.spacing.lg,
-    paddingBottom: theme.spacing['4xl'],
-    alignItems: 'center',
+    paddingVertical: theme.spacing.md,
+    justifyContent: 'center',
   },
   backRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    alignSelf: 'flex-start',
-    marginVertical: theme.spacing.sm,
+    gap: 8,
+    marginBottom: theme.spacing.sm,
   },
   backRowText: {
-    fontSize: 13,
+    fontSize: theme.typography.sizes.sm,
     color: theme.colors.textSecondary,
     fontWeight: theme.typography.weights.medium,
   },
   card: {
     backgroundColor: theme.colors.surface,
+    borderRadius: theme.radii['2xl'],
     borderWidth: 1,
     borderColor: theme.colors.border,
-    borderRadius: theme.radii.xl,
     padding: theme.spacing.xl,
-    width: '100%',
-    ...theme.shadows.md,
+    marginTop: theme.spacing.sm,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.35,
+    shadowRadius: 16,
+    elevation: 8,
   },
   cardTitle: {
-    fontSize: theme.typography.sizes.xl,
+    fontSize: theme.typography.sizes['2xl'],
     fontWeight: theme.typography.weights.bold,
     color: theme.colors.text,
-    marginBottom: 4,
   },
   cardSubtitle: {
     fontSize: theme.typography.sizes.sm,
     color: theme.colors.textSecondary,
-    marginBottom: theme.spacing.xl,
-    lineHeight: 18,
+    marginTop: theme.spacing.xs,
+    marginBottom: theme.spacing.lg,
   },
   errorBox: {
     backgroundColor: theme.colors.dangerLight,
     borderWidth: 1,
-    borderColor: theme.colors.danger,
+    borderColor: theme.colors.dangerBorder,
     borderRadius: theme.radii.md,
     padding: theme.spacing.md,
-    marginBottom: theme.spacing.lg,
+    marginBottom: theme.spacing.md,
   },
   errorBoxText: {
-    color: theme.colors.danger,
     fontSize: theme.typography.sizes.sm,
-    fontWeight: theme.typography.weights.medium,
+    color: theme.colors.danger,
+    lineHeight: 18,
   },
   submitBtn: {
-    marginTop: theme.spacing.sm,
-    marginBottom: theme.spacing.lg,
+    marginTop: theme.spacing.md,
   },
-  footerLinkRow: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    paddingTop: theme.spacing.sm,
+  retryRow: {
+    alignItems: 'center',
+    marginTop: theme.spacing.md,
   },
-  footerLinkHighlight: {
-    fontSize: 13,
-    fontWeight: theme.typography.weights.bold,
+  retryText: {
+    fontSize: theme.typography.sizes.sm,
     color: theme.colors.primary,
+    fontWeight: theme.typography.weights.medium,
   },
 });
-

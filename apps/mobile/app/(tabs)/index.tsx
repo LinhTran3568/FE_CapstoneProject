@@ -1,151 +1,214 @@
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image } from 'react-native';
+import { View, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import { Text } from '../../src/components/AppText';
 import { useRouter } from 'expo-router';
 import {
   ShieldCheck,
   Ticket,
   Store,
-  Sparkles,
   ArrowRight,
   Calendar,
   MapPin,
-  CheckCircle2,
   ScanLine,
+  Building2,
+  ChevronRight,
 } from 'lucide-react-native';
 import { theme } from '../../src/theme';
 import { useAuthStore } from '../../src/stores/authStore';
 import { GatewayStatusBadge } from '../../src/components/GatewayStatusBadge';
+import { EventPoster } from '../../src/components/EventPoster';
+import { formatPrice, initialsOf } from '../../src/utils/format';
+
+const FEATURED_EVENT = {
+  id: 'atsh-2026',
+  title: 'Anh Trai Say Hi Live Concert 2026',
+  tour: 'The Grand Arena World Tour',
+  dateLabel: 'Saturday, Sep 19, 2026 • 19:30',
+  venue: 'Military Zone 7 Stadium, HCMC',
+  priceFrom: 800000,
+  organizer: 'VieON & Vie Channel',
+};
+
+const TRENDING_EVENTS = [
+  {
+    id: 'my-tam-tri-am',
+    title: 'My Tam - Live Concert Tri Am',
+    dateLabel: 'Saturday, May 10, 2026',
+    venue: 'My Dinh National Stadium, Hanoi',
+    priceFrom: 1200000,
+    category: 'Concert & Live',
+  },
+  {
+    id: 'ravolution-asia',
+    title: 'Ravolution Music Festival Asia 2026',
+    dateLabel: 'Sunday, Dec 20, 2026',
+    venue: 'SECC, District 7, HCMC',
+    priceFrom: 750000,
+    category: 'Festival EDM',
+  },
+];
 
 export default function MobileHomeScreen() {
   const router = useRouter();
   const user = useAuthStore((state) => state.user);
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      {/* Header Greeting */}
+    <ScrollView
+      style={styles.container}
+      contentContainerStyle={styles.content}
+      showsVerticalScrollIndicator={false}
+    >
+      {/* Top Header */}
       <View style={styles.header}>
         <View>
-          <Text style={styles.greeting}>Xin chào,</Text>
-          <Text style={styles.userName}>{user?.fullName || 'Thành viên TicketShield'}</Text>
+          <Text style={styles.greeting}>Welcome back,</Text>
+          <Text style={styles.userName}>{user?.fullName || 'TicketShield Member'}</Text>
         </View>
-        <View style={styles.aiBadge}>
-          <Sparkles size={14} color={theme.colors.accent} />
-          <Text style={styles.aiBadgeText}>AI Protected</Text>
-        </View>
+        <TouchableOpacity
+          style={styles.avatar}
+          onPress={() => router.push('/(tabs)/profile')}
+          activeOpacity={0.85}
+          accessibilityRole="button"
+          accessibilityLabel="Open Profile"
+        >
+          <Text style={styles.avatarText}>{initialsOf(user?.fullName)}</Text>
+        </TouchableOpacity>
       </View>
 
-      {/* Gateway Status Badge */}
-      <View style={styles.section}>
+      <View style={styles.gatewaySlot}>
         <GatewayStatusBadge />
       </View>
 
-      {/* Hero Escrow Banner */}
-      <View style={styles.heroCard}>
-        <View style={styles.heroHeader}>
-          <ShieldCheck size={28} color={theme.colors.success} />
-          <View style={styles.secureTag}>
-            <Text style={styles.secureTagText}>SECURE ESCROW 100%</Text>
+      {/* Hero Featured Event */}
+      <TouchableOpacity
+        style={styles.heroCard}
+        onPress={() => router.push('/event/atsh-2026')}
+        activeOpacity={0.9}
+      >
+        <EventPoster seed="atsh-2026" height={190} />
+        <View style={styles.heroOverlay}>
+          <View style={styles.heroBadge}>
+            <Calendar size={12} color={theme.colors.text} />
+            <Text style={styles.heroBadgeText}>{FEATURED_EVENT.dateLabel}</Text>
+          </View>
+          <Text style={styles.heroEyebrow}>{FEATURED_EVENT.tour}</Text>
+          <Text style={styles.heroTitle}>{FEATURED_EVENT.title}</Text>
+          <View style={styles.heroFooter}>
+            <View style={styles.heroVenue}>
+              <MapPin size={13} color={theme.colors.textSecondary} />
+              <Text style={styles.heroVenueText} numberOfLines={1}>
+                {FEATURED_EVENT.venue}
+              </Text>
+            </View>
+            <View style={styles.heroCta}>
+              <Text style={styles.heroCtaText}>Get Tickets</Text>
+              <ArrowRight size={14} color={theme.colors.onPrimary} />
+            </View>
           </View>
         </View>
-        <Text style={styles.heroTitle}>Sàn Mua Bán Vé Chống Bot & Lừa Đảo</Text>
-        <Text style={styles.heroDesc}>
-          Tiền giữ trong tài khoản Escrow an toàn đến khi check-in thành công. Mã QR xoay vòng chống phe vé.
-        </Text>
-      </View>
+      </TouchableOpacity>
 
-      {/* Quick Action Cards Grid */}
-      <Text style={styles.sectionHeading}>Chức Năng Chính</Text>
-      <View style={styles.actionsGrid}>
+      {/* Navigation Quick Menu (Matching Web: Marketplace, Origin Store, Sell, My Tickets) */}
+      <View style={styles.quickGrid}>
         <TouchableOpacity
-          style={styles.actionCard}
+          style={styles.gridItem}
           onPress={() => router.push('/(tabs)/marketplace')}
-          activeOpacity={0.8}
+          activeOpacity={0.85}
         >
-          <View style={[styles.actionIconBox, { backgroundColor: theme.colors.primaryLight }]}>
+          <View style={styles.gridIcon}>
             <Store size={22} color={theme.colors.primary} />
           </View>
-          <Text style={styles.actionTitle}>Chợ Vé Sang Nhượng</Text>
-          <Text style={styles.actionSubtitle}>Mua vé P2P đã duyệt</Text>
-          <ArrowRight size={16} color={theme.colors.primary} style={styles.actionArrow} />
+          <Text style={styles.gridTitle}>Marketplace</Text>
+          <Text style={styles.gridSubtitle}>Fan-to-fan resale</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={styles.actionCard}
-          onPress={() => router.push('/(tabs)/tickets')}
-          activeOpacity={0.8}
-        >
-          <View style={[styles.actionIconBox, { backgroundColor: theme.colors.secondaryLight }]}>
-            <Ticket size={22} color={theme.colors.secondary} />
-          </View>
-          <Text style={styles.actionTitle}>Ví Vé Của Tôi</Text>
-          <Text style={styles.actionSubtitle}>Mã QR xoay vòng vào cổng</Text>
-          <ArrowRight size={16} color={theme.colors.secondary} style={styles.actionArrow} />
-        </TouchableOpacity>
-      </View>
-
-      <View style={styles.actionsGridSecond}>
-        <TouchableOpacity
-          style={styles.actionCardWide}
-          onPress={() => router.push('/verify')}
-          activeOpacity={0.8}
-        >
-          <View style={styles.actionWideLeft}>
-            <View style={[styles.actionIconBox, { backgroundColor: 'rgba(139, 92, 246, 0.15)' }]}>
-              <ScanLine size={22} color={theme.colors.accent} />
-            </View>
-            <View>
-              <Text style={styles.actionTitle}>Xác Thực Vé AI & Đăng Bán</Text>
-              <Text style={styles.actionSubtitle}>Kiểm tra vé gốc & niêm yết bán lên sàn</Text>
-            </View>
-          </View>
-          <ArrowRight size={18} color={theme.colors.accent} />
-        </TouchableOpacity>
-      </View>
-
-      {/* Featured Primary Concert Event */}
-      <View style={styles.featuredSection}>
-        <View style={styles.sectionHeaderRow}>
-          <Text style={styles.sectionHeading}>Sự Kiện Nổi Bật Mở Bán</Text>
-          <TouchableOpacity onPress={() => router.push('/event/atsh-2026')}>
-            <Text style={styles.viewMoreText}>Xem chi tiết</Text>
-          </TouchableOpacity>
-        </View>
-
-        <TouchableOpacity
-          style={styles.eventFeaturedCard}
+          style={styles.gridItem}
           onPress={() => router.push('/event/atsh-2026')}
           activeOpacity={0.85}
         >
-          <View style={styles.eventHeaderRow}>
-            <View style={styles.officialTag}>
-              <CheckCircle2 size={12} color={theme.colors.success} />
-              <Text style={styles.officialTagText}>MỞ BÁN CHÍNH THỨC BTC</Text>
+          <View style={[styles.gridIcon, styles.gridIconOrigin]}>
+            <Building2 size={22} color="#38BDF8" />
+          </View>
+          <Text style={styles.gridTitle}>Origin Store</Text>
+          <Text style={styles.gridSubtitle}>Direct from organizer</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.gridItem}
+          onPress={() => router.push('/verify')}
+          activeOpacity={0.85}
+        >
+          <View style={[styles.gridIcon, styles.gridIconSell]}>
+            <ScanLine size={22} color={theme.colors.success} />
+          </View>
+          <Text style={styles.gridTitle}>Sell Ticket</Text>
+          <Text style={styles.gridSubtitle}>Verify & list ticket</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.gridItem}
+          onPress={() => router.push('/(tabs)/tickets')}
+          activeOpacity={0.85}
+        >
+          <View style={[styles.gridIcon, styles.gridIconNeutral]}>
+            <Ticket size={22} color={theme.colors.text} />
+          </View>
+          <Text style={styles.gridTitle}>My Tickets</Text>
+          <Text style={styles.gridSubtitle}>Live digital passes</Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* Trust & Escrow Guarantee Banner */}
+      <View style={styles.escrowBanner}>
+        <ShieldCheck size={20} color={theme.colors.success} />
+        <View style={styles.escrowBannerText}>
+          <Text style={styles.escrowBannerTitle}>100% Escrow Protection</Text>
+          <Text style={styles.escrowBannerDesc}>
+            Funds are held in secure escrow and only released to the seller after successful venue entry.
+          </Text>
+        </View>
+      </View>
+
+      {/* Section Header */}
+      <View style={styles.sectionHeader}>
+        <Text style={styles.sectionHeading}>Trending Events</Text>
+        <TouchableOpacity
+          onPress={() => router.push('/(tabs)/marketplace')}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+        >
+          <Text style={styles.viewMoreText}>See All</Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* Event Cards */}
+      {TRENDING_EVENTS.map((event) => (
+        <TouchableOpacity
+          key={event.id}
+          style={styles.eventCard}
+          onPress={() => router.push('/(tabs)/marketplace')}
+          activeOpacity={0.9}
+        >
+          <EventPoster seed={event.id} height={120} />
+          <View style={styles.eventBody}>
+            <View style={styles.eventTopRow}>
+              <Text style={styles.eventCategory}>{event.category}</Text>
+              <Text style={styles.eventPriceFrom}>From {formatPrice(event.priceFrom)}</Text>
             </View>
-            <Text style={styles.eventPriceFrom}>Từ 800.000 đ</Text>
-          </View>
-
-          <Text style={styles.featuredTourName}>THE GRAND ARENA WORLD TOUR</Text>
-          <Text style={styles.featuredEventTitle}>ANH TRAI SAY HI LIVE CONCERT 2025</Text>
-
-          <View style={styles.eventMetaRow}>
-            <Calendar size={13} color={theme.colors.textSecondary} />
-            <Text style={styles.eventMetaText}>Thứ Bảy, 19/04/2025 • 19:30</Text>
-          </View>
-
-          <View style={styles.eventMetaRow}>
-            <MapPin size={13} color={theme.colors.textSecondary} />
-            <Text style={styles.eventMetaText}>Sân vận động Quân Khu 7, TP.HCM</Text>
-          </View>
-
-          <View style={styles.eventCardFooter}>
-            <Text style={styles.organizerName}>VieON & Vie Channel</Text>
-            <View style={styles.bookNowBtn}>
-              <Text style={styles.bookNowText}>Đặt Mua Ngay</Text>
-              <ArrowRight size={14} color="#0b0f19" />
+            <Text style={styles.eventTitle}>{event.title}</Text>
+            <View style={styles.eventMetaRow}>
+              <Calendar size={13} color={theme.colors.textSecondary} />
+              <Text style={styles.eventMetaText}>{event.dateLabel}</Text>
+            </View>
+            <View style={styles.eventMetaRow}>
+              <MapPin size={13} color={theme.colors.textSecondary} />
+              <Text style={styles.eventMetaText} numberOfLines={1}>
+                {event.venue}
+              </Text>
             </View>
           </View>
         </TouchableOpacity>
-      </View>
+      ))}
     </ScrollView>
   );
 }
@@ -163,7 +226,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: theme.spacing.lg,
+    marginBottom: theme.spacing.md,
   },
   greeting: {
     fontSize: theme.typography.sizes.sm,
@@ -175,219 +238,226 @@ const styles = StyleSheet.create({
     color: theme.colors.text,
     marginTop: 2,
   },
-  aiBadge: {
-    flexDirection: 'row',
+  avatar: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: theme.colors.primary,
     alignItems: 'center',
-    gap: 4,
-    backgroundColor: 'rgba(139, 92, 246, 0.15)',
-    borderWidth: 1,
-    borderColor: theme.colors.accent,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: theme.radii.full,
+    justifyContent: 'center',
   },
-  aiBadgeText: {
-    fontSize: 11,
+  avatarText: {
+    color: theme.colors.onPrimary,
     fontWeight: theme.typography.weights.bold,
-    color: theme.colors.accent,
+    fontSize: theme.typography.sizes.base,
   },
-  section: {
-    marginBottom: theme.spacing.lg,
+  gatewaySlot: {
+    marginBottom: theme.spacing.xs,
   },
   heroCard: {
     backgroundColor: theme.colors.surface,
+    borderRadius: theme.radii.xl,
+    overflow: 'hidden',
     borderWidth: 1,
     borderColor: theme.colors.border,
-    borderRadius: theme.radii.xl,
-    padding: theme.spacing.xl,
-    marginBottom: theme.spacing.xl,
-    ...theme.shadows.md,
+    marginBottom: theme.spacing.lg,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    elevation: 6,
   },
-  heroHeader: {
+  heroOverlay: {
+    padding: theme.spacing.lg,
+    backgroundColor: theme.colors.surface,
+  },
+  heroBadge: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: theme.spacing.md,
+    gap: 6,
+    alignSelf: 'flex-start',
+    backgroundColor: theme.colors.surfaceElevated,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: theme.radii.full,
+    marginBottom: 8,
   },
-  secureTag: {
-    backgroundColor: theme.colors.successLight,
-    borderWidth: 1,
-    borderColor: theme.colors.success,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: theme.radii.sm,
+  heroBadgeText: {
+    fontSize: theme.typography.sizes.xs,
+    color: theme.colors.text,
+    fontWeight: theme.typography.weights.medium,
   },
-  secureTagText: {
-    fontSize: 10,
-    fontWeight: theme.typography.weights.extrabold,
-    color: theme.colors.success,
-    letterSpacing: 0.5,
+  heroEyebrow: {
+    fontSize: theme.typography.sizes.xs,
+    color: theme.colors.primary,
+    fontWeight: theme.typography.weights.bold,
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
   },
   heroTitle: {
-    fontSize: theme.typography.sizes.lg,
-    fontWeight: theme.typography.weights.bold,
+    fontSize: theme.typography.sizes.xl,
+    fontWeight: theme.typography.weights.extrabold,
     color: theme.colors.text,
-    marginBottom: theme.spacing.xs,
+    marginTop: 4,
+    marginBottom: 12,
   },
-  heroDesc: {
-    fontSize: theme.typography.sizes.sm,
-    color: theme.colors.textSecondary,
-    lineHeight: 20,
-  },
-  sectionHeading: {
-    fontSize: theme.typography.sizes.base,
-    fontWeight: theme.typography.weights.bold,
-    color: theme.colors.text,
-    marginBottom: theme.spacing.md,
-  },
-  actionsGrid: {
-    flexDirection: 'row',
-    gap: theme.spacing.md,
-  },
-  actionsGridSecond: {
-    marginTop: theme.spacing.md,
-    marginBottom: theme.spacing.xl,
-  },
-  actionCard: {
-    flex: 1,
-    backgroundColor: theme.colors.surface,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    borderRadius: theme.radii.lg,
-    padding: theme.spacing.lg,
-  },
-  actionCardWide: {
+  heroFooter: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: theme.colors.surface,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    borderRadius: theme.radii.lg,
-    padding: theme.spacing.md,
+    gap: 8,
   },
-  actionWideLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: theme.spacing.md,
-  },
-  actionIconBox: {
-    width: 44,
-    height: 44,
-    borderRadius: theme.radii.md,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: theme.spacing.sm,
-  },
-  actionTitle: {
-    fontSize: theme.typography.sizes.sm,
-    fontWeight: theme.typography.weights.bold,
-    color: theme.colors.text,
-    marginBottom: 2,
-  },
-  actionSubtitle: {
-    fontSize: 11,
-    color: theme.colors.textSecondary,
-  },
-  actionArrow: {
-    marginTop: theme.spacing.sm,
-  },
-  featuredSection: {
-    marginTop: theme.spacing.sm,
-  },
-  sectionHeaderRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  viewMoreText: {
-    fontSize: 12,
-    fontWeight: theme.typography.weights.bold,
-    color: theme.colors.primary,
-  },
-  eventFeaturedCard: {
-    backgroundColor: theme.colors.surface,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    borderRadius: theme.radii.xl,
-    padding: theme.spacing.xl,
-    ...theme.shadows.md,
-  },
-  eventHeaderRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: theme.spacing.sm,
-  },
-  officialTag: {
+  heroVenue: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: theme.colors.successLight,
-    borderWidth: 1,
-    borderColor: theme.colors.success,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: theme.radii.sm,
+    flex: 1,
   },
-  officialTagText: {
-    fontSize: 9,
-    fontWeight: theme.typography.weights.extrabold,
+  heroVenueText: {
+    fontSize: theme.typography.sizes.xs,
+    color: theme.colors.textSecondary,
+    flex: 1,
+  },
+  heroCta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: theme.colors.primary,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: theme.radii.full,
+  },
+  heroCtaText: {
+    fontSize: theme.typography.sizes.xs,
+    fontWeight: theme.typography.weights.bold,
+    color: theme.colors.onPrimary,
+  },
+  quickGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+    marginBottom: theme.spacing.lg,
+  },
+  gridItem: {
+    width: '48.5%',
+    backgroundColor: theme.colors.surface,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    borderRadius: theme.radii.xl,
+    padding: theme.spacing.md,
+  },
+  gridIcon: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: theme.colors.primaryLight,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 10,
+  },
+  gridIconOrigin: {
+    backgroundColor: 'rgba(56, 189, 248, 0.12)',
+  },
+  gridIconSell: {
+    backgroundColor: theme.colors.successLight,
+  },
+  gridIconNeutral: {
+    backgroundColor: theme.colors.surfaceElevated,
+  },
+  gridTitle: {
+    fontSize: theme.typography.sizes.sm,
+    fontWeight: theme.typography.weights.bold,
+    color: theme.colors.text,
+  },
+  gridSubtitle: {
+    fontSize: theme.typography.sizes.xs,
+    color: theme.colors.textMuted,
+    marginTop: 2,
+  },
+  escrowBanner: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 12,
+    backgroundColor: 'rgba(52, 211, 153, 0.08)',
+    borderWidth: 1,
+    borderColor: theme.colors.successBorder,
+    borderRadius: theme.radii.xl,
+    padding: theme.spacing.md,
+    marginBottom: theme.spacing.xl,
+  },
+  escrowBannerText: {
+    flex: 1,
+  },
+  escrowBannerTitle: {
+    fontSize: theme.typography.sizes.sm,
+    fontWeight: theme.typography.weights.bold,
     color: theme.colors.success,
   },
-  eventPriceFrom: {
-    fontSize: 12,
-    fontWeight: theme.typography.weights.extrabold,
-    color: theme.colors.primary,
+  escrowBannerDesc: {
+    fontSize: theme.typography.sizes.xs,
+    color: theme.colors.textSecondary,
+    marginTop: 2,
+    lineHeight: 17,
   },
-  featuredTourName: {
-    fontSize: 10,
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: theme.spacing.md,
+  },
+  sectionHeading: {
+    fontSize: theme.typography.sizes.lg,
     fontWeight: theme.typography.weights.bold,
-    color: theme.colors.primary,
-    letterSpacing: 0.5,
-    marginBottom: 2,
+    color: theme.colors.text,
   },
-  featuredEventTitle: {
+  viewMoreText: {
+    fontSize: theme.typography.sizes.xs,
+    color: theme.colors.primary,
+    fontWeight: theme.typography.weights.semibold,
+  },
+  eventCard: {
+    backgroundColor: theme.colors.surface,
+    borderRadius: theme.radii.xl,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    marginBottom: theme.spacing.md,
+  },
+  eventBody: {
+    padding: theme.spacing.md,
+  },
+  eventTopRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  eventCategory: {
+    fontSize: theme.typography.sizes.xs,
+    fontWeight: theme.typography.weights.semibold,
+    color: theme.colors.primary,
+    textTransform: 'uppercase',
+  },
+  eventPriceFrom: {
+    fontSize: theme.typography.sizes.sm,
+    fontWeight: theme.typography.weights.bold,
+    color: theme.colors.success,
+  },
+  eventTitle: {
     fontSize: theme.typography.sizes.base,
     fontWeight: theme.typography.weights.bold,
     color: theme.colors.text,
-    marginBottom: theme.spacing.xs,
+    marginBottom: 8,
   },
   eventMetaRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    marginBottom: 4,
+    marginTop: 4,
   },
   eventMetaText: {
-    fontSize: 12,
+    fontSize: theme.typography.sizes.xs,
     color: theme.colors.textSecondary,
-  },
-  eventCardFooter: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    borderTopWidth: 1,
-    borderTopColor: theme.colors.borderSubtle,
-    paddingTop: theme.spacing.md,
-    marginTop: theme.spacing.sm,
-  },
-  organizerName: {
-    fontSize: 11,
-    color: theme.colors.textMuted,
-  },
-  bookNowBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    backgroundColor: theme.colors.primary,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: theme.radii.md,
-  },
-  bookNowText: {
-    fontSize: 11,
-    fontWeight: theme.typography.weights.bold,
-    color: '#0b0f19',
+    flex: 1,
   },
 });

@@ -1,126 +1,125 @@
 import React, { useState } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
-  Alert,
-} from 'react-native';
+import { View, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';
+import { Text } from '../../src/components/AppText';
 import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   Calendar,
   MapPin,
-  Clock,
   ShieldCheck,
-  Tag,
   Check,
   Store,
   ArrowRight,
   Plus,
   Minus,
-  Sparkles,
 } from 'lucide-react-native';
 import { theme } from '../../src/theme';
 import { FintechButton } from '../../src/components/FintechButton';
+import { EventPoster } from '../../src/components/EventPoster';
 import { marketplaceService } from '../../src/services/marketplaceService';
 import { useAuthStore } from '../../src/stores/authStore';
+import { formatPrice } from '../../src/utils/format';
+
+const EVENT_START_AT = '2026-09-19T19:30:00+07:00';
+
+const EVENT_DATA = {
+  title: 'Anh Trai Say Hi Live Concert 2026',
+  tourName: 'The Grand Arena World Tour',
+  organizerName: 'VieON & Vie Channel',
+  dateDisplay: 'Saturday, Sep 19, 2026 • 19:30',
+  venueName: 'Military Zone 7 Stadium',
+  venueAddress: '202 Hoang Van Thu, Phu Nhuan, HCMC',
+  description:
+    'Experience the premier stadium concert with state-of-the-art international d&b audiotechnik acoustics and multidimensional laser visuals. Official tickets issued and verified through TicketShield with guaranteed escrow protection.',
+  tiers: [
+    {
+      id: 'tier-vip-a',
+      name: 'VIP A — Stage Front',
+      price: 2500000,
+      seatZone: 'Zone A1 • Gate 1',
+      available: 18,
+      perks: ['Stage-front dedicated seats', 'Exclusive VIP merchandise kit', 'Dedicated entrance gate'],
+    },
+    {
+      id: 'tier-ga',
+      name: 'GA Standing — Zone B',
+      price: 1200000,
+      seatZone: 'Zone B2 • Gate 3',
+      available: 64,
+      perks: ['High-energy standing zone', 'Light-up festival wristband'],
+    },
+    {
+      id: 'tier-tribune',
+      name: 'Tribune — Grandstand C',
+      price: 800000,
+      seatZone: 'Tier 2 Grandstand',
+      available: 120,
+      perks: ['Panoramic stage view', 'Covered grandstand seating'],
+    },
+  ],
+};
 
 export default function EventDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const user = useAuthStore((state) => state.user);
 
-  // Default Event Details matching ATSH / Seeded
-  const eventData = {
-    id: id || 'atsh-2026',
-    title: 'ANH TRAI SAY HI LIVE CONCERT 2025',
-    tourName: 'THE GRAND ARENA TOUR',
-    organizerName: 'VieON & Vie Channel',
-    organizerBadge: 'Đơn vị phân phối chính thức',
-    dateDisplay: 'Thứ Bảy, 19/04/2025 • 19:30',
-    venueName: 'Sân vận động Quân Khu 7',
-    venueAddress: '202 Hoàng Văn Thụ, Phường 9, Phú Nhuận, TP.HCM',
-    description:
-      'Đại nhạc hội bùng nổ nhất năm quy tụ dàn anh trai với hệ thống âm thanh d&b audiotechnik chuẩn quốc tế và hiệu ứng thị giác laser đa chiều. Vé được bảo vệ chống đầu cơ bởi TicketShield AI.',
-    tiers: [
-      {
-        id: 'tier-vip-a',
-        name: 'VIP A - Sát Sân Khấu',
-        price: 2500000,
-        seatZone: 'Khu A1 - Cửa Gate 1',
-        available: 18,
-        perks: ['Ghế ngồi sát sân khấu', 'Bộ quà tặng VIP độc quyền', 'Lối vào riêng biệt'],
-      },
-      {
-        id: 'tier-ga',
-        name: 'GA STANDING - Khu B',
-        price: 1200000,
-        seatZone: 'Khu B2 - Cửa Gate 3',
-        available: 64,
-        perks: ['Khu vực đứng sôi động', 'Vòng tay check-in phát sáng'],
-      },
-      {
-        id: 'tier-tribune',
-        name: 'TRIBUNE - Khán Đài C',
-        price: 800000,
-        seatZone: 'Khán Đài Tầng 2',
-        available: 120,
-        perks: ['Tầm nhìn toàn cảnh sân khấu', 'Ghế ngồi có mái che'],
-      },
-    ],
-  };
-
-  const [selectedTier, setSelectedTier] = useState(eventData.tiers[0]);
+  const [selectedTier, setSelectedTier] = useState(EVENT_DATA.tiers[0]);
   const [quantity, setQuantity] = useState(1);
   const [isBuying, setIsBuying] = useState(false);
 
-  const formatPrice = (val: number) => {
-    return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(val);
-  };
+  const eventId = typeof id === 'string' && id ? id : 'atsh-2026';
 
   const handlePrimaryBuy = async () => {
     setIsBuying(true);
     try {
-      const ticketPassCode = `TS-ORG-${selectedTier.id.toUpperCase().slice(-5)}-${Math.floor(
-        100000 + Math.random() * 900000
-      )}`;
-      const qrData = `TS:PRIMARY:${ticketPassCode}:${Date.now()}`;
-      const qrImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(
-        qrData
-      )}`;
+      const purchasedAt = new Date().toISOString();
+      const orderId = `primary-${Date.now()}`;
 
-      await marketplaceService.saveLocalTicket({
-        escrowId: `primary-${Date.now()}`,
-        listingId: `primary-${eventData.id}`,
-        eventId: eventData.id,
-        eventName: eventData.title,
-        eventVenue: `${eventData.venueName}, ${eventData.venueAddress}`,
-        eventStartAt: '2025-04-19T19:30:00Z',
-        tierName: selectedTier.name,
-        seatZone: selectedTier.seatZone,
-        ticketPassCode,
-        totalAmountPaid: selectedTier.price * quantity,
-        status: 'VALID',
-        recipientName: user?.fullName || 'Khách Hàng',
-        recipientEmail: user?.email || 'buyer@ticketshield.vn',
-        qrCodeData: qrData,
-        qrCodeImageUrl: qrImageUrl,
-        purchasedAt: new Date().toISOString(),
-      });
+      for (let index = 0; index < quantity; index += 1) {
+        const ticketPassCode = `TS-ORG-${selectedTier.id.toUpperCase().slice(-5)}-${Math.floor(
+          100000 + Math.random() * 900000
+        )}`;
+        const qrData = `TS:PRIMARY:${ticketPassCode}:${Date.now()}`;
+        const qrImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(
+          qrData
+        )}`;
+
+        await marketplaceService.saveLocalTicket({
+          escrowId: `${orderId}-${index + 1}`,
+          listingId: `primary-${eventId}`,
+          eventId,
+          eventName: EVENT_DATA.title,
+          eventVenue: `${EVENT_DATA.venueName}, ${EVENT_DATA.venueAddress}`,
+          eventStartAt: EVENT_START_AT,
+          tierName: selectedTier.name,
+          seatZone:
+            quantity > 1 ? `${selectedTier.seatZone} • Ticket ${index + 1}/${quantity}` : selectedTier.seatZone,
+          ticketPassCode,
+          totalAmountPaid: selectedTier.price,
+          status: 'VALID',
+          recipientName: user?.fullName || 'Ticket Buyer',
+          recipientEmail: user?.email || 'buyer@ticketshield.vn',
+          qrCodeData: qrData,
+          qrCodeImageUrl: qrImageUrl,
+          purchasedAt,
+        });
+      }
 
       Alert.alert(
-        'Đặt Mua Thành Công!',
-        `Bạn đã mua thành công ${quantity} vé ${selectedTier.name}. Vé đã được chuyển an toàn vào Ví vé điện tử của bạn.`,
+        'Purchase Successful',
+        `You have purchased ${quantity}x ${selectedTier.name} tickets. Your digital passes are now in your Ticket Wallet.`,
         [
           {
-            text: 'Mở Ví Vé',
+            text: 'View in Wallet',
             onPress: () => router.push('/(tabs)/tickets'),
           },
         ]
       );
-    } catch (e: any) {
-      Alert.alert('Lỗi đặt vé', e?.message || 'Không thể đặt vé lúc này.');
+    } catch (e) {
+      const message = e instanceof Error ? e.message : 'Unable to complete purchase.';
+      Alert.alert('Purchase Error', message);
     } finally {
       setIsBuying(false);
     }
@@ -130,139 +129,126 @@ export default function EventDetailScreen() {
     <>
       <Stack.Screen
         options={{
-          title: 'Chi Tiết Sự Kiện & Mua Vé',
-          headerBackTitle: 'Quay lại',
+          title: 'Event Details',
+          headerBackTitle: 'Back',
           headerStyle: { backgroundColor: theme.colors.background },
           headerTintColor: theme.colors.text,
+          headerShadowVisible: false,
         }}
       />
-      <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-        {/* Event Header Banner Card */}
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 40 }]}
+        showsVerticalScrollIndicator={false}
+      >
         <View style={styles.heroCard}>
-          <View style={styles.badgeRow}>
+          <EventPoster seed={eventId} height={200} />
+          <View style={styles.heroBody}>
             <View style={styles.officialBadge}>
-              <ShieldCheck size={12} color={theme.colors.success} />
-              <Text style={styles.officialBadgeText}>CHÍNH HÃNG BTC</Text>
+              <ShieldCheck size={13} color={theme.colors.success} />
+              <Text style={styles.officialBadgeText}>Official Organizer Tickets</Text>
             </View>
-            <View style={styles.aiBadge}>
-              <Sparkles size={12} color={theme.colors.accent} />
-              <Text style={styles.aiBadgeText}>AI ANTI-BOT SHIELD</Text>
+            <Text style={styles.tourName}>{EVENT_DATA.tourName}</Text>
+            <Text style={styles.eventTitle}>{EVENT_DATA.title}</Text>
+            <Text style={styles.organizerName}>Organized by {EVENT_DATA.organizerName}</Text>
+
+            <View style={styles.metaRow}>
+              <Calendar size={15} color={theme.colors.primary} />
+              <Text style={styles.metaText}>{EVENT_DATA.dateDisplay}</Text>
             </View>
-          </View>
-
-          <Text style={styles.tourName}>{eventData.tourName}</Text>
-          <Text style={styles.eventTitle}>{eventData.title}</Text>
-          <Text style={styles.organizerName}>Đơn vị tổ chức: {eventData.organizerName}</Text>
-
-          <View style={styles.metaRow}>
-            <Calendar size={14} color={theme.colors.primary} />
-            <Text style={styles.metaText}>{eventData.dateDisplay}</Text>
-          </View>
-
-          <View style={styles.metaRow}>
-            <MapPin size={14} color={theme.colors.primary} />
-            <Text style={styles.metaText}>
-              {eventData.venueName} • {eventData.venueAddress}
-            </Text>
+            <View style={styles.metaRow}>
+              <MapPin size={15} color={theme.colors.primary} />
+              <Text style={styles.metaText}>
+                {EVENT_DATA.venueName} • {EVENT_DATA.venueAddress}
+              </Text>
+            </View>
+            <Text style={styles.description}>{EVENT_DATA.description}</Text>
           </View>
         </View>
 
-        {/* Resale Shortcut Banner */}
         <TouchableOpacity
           style={styles.resaleShortcut}
           onPress={() => router.push('/(tabs)/marketplace')}
-          activeOpacity={0.8}
+          activeOpacity={0.85}
         >
-          <View style={styles.resaleShortcutLeft}>
+          <View style={styles.resaleShortcutIcon}>
             <Store size={18} color={theme.colors.primary} />
-            <View>
-              <Text style={styles.resaleShortcutTitle}>Tìm vé sang nhượng giá tốt?</Text>
-              <Text style={styles.resaleShortcutSubtitle}>Xem các vé Resale được bảo vệ bởi Escrow trên Chợ vé</Text>
-            </View>
           </View>
-          <ArrowRight size={16} color={theme.colors.primary} />
+          <View style={styles.resaleShortcutText}>
+            <Text style={styles.resaleShortcutTitle}>Check Secondary Resale Deals</Text>
+            <Text style={styles.resaleShortcutSubtitle}>
+              Verified fan-to-fan resale tickets backed by escrow
+            </Text>
+          </View>
+          <ArrowRight size={18} color={theme.colors.textMuted} />
         </TouchableOpacity>
 
-        {/* Tier Selection */}
-        <Text style={styles.sectionHeading}>Chọn Hạng Vé</Text>
+        <Text style={styles.sectionHeading}>Select Ticket Tier</Text>
         <View style={styles.tiersContainer}>
-          {eventData.tiers.map((t) => {
-            const isSelected = selectedTier.id === t.id;
+          {EVENT_DATA.tiers.map((tier) => {
+            const isSelected = selectedTier.id === tier.id;
             return (
               <TouchableOpacity
-                key={t.id}
+                key={tier.id}
                 style={[styles.tierCard, isSelected && styles.tierCardSelected]}
-                onPress={() => setSelectedTier(t)}
+                onPress={() => setSelectedTier(tier)}
                 activeOpacity={0.85}
               >
                 <View style={styles.tierTop}>
                   <View style={styles.tierNameGroup}>
                     <Text style={[styles.tierName, isSelected && styles.tierNameSelected]}>
-                      {t.name}
+                      {tier.name}
                     </Text>
-                    <Text style={styles.seatZone}>{t.seatZone}</Text>
+                    <Text style={styles.tierZone}>{tier.seatZone}</Text>
                   </View>
-                  <Text style={styles.tierPrice}>{formatPrice(t.price)}</Text>
+                  <Text style={styles.tierPrice}>{formatPrice(tier.price)}</Text>
                 </View>
 
-                {/* Perks list */}
-                <View style={styles.perksList}>
-                  {t.perks.map((p, idx) => (
-                    <View key={idx} style={styles.perkRow}>
-                      <Check size={12} color={theme.colors.success} />
-                      <Text style={styles.perkText}>{p}</Text>
+                <View style={styles.perksContainer}>
+                  {tier.perks.map((perk) => (
+                    <View key={perk} style={styles.perkRow}>
+                      <Check size={13} color={theme.colors.success} />
+                      <Text style={styles.perkText}>{perk}</Text>
                     </View>
                   ))}
-                </View>
-
-                <View style={styles.tierBottom}>
-                  <Text style={styles.quotaText}>Còn lại {t.available} vé</Text>
-                  {isSelected && (
-                    <View style={styles.selectedPill}>
-                      <Text style={styles.selectedPillText}>Đang chọn</Text>
-                    </View>
-                  )}
                 </View>
               </TouchableOpacity>
             );
           })}
         </View>
 
-        {/* Quantity Selector & Summary */}
-        <View style={styles.checkoutBar}>
-          <View style={styles.quantityRow}>
-            <Text style={styles.quantityLabel}>Số lượng vé:</Text>
-            <View style={styles.counterBox}>
-              <TouchableOpacity
-                style={styles.counterBtn}
-                onPress={() => setQuantity((q) => Math.max(1, q - 1))}
-              >
-                <Minus size={14} color={theme.colors.text} />
-              </TouchableOpacity>
-              <Text style={styles.counterValue}>{quantity}</Text>
-              <TouchableOpacity
-                style={styles.counterBtn}
-                onPress={() => setQuantity((q) => Math.min(4, q + 1))}
-              >
-                <Plus size={14} color={theme.colors.text} />
-              </TouchableOpacity>
-            </View>
+        <View style={styles.quantityCard}>
+          <Text style={styles.quantityLabel}>Quantity</Text>
+          <View style={styles.quantityControls}>
+            <TouchableOpacity
+              style={styles.qtyBtn}
+              onPress={() => setQuantity((q) => Math.max(1, q - 1))}
+              disabled={quantity <= 1}
+            >
+              <Minus size={16} color={quantity <= 1 ? theme.colors.textMuted : theme.colors.text} />
+            </TouchableOpacity>
+            <Text style={styles.quantityValue}>{quantity}</Text>
+            <TouchableOpacity
+              style={styles.qtyBtn}
+              onPress={() => setQuantity((q) => Math.min(4, q + 1))}
+              disabled={quantity >= 4}
+            >
+              <Plus size={16} color={quantity >= 4 ? theme.colors.textMuted : theme.colors.text} />
+            </TouchableOpacity>
           </View>
+        </View>
 
+        <View style={styles.checkoutPanel}>
           <View style={styles.totalRow}>
-            <View>
-              <Text style={styles.totalLabel}>Tổng thanh toán:</Text>
-              <Text style={styles.totalPrice}>{formatPrice(selectedTier.price * quantity)}</Text>
-            </View>
-
-            <FintechButton
-              title="Đặt Mua Ngay"
-              onPress={handlePrimaryBuy}
-              loading={isBuying}
-              variant="primary"
-              style={styles.buyBtn}
-            />
+            <Text style={styles.totalLabel}>Total Price ({quantity} ticket{quantity > 1 ? 's' : ''})</Text>
+            <Text style={styles.totalValue}>{formatPrice(selectedTier.price * quantity)}</Text>
           </View>
+          <FintechButton
+            title="Checkout & Receive Passes"
+            onPress={handlePrimaryBuy}
+            loading={isBuying}
+            icon={<ShieldCheck size={18} color={theme.colors.onPrimary} />}
+          />
         </View>
       </ScrollView>
     </>
@@ -277,136 +263,125 @@ const styles = StyleSheet.create({
   content: {
     padding: theme.spacing.lg,
     paddingBottom: theme.spacing['4xl'],
+    gap: theme.spacing.lg,
   },
   heroCard: {
     backgroundColor: theme.colors.surface,
+    borderRadius: theme.radii.xl,
+    overflow: 'hidden',
     borderWidth: 1,
     borderColor: theme.colors.border,
-    borderRadius: theme.radii.xl,
-    padding: theme.spacing.xl,
-    marginBottom: theme.spacing.lg,
-    ...theme.shadows.md,
   },
-  badgeRow: {
-    flexDirection: 'row',
+  heroBody: {
+    padding: theme.spacing.lg,
     gap: theme.spacing.xs,
-    marginBottom: theme.spacing.sm,
   },
   officialBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: 6,
+    alignSelf: 'flex-start',
     backgroundColor: theme.colors.successLight,
-    borderWidth: 1,
-    borderColor: theme.colors.success,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: theme.radii.sm,
-  },
-  officialBadgeText: {
-    fontSize: 9,
-    fontWeight: theme.typography.weights.extrabold,
-    color: theme.colors.success,
-  },
-  aiBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    backgroundColor: 'rgba(139, 92, 246, 0.15)',
-    borderWidth: 1,
-    borderColor: theme.colors.accent,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: theme.radii.sm,
-  },
-  aiBadgeText: {
-    fontSize: 9,
-    fontWeight: theme.typography.weights.extrabold,
-    color: theme.colors.accent,
-  },
-  tourName: {
-    fontSize: 11,
-    fontWeight: theme.typography.weights.bold,
-    color: theme.colors.primary,
-    letterSpacing: 1,
-    marginBottom: 2,
-  },
-  eventTitle: {
-    fontSize: theme.typography.sizes.xl,
-    fontWeight: theme.typography.weights.bold,
-    color: theme.colors.text,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: theme.radii.full,
     marginBottom: 4,
   },
+  officialBadgeText: {
+    fontSize: theme.typography.sizes.xs,
+    fontWeight: theme.typography.weights.bold,
+    color: theme.colors.success,
+  },
+  tourName: {
+    fontSize: theme.typography.sizes.xs,
+    color: theme.colors.primary,
+    fontWeight: theme.typography.weights.bold,
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
+  },
+  eventTitle: {
+    fontSize: theme.typography.sizes['2xl'],
+    fontWeight: theme.typography.weights.extrabold,
+    color: theme.colors.text,
+    lineHeight: 30,
+  },
   organizerName: {
-    fontSize: 12,
+    fontSize: theme.typography.sizes.xs,
     color: theme.colors.textSecondary,
-    marginBottom: theme.spacing.md,
+    marginBottom: 8,
   },
   metaRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    marginBottom: 6,
+    marginTop: 2,
   },
   metaText: {
-    fontSize: 12,
-    color: theme.colors.textSecondary,
     flex: 1,
+    fontSize: theme.typography.sizes.xs,
+    color: theme.colors.textSecondary,
+  },
+  description: {
+    fontSize: theme.typography.sizes.xs,
+    color: theme.colors.textMuted,
+    lineHeight: 18,
+    marginTop: 8,
   },
   resaleShortcut: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: 'rgba(6, 182, 212, 0.08)',
-    borderWidth: 1,
-    borderColor: 'rgba(6, 182, 212, 0.3)',
-    borderRadius: theme.radii.lg,
-    padding: theme.spacing.md,
-    marginBottom: theme.spacing.xl,
-  },
-  resaleShortcutLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
     gap: theme.spacing.md,
+    backgroundColor: theme.colors.surface,
+    padding: theme.spacing.md,
+    borderRadius: theme.radii.xl,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+  },
+  resaleShortcutIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: theme.colors.primaryLight,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  resaleShortcutText: {
     flex: 1,
   },
   resaleShortcutTitle: {
-    fontSize: 13,
+    fontSize: theme.typography.sizes.sm,
     fontWeight: theme.typography.weights.bold,
     color: theme.colors.text,
   },
   resaleShortcutSubtitle: {
-    fontSize: 11,
-    color: theme.colors.textSecondary,
+    fontSize: theme.typography.sizes.xs,
+    color: theme.colors.textMuted,
     marginTop: 2,
   },
   sectionHeading: {
-    fontSize: theme.typography.sizes.base,
+    fontSize: theme.typography.sizes.lg,
     fontWeight: theme.typography.weights.bold,
     color: theme.colors.text,
-    marginBottom: theme.spacing.md,
   },
   tiersContainer: {
     gap: theme.spacing.md,
-    marginBottom: theme.spacing.xl,
   },
   tierCard: {
     backgroundColor: theme.colors.surface,
-    borderWidth: 1.5,
-    borderColor: theme.colors.border,
-    borderRadius: theme.radii.lg,
+    borderRadius: theme.radii.xl,
     padding: theme.spacing.lg,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    gap: theme.spacing.sm,
   },
   tierCardSelected: {
     borderColor: theme.colors.primary,
-    backgroundColor: '#111b2b',
-    ...theme.shadows.glow,
+    backgroundColor: theme.colors.surfaceElevated,
   },
   tierTop: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: theme.spacing.sm,
   },
   tierNameGroup: {
     flex: 1,
@@ -419,19 +394,21 @@ const styles = StyleSheet.create({
   tierNameSelected: {
     color: theme.colors.primary,
   },
-  seatZone: {
-    fontSize: 11,
+  tierZone: {
+    fontSize: theme.typography.sizes.xs,
     color: theme.colors.textMuted,
     marginTop: 2,
   },
   tierPrice: {
-    fontSize: theme.typography.sizes.base,
+    fontSize: theme.typography.sizes.lg,
     fontWeight: theme.typography.weights.extrabold,
-    color: theme.colors.primary,
+    color: theme.colors.text,
   },
-  perksList: {
+  perksContainer: {
     gap: 4,
-    marginVertical: theme.spacing.xs,
+    paddingTop: 6,
+    borderTopWidth: 1,
+    borderTopColor: theme.colors.borderSubtle,
   },
   perkRow: {
     flexDirection: 'row',
@@ -442,86 +419,63 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: theme.colors.textSecondary,
   },
-  tierBottom: {
+  quantityCard: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginTop: theme.spacing.sm,
-    borderTopWidth: 1,
-    borderTopColor: theme.colors.borderSubtle,
-    paddingTop: theme.spacing.xs,
-  },
-  quotaText: {
-    fontSize: 11,
-    color: theme.colors.textMuted,
-  },
-  selectedPill: {
-    backgroundColor: theme.colors.primary,
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: theme.radii.sm,
-  },
-  selectedPillText: {
-    fontSize: 10,
-    fontWeight: theme.typography.weights.bold,
-    color: '#0b0f19',
-  },
-  checkoutBar: {
     backgroundColor: theme.colors.surface,
+    borderRadius: theme.radii.xl,
+    padding: theme.spacing.md,
     borderWidth: 1,
     borderColor: theme.colors.border,
-    borderRadius: theme.radii.xl,
-    padding: theme.spacing.xl,
-    gap: theme.spacing.lg,
-  },
-  quantityRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
   },
   quantityLabel: {
     fontSize: theme.typography.sizes.sm,
-    fontWeight: theme.typography.weights.semibold,
+    fontWeight: theme.typography.weights.bold,
     color: theme.colors.text,
   },
-  counterBox: {
+  quantityControls: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: theme.colors.inputBackground,
+    gap: theme.spacing.md,
+  },
+  qtyBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: theme.colors.surfaceElevated,
+    alignItems: 'center',
+    justifyContent: 'center',
     borderWidth: 1,
     borderColor: theme.colors.border,
-    borderRadius: theme.radii.md,
   },
-  counterBtn: {
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-  },
-  counterValue: {
+  quantityValue: {
     fontSize: theme.typography.sizes.base,
     fontWeight: theme.typography.weights.bold,
     color: theme.colors.text,
-    minWidth: 24,
+    minWidth: 20,
     textAlign: 'center',
+  },
+  checkoutPanel: {
+    backgroundColor: theme.colors.surface,
+    borderRadius: theme.radii.xl,
+    padding: theme.spacing.lg,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    gap: theme.spacing.md,
   },
   totalRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    borderTopWidth: 1,
-    borderTopColor: theme.colors.borderSubtle,
-    paddingTop: theme.spacing.md,
   },
   totalLabel: {
-    fontSize: 11,
-    color: theme.colors.textMuted,
+    fontSize: theme.typography.sizes.sm,
+    color: theme.colors.textSecondary,
   },
-  totalPrice: {
+  totalValue: {
     fontSize: theme.typography.sizes.xl,
     fontWeight: theme.typography.weights.extrabold,
     color: theme.colors.primary,
-    marginTop: 2,
-  },
-  buyBtn: {
-    width: 140,
   },
 });

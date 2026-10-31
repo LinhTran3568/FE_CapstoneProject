@@ -7,9 +7,9 @@ export const SEEDED_USER_TICKETS: PurchasedTicketDto[] = [
     escrowId: 'escrow-sample-01',
     listingId: 'resale-atsh-01',
     eventId: 'atsh-2026',
-    eventName: 'ANH TRAI SAY HI LIVE CONCERT 2025',
+    eventName: 'Anh Trai Say Hi Live Concert 2026',
     eventVenue: 'Sân vận động Quân Khu 7, TP.HCM',
-    eventStartAt: '2025-04-19T19:30:00Z',
+    eventStartAt: '2026-09-19T19:30:00+07:00',
     tierName: 'VIP A - Sát Sân Khấu',
     seatZone: 'Khu A1 - Hàng 03 - Ghế 14',
     ticketPassCode: 'TS-ATSH-VIP-882109',
@@ -34,8 +34,11 @@ export const ticketService = {
       if (remote && remote.length > 0) {
         return remote;
       }
-    } catch (e) {
-      // Ignore remote error
+    } catch (error) {
+      const local = await marketplaceService.getLocalTickets();
+      if (local.length > 0) return local;
+      if (__DEV__) return SEEDED_USER_TICKETS;
+      throw error;
     }
 
     const local = await marketplaceService.getLocalTickets();
@@ -43,7 +46,8 @@ export const ticketService = {
       return local;
     }
 
-    return SEEDED_USER_TICKETS;
+    // Demo wallet for local development only; never show another user's pass in production.
+    return __DEV__ ? SEEDED_USER_TICKETS : [];
   },
 
   /**
@@ -84,12 +88,14 @@ export const ticketService = {
       return localOrders;
     }
 
-    // Default sample order
+    if (!__DEV__) return [];
+
+    // Default sample order for local development only.
     return [
       {
         orderId: 'ORD-982101',
         listingId: 'resale-atsh-01',
-        eventName: 'ANH TRAI SAY HI LIVE CONCERT 2025',
+        eventName: 'Anh Trai Say Hi Live Concert 2026',
         tierName: 'VIP A - Sát Sân Khấu',
         seatZone: 'Khu A1 - Hàng 03 - Ghế 14',
         amount: 2200000,
