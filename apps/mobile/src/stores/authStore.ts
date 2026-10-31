@@ -7,7 +7,9 @@ import { initApiGateway, GatewayInfo } from '../lib/apiResolver';
 
 interface AuthState {
   user: User | null;
+  userProfile: User | null;
   token: string | null;
+  accessToken: string | null;
   refreshToken: string | null;
   isAuthenticated: boolean;
   isLoading: boolean;
@@ -19,7 +21,9 @@ interface AuthState {
   register: (data: RegisterFormData) => Promise<boolean>;
   logout: () => Promise<void>;
   checkAuth: () => Promise<void>;
+  loadStoredAuth: () => Promise<void>;
   setUser: (user: User) => void;
+  setUserProfile: (profile: User) => void;
   clearError: () => void;
   refreshGateway: () => Promise<void>;
 }
@@ -33,7 +37,9 @@ export const useAuthStore = create<AuthState>((set, get) => {
 
   return {
     user: null,
+    userProfile: null,
     token: null,
+    accessToken: null,
     refreshToken: null,
     isAuthenticated: false,
     isLoading: true,
@@ -56,7 +62,9 @@ export const useAuthStore = create<AuthState>((set, get) => {
 
         set({
           user: response.user,
+          userProfile: response.user,
           token: response.token,
+          accessToken: response.token,
           refreshToken: response.refreshToken ?? null,
           isAuthenticated: true,
           isLoading: false,
@@ -91,7 +99,9 @@ export const useAuthStore = create<AuthState>((set, get) => {
 
         set({
           user: response.user,
+          userProfile: response.user,
           token: response.token,
+          accessToken: response.token,
           refreshToken: response.refreshToken ?? null,
           isAuthenticated: true,
           isLoading: false,
@@ -122,7 +132,9 @@ export const useAuthStore = create<AuthState>((set, get) => {
       await secureStorage.clearAllSessionData();
       set({
         user: null,
+        userProfile: null,
         token: null,
+        accessToken: null,
         refreshToken: null,
         isAuthenticated: false,
         isLoading: false,
@@ -130,7 +142,7 @@ export const useAuthStore = create<AuthState>((set, get) => {
       });
     },
 
-    checkAuth: async (): Promise<void> => {
+    loadStoredAuth: async (): Promise<void> => {
       set({ isLoading: true });
       try {
         // 1. Resolve dynamic gateway & wire adapter
@@ -146,7 +158,9 @@ export const useAuthStore = create<AuthState>((set, get) => {
           // First launch or logged out
           set({
             user: null,
+            userProfile: null,
             token: null,
+            accessToken: null,
             refreshToken: null,
             isAuthenticated: false,
             isLoading: false,
@@ -160,17 +174,21 @@ export const useAuthStore = create<AuthState>((set, get) => {
           await secureStorage.setUser(freshUser);
           set({
             user: freshUser,
+            userProfile: freshUser,
             token: storedToken,
+            accessToken: storedToken,
             refreshToken: storedRefreshToken,
             isAuthenticated: true,
             isLoading: false,
           });
         } catch (fetchErr: any) {
-          // If offline or network error, fallback to cached user
+          // If offline or network error, fallback to cached user from SecureStore
           if (cachedUser) {
             set({
               user: cachedUser,
+              userProfile: cachedUser,
               token: storedToken,
+              accessToken: storedToken,
               refreshToken: storedRefreshToken,
               isAuthenticated: true,
               isLoading: false,
@@ -180,7 +198,9 @@ export const useAuthStore = create<AuthState>((set, get) => {
             await secureStorage.clearAllSessionData();
             set({
               user: null,
+              userProfile: null,
               token: null,
+              accessToken: null,
               refreshToken: null,
               isAuthenticated: false,
               isLoading: false,
@@ -188,10 +208,12 @@ export const useAuthStore = create<AuthState>((set, get) => {
           }
         }
       } catch (err) {
-        console.warn('[AuthStore] Auth check error:', err);
+        console.warn('[AuthStore] loadStoredAuth error:', err);
         set({
           user: null,
+          userProfile: null,
           token: null,
+          accessToken: null,
           refreshToken: null,
           isAuthenticated: false,
           isLoading: false,
@@ -199,9 +221,18 @@ export const useAuthStore = create<AuthState>((set, get) => {
       }
     },
 
+    checkAuth: async (): Promise<void> => {
+      return get().loadStoredAuth();
+    },
+
     setUser: (user: User) => {
       secureStorage.setUser(user);
-      set({ user });
+      set({ user, userProfile: user });
+    },
+
+    setUserProfile: (profile: User) => {
+      secureStorage.setUser(profile);
+      set({ user: profile, userProfile: profile });
     },
 
     clearError: () => {
