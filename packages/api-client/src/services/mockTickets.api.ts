@@ -5,8 +5,9 @@ const ORGANIZER_DOWN_MESSAGE =
 
 const getOrganizerBaseUrl = (): string => {
   if (typeof window !== 'undefined') {
+    const metaEnv = typeof import.meta !== 'undefined' ? (import.meta as any)?.env : undefined;
     const envUrl =
-      import.meta.env.VITE_ORGANIZER_API_BASE_URL ||
+      metaEnv?.VITE_ORGANIZER_API_BASE_URL ||
       (window as { __ENV__?: { VITE_ORGANIZER_API_BASE_URL?: string } }).__ENV__
         ?.VITE_ORGANIZER_API_BASE_URL;
     if (envUrl) return String(envUrl).replace(/\/$/, '');

@@ -3,8 +3,8 @@ import type { MockTicketDto } from '@ticketshield/types';
 export const getOrganizerApiBase = (): string => {
   if (typeof window !== 'undefined') {
     const envUrl =
-      import.meta.env.VITE_ORGANIZER_API_BASE_URL ||
-      import.meta.env.VITE_ORGANIZER_API_URL ||
+      ((import.meta as any)?.env || {}).VITE_ORGANIZER_API_BASE_URL ||
+      ((import.meta as any)?.env || {}).VITE_ORGANIZER_API_URL ||
       (window as { __ENV__?: { VITE_ORGANIZER_API_BASE_URL?: string } }).__ENV__
         ?.VITE_ORGANIZER_API_BASE_URL;
     if (envUrl) {

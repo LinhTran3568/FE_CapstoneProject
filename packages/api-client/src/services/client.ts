@@ -8,23 +8,125 @@ export interface ApiResponse<T> {
   errors?: string[];
 }
 
-const getBaseUrl = (): string => {
-  if (typeof window !== 'undefined') {
-    const envUrl = import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL || (window as any)?.__ENV__?.VITE_API_BASE_URL;
-    if (envUrl) return envUrl;
+let customBaseUrl: string | null = null;
+
+export const setApiBaseUrl = (url: string): void => {
+  customBaseUrl = url;
+  axiosClient.defaults.baseURL = url;
+};
+
+export const getApiBaseUrl = (): string => {
+  if (customBaseUrl) return customBaseUrl;
+  try {
+    if (typeof window !== 'undefined') {
+      const meta = typeof import.meta !== 'undefined' ? (import.meta as any)?.env : undefined;
+      const envUrl = meta?.VITE_API_BASE_URL || meta?.VITE_API_URL || (window as any)?.__ENV__?.VITE_API_BASE_URL;
+      if (envUrl) return envUrl;
+    }
+  } catch {
+    // Fallback if import.meta is unavailable
   }
   return 'http://localhost:5000/api/v1';
 };
 
 export const API_CONFIG = {
   get baseURL(): string {
-    return getBaseUrl();
+    return getApiBaseUrl();
+  },
+  set baseURL(url: string) {
+    setApiBaseUrl(url);
   },
 };
 
 export const TOKEN_STORAGE_KEY = 'ticketshield_token';
 export const REFRESH_TOKEN_STORAGE_KEY = 'ticketshield_refresh_token';
 export const UNAUTHORIZED_EVENT = 'ticketshield:unauthorized';
+
+export interface TokenStorageAdapter {
+  getToken: () => Promise<string | null> | string | null;
+  getRefreshToken: () => Promise<string | null> | string | null;
+  setTokens: (accessToken?: string, refreshToken?: string) => Promise<void> | void;
+  clearTokens: () => Promise<void> | void;
+}
+
+export const defaultWebTokenAdapter: TokenStorageAdapter = {
+  getToken: () => {
+    try {
+      return typeof window !== 'undefined' && window.localStorage
+        ? localStorage.getItem(TOKEN_STORAGE_KEY)
+        : null;
+    } catch {
+      return null;
+    }
+  },
+  getRefreshToken: () => {
+    try {
+      return typeof window !== 'undefined' && window.localStorage
+        ? localStorage.getItem(REFRESH_TOKEN_STORAGE_KEY)
+        : null;
+    } catch {
+      return null;
+    }
+  },
+  setTokens: (accessToken, refreshToken) => {
+    try {
+      if (typeof window !== 'undefined' && window.localStorage) {
+        if (accessToken) localStorage.setItem(TOKEN_STORAGE_KEY, accessToken);
+        if (refreshToken) localStorage.setItem(REFRESH_TOKEN_STORAGE_KEY, refreshToken);
+      }
+    } catch {
+      // Ignore storage error
+    }
+  },
+  clearTokens: () => {
+    try {
+      if (typeof window !== 'undefined' && window.localStorage) {
+        localStorage.removeItem(TOKEN_STORAGE_KEY);
+        localStorage.removeItem(REFRESH_TOKEN_STORAGE_KEY);
+      }
+    } catch {
+      // Ignore storage error
+    }
+  },
+};
+
+let currentTokenAdapter: TokenStorageAdapter = defaultWebTokenAdapter;
+
+export const setTokenAdapter = (adapter: TokenStorageAdapter): void => {
+  currentTokenAdapter = adapter;
+};
+
+export const getTokenAdapter = (): TokenStorageAdapter => {
+  return currentTokenAdapter;
+};
+
+type UnauthorizedListener = () => void;
+const unauthorizedListeners = new Set<UnauthorizedListener>();
+
+export const onUnauthorized = (listener: UnauthorizedListener): (() => void) => {
+  unauthorizedListeners.add(listener);
+  return () => {
+    unauthorizedListeners.delete(listener);
+  };
+};
+
+export const notifyUnauthorized = (): void => {
+  unauthorizedListeners.forEach((listener) => {
+    try {
+      listener();
+    } catch (err) {
+      console.error('Error in onUnauthorized listener:', err);
+    }
+  });
+
+  if (typeof window !== 'undefined' && typeof window.dispatchEvent === 'function') {
+    try {
+      window.dispatchEvent(new CustomEvent(UNAUTHORIZED_EVENT));
+    } catch {
+      // Ignore
+    }
+  }
+};
 
 // Create central Axios client
 export const axiosClient = axios.create({
@@ -35,11 +137,11 @@ export const axiosClient = axios.create({
 
 // Request Interceptor: Inject Bearer Token
 axiosClient.interceptors.request.use(
-  (config: InternalAxiosRequestConfig) => {
+  async (config: InternalAxiosRequestConfig) => {
     if (!config.baseURL) {
       config.baseURL = API_CONFIG.baseURL;
     }
-    const token = typeof window !== 'undefined' ? localStorage.getItem(TOKEN_STORAGE_KEY) : null;
+    const token = await currentTokenAdapter.getToken();
     if (token && (!config.headers.Authorization || config.headers.Authorization === 'Bearer null')) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -101,16 +203,12 @@ axiosClient.interceptors.response.use(
       originalRequest._retry = true;
       isRefreshingToken = true;
 
-      const refreshToken =
-        typeof window !== 'undefined' ? localStorage.getItem(REFRESH_TOKEN_STORAGE_KEY) : null;
+      const refreshToken = await currentTokenAdapter.getRefreshToken();
 
       if (!refreshToken) {
         isRefreshingToken = false;
-        if (typeof window !== 'undefined') {
-          localStorage.removeItem(TOKEN_STORAGE_KEY);
-          localStorage.removeItem(REFRESH_TOKEN_STORAGE_KEY);
-          window.dispatchEvent(new CustomEvent(UNAUTHORIZED_EVENT));
-        }
+        await currentTokenAdapter.clearTokens();
+        notifyUnauthorized();
         return Promise.reject(error);
       }
 
@@ -127,10 +225,7 @@ axiosClient.interceptors.response.use(
           const newAccessToken = resData.data.accessToken || resData.data.token;
           const newRefreshToken = resData.data.refreshToken;
 
-          if (typeof window !== 'undefined') {
-            if (newAccessToken) localStorage.setItem(TOKEN_STORAGE_KEY, newAccessToken);
-            if (newRefreshToken) localStorage.setItem(REFRESH_TOKEN_STORAGE_KEY, newRefreshToken);
-          }
+          await currentTokenAdapter.setTokens(newAccessToken, newRefreshToken);
 
           if (newAccessToken) {
             axiosClient.defaults.headers.common['Authorization'] = `Bearer ${newAccessToken}`;
@@ -145,11 +240,8 @@ axiosClient.interceptors.response.use(
       } catch (refreshError) {
         processQueue(refreshError, null);
         isRefreshingToken = false;
-        if (typeof window !== 'undefined') {
-          localStorage.removeItem(TOKEN_STORAGE_KEY);
-          localStorage.removeItem(REFRESH_TOKEN_STORAGE_KEY);
-          window.dispatchEvent(new CustomEvent(UNAUTHORIZED_EVENT));
-        }
+        await currentTokenAdapter.clearTokens();
+        notifyUnauthorized();
         return Promise.reject(refreshError);
       }
     }
@@ -223,4 +315,3 @@ export async function httpClient<T>(
     throw err;
   }
 }
-
