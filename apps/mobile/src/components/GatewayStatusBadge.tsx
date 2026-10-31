@@ -1,15 +1,16 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { Server, Wifi, RefreshCw } from 'lucide-react-native';
+import { Wifi, RefreshCw } from 'lucide-react-native';
 import { theme } from '../theme';
 import { GatewayInfo, checkGatewayHealth } from '../services/apiResolver';
 import { useAuthStore } from '../stores/authStore';
 
 interface GatewayStatusBadgeProps {
   onRefresh?: () => void;
+  compact?: boolean;
 }
 
-export const GatewayStatusBadge: React.FC<GatewayStatusBadgeProps> = ({ onRefresh }) => {
+export const GatewayStatusBadge: React.FC<GatewayStatusBadgeProps> = ({ onRefresh, compact = true }) => {
   const gatewayInfo = useAuthStore((state) => state.gatewayInfo);
   const refreshGateway = useAuthStore((state) => state.refreshGateway);
 
@@ -37,124 +38,76 @@ export const GatewayStatusBadge: React.FC<GatewayStatusBadgeProps> = ({ onRefres
     onRefresh?.();
   };
 
-  const getSourceLabel = (src?: GatewayInfo['source']) => {
-    switch (src) {
-      case 'lan_auto_detect':
-        return 'LAN Auto';
-      case 'emulator_alias':
-        return 'Emulator Bridge';
-      case 'custom_override':
-        return 'Custom IP';
-      case 'env_config':
-        return 'Env Config';
-      default:
-        return 'Localhost';
-    }
-  };
-
-  const hostDisplay = gatewayInfo?.host || 'Chưa nhận diện';
+  const hostDisplay = gatewayInfo?.host || 'localhost';
   const portDisplay = gatewayInfo?.port ? `:${gatewayInfo.port}` : '';
 
   return (
-    <View style={styles.container}>
-      <View style={styles.infoRow}>
-        <View style={styles.leftGroup}>
-          <View style={styles.iconWrapper}>
-            {gatewayInfo?.isLan ? (
-              <Wifi size={14} color={theme.colors.primary} />
-            ) : (
-              <Server size={14} color={theme.colors.secondary} />
-            )}
-          </View>
-          <View>
-            <View style={styles.statusLine}>
-              <View
-                style={[
-                  styles.statusDot,
-                  isOnline === true && styles.dotOnline,
-                  isOnline === false && styles.dotOffline,
-                  isOnline === null && styles.dotPending,
-                ]}
-              />
-              <Text style={styles.hostText}>
-                {hostDisplay}
-                {portDisplay}
-              </Text>
-              <View style={styles.sourceTag}>
-                <Text style={styles.sourceTagText}>
-                  {getSourceLabel(gatewayInfo?.source)}
-                </Text>
-              </View>
-            </View>
-            <Text style={styles.latencyText}>
-              {isChecking
-                ? 'Đang kiểm tra kết nối...'
-                : isOnline
-                ? `Đã kết nối • Độ trễ ${latency}ms`
-                : 'Mạng ngoại tuyến / Chờ backend'}
-            </Text>
-          </View>
-        </View>
+    <View style={styles.pillContainer}>
+      <TouchableOpacity
+        style={styles.pill}
+        onPress={handlePressRefresh}
+        activeOpacity={0.7}
+      >
+        {/* Pulsing Status Dot */}
+        <View
+          style={[
+            styles.dot,
+            isOnline === true && styles.dotOnline,
+            isOnline === false && styles.dotOffline,
+            isOnline === null && styles.dotPending,
+          ]}
+        />
 
-        <TouchableOpacity
-          onPress={handlePressRefresh}
-          style={styles.refreshBtn}
-          activeOpacity={0.7}
-        >
-          <RefreshCw
-            size={14}
-            color={theme.colors.textSecondary}
-            style={isChecking ? styles.spinIcon : undefined}
-          />
-        </TouchableOpacity>
-      </View>
+        <Wifi size={12} color={isOnline ? theme.colors.success : theme.colors.textMuted} />
+
+        <Text style={styles.networkText}>
+          {hostDisplay}
+          {portDisplay}
+        </Text>
+
+        {latency !== null && isOnline && (
+          <Text style={styles.latencyText}>{latency}ms</Text>
+        )}
+
+        <RefreshCw
+          size={11}
+          color={theme.colors.textMuted}
+          style={isChecking ? styles.spin : undefined}
+        />
+      </TouchableOpacity>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    backgroundColor: theme.colors.surface,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    borderRadius: theme.radii.md,
-    paddingHorizontal: theme.spacing.md,
-    paddingVertical: theme.spacing.sm,
-    width: '100%',
-  },
-  infoRow: {
-    flexDirection: 'row',
+  pillContainer: {
     alignItems: 'center',
-    justifyContent: 'space-between',
+    marginVertical: 4,
   },
-  leftGroup: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: theme.spacing.sm,
-    flex: 1,
-  },
-  iconWrapper: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: theme.colors.inputBackground,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: theme.colors.borderSubtle,
-  },
-  statusLine: {
+  pill: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
+    backgroundColor: 'rgba(22, 30, 46, 0.85)',
+    borderWidth: 1,
+    borderColor: 'rgba(38, 51, 77, 0.7)',
+    borderRadius: theme.radii.full,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    ...theme.shadows.sm,
   },
-  statusDot: {
-    width: 7,
-    height: 7,
-    borderRadius: 4,
+  dot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
   },
   dotOnline: {
     backgroundColor: theme.colors.success,
+    shadowColor: theme.colors.success,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.8,
+    shadowRadius: 4,
+    elevation: 2,
   },
   dotOffline: {
     backgroundColor: theme.colors.danger,
@@ -162,34 +115,18 @@ const styles = StyleSheet.create({
   dotPending: {
     backgroundColor: theme.colors.warning,
   },
-  hostText: {
-    fontSize: theme.typography.sizes.sm,
+  networkText: {
+    fontSize: 11,
     fontWeight: theme.typography.weights.semibold,
-    color: theme.colors.text,
-  },
-  sourceTag: {
-    backgroundColor: 'rgba(6, 182, 212, 0.12)',
-    paddingHorizontal: 5,
-    paddingVertical: 1,
-    borderRadius: 4,
-  },
-  sourceTagText: {
-    fontSize: 9,
-    fontWeight: theme.typography.weights.bold,
-    color: theme.colors.primary,
+    color: theme.colors.textSecondary,
+    fontFamily: 'monospace',
   },
   latencyText: {
-    fontSize: 11,
-    color: theme.colors.textSecondary,
-    marginTop: 2,
+    fontSize: 10,
+    color: theme.colors.success,
+    fontWeight: theme.typography.weights.bold,
   },
-  refreshBtn: {
-    padding: theme.spacing.xs,
-    borderRadius: theme.radii.sm,
-    backgroundColor: theme.colors.inputBackground,
-  },
-  spinIcon: {
+  spin: {
     opacity: 0.5,
   },
 });
-

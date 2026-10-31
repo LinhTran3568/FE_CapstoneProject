@@ -7,11 +7,10 @@ import {
   KeyboardAvoidingView,
   Platform,
   TouchableOpacity,
-  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { Mail, Lock, ShieldCheck, Zap } from 'lucide-react-native';
+import { Mail, Lock, ShieldCheck, Zap, User, ArrowRight } from 'lucide-react-native';
 import { theme } from '../../src/theme';
 import { useAuthStore } from '../../src/stores/authStore';
 import { FintechShieldLogo } from '../../src/components/FintechShieldLogo';
@@ -26,6 +25,7 @@ export default function LoginScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [validationErrors, setValidationErrors] = useState<{ email?: string; password?: string }>({});
+  const [activeDemo, setActiveDemo] = useState<'buyer' | 'reseller' | 'organizer' | null>(null);
 
   const validate = (): boolean => {
     const errors: { email?: string; password?: string } = {};
@@ -53,10 +53,11 @@ export default function LoginScreen() {
       email: email.trim(),
       password,
     });
-    // Điều hướng vào /(tabs) được tự động xử lý bởi AuthNavigationCoordinator trong _layout.tsx
+    // Navigation coordinator handles routing to /(tabs) automatically
   };
 
-  const handleQuickFill = (demoEmail: string, demoPass: string) => {
+  const handleQuickFill = (type: 'buyer' | 'reseller' | 'organizer', demoEmail: string, demoPass: string) => {
+    setActiveDemo(type);
     setEmail(demoEmail);
     setPassword(demoPass);
     setValidationErrors({});
@@ -74,20 +75,22 @@ export default function LoginScreen() {
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          {/* Logo & Branding */}
-          <FintechShieldLogo size={52} />
-
-          {/* Dynamic API Gateway Status */}
-          <View style={styles.gatewaySection}>
+          {/* Top Network Status Pill */}
+          <View style={styles.topHeader}>
             <GatewayStatusBadge />
           </View>
 
-          {/* Form Card */}
+          {/* 3D Ticket Branding */}
+          <FintechShieldLogo size={70} />
+
+          {/* Glassmorphic Form Card */}
           <View style={styles.card}>
-            <Text style={styles.cardTitle}>Đăng Nhập Tài Khoản</Text>
-            <Text style={styles.cardSubtitle}>
-              Xác thực an toàn với hạ tầng TicketShield AI
-            </Text>
+            <View style={styles.cardHeader}>
+              <Text style={styles.cardTitle}>Đăng Nhập Tài Khoản</Text>
+              <Text style={styles.cardSubtitle}>
+                Bảo mật đa tầng với hạ tầng Escrow & Keystore
+              </Text>
+            </View>
 
             {/* Error Notification */}
             {error && (
@@ -96,8 +99,9 @@ export default function LoginScreen() {
               </View>
             )}
 
+            {/* Email Field */}
             <FintechInput
-              label="Email"
+              label="Địa chỉ Email"
               placeholder="nhap.email@vidu.com"
               value={email}
               onChangeText={(text) => {
@@ -110,6 +114,7 @@ export default function LoginScreen() {
               error={validationErrors.email}
             />
 
+            {/* Password Field */}
             <FintechInput
               label="Mật khẩu"
               placeholder="••••••••"
@@ -123,12 +128,17 @@ export default function LoginScreen() {
               error={validationErrors.password}
             />
 
+            {/* Forgot Password Link */}
             <View style={styles.forgotRow}>
-              <TouchableOpacity onPress={() => router.push('/(auth)/forgot-password')}>
+              <TouchableOpacity
+                onPress={() => router.push('/(auth)/forgot-password')}
+                activeOpacity={0.7}
+              >
                 <Text style={styles.forgotText}>Quên mật khẩu?</Text>
               </TouchableOpacity>
             </View>
 
+            {/* Login Button */}
             <FintechButton
               title="Đăng Nhập An Toàn"
               onPress={handleLogin}
@@ -141,50 +151,56 @@ export default function LoginScreen() {
             {/* Register Link */}
             <View style={styles.registerRow}>
               <Text style={styles.registerText}>Chưa có tài khoản?</Text>
-              <TouchableOpacity onPress={() => router.push('/(auth)/register')}>
+              <TouchableOpacity onPress={() => router.push('/(auth)/register')} activeOpacity={0.7}>
                 <Text style={styles.registerHighlight}>Đăng ký ngay</Text>
               </TouchableOpacity>
             </View>
 
-            {/* Quick Demo Accounts for Grading / Testing */}
+            {/* Refined Demo Account Switcher */}
             <View style={styles.demoSection}>
               <View style={styles.demoHeader}>
-                <Zap size={14} color={theme.colors.warning} />
+                <Zap size={13} color={theme.colors.warning} />
                 <Text style={styles.demoHeaderText}>Tài khoản thử nghiệm nhanh (Development)</Text>
               </View>
-              <View style={styles.demoRow}>
+              <View style={styles.demoSegment}>
                 <TouchableOpacity
-                  style={styles.demoPill}
-                  onPress={() => handleQuickFill('buyer@ticketshield.vn', 'Password123!')}
-                  activeOpacity={0.7}
+                  style={[styles.demoTab, activeDemo === 'buyer' && styles.demoTabActive]}
+                  onPress={() => handleQuickFill('buyer', 'buyer@ticketshield.vn', 'Password123!')}
+                  activeOpacity={0.8}
                 >
-                  <Text style={styles.demoPillText}>Buyer Demo</Text>
+                  <Text style={[styles.demoTabText, activeDemo === 'buyer' && styles.demoTabTextActive]}>
+                    Buyer (Mua vé)
+                  </Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity
-                  style={styles.demoPill}
-                  onPress={() => handleQuickFill('reseller@ticketshield.vn', 'Password123!')}
-                  activeOpacity={0.7}
+                  style={[styles.demoTab, activeDemo === 'reseller' && styles.demoTabActive]}
+                  onPress={() => handleQuickFill('reseller', 'reseller@ticketshield.vn', 'Password123!')}
+                  activeOpacity={0.8}
                 >
-                  <Text style={styles.demoPillText}>Seller Demo</Text>
+                  <Text style={[styles.demoTabText, activeDemo === 'reseller' && styles.demoTabTextActive]}>
+                    Seller (Bán lại)
+                  </Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity
-                  style={styles.demoPill}
-                  onPress={() => handleQuickFill('organizer@ticketshield.vn', 'Password123!')}
-                  activeOpacity={0.7}
+                  style={[styles.demoTab, activeDemo === 'organizer' && styles.demoTabActive]}
+                  onPress={() => handleQuickFill('organizer', 'organizer@ticketshield.vn', 'Password123!')}
+                  activeOpacity={0.8}
                 >
-                  <Text style={styles.demoPillText}>Organizer Demo</Text>
+                  <Text style={[styles.demoTabText, activeDemo === 'organizer' && styles.demoTabTextActive]}>
+                    Organizer (BTC)
+                  </Text>
                 </TouchableOpacity>
               </View>
             </View>
           </View>
 
-          {/* Security Badge Footer */}
+          {/* Security Trust Footer */}
           <View style={styles.securityFooter}>
             <ShieldCheck size={14} color={theme.colors.success} />
             <Text style={styles.securityFooterText}>
-              Bảo vệ bởi mã hóa phần cứng SecureStore & Escrow Smart Lock
+              Bảo mật bởi mã hóa phần cứng SecureStore & Escrow Smart Lock
             </Text>
           </View>
         </ScrollView>
@@ -203,32 +219,38 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingHorizontal: theme.spacing.lg,
-    paddingBottom: theme.spacing['3xl'],
+    paddingBottom: theme.spacing['4xl'],
     alignItems: 'center',
   },
-  gatewaySection: {
+  topHeader: {
     width: '100%',
-    marginBottom: theme.spacing.lg,
+    alignItems: 'center',
+    marginTop: theme.spacing.xs,
+    marginBottom: theme.spacing.sm,
   },
   card: {
-    backgroundColor: theme.colors.surface,
+    backgroundColor: 'rgba(22, 30, 46, 0.95)',
     borderWidth: 1,
-    borderColor: theme.colors.border,
-    borderRadius: theme.radii.xl,
+    borderColor: '#24324a',
+    borderRadius: theme.radii['2xl'],
     padding: theme.spacing.xl,
     width: '100%',
     ...theme.shadows.md,
   },
+  cardHeader: {
+    marginBottom: theme.spacing.xl,
+  },
   cardTitle: {
-    fontSize: theme.typography.sizes.xl,
-    fontWeight: theme.typography.weights.bold,
-    color: theme.colors.text,
-    marginBottom: 4,
+    fontSize: 22,
+    fontWeight: theme.typography.weights.extrabold,
+    color: '#ffffff',
+    letterSpacing: 0.3,
   },
   cardSubtitle: {
-    fontSize: theme.typography.sizes.sm,
+    fontSize: 13,
     color: theme.colors.textSecondary,
-    marginBottom: theme.spacing.xl,
+    marginTop: 4,
+    lineHeight: 18,
   },
   errorBox: {
     backgroundColor: theme.colors.dangerLight,
@@ -240,7 +262,7 @@ const styles = StyleSheet.create({
   },
   errorBoxText: {
     color: theme.colors.danger,
-    fontSize: theme.typography.sizes.sm,
+    fontSize: 13,
     fontWeight: theme.typography.weights.medium,
   },
   forgotRow: {
@@ -274,7 +296,7 @@ const styles = StyleSheet.create({
   },
   demoSection: {
     borderTopWidth: 1,
-    borderTopColor: theme.colors.borderSubtle,
+    borderTopColor: 'rgba(38, 51, 77, 0.6)',
     paddingTop: theme.spacing.md,
   },
   demoHeader: {
@@ -284,37 +306,49 @@ const styles = StyleSheet.create({
     marginBottom: theme.spacing.sm,
   },
   demoHeaderText: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: theme.typography.weights.semibold,
-    color: theme.colors.textSecondary,
+    color: theme.colors.textMuted,
   },
-  demoRow: {
+  demoSegment: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: theme.spacing.xs,
-  },
-  demoPill: {
-    backgroundColor: theme.colors.surfaceElevated,
+    backgroundColor: theme.colors.inputBackground,
+    borderRadius: theme.radii.md,
+    padding: 3,
     borderWidth: 1,
-    borderColor: theme.colors.border,
-    borderRadius: theme.radii.full,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
+    borderColor: theme.colors.borderSubtle,
+    gap: 2,
   },
-  demoPillText: {
-    fontSize: 12,
+  demoTab: {
+    flex: 1,
+    paddingVertical: 8,
+    borderRadius: theme.radii.sm,
+    alignItems: 'center',
+  },
+  demoTabActive: {
+    backgroundColor: 'rgba(6, 182, 212, 0.18)',
+    borderWidth: 1,
+    borderColor: theme.colors.primary,
+  },
+  demoTabText: {
+    fontSize: 10,
     fontWeight: theme.typography.weights.medium,
     color: theme.colors.textSecondary,
+  },
+  demoTabTextActive: {
+    color: theme.colors.primary,
+    fontWeight: theme.typography.weights.bold,
   },
   securityFooter: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
     marginTop: theme.spacing.xl,
-    opacity: 0.8,
+    opacity: 0.85,
   },
   securityFooterText: {
     fontSize: 11,
     color: theme.colors.textMuted,
+    textAlign: 'center',
   },
 });
