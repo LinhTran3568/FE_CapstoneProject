@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import { View, ActivityIndicator, StyleSheet } from 'react-native';
 import { Stack, useRouter, useSegments } from 'expo-router';
+import * as SplashScreen from 'expo-splash-screen';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { StatusBar } from 'expo-status-bar';
 import {
@@ -16,6 +17,11 @@ import { useAuthStore } from '../src/stores/authStore';
 import { FintechShieldLogo } from '../src/components/FintechShieldLogo';
 import { Text } from '../src/components/AppText';
 
+// Keep the splash screen visible while resources & auth session load
+SplashScreen.preventAutoHideAsync().catch(() => {
+  // Ignore if running in unsupported environment
+});
+
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -28,20 +34,23 @@ const queryClient = new QueryClient({
 function AuthNavigationCoordinator() {
   const segments = useSegments();
   const router = useRouter();
-  const { isAuthenticated, isLoading, checkAuth } = useAuthStore();
+  const { isAuthenticated, isLoading, loadStoredAuth, checkAuth } = useAuthStore();
 
   useEffect(() => {
-    checkAuth();
+    (loadStoredAuth || checkAuth)();
   }, []);
 
   useEffect(() => {
     if (isLoading) return;
 
+    // Protected Route Guard: Intercept navigation based on authentication status
     const inAuthGroup = segments[0] === '(auth)';
 
     if (!isAuthenticated && !inAuthGroup) {
+      // Unauthenticated user attempting to access protected screens -> redirect to login
       router.replace('/(auth)/login');
     } else if (isAuthenticated && inAuthGroup) {
+      // Authenticated user on auth screen -> redirect to main tabs
       router.replace('/(tabs)');
     }
   }, [isAuthenticated, isLoading, segments]);
@@ -89,6 +98,14 @@ export default function RootLayout() {
     BeVietnamPro_700Bold,
     BeVietnamPro_800ExtraBold,
   });
+
+  const isLoading = useAuthStore((state) => state.isLoading);
+
+  useEffect(() => {
+    if ((fontsLoaded || fontError) && !isLoading) {
+      SplashScreen.hideAsync().catch(() => {});
+    }
+  }, [fontsLoaded, fontError, isLoading]);
 
   if (!fontsLoaded && !fontError) {
     return (
