@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { View, ActivityIndicator, StyleSheet } from 'react-native';
+import { View, ActivityIndicator } from 'react-native';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -16,6 +16,7 @@ import { theme } from '../src/theme';
 import { useAuthStore } from '../src/stores/authStore';
 import { FintechShieldLogo } from '../src/components/FintechShieldLogo';
 import { Text } from '../src/components/AppText';
+import { styles } from '../src/styles/root-layout.styles';
 
 // Keep the splash screen visible while resources & auth session load
 SplashScreen.preventAutoHideAsync().catch(() => {
@@ -122,23 +123,3 @@ export default function RootLayout() {
     </QueryClientProvider>
   );
 }
-
-const styles = StyleSheet.create({
-  splashContainer: {
-    flex: 1,
-    backgroundColor: theme.colors.background,
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: theme.spacing.xl,
-  },
-  spinner: {
-    marginTop: theme.spacing.xl,
-  },
-  loadingText: {
-    marginTop: theme.spacing.md,
-    color: theme.colors.textSecondary,
-    fontSize: theme.typography.sizes.sm,
-    fontWeight: theme.typography.weights.medium,
-    textAlign: 'center',
-  },
-});

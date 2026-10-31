@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from 'react';
-import { View, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, TouchableOpacity } from 'react-native';
 import { Text } from './AppText';
 import { Wifi, RefreshCw } from 'lucide-react-native';
 import { theme } from '../theme';
 import { checkGatewayHealth } from '../lib/apiResolver';
 import { useAuthStore } from '../stores/authStore';
+import { styles } from './GatewayStatusBadge.styles';
 
 interface GatewayStatusBadgeProps {
   onRefresh?: () => void;
@@ -74,55 +75,3 @@ export const GatewayStatusBadge: React.FC<GatewayStatusBadgeProps> = (props) => 
   if (!__DEV__) return null;
   return <GatewayStatusBadgeDev {...props} />;
 };
-
-const styles = StyleSheet.create({
-  pillContainer: {
-    alignItems: 'center',
-    marginVertical: 4,
-  },
-  pill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    backgroundColor: theme.colors.surface,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    borderRadius: theme.radii.full,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    ...theme.shadows.sm,
-  },
-  dot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-  },
-  dotOnline: {
-    backgroundColor: theme.colors.success,
-    shadowColor: theme.colors.success,
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.8,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  dotOffline: {
-    backgroundColor: theme.colors.danger,
-  },
-  dotPending: {
-    backgroundColor: theme.colors.warning,
-  },
-  networkText: {
-    fontSize: theme.typography.sizes.xs,
-    fontWeight: theme.typography.weights.semibold,
-    color: theme.colors.textSecondary,
-    fontFamily: theme.typography.families.mono,
-  },
-  latencyText: {
-    fontSize: theme.typography.sizes.xs,
-    color: theme.colors.success,
-    fontWeight: theme.typography.weights.bold,
-  },
-  spin: {
-    opacity: 0.5,
-  },
-});

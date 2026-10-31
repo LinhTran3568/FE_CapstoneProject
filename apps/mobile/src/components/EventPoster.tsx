@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, StyleSheet, ViewStyle } from 'react-native';
+import { View, ViewStyle } from 'react-native';
 import Svg, {
   Circle,
   Defs,
@@ -11,6 +11,7 @@ import Svg, {
   Stop,
 } from 'react-native-svg';
 import { theme } from '../theme';
+import { styles } from './EventPoster.styles';
 
 type Palette = {
   bg: string;
@@ -141,20 +142,3 @@ export const EventPoster: React.FC<EventPosterProps> = ({
     </View>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    width: '100%',
-    overflow: 'hidden',
-    backgroundColor: theme.colors.surface,
-  },
-  rounded: {
-    borderRadius: theme.radii.xl,
-  },
-  vignette: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'transparent',
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255,255,255,0.06)',
-  },
-});
