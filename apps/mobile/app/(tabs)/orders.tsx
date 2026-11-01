@@ -8,7 +8,7 @@ import {
   ScrollView,
 } from 'react-native';
 import { Text } from '../../src/components/AppText';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import {
   ShieldCheck,
   Clock,
@@ -147,6 +147,12 @@ export default function MobileOrdersScreen() {
   useEffect(() => {
     fetchOrders();
   }, [fetchOrders]);
+
+  useFocusEffect(
+    useCallback(() => {
+      fetchOrders(true);
+    }, [fetchOrders])
+  );
 
   const handleRefresh = async () => {
     setRefreshing(true);

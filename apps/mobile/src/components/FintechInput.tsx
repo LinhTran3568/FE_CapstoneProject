@@ -11,7 +11,7 @@ import { Text } from './AppText';
 import { styles } from './FintechInput.styles';
 
 interface FintechInputProps extends TextInputProps {
-  label: string;
+  label?: string;
   icon?: React.ReactNode;
   error?: string | null;
   isPassword?: boolean;
@@ -30,7 +30,7 @@ export const FintechInput: React.FC<FintechInputProps> = ({
 
   return (
     <View style={styles.wrapper}>
-      <Text style={styles.label}>{label}</Text>
+      {!!label && <Text style={styles.label}>{label}</Text>}
       <View
         style={[
           styles.inputContainer,

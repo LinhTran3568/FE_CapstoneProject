@@ -8,7 +8,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { Text } from '../../src/components/AppText';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { useSafeAreaInsets, SafeAreaView } from 'react-native-safe-area-context';
 import {
   Search,
@@ -95,6 +95,12 @@ export default function MarketplaceScreen() {
   useEffect(() => {
     loadListings(debouncedKeyword);
   }, [debouncedKeyword, loadListings]);
+
+  useFocusEffect(
+    useCallback(() => {
+      loadListings(debouncedKeyword, true);
+    }, [debouncedKeyword, loadListings])
+  );
 
   
   const inferCategory = (eventName: string, organizer?: string): string => {

@@ -11,7 +11,7 @@ import {
   TextInput,
 } from 'react-native';
 import { Text } from '../../src/components/AppText';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import {
   Ticket,
   QrCode,
@@ -38,6 +38,7 @@ import { DisputeTicketModal } from '../../src/components/DisputeTicketModal';
 
 const STATUS_LABELS: Record<string, string> = {
   VALID: 'Valid for Entry',
+  IN_ESCROW: 'In Escrow (Secured)',
   USED: 'Checked In',
   EXPIRED: 'Expired',
   CANCELLED: 'Cancelled',
@@ -77,9 +78,9 @@ export default function MobileTicketsScreen() {
   const [disputeModalTicket, setDisputeModalTicket] = useState<PurchasedTicketDto | null>(null);
 
   const counts = useMemo(() => {
-    const valid = tickets.filter((t) => t.status === 'VALID').length;
+    const valid = tickets.filter((t) => t.status === 'VALID' || t.status === 'IN_ESCROW').length;
     const used = tickets.filter((t) => t.status === 'USED').length;
-    const expired = tickets.filter((t) => t.status !== 'VALID' && t.status !== 'USED').length;
+    const expired = tickets.filter((t) => t.status !== 'VALID' && t.status !== 'IN_ESCROW' && t.status !== 'USED').length;
     return {
       ALL: tickets.length,
       VALID: valid,
@@ -90,9 +91,9 @@ export default function MobileTicketsScreen() {
 
   const filteredTickets = useMemo(() => {
     return tickets.filter((ticket) => {
-      if (selectedStatus === 'VALID' && ticket.status !== 'VALID') return false;
+      if (selectedStatus === 'VALID' && ticket.status !== 'VALID' && ticket.status !== 'IN_ESCROW') return false;
       if (selectedStatus === 'USED' && ticket.status !== 'USED') return false;
-      if (selectedStatus === 'EXPIRED' && (ticket.status === 'VALID' || ticket.status === 'USED')) return false;
+      if (selectedStatus === 'EXPIRED' && (ticket.status === 'VALID' || ticket.status === 'IN_ESCROW' || ticket.status === 'USED')) return false;
 
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase().trim();
@@ -130,6 +131,12 @@ export default function MobileTicketsScreen() {
   useEffect(() => {
     fetchTickets();
   }, [fetchTickets]);
+
+  useFocusEffect(
+    useCallback(() => {
+      fetchTickets(true);
+    }, [fetchTickets])
+  );
 
   const handleRefresh = async () => {
     setRefreshing(true);
@@ -171,6 +178,16 @@ export default function MobileTicketsScreen() {
           <ShieldAlert size={13} color={theme.colors.danger} />
           <Text style={[styles.statusText, { color: theme.colors.danger, fontFamily: fontFamilies.bold }]}>
             DISPUTED
+          </Text>
+        </View>
+      );
+    }
+    if (status === 'IN_ESCROW') {
+      return (
+        <View style={[styles.statusBadge, { backgroundColor: 'rgba(16, 185, 129, 0.15)', borderColor: '#10B981' }]}>
+          <ShieldCheck size={13} color="#10B981" />
+          <Text style={[styles.statusText, { color: '#10B981', fontFamily: fontFamilies.bold }]}>
+            In Escrow (Secured)
           </Text>
         </View>
       );
