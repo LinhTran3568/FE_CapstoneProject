@@ -9,7 +9,6 @@ import {
 import { Text } from '../../src/components/AppText';
 import { useRouter } from 'expo-router';
 import {
-  ShieldCheck,
   Ticket,
   Store,
   ArrowRight,
@@ -212,16 +211,6 @@ export default function MobileHomeScreen() {
             </TouchableOpacity>
           </View>
 
-          {/* Trust Banner */}
-          <View style={styles.escrowBanner}>
-            <ShieldCheck size={20} color={theme.colors.success} />
-            <View style={styles.escrowBannerText}>
-              <Text style={styles.escrowBannerTitle}>100% Escrow Protection</Text>
-              <Text style={styles.escrowBannerDesc}>
-                Funds are held in secure escrow and only released to the seller after successful venue entry.
-              </Text>
-            </View>
-          </View>
 
           {/* Section Header */}
           {listEvents.length > 0 && (
