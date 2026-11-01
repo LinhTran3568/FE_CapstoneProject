@@ -27,7 +27,20 @@
       "package": "com.ticketshield.mobile"
     },
     "plugins": [
-      "expo-router"
+      "expo-router",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "TicketShield needs camera access to scan ticket QR codes at the gate.",
+          "recordAudioAndroid": false
+        }
+      ],
+      [
+        "expo-av",
+        {
+          "microphonePermission": false
+        }
+      ]
     ]
   }
 }
