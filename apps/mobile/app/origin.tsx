@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   RefreshControl,
@@ -19,6 +19,7 @@ import {
 import { Text } from '../src/components/AppText';
 import { EventPoster } from '../src/components/EventPoster';
 import { FintechButton } from '../src/components/FintechButton';
+import { CategoryFilterBar } from '../src/components/CategoryFilterBar';
 import { eventsApi, organizerStoreApi, TrendingEventDto } from '@ticketshield/api-client';
 import { theme } from '../src/theme';
 import { formatEventDateTime, formatPrice } from '../src/utils/format';
@@ -49,6 +50,7 @@ interface OriginEvent {
 export default function OriginStoreScreen() {
   const router = useRouter();
   const [events, setEvents] = useState<OriginEvent[]>([]);
+  const [selectedCategory, setSelectedCategory] = useState('ALL');
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -149,6 +151,14 @@ export default function OriginStoreScreen() {
     setRefreshing(false);
   };
 
+  const filteredEvents = useMemo(() => {
+    return events.filter((event) => {
+      if (selectedCategory === 'ALL') return true;
+      const cat = (event.category || '').toUpperCase();
+      return cat === selectedCategory;
+    });
+  }, [events, selectedCategory]);
+
   if (loading) {
     return (
       <View style={[styles.container, styles.loading]}>
@@ -171,30 +181,40 @@ export default function OriginStoreScreen() {
         />
       }
     >
+      {/* Compact Origin Store Header */}
       <View style={styles.intro}>
         <View style={styles.introGlow} />
-        <View style={styles.introIcon}>
-          <Building2 size={22} color={theme.colors.info} />
-        </View>
-        <Text style={styles.introEyebrow}>Official tickets</Text>
-        <Text style={styles.introTitle}>Origin Store</Text>
-        <Text style={styles.introDesc}>
-          Buy directly from verified organizers at face value. No resale markup, no hidden
-          middlemen.
-        </Text>
-        <View style={styles.introMeta}>
-          <View style={styles.countChip}>
-            <Ticket size={13} color={theme.colors.textSecondary} />
-            <Text style={styles.countChipText}>
-              {events.length} event{events.length === 1 ? '' : 's'}
-            </Text>
+        <View style={styles.introTopRow}>
+          <View style={styles.introTitleRow}>
+            <View style={styles.introIcon}>
+              <Building2 size={18} color={theme.colors.info} />
+            </View>
+            <View>
+              <Text style={styles.introEyebrow}>Official tickets</Text>
+              <Text style={styles.introTitle}>Origin Store</Text>
+            </View>
           </View>
-          <View style={styles.faceValueChip}>
-            <CheckCircle size={13} color={theme.colors.success} />
-            <Text style={styles.faceValueChipText}>Face value</Text>
+          <View style={styles.introMeta}>
+            <View style={styles.countChip}>
+              <Ticket size={12} color={theme.colors.textSecondary} />
+              <Text style={styles.countChipText}>
+                {filteredEvents.length} event{filteredEvents.length === 1 ? '' : 's'}
+              </Text>
+            </View>
+            <View style={styles.faceValueChip}>
+              <CheckCircle size={12} color={theme.colors.success} />
+              <Text style={styles.faceValueChipText}>Face value</Text>
+            </View>
           </View>
         </View>
       </View>
+
+      {/* Category Filter Bar */}
+      <CategoryFilterBar
+        selectedCategory={selectedCategory}
+        onSelectCategory={setSelectedCategory}
+        style={styles.categoryFilter}
+      />
 
       {error ? (
         <View style={styles.stateCard}>
@@ -208,16 +228,20 @@ export default function OriginStoreScreen() {
             style={styles.retryButton}
           />
         </View>
-      ) : events.length === 0 ? (
+      ) : filteredEvents.length === 0 ? (
         <View style={styles.stateCard}>
           <Building2 size={26} color={theme.colors.info} />
-          <Text style={styles.stateTitle}>No official events yet</Text>
+          <Text style={styles.stateTitle}>
+            {selectedCategory === 'ALL' ? 'No official events yet' : 'No events found'}
+          </Text>
           <Text style={styles.stateDesc}>
-            Verified organizer events will appear here as soon as they connect their inventory.
+            {selectedCategory === 'ALL'
+              ? 'Verified organizer events will appear here as soon as they connect their inventory.'
+              : 'Try selecting "All" or another category to see more events.'}
           </Text>
         </View>
       ) : (
-        events.map((event) => {
+        filteredEvents.map((event) => {
           const soldOut = event.totalAvailable === 0;
           return (
             <TouchableOpacity
