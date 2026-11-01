@@ -158,7 +158,7 @@ export default function MobileProfileScreen() {
 
         <TouchableOpacity
           style={styles.menuRow}
-          onPress={() => router.push('/event/atsh-2026')}
+          onPress={() => router.push('/origin')}
           activeOpacity={0.7}
         >
           <View style={[styles.menuIconSlot, { backgroundColor: 'rgba(56, 189, 248, 0.12)' }]}>

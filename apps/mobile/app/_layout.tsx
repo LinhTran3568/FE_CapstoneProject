@@ -84,6 +84,7 @@ function AuthNavigationCoordinator() {
         <Stack.Screen name="(auth)" options={{ headerShown: false }} />
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="event/[id]" options={{ title: 'Event Details' }} />
+        <Stack.Screen name="origin" options={{ title: 'Origin Store' }} />
         <Stack.Screen name="ticket/[id]" options={{ title: 'Digital Pass' }} />
         <Stack.Screen name="verify" options={{ title: 'Verify Ticket' }} />
         <Stack.Screen name="payout-accounts" options={{ title: 'Payout Accounts' }} />

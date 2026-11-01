@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import {
   View,
   ScrollView,
@@ -18,12 +18,17 @@ import {
   Building2,
   AlertTriangle,
 } from 'lucide-react-native';
-import { eventsApi, TrendingEventDto } from '@ticketshield/api-client';
+import { eventsApi, organizerStoreApi, TrendingEventDto } from '@ticketshield/api-client';
 import { theme } from '../../src/theme';
 import { useAuthStore } from '../../src/stores/authStore';
 import { GatewayStatusBadge } from '../../src/components/GatewayStatusBadge';
 import { EventPoster } from '../../src/components/EventPoster';
 import { formatPrice, initialsOf, formatEventDateTime } from '../../src/utils/format';
+import {
+  eventNamesMatch,
+  mapCatalogEventToTrending,
+  OrganizerCatalogEvent,
+} from '../../src/utils/organizerCatalog';
 import { FintechButton } from '../../src/components/FintechButton';
 import { CategoryFilterBar } from '../../src/components/CategoryFilterBar';
 import { FairPriceBadge } from '../../src/components/FairPriceBadge';
@@ -34,6 +39,7 @@ export default function MobileHomeScreen() {
   const user = useAuthStore((state) => state.user);
 
   const [trendingEvents, setTrendingEvents] = useState<TrendingEventDto[]>([]);
+  const [catalogEvents, setCatalogEvents] = useState<OrganizerCatalogEvent[]>([]);
   const [selectedCategory, setSelectedCategory] = useState('ALL');
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -43,8 +49,17 @@ export default function MobileHomeScreen() {
     if (!silent) setLoading(true);
     setError(null);
     try {
-      const events = await eventsApi.getTrendingEvents({ limit: 6 });
-      setTrendingEvents(events || []);
+      const [eventsResult, catalogResult] = await Promise.all([
+        eventsApi.getTrendingEvents({ limit: 12 }).catch(() => null),
+        organizerStoreApi.getEventsCatalog().catch(() => null),
+      ]);
+
+      if (eventsResult === null && catalogResult === null) {
+        throw new Error('Unable to connect to events service.');
+      }
+
+      setTrendingEvents(Array.isArray(eventsResult) ? eventsResult : []);
+      setCatalogEvents(Array.isArray(catalogResult) ? (catalogResult as OrganizerCatalogEvent[]) : []);
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Unable to connect to events service.';
       setError(msg);
@@ -63,12 +78,44 @@ export default function MobileHomeScreen() {
     setRefreshing(false);
   };
 
-  const filteredEvents = trendingEvents.filter((ev) => {
+  const homeEvents = useMemo<TrendingEventDto[]>(() => {
+    const officialEvents = catalogEvents
+      .filter((event) => Boolean(event.externalEventId))
+      .map((event) => {
+        const mapped = mapCatalogEventToTrending(event, event.externalEventId || '');
+        const coreEvent = trendingEvents.find((candidate) =>
+          eventNamesMatch(candidate.name, event.name)
+        );
+
+        if (!coreEvent) return mapped;
+
+        return {
+          ...coreEvent,
+          id: mapped.id,
+          eventId: mapped.eventId,
+          name: coreEvent.name || mapped.name,
+          originalPriceFrom: mapped.originalPriceFrom ?? coreEvent.originalPriceFrom,
+          totalAvailableListings: coreEvent.totalAvailableListings ?? 0,
+        };
+      });
+
+    if (officialEvents.length === 0) return trendingEvents;
+
+    const resaleOnlyEvents = trendingEvents.filter(
+      (event) =>
+        (event.totalAvailableListings || 0) > 0 &&
+        !officialEvents.some((officialEvent) => eventNamesMatch(officialEvent.name, event.name))
+    );
+
+    return [...officialEvents, ...resaleOnlyEvents];
+  }, [catalogEvents, trendingEvents]);
+
+  const filteredEvents = homeEvents.filter((ev) => {
     if (selectedCategory === 'ALL') return true;
     const cat = (ev.category || '').toUpperCase();
     return cat === selectedCategory;
   });
-  const heroEvent = filteredEvents.length > 0 ? filteredEvents[0] : trendingEvents[0];
+  const heroEvent = filteredEvents.length > 0 ? filteredEvents[0] : homeEvents[0];
   const listEvents = filteredEvents.length > 0 ? filteredEvents.slice(1) : [];
 
   return (
@@ -178,20 +225,14 @@ export default function MobileHomeScreen() {
 
             <TouchableOpacity
               style={styles.gridItem}
-              onPress={() =>
-                router.push(
-                  heroEvent
-                    ? `/event/${heroEvent.eventId || heroEvent.id}`
-                    : '/(tabs)/marketplace'
-                )
-              }
+              onPress={() => router.push('/origin')}
               activeOpacity={0.85}
             >
               <View style={[styles.gridIcon, styles.gridIconOrigin]}>
                 <Building2 size={22} color="#38BDF8" />
               </View>
               <Text style={styles.gridTitle}>Origin Store</Text>
-              <Text style={styles.gridSubtitle}>Direct from organizer</Text>
+              <Text style={styles.gridSubtitle}>Official event tickets</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -231,9 +272,9 @@ export default function MobileHomeScreen() {
           {listEvents.length > 0 && (
             <>
               <View style={styles.sectionHeader}>
-                <Text style={styles.sectionHeading}>Trending Events</Text>
+                <Text style={styles.sectionHeading}>Official Events</Text>
                 <TouchableOpacity
-                  onPress={() => router.push('/(tabs)/marketplace')}
+                  onPress={() => router.push('/origin')}
                   hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                 >
                   <Text style={styles.viewMoreText}>See All</Text>
@@ -259,10 +300,12 @@ export default function MobileHomeScreen() {
                         </Text>
                         {price > 0 && (
                           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                            <FairPriceBadge
-                              resalePrice={event.minResalePrice || price}
-                              originalPrice={event.originalPriceFrom || price}
-                            />
+                            {event.minResalePrice ? (
+                              <FairPriceBadge
+                                resalePrice={event.minResalePrice}
+                                originalPrice={event.originalPriceFrom || event.minResalePrice}
+                              />
+                            ) : null}
                             <Text style={styles.eventPriceFrom}>From {formatPrice(price)}</Text>
                           </View>
                         )}

@@ -1,50 +1,134 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
-  View,
+  ActivityIndicator,
+  Image,
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
   ScrollView,
   TouchableOpacity,
-  Alert,
-  ActivityIndicator,
-  Modal,
-  KeyboardAvoidingView,
-  Platform,
+  View,
 } from 'react-native';
-import { Text } from '../../src/components/AppText';
 import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
 import {
-  Calendar,
-  MapPin,
-  ShieldCheck,
-  Check,
-  Store,
-  ArrowRight,
-  Plus,
-  Minus,
   AlertTriangle,
-  User,
-  Mail,
-  Phone,
-  CheckSquare,
-  Square,
-  X,
+  ArrowRight,
+  Calendar,
   CheckCircle,
+  CheckSquare,
+  ChevronLeft,
+  ChevronRight,
+  Info,
+  Mail,
+  MapPin,
+  Minus,
+  Phone,
+  Plus,
+  ShieldCheck,
+  Square,
+  Store,
   Ticket,
+  User,
+  Users,
+  X,
 } from 'lucide-react-native';
-import { theme } from '../../src/theme';
+import { Text } from '../../src/components/AppText';
+import { EventPoster } from '../../src/components/EventPoster';
+import { EventSeatMap, SeatMapZone } from '../../src/components/EventSeatMap';
 import { FintechButton } from '../../src/components/FintechButton';
 import { FintechInput } from '../../src/components/FintechInput';
-import { EventPoster } from '../../src/components/EventPoster';
 import {
   eventsApi,
+  organizersApi,
   organizerStoreApi,
-  TrendingEventDto,
+  resaleListingsApi,
   OrganizerBackendTier,
   OrganizerCheckoutResponse,
+  OrganizerDto,
+  ResaleListingDetailDto,
+  TrendingEventDto,
 } from '@ticketshield/api-client';
 import { useAuthStore } from '../../src/stores/authStore';
-import { formatPrice, formatEventDateTime } from '../../src/utils/format';
+import { theme } from '../../src/theme';
+import { formatEventDateTime, formatPrice, initialsOf } from '../../src/utils/format';
 import { styles } from '../../src/styles/event-detail.styles';
+
+interface OrganizerCatalogEvent {
+  externalEventId?: string;
+  name?: string;
+  artist?: string;
+  category?: string;
+  city?: string;
+  venue?: string;
+  description?: string;
+  eventStartAt?: string;
+  eventEndAt?: string;
+  resaleDeadline?: string;
+  tiers?: Array<{ tierName?: string; price?: number; description?: string }>;
+}
+
+interface SellerSnapshot {
+  sellerId: string;
+  fullName: string;
+  activeListings: number;
+  minPrice: number;
+  maxDiscount: number;
+  tiers: string[];
+}
+
+interface ResaleStats {
+  total: number;
+  lowestPrice: number;
+  highestPrice: number;
+  lowestFaceValue: number;
+  highestFaceValue: number;
+  aboveFaceCount: number;
+  maxObservedMarkup: number;
+  maxDiscount: number;
+}
+
+const GUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+function normalizeKey(value?: string | null): string {
+  return (value || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, '');
+}
+
+function namesMatch(a?: string | null, b?: string | null): boolean {
+  const left = normalizeKey(a);
+  const right = normalizeKey(b);
+  if (left.length < 4 || right.length < 4) return left === right;
+  return left === right || left.includes(right) || right.includes(left);
+}
+
+function tierMatches(a?: string | null, b?: string | null): boolean {
+  return namesMatch(a, b);
+}
+
+function mapCatalogEvent(event: OrganizerCatalogEvent, fallbackRef: string): TrendingEventDto {
+  return {
+    id: event.externalEventId || fallbackRef,
+    eventId: event.externalEventId || fallbackRef,
+    name: event.name || fallbackRef,
+    artist: event.artist,
+    category: event.category,
+    city: event.city,
+    venue: event.venue || 'Venue to be announced',
+    description: event.description,
+    eventStartAt: event.eventStartAt || '',
+    eventEndAt: event.eventEndAt,
+    originalPriceFrom: event.tiers?.reduce<number | undefined>((lowest, tier) => {
+      if (typeof tier.price !== 'number') return lowest;
+      return lowest === undefined ? tier.price : Math.min(lowest, tier.price);
+    }, undefined),
+    totalAvailableListings: 0,
+  };
+}
 
 export default function EventDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -52,15 +136,24 @@ export default function EventDetailScreen() {
   const insets = useSafeAreaInsets();
   const user = useAuthStore((state) => state.user);
 
-  const eventId = typeof id === 'string' && id ? id : 'atsh-2026';
+  const eventRef = useMemo(() => {
+    const raw = typeof id === 'string' && id ? id : 'atsh-2026';
+    try {
+      return decodeURIComponent(raw).trim();
+    } catch {
+      return raw;
+    }
+  }, [id]);
 
   const [eventData, setEventData] = useState<TrendingEventDto | null>(null);
-  const [tiers, setTiers] = useState<OrganizerBackendTier[]>([]);
-  const [selectedTier, setSelectedTier] = useState<OrganizerBackendTier | null>(null);
+  const [organizerProfile, setOrganizerProfile] = useState<OrganizerDto | null>(null);
+  const [officialTiers, setOfficialTiers] = useState<OrganizerBackendTier[]>([]);
+  const [listings, setListings] = useState<ResaleListingDetailDto[]>([]);
+  const [selectedTierKey, setSelectedTierKey] = useState<string | null>(null);
   const [quantity, setQuantity] = useState(1);
   const [loading, setLoading] = useState(true);
-  const [isBuying, setIsBuying] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [heroImageFailed, setHeroImageFailed] = useState(false);
 
   const [isCheckoutModalOpen, setIsCheckoutModalOpen] = useState(false);
   const [buyerName, setBuyerName] = useState(user?.fullName || '');
@@ -76,6 +169,7 @@ export default function EventDetailScreen() {
   const [checkoutError, setCheckoutError] = useState<string | null>(null);
   const [sessionToken, setSessionToken] = useState<string | null>(null);
   const [orderResult, setOrderResult] = useState<OrganizerCheckoutResponse | null>(null);
+  const [isBuying, setIsBuying] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -85,54 +179,271 @@ export default function EventDetailScreen() {
     }
   }, [user]);
 
-  const loadEventAndTiers = useCallback(async () => {
+  const loadEvent = useCallback(async () => {
     setLoading(true);
     setError(null);
-    try {
-      const trending = await eventsApi.getTrendingEvents({ limit: 10 });
-      const found = trending.find((e) => (e.eventId || e.id) === eventId) || trending[0];
-      setEventData(found || null);
+    setHeroImageFailed(false);
 
-      try {
-        const remoteTiers = await organizerStoreApi.getEventTiers(eventId, found?.name);
-        if (remoteTiers && remoteTiers.length > 0) {
-          setTiers(remoteTiers);
-          setSelectedTier(remoteTiers[0]);
-        }
-      } catch (tierErr) {
-        console.log('[EventDetailScreen] getEventTiers info:', tierErr);
+    try {
+      const [trendingResult, catalogResult] = await Promise.all([
+        eventsApi.getTrendingEvents({ limit: 50 }),
+        organizerStoreApi.getEventsCatalog().catch(() => [] as OrganizerCatalogEvent[]),
+      ]);
+
+      const trendingEvents = Array.isArray(trendingResult) ? trendingResult : [];
+      const catalogEvents = Array.isArray(catalogResult) ? (catalogResult as OrganizerCatalogEvent[]) : [];
+
+      let matchedCatalog =
+        catalogEvents.find((event) => normalizeKey(event.externalEventId) === normalizeKey(eventRef)) || null;
+
+      let matchedCore =
+        trendingEvents.find(
+          (event) => normalizeKey(event.id) === normalizeKey(eventRef) || normalizeKey(event.eventId) === normalizeKey(eventRef)
+        ) || null;
+
+      if (!matchedCore && !GUID_PATTERN.test(eventRef)) {
+        matchedCore = trendingEvents.find((event) => namesMatch(event.name, eventRef)) || null;
       }
+
+      if (!matchedCore && matchedCatalog) {
+        matchedCore = trendingEvents.find((event) => namesMatch(event.name, matchedCatalog?.name)) || null;
+      }
+
+      if (!matchedCatalog && matchedCore) {
+        matchedCatalog = catalogEvents.find((event) => namesMatch(event.name, matchedCore?.name)) || null;
+      }
+
+      const resolvedEvent = matchedCore || (matchedCatalog ? mapCatalogEvent(matchedCatalog, eventRef) : null);
+      if (!resolvedEvent) {
+        throw new Error('This event is not available in the TicketShield catalogue.');
+      }
+
+      setEventData(resolvedEvent);
+
+      const coreEventId = GUID_PATTERN.test(resolvedEvent.id || '')
+        ? resolvedEvent.id
+        : GUID_PATTERN.test(resolvedEvent.eventId || '')
+          ? resolvedEvent.eventId
+          : null;
+
+      const [tiersResult, listingsResult, organizersResult] = await Promise.all([
+        matchedCatalog?.externalEventId
+          ? organizerStoreApi
+              .getEventTiers(matchedCatalog.externalEventId, matchedCatalog.name || resolvedEvent.name)
+              .catch(() => [] as OrganizerBackendTier[])
+          : Promise.resolve([] as OrganizerBackendTier[]),
+        (coreEventId
+          ? resaleListingsApi.getMarketplaceListings({ eventId: coreEventId, size: 50 })
+          : resaleListingsApi.getMarketplaceListings({ keyword: resolvedEvent.name, size: 50 })
+        ).catch(() => null),
+        organizersApi.getOrganizers().catch(() => [] as OrganizerDto[]),
+      ]);
+
+      setOfficialTiers(Array.isArray(tiersResult) ? tiersResult : []);
+      setListings(Array.isArray(listingsResult?.items) ? listingsResult!.items : []);
+
+      const organizerName = resolvedEvent.organizerName || (matchedCatalog ? 'Official organizer' : undefined);
+      setOrganizerProfile(
+        (Array.isArray(organizersResult) ? organizersResult : []).find((organizer) =>
+          namesMatch(organizer.name, organizerName)
+        ) || null
+      );
     } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Unable to load event details.';
-      setError(msg);
+      const message = err instanceof Error ? err.message : 'Unable to load this event.';
+      setError(message);
     } finally {
       setLoading(false);
     }
-  }, [eventId]);
+  }, [eventRef]);
 
   useEffect(() => {
-    loadEventAndTiers();
-  }, [loadEventAndTiers]);
+    loadEvent();
+  }, [loadEvent]);
+
+  const activeListings = useMemo(
+    () => listings.filter((listing) => listing.listingStatus === 'Verified'),
+    [listings]
+  );
+
+  const seatZones = useMemo<SeatMapZone[]>(() => {
+    if (officialTiers.length > 0) {
+      return officialTiers
+        .map((tier) => {
+          const matching = activeListings.filter((listing) => tierMatches(listing.tierName, tier.tierName));
+          const minResalePrice = matching.length
+            ? matching.reduce((lowest, listing) => Math.min(lowest, listing.resalePrice), Number.POSITIVE_INFINITY)
+            : undefined;
+
+          return {
+            key: tier.id,
+            name: tier.tierName,
+            originalPrice: tier.price,
+            minResalePrice: Number.isFinite(minResalePrice) ? minResalePrice : undefined,
+            availableListings: matching.length,
+            totalQuantity: tier.totalQuantity,
+            availableQuantity: tier.availableQuantity,
+            isOfficial: true,
+            seatZones: Array.from(new Set(matching.map((listing) => listing.seatZone).filter(Boolean))) as string[],
+          };
+        })
+        .sort((a, b) => b.originalPrice - a.originalPrice);
+    }
+
+    const groups = new Map<string, ResaleListingDetailDto[]>();
+    activeListings.forEach((listing) => {
+      const key = listing.tierName || 'Verified resale';
+      const bucket = groups.get(key) ?? [];
+      bucket.push(listing);
+      groups.set(key, bucket);
+    });
+
+    return Array.from(groups.entries())
+      .map(([name, group]) => ({
+        key: normalizeKey(name) || name,
+        name,
+        originalPrice: group.reduce((lowest, listing) => Math.min(lowest, listing.originalPrice), Number.POSITIVE_INFINITY),
+        minResalePrice: group.reduce((lowest, listing) => Math.min(lowest, listing.resalePrice), Number.POSITIVE_INFINITY),
+        availableListings: group.length,
+        totalQuantity: undefined,
+        availableQuantity: undefined,
+        isOfficial: false,
+        seatZones: Array.from(new Set(group.map((listing) => listing.seatZone).filter(Boolean))) as string[],
+      }))
+      .sort((a, b) => b.originalPrice - a.originalPrice);
+  }, [officialTiers, activeListings]);
+
+  useEffect(() => {
+    if (seatZones.length === 0) {
+      setSelectedTierKey(null);
+      return;
+    }
+    if (!selectedTierKey || !seatZones.some((zone) => zone.key === selectedTierKey)) {
+      setSelectedTierKey(seatZones[0].key);
+    }
+  }, [seatZones, selectedTierKey]);
+
+  const selectedZone = useMemo(
+    () => seatZones.find((zone) => zone.key === selectedTierKey) || null,
+    [seatZones, selectedTierKey]
+  );
+
+  const selectedOfficialTier = useMemo(() => {
+    if (!selectedZone) return null;
+    const byId = officialTiers.find((tier) => tier.id === selectedZone.key);
+    if (byId) return byId;
+    return officialTiers.find((tier) => tierMatches(tier.tierName, selectedZone.name)) || null;
+  }, [selectedZone, officialTiers]);
+
+  const canCheckout = !!selectedOfficialTier && selectedOfficialTier.availableQuantity > 0;
+  const maxQuantity = Math.max(1, Math.min(4, selectedOfficialTier?.availableQuantity ?? 4));
+
+  useEffect(() => {
+    setQuantity((current) => Math.min(current, maxQuantity));
+  }, [maxQuantity]);
+
+  const resaleStats = useMemo<ResaleStats | null>(() => {
+    if (activeListings.length === 0) return null;
+
+    let lowestPrice = Number.POSITIVE_INFINITY;
+    let highestPrice = 0;
+    let lowestFaceValue = Number.POSITIVE_INFINITY;
+    let highestFaceValue = 0;
+    let aboveFaceCount = 0;
+    let maxObservedMarkup = 0;
+    let maxDiscount = 0;
+
+    activeListings.forEach((listing) => {
+      lowestPrice = Math.min(lowestPrice, listing.resalePrice);
+      highestPrice = Math.max(highestPrice, listing.resalePrice);
+      maxDiscount = Math.max(maxDiscount, listing.discountPercentage || 0);
+
+      if (listing.originalPrice > 0) {
+        lowestFaceValue = Math.min(lowestFaceValue, listing.originalPrice);
+        highestFaceValue = Math.max(highestFaceValue, listing.originalPrice);
+        if (listing.resalePrice > listing.originalPrice) {
+          aboveFaceCount += 1;
+          maxObservedMarkup = Math.max(
+            maxObservedMarkup,
+            ((listing.resalePrice - listing.originalPrice) / listing.originalPrice) * 100
+          );
+        }
+      }
+    });
+
+    return {
+      total: activeListings.length,
+      lowestPrice: Number.isFinite(lowestPrice) ? lowestPrice : 0,
+      highestPrice,
+      lowestFaceValue: Number.isFinite(lowestFaceValue) ? lowestFaceValue : 0,
+      highestFaceValue,
+      aboveFaceCount,
+      maxObservedMarkup,
+      maxDiscount,
+    };
+  }, [activeListings]);
+
+  const sellers = useMemo<SellerSnapshot[]>(() => {
+    const grouped = new Map<string, SellerSnapshot>();
+
+    activeListings.forEach((listing) => {
+      const current = grouped.get(listing.sellerId);
+      if (current) {
+        current.activeListings += 1;
+        current.minPrice = Math.min(current.minPrice, listing.resalePrice);
+        current.maxDiscount = Math.max(current.maxDiscount, listing.discountPercentage || 0);
+        if (!current.tiers.includes(listing.tierName)) current.tiers.push(listing.tierName);
+        return;
+      }
+      grouped.set(listing.sellerId, {
+        sellerId: listing.sellerId,
+        fullName: listing.sellerFullName || 'Verified seller',
+        activeListings: 1,
+        minPrice: listing.resalePrice,
+        maxDiscount: listing.discountPercentage || 0,
+        tiers: [listing.tierName],
+      });
+    });
+
+    return Array.from(grouped.values())
+      .sort((a, b) => b.activeListings - a.activeListings || a.minPrice - b.minPrice)
+      .slice(0, 8);
+  }, [activeListings]);
+
+  const offers = useMemo(
+    () =>
+      [...activeListings]
+        .sort((a, b) => b.discountPercentage - a.discountPercentage || a.resalePrice - b.resalePrice)
+        .slice(0, 5),
+    [activeListings]
+  );
+
+  const faceValueFrom =
+    officialTiers.length > 0
+      ? officialTiers.reduce((lowest, tier) => Math.min(lowest, tier.price), Number.POSITIVE_INFINITY)
+      : resaleStats?.lowestFaceValue;
+
+  const verifiedCeiling =
+    !resaleStats || (resaleStats.aboveFaceCount === 0 && resaleStats.maxObservedMarkup === 0);
 
   const prefetchSession = useCallback(async (tierId: string) => {
     try {
       const session = await organizerStoreApi.createSession(tierId);
-      if (session?.sessionToken) {
-        setSessionToken(session.sessionToken);
-      }
+      if (session?.sessionToken) setSessionToken(session.sessionToken);
     } catch (err) {
-      console.log('[AntiBot] Session pre-fetch info:', err);
+      console.log('[EventDetailScreen] Session pre-fetch info:', err);
     }
   }, []);
 
   useEffect(() => {
-    if (selectedTier) {
-      prefetchSession(selectedTier.id);
+    if (selectedOfficialTier && selectedOfficialTier.availableQuantity > 0) {
+      prefetchSession(selectedOfficialTier.id);
     }
-  }, [selectedTier, prefetchSession]);
+  }, [selectedOfficialTier, prefetchSession]);
+
+  const openMarketplace = () => router.push('/(tabs)/marketplace');
 
   const handleOpenCheckoutModal = () => {
-    if (!selectedTier) return;
+    if (!selectedOfficialTier || selectedOfficialTier.availableQuantity <= 0) return;
     setCheckoutError(null);
     setOrderResult(null);
     setFormErrors({});
@@ -141,7 +452,7 @@ export default function EventDetailScreen() {
       if (!buyerEmail && user.email) setBuyerEmail(user.email);
       if (!buyerPhone && user.phoneNumber) setBuyerPhone(user.phoneNumber);
     }
-    prefetchSession(selectedTier.id);
+    prefetchSession(selectedOfficialTier.id);
     setIsCheckoutModalOpen(true);
   };
 
@@ -177,7 +488,7 @@ export default function EventDetailScreen() {
   };
 
   const handleConfirmCheckout = async () => {
-    if (!selectedTier) return;
+    if (!selectedOfficialTier) return;
     if (!validateForm()) return;
 
     setIsBuying(true);
@@ -187,14 +498,14 @@ export default function EventDetailScreen() {
       let activeSession = sessionToken;
       if (!activeSession) {
         try {
-          const freshSession = await organizerStoreApi.createSession(selectedTier.id);
+          const freshSession = await organizerStoreApi.createSession(selectedOfficialTier.id);
           activeSession = freshSession.sessionToken;
           setSessionToken(activeSession);
         } catch {}
       }
 
-      const res = await organizerStoreApi.checkout({
-        tierId: selectedTier.id,
+      const result = await organizerStoreApi.checkout({
+        tierId: selectedOfficialTier.id,
         quantity,
         buyerEmail: buyerEmail.trim(),
         buyerName: buyerName.trim(),
@@ -202,180 +513,580 @@ export default function EventDetailScreen() {
         sessionToken: activeSession || undefined,
       });
 
-      setOrderResult(res);
-    } catch (e: any) {
-      const message = e instanceof Error ? e.message : 'Unable to complete checkout with organizer.';
+      setOrderResult(result);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Unable to complete checkout with organizer.';
       setCheckoutError(message);
     } finally {
       setIsBuying(false);
     }
   };
 
+  const goBack = () => {
+    if (router.canGoBack()) router.back();
+    else router.replace('/(tabs)');
+  };
+
   if (loading) {
     return (
-      <View style={styles.center}>
+      <View style={styles.loadingCenter}>
         <ActivityIndicator size="large" color={theme.colors.primary} />
-        <Text style={styles.loadingText}>Loading event details...</Text>
+        <Text style={styles.loadingText}>Loading live event inventory...</Text>
       </View>
     );
   }
 
   if (error || !eventData) {
     return (
-      <View style={styles.center}>
-        <AlertTriangle size={32} color={theme.colors.danger} />
+      <View style={styles.errorCenter}>
+        <AlertTriangle size={34} color={theme.colors.danger} />
         <Text style={styles.errorTitle}>Event Not Found</Text>
         <Text style={styles.errorDesc}>{error || 'The requested event is not available.'}</Text>
-        <FintechButton
-          title="Back to Home"
-          onPress={() => router.replace('/(tabs)')}
-          style={styles.retryBtn}
-        />
+        <FintechButton title="Back to Home" onPress={() => router.replace('/(tabs)')} style={styles.retryBtn} />
       </View>
     );
   }
 
+  const organizerName = eventData.organizerName || organizerProfile?.name || 'Verified organizer';
+  const heroDate = formatEventDateTime(eventData.eventStartAt);
+  const showHeroImage = !!eventData.bannerUrl && !heroImageFailed;
+  const ctaTitle = canCheckout ? 'Continue' : offers.length > 0 ? 'Resale deals' : 'No passes yet';
+  const ctaDisabled = !canCheckout && offers.length === 0;
+
+  const bottomValue = selectedZone
+    ? canCheckout
+      ? formatPrice(selectedZone.originalPrice * quantity)
+      : formatPrice(selectedZone.minResalePrice ?? selectedZone.originalPrice)
+    : resaleStats
+      ? formatPrice(resaleStats.lowestPrice)
+      : '—';
+
+  const bottomSub = selectedZone
+    ? canCheckout
+      ? `${quantity} × ${formatPrice(selectedZone.originalPrice)} · ${selectedZone.name}`
+      : `${selectedZone.availableListings} verified resale ${
+          selectedZone.availableListings === 1 ? 'pass' : 'passes'
+        }`
+    : 'Verified fan-to-fan resale';
+
   return (
-    <>
-      <Stack.Screen
-        options={{
-          title: 'Event Details',
-          headerBackTitle: 'Back',
-          headerStyle: { backgroundColor: theme.colors.background },
-          headerTintColor: theme.colors.text,
-          headerShadowVisible: false,
-        }}
-      />
+    <View style={styles.screen}>
+      <Stack.Screen options={{ headerShown: false }} />
+
       <ScrollView
         style={styles.container}
-        contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 40 }]}
+        contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 132 }]}
         showsVerticalScrollIndicator={false}
       >
-        <View style={styles.heroCard}>
-          <EventPoster seed={eventData.eventId || eventData.name} height={200} />
-          <View style={styles.heroBody}>
-            <View style={styles.officialBadge}>
-              <ShieldCheck size={13} color={theme.colors.success} />
-              <Text style={styles.officialBadgeText}>Official Organizer Event</Text>
+        <View style={styles.hero}>
+          {showHeroImage ? (
+            <Image
+              source={{ uri: eventData.bannerUrl! }}
+              style={styles.heroMedia}
+              resizeMode="cover"
+              onError={() => setHeroImageFailed(true)}
+            />
+          ) : (
+            <View style={styles.heroPoster}>
+              <EventPoster seed={eventData.eventId || eventData.id || eventData.name} height={408} />
             </View>
-            <Text style={styles.eventCategory}>
-              {eventData.category || eventData.artist || 'CONCERT'}
-            </Text>
-            <Text style={styles.eventTitle}>{eventData.name}</Text>
-            <Text style={styles.organizerName}>
-              Organized by {eventData.organizerName || 'Verified Organizer'}
-            </Text>
+          )}
 
-            <View style={styles.metaRow}>
-              <Calendar size={15} color={theme.colors.primary} />
-              <Text style={styles.metaText}>{formatEventDateTime(eventData.eventStartAt)}</Text>
+          <Svg style={styles.heroShadeSvg} width="100%" height="100%">
+            <Defs>
+              <LinearGradient id="event-hero-shade" x1="0" y1="0" x2="0" y2="1">
+                <Stop offset="0" stopColor={theme.colors.background} stopOpacity="0.28" />
+                <Stop offset="0.46" stopColor={theme.colors.background} stopOpacity="0.18" />
+                <Stop offset="0.76" stopColor={theme.colors.background} stopOpacity="0.82" />
+                <Stop offset="1" stopColor={theme.colors.background} stopOpacity="1" />
+              </LinearGradient>
+            </Defs>
+            <Rect width="100%" height="100%" fill="url(#event-hero-shade)" />
+          </Svg>
+
+          <View style={[styles.heroTopBar, { top: insets.top + theme.spacing.sm }]}>
+            <TouchableOpacity
+              style={styles.heroIconButton}
+              onPress={goBack}
+              accessibilityRole="button"
+              accessibilityLabel="Go back"
+            >
+              <ChevronLeft size={22} color={theme.colors.text} />
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.heroIconButton}
+              onPress={openMarketplace}
+              accessibilityRole="button"
+              accessibilityLabel="Open resale marketplace"
+            >
+              <Store size={18} color={theme.colors.text} />
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.heroContent}>
+            <View style={styles.heroBadgeRow}>
+              <View style={styles.categoryBadge}>
+                <Text style={styles.categoryBadgeText}>{eventData.category || 'EVENT'}</Text>
+              </View>
+              <View style={styles.inventoryBadge}>
+                <ShieldCheck size={12} color={theme.colors.success} />
+                <Text style={styles.inventoryBadgeText}>
+                  {officialTiers.length > 0 ? 'OFFICIAL INVENTORY LIVE' : 'VERIFIED RESALE MARKET'}
+                </Text>
+              </View>
             </View>
-            <View style={styles.metaRow}>
-              <MapPin size={15} color={theme.colors.primary} />
-              <Text style={styles.metaText}>
-                {eventData.venue} {eventData.city ? `• ${eventData.city}` : ''}
+
+            <Text style={styles.heroTitle}>{eventData.name}</Text>
+            {!!eventData.artist && <Text style={styles.heroArtist}>{eventData.artist}</Text>}
+
+            <View style={styles.heroMetaRow}>
+              <Calendar size={14} color={theme.colors.primary} />
+              <Text style={styles.heroMetaText}>{heroDate}</Text>
+            </View>
+            <View style={styles.heroMetaRow}>
+              <MapPin size={14} color={theme.colors.primary} />
+              <Text style={styles.heroMetaText}>
+                {eventData.venue}
+                {eventData.city ? ` · ${eventData.city}` : ''}
               </Text>
             </View>
-            {eventData.description && (
-              <Text style={styles.description}>{eventData.description}</Text>
+          </View>
+        </View>
+
+        <View style={styles.body}>
+          <View style={styles.statStrip}>
+            <View style={styles.statItem}>
+              <Text style={styles.statValue}>{activeListings.length}</Text>
+              <Text style={styles.statLabel}>Resale offers</Text>
+            </View>
+            <View style={styles.statDivider} />
+            <View style={styles.statItem}>
+              <Text style={styles.statValue}>{sellers.length}</Text>
+              <Text style={styles.statLabel}>Active sellers</Text>
+            </View>
+            <View style={styles.statDivider} />
+            <View style={styles.statItem}>
+              <Text style={styles.statValue}>
+                {resaleStats ? formatPrice(resaleStats.lowestPrice) : faceValueFrom ? formatPrice(faceValueFrom) : '—'}
+              </Text>
+              <Text style={styles.statLabel}>{resaleStats ? 'Lowest resale' : 'Face value from'}</Text>
+            </View>
+          </View>
+
+          <View style={[styles.ceilingCard, verifiedCeiling ? styles.ceilingCardOk : styles.ceilingCardWarn]}>
+            <View style={styles.ceilingHeader}>
+              <View style={styles.ceilingIcon}>
+                <ShieldCheck
+                  size={24}
+                  color={verifiedCeiling ? theme.colors.success : theme.colors.warning}
+                />
+              </View>
+              <View style={styles.ceilingTextWrap}>
+                <Text style={styles.ceilingTitle}>Face-value resale promise</Text>
+                <Text style={styles.ceilingSubtitle}>
+                  {resaleStats
+                    ? `${resaleStats.total} active ${
+                        resaleStats.total === 1 ? 'listing' : 'listings'
+                      } checked against the original ticket price.`
+                    : 'No active resale listings yet. Every new listing is checked against its original ticket price.'}
+                </Text>
+              </View>
+              <View
+                style={[
+                  styles.ceilingBadge,
+                  verifiedCeiling ? styles.ceilingBadgeOk : styles.ceilingBadgeWarn,
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.ceilingBadgeText,
+                    { color: verifiedCeiling ? theme.colors.success : theme.colors.warning },
+                  ]}
+                >
+                  {verifiedCeiling ? 'PROTECTED' : 'AT RISK'}
+                </Text>
+              </View>
+            </View>
+
+            <View style={styles.ceilingStats}>
+              <View style={styles.ceilingStat}>
+                <Text style={styles.ceilingStatLabel}>Lowest resale</Text>
+                <Text style={styles.ceilingStatValue}>
+                  {resaleStats ? formatPrice(resaleStats.lowestPrice) : 'No listings'}
+                </Text>
+              </View>
+              <View style={styles.ceilingStat}>
+                <Text style={styles.ceilingStatLabel}>Highest resale</Text>
+                <Text style={styles.ceilingStatValue}>
+                  {resaleStats ? formatPrice(resaleStats.highestPrice) : '—'}
+                </Text>
+              </View>
+              <View style={styles.ceilingStat}>
+                <Text style={styles.ceilingStatLabel}>Above face</Text>
+                <Text style={styles.ceilingStatValue}>
+                  {resaleStats ? `${resaleStats.aboveFaceCount} of ${resaleStats.total}` : '0 listings'}
+                </Text>
+              </View>
+            </View>
+
+            <Text style={styles.ceilingFoot}>
+              {resaleStats
+                ? verifiedCeiling
+                  ? `Every listing is at or below its original price (highest observed mark-up: ${Math.max(
+                      0,
+                      resaleStats.maxObservedMarkup
+                    ).toFixed(0)}%). Escrow releases only after the pass is delivered.`
+                  : `Highest observed mark-up: ${resaleStats.maxObservedMarkup.toFixed(
+                      0
+                    )}%. TicketShield flags these listings and keeps escrow locked until the transfer is verified.`
+                : faceValueFrom
+                  ? `Organizer face value starts at ${formatPrice(
+                      faceValueFrom
+                    )}. Resale sellers must list against this face value before escrow can release.`
+                  : 'Resale sellers must match the original ticket price before escrow can release.'}
+            </Text>
+          </View>
+
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <View style={styles.sectionHeaderText}>
+                <Text style={styles.sectionEyebrow}>Live seat inventory</Text>
+                <Text style={styles.sectionTitle}>Pick your section</Text>
+                <Text style={styles.sectionSubtitle}>
+                  {officialTiers.length > 0
+                    ? `Live availability from ${organizerName}.`
+                    : activeListings.length > 0
+                      ? 'Zone availability from verified resale listings.'
+                      : 'No official inventory is connected for this event yet.'}
+                </Text>
+              </View>
+            </View>
+
+            {seatZones.length > 0 ? (
+              <EventSeatMap zones={seatZones} selectedKey={selectedZone?.key} onSelect={setSelectedTierKey} />
+            ) : (
+              <View style={styles.emptyCard}>
+                <Ticket size={22} color={theme.colors.textMuted} />
+                <Text style={styles.emptyTitle}>Seat map not available yet</Text>
+                <Text style={styles.emptyText}>
+                  The organizer has not connected official inventory for this event. Verified resale passes will
+                  appear here automatically.
+                </Text>
+              </View>
+            )}
+
+            {selectedZone && (
+              <View style={styles.selectedZonePanel}>
+                <View style={styles.selectedZoneTop}>
+                  <Text style={styles.selectedZoneName}>{selectedZone.name}</Text>
+                  <Text style={styles.selectedZonePrice}>{formatPrice(selectedZone.originalPrice)}</Text>
+                </View>
+                <View style={styles.chipRow}>
+                  {selectedZone.isOfficial &&
+                    typeof selectedZone.availableQuantity === 'number' &&
+                    selectedZone.availableQuantity > 0 && (
+                      <View style={styles.chip}>
+                        <Users size={10} color={theme.colors.textSecondary} />
+                        <Text style={styles.chipText}>{selectedZone.availableQuantity} seats left</Text>
+                      </View>
+                    )}
+                  <View style={[styles.chip, styles.chipAccent]}>
+                    <Ticket size={10} color={theme.colors.primary} />
+                    <Text style={[styles.chipText, styles.chipAccentText]}>
+                      {selectedZone.availableListings} resale
+                    </Text>
+                  </View>
+                  {typeof selectedZone.minResalePrice === 'number' && (
+                    <View style={styles.chip}>
+                      <Text style={styles.chipText}>
+                        from {formatPrice(selectedZone.minResalePrice)}
+                      </Text>
+                    </View>
+                  )}
+                  {selectedZone.seatZones.slice(0, 3).map((zone) => (
+                    <View key={zone} style={styles.chip}>
+                      <Text style={styles.chipText}>{zone}</Text>
+                    </View>
+                  ))}
+                </View>
+                {!!selectedZone.seatZones.length && (
+                  <Text style={styles.ceilingFoot}>
+                    Actual seat assignments are shared after a verified transfer.
+                  </Text>
+                )}
+              </View>
+            )}
+
+            {selectedZone && !selectedOfficialTier && (
+              <View style={styles.availabilityNotice}>
+                <Info size={16} color={theme.colors.info} />
+                <Text style={styles.availabilityNoticeText}>
+                  The official box office is not connected for this section. Verified resale passes are still
+                  protected by escrow.
+                </Text>
+              </View>
+            )}
+
+            {canCheckout && (
+              <View style={styles.quantityCard}>
+                <View style={styles.quantityTextWrap}>
+                  <Text style={styles.quantityLabel}>Quantity</Text>
+                  <Text style={styles.quantityHint}>Up to {maxQuantity} passes per order</Text>
+                </View>
+                <View style={styles.quantityControls}>
+                  <TouchableOpacity
+                    style={[styles.qtyBtn, quantity <= 1 && styles.qtyBtnDisabled]}
+                    onPress={() => setQuantity((current) => Math.max(1, current - 1))}
+                    disabled={quantity <= 1}
+                    accessibilityRole="button"
+                    accessibilityLabel="Remove one ticket"
+                  >
+                    <Minus size={16} color={quantity <= 1 ? theme.colors.textMuted : theme.colors.text} />
+                  </TouchableOpacity>
+                  <Text style={styles.quantityValue}>{quantity}</Text>
+                  <TouchableOpacity
+                    style={[styles.qtyBtn, quantity >= maxQuantity && styles.qtyBtnDisabled]}
+                    onPress={() => setQuantity((current) => Math.min(maxQuantity, current + 1))}
+                    disabled={quantity >= maxQuantity}
+                    accessibilityRole="button"
+                    accessibilityLabel="Add one ticket"
+                  >
+                    <Plus size={16} color={quantity >= maxQuantity ? theme.colors.textMuted : theme.colors.text} />
+                  </TouchableOpacity>
+                </View>
+              </View>
+            )}
+          </View>
+
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <View style={styles.sectionHeaderText}>
+                <Text style={styles.sectionEyebrow}>Trust layer</Text>
+                <Text style={styles.sectionTitle}>Seller snapshot</Text>
+                <Text style={styles.sectionSubtitle}>
+                  {sellers.length > 0
+                    ? `${sellers.length} verified ${sellers.length === 1 ? 'seller' : 'sellers'} priced against face value.`
+                    : 'No resale sellers have listed passes for this event yet.'}
+                </Text>
+              </View>
+            </View>
+
+            <View style={styles.organizerCard}>
+              <View style={styles.organizerAvatar}>
+                <Store size={20} color={theme.colors.primary} />
+              </View>
+              <View style={styles.organizerInfo}>
+                <Text style={styles.organizerName}>{organizerName}</Text>
+                <Text style={styles.organizerSub} numberOfLines={1}>
+                  {organizerProfile?.officialEmail || 'Official event organizer'}
+                </Text>
+              </View>
+              <View style={styles.verifiedPill}>
+                <ShieldCheck size={10} color={theme.colors.success} />
+                <Text style={styles.verifiedPillText}>VERIFIED</Text>
+              </View>
+            </View>
+
+            {sellers.length > 0 ? (
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                style={styles.sellerScroll}
+                contentContainerStyle={styles.sellerScrollContent}
+              >
+                {sellers.map((seller) => (
+                  <View key={seller.sellerId} style={styles.sellerCard}>
+                    <View style={styles.sellerTop}>
+                      <View style={styles.sellerAvatar}>
+                        <Text style={styles.sellerAvatarText}>{initialsOf(seller.fullName)}</Text>
+                      </View>
+                      <Text style={styles.sellerName} numberOfLines={1}>
+                        {seller.fullName}
+                      </Text>
+                    </View>
+                    <Text style={styles.sellerMeta}>
+                      {seller.activeListings} active {seller.activeListings === 1 ? 'listing' : 'listings'} ·{' '}
+                      {seller.tiers.length} {seller.tiers.length === 1 ? 'zone' : 'zones'}
+                    </Text>
+                    <Text style={styles.sellerPrice}>from {formatPrice(seller.minPrice)}</Text>
+                    {seller.maxDiscount > 0 && (
+                      <View style={styles.sellerBadge}>
+                        <Text style={styles.sellerBadgeText}>
+                          -{Math.round(seller.maxDiscount)}% below face
+                        </Text>
+                      </View>
+                    )}
+                  </View>
+                ))}
+              </ScrollView>
+            ) : (
+              <View style={styles.emptyCard}>
+                <Users size={22} color={theme.colors.textMuted} />
+                <Text style={styles.emptyTitle}>No resellers yet</Text>
+                <Text style={styles.emptyText}>
+                  Only verified sellers can appear here. New listings are checked against the original ticket price.
+                </Text>
+              </View>
+            )}
+          </View>
+
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <View style={styles.sectionHeaderText}>
+                <Text style={styles.sectionEyebrow}>Verified passes</Text>
+                <Text style={styles.sectionTitle}>Resale offers</Text>
+                <Text style={styles.sectionSubtitle}>Best face-value deals available right now.</Text>
+              </View>
+              {offers.length > 0 && (
+                <TouchableOpacity onPress={openMarketplace} accessibilityRole="button">
+                  <Text style={styles.sectionAction}>View all</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+
+            {offers.length > 0 ? (
+              <View style={styles.resaleList}>
+                {offers.map((offer) => (
+                  <TouchableOpacity
+                    key={offer.listingId}
+                    style={styles.resaleRow}
+                    onPress={openMarketplace}
+                    activeOpacity={0.86}
+                    accessibilityRole="button"
+                    accessibilityLabel={`${offer.tierName} resale pass, ${formatPrice(
+                      offer.resalePrice
+                    )}, sold by ${offer.sellerFullName}`}
+                  >
+                    <View style={styles.resaleIcon}>
+                      <Ticket size={17} color={theme.colors.primary} />
+                    </View>
+                    <View style={styles.resaleInfo}>
+                      <Text style={styles.resaleTier} numberOfLines={1}>
+                        {offer.tierName}
+                      </Text>
+                      <Text style={styles.resaleSeat} numberOfLines={1}>
+                        {offer.seatZone || 'Verified digital pass'}
+                      </Text>
+                      <Text style={styles.resaleSeller} numberOfLines={1}>
+                        Sold by {offer.sellerFullName}
+                      </Text>
+                    </View>
+                    <View style={styles.resalePriceGroup}>
+                      <Text style={styles.resalePrice}>{formatPrice(offer.resalePrice)}</Text>
+                      {offer.originalPrice > offer.resalePrice && (
+                        <Text style={styles.resaleOriginal}>{formatPrice(offer.originalPrice)}</Text>
+                      )}
+                      <ArrowRight size={13} color={theme.colors.textMuted} />
+                    </View>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            ) : (
+              <View style={styles.emptyCard}>
+                <Ticket size={22} color={theme.colors.textMuted} />
+                <Text style={styles.emptyTitle}>No resale passes yet</Text>
+                <Text style={styles.emptyText}>
+                  When a verified fan lists a pass, it appears here with its original face value and escrow
+                  protection.
+                </Text>
+                <FintechButton
+                  title="Open Resale Market"
+                  variant="secondary"
+                  onPress={openMarketplace}
+                  style={styles.emptyButton}
+                />
+              </View>
+            )}
+          </View>
+
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <View style={styles.sectionHeaderText}>
+                <Text style={styles.sectionEyebrow}>Plan your night</Text>
+                <Text style={styles.sectionTitle}>Event details</Text>
+              </View>
+            </View>
+
+            <View style={styles.detailsCard}>
+              <View style={styles.detailRow}>
+                <View style={styles.detailIcon}>
+                  <Calendar size={14} color={theme.colors.primary} />
+                </View>
+                <View style={styles.detailTextWrap}>
+                  <Text style={styles.detailLabel}>Date & time</Text>
+                  <Text style={styles.detailValue}>{heroDate}</Text>
+                </View>
+              </View>
+              <View style={styles.detailRow}>
+                <View style={styles.detailIcon}>
+                  <MapPin size={14} color={theme.colors.primary} />
+                </View>
+                <View style={styles.detailTextWrap}>
+                  <Text style={styles.detailLabel}>Venue</Text>
+                  <Text style={styles.detailValue}>
+                    {eventData.venue}
+                    {eventData.city ? `\n${eventData.city}` : ''}
+                  </Text>
+                </View>
+              </View>
+              <View style={styles.detailRow}>
+                <View style={styles.detailIcon}>
+                  <Store size={14} color={theme.colors.primary} />
+                </View>
+                <View style={styles.detailTextWrap}>
+                  <Text style={styles.detailLabel}>Organizer</Text>
+                  <Text style={styles.detailValue}>
+                    {organizerName}
+                    {organizerProfile?.officialEmail ? ` · ${organizerProfile.officialEmail}` : ''}
+                  </Text>
+                </View>
+              </View>
+              <View style={styles.detailRow}>
+                <View style={styles.detailIcon}>
+                  <ShieldCheck size={14} color={theme.colors.success} />
+                </View>
+                <View style={styles.detailTextWrap}>
+                  <Text style={styles.detailLabel}>Face-value check</Text>
+                  <Text style={styles.detailValue}>
+                    {faceValueFrom
+                      ? `Official prices from ${formatPrice(faceValueFrom)}`
+                      : 'Checked against the original ticket price'}
+                  </Text>
+                </View>
+              </View>
+            </View>
+
+            {!!eventData.description && (
+              <View style={styles.aboutCard}>
+                <Text style={styles.sectionEyebrow}>About this event</Text>
+                <Text style={styles.aboutText}>{eventData.description}</Text>
+              </View>
             )}
           </View>
         </View>
-
-        <TouchableOpacity
-          style={styles.resaleShortcut}
-          onPress={() => router.push('/(tabs)/marketplace')}
-          activeOpacity={0.85}
-        >
-          <View style={styles.resaleShortcutIcon}>
-            <Store size={18} color={theme.colors.primary} />
-          </View>
-          <View style={styles.resaleShortcutText}>
-            <Text style={styles.resaleShortcutTitle}>Check Secondary Resale Deals</Text>
-            <Text style={styles.resaleShortcutSubtitle}>
-              Verified fan-to-fan resale tickets backed by escrow
-            </Text>
-          </View>
-          <ArrowRight size={18} color={theme.colors.textMuted} />
-        </TouchableOpacity>
-
-        <Text style={styles.sectionHeading}>Select Ticket Tier</Text>
-        <View style={styles.tiersContainer}>
-          {tiers.map((tier) => {
-            const isSelected = selectedTier?.id === tier.id;
-            return (
-              <TouchableOpacity
-                key={tier.id}
-                style={[styles.tierCard, isSelected && styles.tierCardSelected]}
-                onPress={() => setSelectedTier(tier)}
-                activeOpacity={0.85}
-              >
-                <View style={styles.tierTop}>
-                  <View style={styles.tierNameGroup}>
-                    <Text style={[styles.tierName, isSelected && styles.tierNameSelected]}>
-                      {tier.tierName}
-                    </Text>
-                    <Text style={styles.tierZone}>
-                      {tier.availableQuantity > 0
-                        ? `${tier.availableQuantity} tickets remaining`
-                        : 'Available'}
-                    </Text>
-                  </View>
-                  <Text style={styles.tierPrice}>{formatPrice(tier.price)}</Text>
-                </View>
-
-                <View style={styles.perksContainer}>
-                  <View style={styles.perkRow}>
-                    <Check size={13} color={theme.colors.success} />
-                    <Text style={styles.perkText}>Guaranteed admission with dynamic QR pass</Text>
-                  </View>
-                  <View style={styles.perkRow}>
-                    <Check size={13} color={theme.colors.success} />
-                    <Text style={styles.perkText}>Anti-bot protected official inventory</Text>
-                  </View>
-                </View>
-              </TouchableOpacity>
-            );
-          })}
-        </View>
-
-        <View style={styles.quantityCard}>
-          <Text style={styles.quantityLabel}>Quantity</Text>
-          <View style={styles.quantityControls}>
-            <TouchableOpacity
-              style={styles.qtyBtn}
-              onPress={() => setQuantity((q) => Math.max(1, q - 1))}
-              disabled={quantity <= 1}
-            >
-              <Minus size={16} color={quantity <= 1 ? theme.colors.textMuted : theme.colors.text} />
-            </TouchableOpacity>
-            <Text style={styles.quantityValue}>{quantity}</Text>
-            <TouchableOpacity
-              style={styles.qtyBtn}
-              onPress={() => setQuantity((q) => Math.min(4, q + 1))}
-              disabled={quantity >= 4}
-            >
-              <Plus size={16} color={quantity >= 4 ? theme.colors.textMuted : theme.colors.text} />
-            </TouchableOpacity>
-          </View>
-        </View>
-
-        {selectedTier && (
-          <View style={styles.checkoutPanel}>
-            <View style={styles.totalRow}>
-              <Text style={styles.totalLabel}>
-                Total Price ({quantity} ticket{quantity > 1 ? 's' : ''})
-              </Text>
-              <Text style={styles.totalValue}>{formatPrice(selectedTier.price * quantity)}</Text>
-            </View>
-            <FintechButton
-              title="Checkout & Receive Passes"
-              onPress={handleOpenCheckoutModal}
-              icon={<ShieldCheck size={18} color={theme.colors.onPrimary} />}
-            />
-          </View>
-        )}
       </ScrollView>
+
+      <View style={[styles.bottomBar, { paddingBottom: insets.bottom + theme.spacing.md }]}>
+        <View style={styles.bottomInfo}>
+          <Text style={styles.bottomLabel}>
+            {selectedZone ? (canCheckout ? 'Official checkout' : 'Verified resale') : 'Resale market'}
+          </Text>
+          <Text style={styles.bottomValue}>{bottomValue}</Text>
+          <Text style={styles.bottomSub} numberOfLines={1}>
+            {bottomSub}
+          </Text>
+        </View>
+        <View style={styles.bottomCtaWrap}>
+          <FintechButton
+            title={ctaTitle}
+            onPress={canCheckout ? handleOpenCheckoutModal : openMarketplace}
+            disabled={ctaDisabled}
+            icon={<ChevronRight size={16} color={theme.colors.onPrimary} />}
+            textStyle={{ fontSize: 13 }}
+            style={{ minHeight: 48 }}
+          />
+        </View>
+      </View>
 
       <Modal
         visible={isCheckoutModalOpen}
@@ -398,7 +1109,7 @@ export default function EventDetailScreen() {
                 style={styles.sheetCloseBtn}
                 onPress={() => setIsCheckoutModalOpen(false)}
                 accessibilityRole="button"
-                accessibilityLabel="Close modal"
+                accessibilityLabel="Close checkout"
               >
                 <X size={20} color={theme.colors.textMuted} />
               </TouchableOpacity>
@@ -410,22 +1121,22 @@ export default function EventDetailScreen() {
                   <View style={styles.successIcon}>
                     <CheckCircle size={36} color={theme.colors.success} />
                   </View>
-                  <Text style={styles.successTitle}>Passes Ready in Your Wallet!</Text>
+                  <Text style={styles.successTitle}>Passes ready in your wallet</Text>
                   <Text style={styles.successMessage}>
-                    Order #{orderResult.orderId.slice(0, 8)} has been confirmed by the official organizer.
+                    Order #{orderResult.orderId.slice(0, 8)} was confirmed by the official organizer at face value.
                   </Text>
 
                   {orderResult.tickets && orderResult.tickets.length > 0 && (
                     <View style={styles.ticketCodesBox}>
-                      <Text style={styles.summaryLabel}>YOUR OFFICIAL PASS CODES:</Text>
-                      {orderResult.tickets.map((t, idx) => (
-                        <View key={t.ticketCode || idx} style={styles.ticketCodeCard}>
+                      <Text style={styles.ticketCodesLabel}>YOUR OFFICIAL PASS CODES</Text>
+                      {orderResult.tickets.map((ticket, index) => (
+                        <View key={ticket.ticketCode || index} style={styles.ticketCodeCard}>
                           <View style={styles.ticketCodeBadge}>
                             <Text style={styles.ticketCodeBadgeText}>
-                              Pass #{idx + 1} • {t.seatZone || selectedTier?.tierName}
+                              Pass #{index + 1} · {ticket.seatZone || selectedOfficialTier?.tierName}
                             </Text>
                           </View>
-                          <Text style={styles.ticketCodeValue}>{t.ticketCode}</Text>
+                          <Text style={styles.ticketCodeValue}>{ticket.ticketCode}</Text>
                         </View>
                       ))}
                     </View>
@@ -457,18 +1168,25 @@ export default function EventDetailScreen() {
                       </Text>
                     </View>
                     <View style={styles.summaryRow}>
-                      <Text style={styles.summaryLabel}>Tier</Text>
+                      <Text style={styles.summaryLabel}>Section</Text>
                       <Text style={styles.summaryValue}>
-                        {selectedTier?.tierName} × {quantity}
+                        {selectedOfficialTier?.tierName || selectedZone?.name} × {quantity}
                       </Text>
                     </View>
                     <View style={styles.summaryDivider} />
                     <View style={styles.summaryRow}>
                       <Text style={[styles.summaryLabel, { fontWeight: '700' }]}>Total Price</Text>
                       <Text style={[styles.summaryValue, { color: theme.colors.primary, fontSize: 16 }]}>
-                        {formatPrice((selectedTier?.price || 0) * quantity)}
+                        {formatPrice((selectedOfficialTier?.price || 0) * quantity)}
                       </Text>
                     </View>
+                  </View>
+
+                  <View style={styles.fairnessNote}>
+                    <ShieldCheck size={15} color={theme.colors.success} />
+                    <Text style={styles.fairnessNoteText}>
+                      Official organizer inventory. This price is the original face value.
+                    </Text>
                   </View>
 
                   {checkoutError && (
@@ -482,9 +1200,9 @@ export default function EventDetailScreen() {
                     label="Full Name *"
                     placeholder="Enter your full name"
                     value={buyerName}
-                    onChangeText={(val) => {
-                      setBuyerName(val);
-                      if (formErrors.name) setFormErrors((e) => ({ ...e, name: undefined }));
+                    onChangeText={(value) => {
+                      setBuyerName(value);
+                      if (formErrors.name) setFormErrors((errors) => ({ ...errors, name: undefined }));
                     }}
                     error={formErrors.name}
                     icon={<User size={18} color={theme.colors.primary} />}
@@ -494,9 +1212,9 @@ export default function EventDetailScreen() {
                     label="Email Address *"
                     placeholder="Enter your email address"
                     value={buyerEmail}
-                    onChangeText={(val) => {
-                      setBuyerEmail(val);
-                      if (formErrors.email) setFormErrors((e) => ({ ...e, email: undefined }));
+                    onChangeText={(value) => {
+                      setBuyerEmail(value);
+                      if (formErrors.email) setFormErrors((errors) => ({ ...errors, email: undefined }));
                     }}
                     error={formErrors.email}
                     keyboardType="email-address"
@@ -508,9 +1226,9 @@ export default function EventDetailScreen() {
                     label="Phone Number *"
                     placeholder="Enter your phone number"
                     value={buyerPhone}
-                    onChangeText={(val) => {
-                      setBuyerPhone(val);
-                      if (formErrors.phone) setFormErrors((e) => ({ ...e, phone: undefined }));
+                    onChangeText={(value) => {
+                      setBuyerPhone(value);
+                      if (formErrors.phone) setFormErrors((errors) => ({ ...errors, phone: undefined }));
                     }}
                     error={formErrors.phone}
                     keyboardType="phone-pad"
@@ -521,9 +1239,11 @@ export default function EventDetailScreen() {
                     style={styles.termsContainer}
                     onPress={() => {
                       setAgreedTerms(!agreedTerms);
-                      if (formErrors.terms) setFormErrors((e) => ({ ...e, terms: undefined }));
+                      if (formErrors.terms) setFormErrors((errors) => ({ ...errors, terms: undefined }));
                     }}
                     activeOpacity={0.8}
+                    accessibilityRole="checkbox"
+                    accessibilityState={{ checked: agreedTerms }}
                   >
                     <View style={styles.checkboxBox}>
                       {agreedTerms ? (
@@ -533,7 +1253,8 @@ export default function EventDetailScreen() {
                       )}
                     </View>
                     <Text style={styles.termsLabel}>
-                      I confirm the attendee details are accurate and agree to the official organizer ticketing terms.
+                      I confirm the attendee details are accurate and agree to the official organizer ticketing
+                      terms.
                     </Text>
                   </TouchableOpacity>
                   {formErrors.terms && <Text style={styles.fieldError}>{formErrors.terms}</Text>}
@@ -552,6 +1273,6 @@ export default function EventDetailScreen() {
           </View>
         </KeyboardAvoidingView>
       </Modal>
-    </>
+    </View>
   );
 }
