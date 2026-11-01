@@ -13,7 +13,6 @@ import { Stack, useRouter } from 'expo-router';
 import {
   Building2,
   CreditCard,
-  ShieldCheck,
   CheckCircle2,
   AlertCircle,
   ChevronDown,
@@ -150,14 +149,6 @@ export default function PayoutAccountsScreen() {
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
-        {/* Banner giới thiệu */}
-        <View style={styles.headerBanner}>
-          <ShieldCheck size={20} color={theme.colors.primary} />
-          <Text style={styles.headerBannerText}>
-            Payout bank accounts are used to disburse funds automatically when your tickets are verified & sold on TicketShield Escrow.
-          </Text>
-        </View>
-
         {/* Danh sách tài khoản đã liên kết */}
         <View style={styles.sectionCard}>
           <View style={styles.sectionTitleRow}>

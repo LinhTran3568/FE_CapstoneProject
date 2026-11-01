@@ -11,22 +11,6 @@ export const styles = StyleSheet.create({
     paddingBottom: theme.spacing['4xl'],
     gap: theme.spacing.lg,
   },
-  headerBanner: {
-    backgroundColor: 'rgba(255, 107, 74, 0.08)',
-    borderRadius: theme.radii.lg,
-    padding: theme.spacing.md,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 107, 74, 0.25)',
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: theme.spacing.sm,
-  },
-  headerBannerText: {
-    flex: 1,
-    fontSize: theme.typography.sizes.sm,
-    color: theme.colors.textSecondary,
-    lineHeight: 20,
-  },
   sectionCard: {
     backgroundColor: theme.colors.surface,
     borderRadius: theme.radii.xl,
