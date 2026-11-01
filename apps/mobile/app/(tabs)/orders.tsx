@@ -1,9 +1,11 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState, useMemo } from 'react';
 import {
   View,
   FlatList,
   TouchableOpacity,
   ActivityIndicator,
+  TextInput,
+  ScrollView,
 } from 'react-native';
 import { Text } from '../../src/components/AppText';
 import { useRouter } from 'expo-router';
@@ -16,6 +18,8 @@ import {
   XCircle,
   Receipt,
   AlertTriangle,
+  Search,
+  X,
 } from 'lucide-react-native';
 import { theme } from '../../src/theme';
 import { resaleListingsApi } from '@ticketshield/api-client';
@@ -36,12 +40,61 @@ interface MobileEscrowOrder {
   ticketPassCode: string;
 }
 
+type OrderStatusFilter = 'ALL' | 'ESCROW_HOLDING' | 'COMPLETED' | 'CANCELLED';
+
+interface OrderFilterItem {
+  key: OrderStatusFilter;
+  label: string;
+  icon: any;
+}
+
+const ORDER_FILTERS: OrderFilterItem[] = [
+  { key: 'ALL', label: 'All Orders', icon: Receipt },
+  { key: 'ESCROW_HOLDING', label: 'In Escrow', icon: Clock },
+  { key: 'COMPLETED', label: 'Completed', icon: CheckCircle2 },
+  { key: 'CANCELLED', label: 'Cancelled', icon: XCircle },
+];
+
 export default function MobileOrdersScreen() {
   const router = useRouter();
   const [orders, setOrders] = useState<MobileEscrowOrder[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+  const [selectedStatus, setSelectedStatus] = useState<OrderStatusFilter>('ALL');
+  const [searchQuery, setSearchQuery] = useState('');
+
+  const counts = useMemo(() => {
+    const holding = orders.filter((o) => o.status === 'ESCROW_HOLDING').length;
+    const completed = orders.filter((o) => o.status === 'COMPLETED').length;
+    const cancelled = orders.filter((o) => o.status === 'CANCELLED').length;
+    return {
+      ALL: orders.length,
+      ESCROW_HOLDING: holding,
+      COMPLETED: completed,
+      CANCELLED: cancelled,
+    };
+  }, [orders]);
+
+  const filteredOrders = useMemo(() => {
+    return orders.filter((order) => {
+      if (selectedStatus !== 'ALL' && order.status !== selectedStatus) {
+        return false;
+      }
+
+      if (searchQuery.trim()) {
+        const q = searchQuery.toLowerCase().trim();
+        const matchId = (order.orderId || '').toLowerCase().includes(q);
+        const matchName = (order.eventName || '').toLowerCase().includes(q);
+        const matchTier = (order.tierName || '').toLowerCase().includes(q);
+        const matchZone = (order.seatZone || '').toLowerCase().includes(q);
+        const matchRef = (order.paymentReference || '').toLowerCase().includes(q);
+        const matchCode = (order.ticketPassCode || '').toLowerCase().includes(q);
+        return matchId || matchName || matchTier || matchZone || matchRef || matchCode;
+      }
+      return true;
+    });
+  }, [orders, selectedStatus, searchQuery]);
 
   const fetchOrders = useCallback(async (silent = false) => {
     if (!silent) setLoading(true);
@@ -195,15 +248,112 @@ export default function MobileOrdersScreen() {
           />
         </View>
       ) : (
-        <FlatList
-          data={orders}
-          keyExtractor={(item) => item.orderId}
-          renderItem={renderOrder}
-          contentContainerStyle={styles.listContent}
-          showsVerticalScrollIndicator={false}
-          refreshing={refreshing}
-          onRefresh={handleRefresh}
-        />
+        <>
+          <View style={styles.filterSection}>
+            <View style={styles.searchBar}>
+              <Search size={18} color={theme.colors.textMuted} />
+              <TextInput
+                style={styles.searchInput}
+                placeholder="Search orders, events, reference..."
+                placeholderTextColor={theme.colors.textPlaceholder}
+                value={searchQuery}
+                onChangeText={setSearchQuery}
+                returnKeyType="search"
+                autoCapitalize="none"
+                autoCorrect={false}
+              />
+              {searchQuery.length > 0 && (
+                <TouchableOpacity
+                  style={styles.clearBtn}
+                  onPress={() => setSearchQuery('')}
+                  accessibilityRole="button"
+                  accessibilityLabel="Clear search"
+                >
+                  <X size={16} color={theme.colors.textSecondary} />
+                </TouchableOpacity>
+              )}
+            </View>
+
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.filterScroll}
+              keyboardShouldPersistTaps="handled"
+            >
+              {ORDER_FILTERS.map((filter) => {
+                const isActive = selectedStatus === filter.key;
+                const Icon = filter.icon;
+                const count = counts[filter.key];
+                return (
+                  <TouchableOpacity
+                    key={filter.key}
+                    style={[styles.filterPill, isActive && styles.filterPillActive]}
+                    onPress={() => setSelectedStatus(filter.key)}
+                    activeOpacity={0.8}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Filter by ${filter.label}`}
+                    accessibilityState={{ selected: isActive }}
+                  >
+                    <Icon
+                      size={13}
+                      color={isActive ? theme.colors.onPrimary : theme.colors.textMuted}
+                    />
+                    <Text
+                      style={[styles.filterPillText, isActive && styles.filterPillTextActive]}
+                    >
+                      {filter.label}
+                    </Text>
+                    <View
+                      style={[styles.filterBadge, isActive && styles.filterBadgeActive]}
+                    >
+                      <Text
+                        style={[
+                          styles.filterBadgeText,
+                          isActive && styles.filterBadgeTextActive,
+                        ]}
+                      >
+                        {count}
+                      </Text>
+                    </View>
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+          </View>
+
+          <FlatList
+            data={filteredOrders}
+            keyExtractor={(item) => item.orderId}
+            renderItem={renderOrder}
+            contentContainerStyle={[
+              styles.listContent,
+              filteredOrders.length === 0 && { flexGrow: 1, justifyContent: 'center' },
+            ]}
+            showsVerticalScrollIndicator={false}
+            refreshing={refreshing}
+            onRefresh={handleRefresh}
+            ListEmptyComponent={
+              <View style={styles.filterEmptyBox}>
+                <View style={styles.stateIcon}>
+                  <Search size={26} color={theme.colors.textMuted} />
+                </View>
+                <Text style={styles.emptyTitle}>No Matching Orders</Text>
+                <Text style={styles.emptyDesc}>
+                  We could not find any orders matching your search or status filter.
+                </Text>
+                <FintechButton
+                  title="Clear Filters"
+                  onPress={() => {
+                    setSelectedStatus('ALL');
+                    setSearchQuery('');
+                  }}
+                  variant="secondary"
+                  style={styles.emptyBtn}
+                />
+              </View>
+            }
+          />
+        </>
       )}
     </View>
   );

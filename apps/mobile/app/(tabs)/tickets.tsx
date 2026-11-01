@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState, useMemo } from 'react';
 import {
   View,
   FlatList,
@@ -8,6 +8,7 @@ import {
   ActivityIndicator,
   Share,
   ScrollView,
+  TextInput,
 } from 'react-native';
 import { Text } from '../../src/components/AppText';
 import { useRouter } from 'expo-router';
@@ -21,6 +22,7 @@ import {
   X,
   Share2,
   AlertTriangle,
+  Search,
 } from 'lucide-react-native';
 import { theme } from '../../src/theme';
 import type { PurchasedTicketDto } from '@ticketshield/types';
@@ -40,6 +42,21 @@ const STATUS_LABELS: Record<string, string> = {
   PENDING_VERIFICATION: 'Pending Verification',
 };
 
+type TicketStatusFilter = 'ALL' | 'VALID' | 'USED' | 'EXPIRED';
+
+interface TicketFilterItem {
+  key: TicketStatusFilter;
+  label: string;
+  icon: typeof Ticket;
+}
+
+const TICKET_FILTERS: TicketFilterItem[] = [
+  { key: 'ALL', label: 'All Passes', icon: Ticket },
+  { key: 'VALID', label: 'Valid for Entry', icon: ShieldCheck },
+  { key: 'USED', label: 'Checked In', icon: QrCode },
+  { key: 'EXPIRED', label: 'Expired / Other', icon: AlertTriangle },
+];
+
 export default function MobileTicketsScreen() {
   const router = useRouter();
   const [tickets, setTickets] = useState<PurchasedTicketDto[]>([]);
@@ -51,6 +68,44 @@ export default function MobileTicketsScreen() {
   const [rotatingToken, setRotatingToken] = useState('');
   const [secondsRemaining, setSecondsRemaining] = useState(30);
   const [qrLoadFailed, setQrLoadFailed] = useState(false);
+  const [selectedStatus, setSelectedStatus] = useState<TicketStatusFilter>('ALL');
+  const [searchQuery, setSearchQuery] = useState('');
+
+  const counts = useMemo(() => {
+    const valid = tickets.filter((t) => t.status === 'VALID').length;
+    const used = tickets.filter((t) => t.status === 'USED').length;
+    const expired = tickets.filter((t) => t.status !== 'VALID' && t.status !== 'USED').length;
+    return {
+      ALL: tickets.length,
+      VALID: valid,
+      USED: used,
+      EXPIRED: expired,
+    };
+  }, [tickets]);
+
+  const filteredTickets = useMemo(() => {
+    return tickets.filter((ticket) => {
+      if (selectedStatus === 'VALID' && ticket.status !== 'VALID') return false;
+      if (selectedStatus === 'USED' && ticket.status !== 'USED') return false;
+      if (selectedStatus === 'EXPIRED' && (ticket.status === 'VALID' || ticket.status === 'USED')) return false;
+
+      if (searchQuery.trim()) {
+        const q = searchQuery.toLowerCase().trim();
+        const matchName = (ticket.eventName || '').toLowerCase().includes(q);
+        const matchVenue = (ticket.eventVenue || '').toLowerCase().includes(q);
+        const matchTier = (ticket.tierName || '').toLowerCase().includes(q);
+        const matchZone = (ticket.seatZone || '').toLowerCase().includes(q);
+        const matchCode = (ticket.ticketPassCode || '').toLowerCase().includes(q);
+        const matchBundle = (ticket.bundleItems || []).some((item) => {
+          const itemCode = (item.ticketCode || item.qrCodeData || '').toLowerCase();
+          const itemZone = (item.seatZone || '').toLowerCase();
+          return itemCode.includes(q) || itemZone.includes(q);
+        });
+        return matchName || matchVenue || matchTier || matchZone || matchCode || matchBundle;
+      }
+      return true;
+    });
+  }, [tickets, selectedStatus, searchQuery]);
 
   const fetchTickets = useCallback(async (silent = false) => {
     if (!silent) setLoading(true);
@@ -215,15 +270,112 @@ export default function MobileTicketsScreen() {
           />
         </View>
       ) : (
-        <FlatList
-          data={tickets}
-          keyExtractor={(item, index) => `${item.ticketPassCode || 'ticket'}-${index}`}
-          renderItem={renderTicket}
-          contentContainerStyle={styles.scrollList}
-          showsVerticalScrollIndicator={false}
-          refreshing={refreshing}
-          onRefresh={handleRefresh}
-        />
+        <>
+          <View style={styles.filterSection}>
+            <View style={styles.searchBar}>
+              <Search size={18} color={theme.colors.textMuted} />
+              <TextInput
+                style={styles.searchInput}
+                placeholder="Search event, venue, or ticket code..."
+                placeholderTextColor={theme.colors.textPlaceholder}
+                value={searchQuery}
+                onChangeText={setSearchQuery}
+                returnKeyType="search"
+                autoCapitalize="none"
+                autoCorrect={false}
+              />
+              {searchQuery.length > 0 && (
+                <TouchableOpacity
+                  style={styles.clearBtn}
+                  onPress={() => setSearchQuery('')}
+                  accessibilityRole="button"
+                  accessibilityLabel="Clear search"
+                >
+                  <X size={16} color={theme.colors.textSecondary} />
+                </TouchableOpacity>
+              )}
+            </View>
+
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.filterScroll}
+              keyboardShouldPersistTaps="handled"
+            >
+              {TICKET_FILTERS.map((filter) => {
+                const isActive = selectedStatus === filter.key;
+                const Icon = filter.icon;
+                const count = counts[filter.key];
+                return (
+                  <TouchableOpacity
+                    key={filter.key}
+                    style={[styles.filterPill, isActive && styles.filterPillActive]}
+                    onPress={() => setSelectedStatus(filter.key)}
+                    activeOpacity={0.8}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Filter by ${filter.label}`}
+                    accessibilityState={{ selected: isActive }}
+                  >
+                    <Icon
+                      size={13}
+                      color={isActive ? theme.colors.onPrimary : theme.colors.textMuted}
+                    />
+                    <Text
+                      style={[styles.filterPillText, isActive && styles.filterPillTextActive]}
+                    >
+                      {filter.label}
+                    </Text>
+                    <View
+                      style={[styles.filterBadge, isActive && styles.filterBadgeActive]}
+                    >
+                      <Text
+                        style={[
+                          styles.filterBadgeText,
+                          isActive && styles.filterBadgeTextActive,
+                        ]}
+                      >
+                        {count}
+                      </Text>
+                    </View>
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+          </View>
+
+          <FlatList
+            data={filteredTickets}
+            keyExtractor={(item, index) => `${item.ticketPassCode || 'ticket'}-${index}`}
+            renderItem={renderTicket}
+            contentContainerStyle={[
+              styles.scrollList,
+              filteredTickets.length === 0 && { flexGrow: 1, justifyContent: 'center' },
+            ]}
+            showsVerticalScrollIndicator={false}
+            refreshing={refreshing}
+            onRefresh={handleRefresh}
+            ListEmptyComponent={
+              <View style={styles.filterEmptyBox}>
+                <View style={styles.stateIcon}>
+                  <Search size={26} color={theme.colors.textMuted} />
+                </View>
+                <Text style={styles.emptyTitle}>No Matching Tickets</Text>
+                <Text style={styles.emptyDesc}>
+                  We could not find any tickets matching your search or status filter.
+                </Text>
+                <FintechButton
+                  title="Clear Filters"
+                  onPress={() => {
+                    setSelectedStatus('ALL');
+                    setSearchQuery('');
+                  }}
+                  variant="secondary"
+                  style={styles.exploreBtn}
+                />
+              </View>
+            }
+          />
+        </>
       )}
 
       <Modal
