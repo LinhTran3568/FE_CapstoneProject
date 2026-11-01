@@ -162,6 +162,35 @@ export const styles = StyleSheet.create({
     height: 4,
     borderRadius: 2,
   },
+  seatRows: {
+    gap: 4,
+    paddingVertical: theme.spacing.xs,
+  },
+  seatRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 4,
+  },
+  aisle: {
+    width: 8,
+  },
+  seat: {
+    width: 14,
+    height: 14,
+    borderRadius: 4,
+    borderTopLeftRadius: 6,
+    borderTopRightRadius: 6,
+  },
+  seatAvailable: {
+    backgroundColor: theme.colors.success,
+    opacity: 0.9,
+  },
+  seatSold: {
+    backgroundColor: theme.colors.surfaceHighlight,
+  },
+  seatSelected: {
+    backgroundColor: theme.colors.primary,
+  },
   legendRow: {
     flexDirection: 'row',
     alignItems: 'center',

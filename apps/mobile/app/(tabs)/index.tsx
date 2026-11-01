@@ -289,7 +289,7 @@ export default function MobileHomeScreen() {
                   <TouchableOpacity
                     key={eventKey}
                     style={styles.eventCard}
-                    onPress={() => router.push(`/event/${eventKey}`)}
+                    onPress={() => router.push(`/event/${eventKey}?source=origin`)}
                     activeOpacity={0.9}
                   >
                     <EventPoster seed={eventKey} height={120} />

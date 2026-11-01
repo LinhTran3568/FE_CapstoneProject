@@ -224,7 +224,7 @@ export default function OriginStoreScreen() {
               key={event.externalEventId}
               style={styles.card}
               activeOpacity={0.9}
-              onPress={() => router.push(`/event/${event.externalEventId}`)}
+              onPress={() => router.push(`/event/${event.externalEventId}?source=origin`)}
               accessibilityRole="button"
               accessibilityLabel={`Open official tickets for ${event.name}`}
             >

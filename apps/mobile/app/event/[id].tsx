@@ -131,7 +131,8 @@ function mapCatalogEvent(event: OrganizerCatalogEvent, fallbackRef: string): Tre
 }
 
 export default function EventDetailScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id, source } = useLocalSearchParams<{ id: string; source?: string }>();
+  const isOriginParam = source === 'origin';
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const user = useAuthStore((state) => state.user);
@@ -149,8 +150,7 @@ export default function EventDetailScreen() {
   const [organizerProfile, setOrganizerProfile] = useState<OrganizerDto | null>(null);
   const [officialTiers, setOfficialTiers] = useState<OrganizerBackendTier[]>([]);
   const [listings, setListings] = useState<ResaleListingDetailDto[]>([]);
-  const [selectedTierKey, setSelectedTierKey] = useState<string | null>(null);
-  const [quantity, setQuantity] = useState(1);
+  const [selectedTierQuantities, setSelectedTierQuantities] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [heroImageFailed, setHeroImageFailed] = useState(false);
@@ -170,6 +170,8 @@ export default function EventDetailScreen() {
   const [sessionToken, setSessionToken] = useState<string | null>(null);
   const [orderResult, setOrderResult] = useState<OrganizerCheckoutResponse | null>(null);
   const [isBuying, setIsBuying] = useState(false);
+  const [isOfficialEvent, setIsOfficialEvent] = useState(false);
+  const isOriginMode = isOriginParam || isOfficialEvent;
 
   useEffect(() => {
     if (user) {
@@ -219,6 +221,7 @@ export default function EventDetailScreen() {
       }
 
       setEventData(resolvedEvent);
+      setIsOfficialEvent(!!matchedCatalog);
 
       const coreEventId = GUID_PATTERN.test(resolvedEvent.id || '')
         ? resolvedEvent.id
@@ -232,10 +235,12 @@ export default function EventDetailScreen() {
               .getEventTiers(matchedCatalog.externalEventId, matchedCatalog.name || resolvedEvent.name)
               .catch(() => [] as OrganizerBackendTier[])
           : Promise.resolve([] as OrganizerBackendTier[]),
-        (coreEventId
-          ? resaleListingsApi.getMarketplaceListings({ eventId: coreEventId, size: 50 })
-          : resaleListingsApi.getMarketplaceListings({ keyword: resolvedEvent.name, size: 50 })
-        ).catch(() => null),
+        matchedCatalog
+          ? Promise.resolve(null)
+          : (coreEventId
+              ? resaleListingsApi.getMarketplaceListings({ eventId: coreEventId, size: 50 })
+              : resaleListingsApi.getMarketplaceListings({ keyword: resolvedEvent.name, size: 50 })
+            ).catch(() => null),
         organizersApi.getOrganizers().catch(() => [] as OrganizerDto[]),
       ]);
 
@@ -312,34 +317,61 @@ export default function EventDetailScreen() {
       .sort((a, b) => b.originalPrice - a.originalPrice);
   }, [officialTiers, activeListings]);
 
+  const handleQuantityChange = useCallback((tierKey: string, qty: number) => {
+    setSelectedTierQuantities((prev) => {
+      const next = { ...prev };
+      if (qty <= 0) {
+        delete next[tierKey];
+      } else {
+        next[tierKey] = qty;
+      }
+      return next;
+    });
+  }, []);
+
   useEffect(() => {
     if (seatZones.length === 0) {
-      setSelectedTierKey(null);
+      setSelectedTierQuantities({});
       return;
     }
-    if (!selectedTierKey || !seatZones.some((zone) => zone.key === selectedTierKey)) {
-      setSelectedTierKey(seatZones[0].key);
-    }
-  }, [seatZones, selectedTierKey]);
+    setSelectedTierQuantities((prev) => {
+      const hasAny = Object.values(prev).some((qty) => qty > 0);
+      if (hasAny) return prev;
+      const firstAvailable = seatZones.find((z) => (z.availableQuantity ?? 1) > 0) || seatZones[0];
+      if (firstAvailable) {
+        return { [firstAvailable.key]: 1 };
+      }
+      return prev;
+    });
+  }, [seatZones]);
 
-  const selectedZone = useMemo(
-    () => seatZones.find((zone) => zone.key === selectedTierKey) || null,
-    [seatZones, selectedTierKey]
-  );
+  const selectedItems = useMemo(() => {
+    return seatZones
+      .filter((zone) => (selectedTierQuantities[zone.key] || 0) > 0)
+      .map((zone) => {
+        const qty = selectedTierQuantities[zone.key] || 0;
+        const officialTier = officialTiers.find((t) => t.id === zone.key || tierMatches(t.tierName, zone.name));
+        return {
+          zone,
+          quantity: qty,
+          officialTier,
+        };
+      });
+  }, [seatZones, selectedTierQuantities, officialTiers]);
 
-  const selectedOfficialTier = useMemo(() => {
-    if (!selectedZone) return null;
-    const byId = officialTiers.find((tier) => tier.id === selectedZone.key);
-    if (byId) return byId;
-    return officialTiers.find((tier) => tierMatches(tier.tierName, selectedZone.name)) || null;
-  }, [selectedZone, officialTiers]);
+  const totalQuantity = useMemo(() => {
+    return selectedItems.reduce((sum, item) => sum + item.quantity, 0);
+  }, [selectedItems]);
 
-  const canCheckout = !!selectedOfficialTier && selectedOfficialTier.availableQuantity > 0;
-  const maxQuantity = Math.max(1, Math.min(4, selectedOfficialTier?.availableQuantity ?? 4));
+  const totalPrice = useMemo(() => {
+    return selectedItems.reduce((sum, item) => sum + item.zone.originalPrice * item.quantity, 0);
+  }, [selectedItems]);
 
-  useEffect(() => {
-    setQuantity((current) => Math.min(current, maxQuantity));
-  }, [maxQuantity]);
+  const canCheckout =
+    selectedItems.length > 0 &&
+    selectedItems.every(
+      (item) => !!item.officialTier && (item.officialTier.availableQuantity ?? 0) >= item.quantity
+    );
 
   const resaleStats = useMemo<ResaleStats | null>(() => {
     if (activeListings.length === 0) return null;
@@ -435,15 +467,17 @@ export default function EventDetailScreen() {
   }, []);
 
   useEffect(() => {
-    if (selectedOfficialTier && selectedOfficialTier.availableQuantity > 0) {
-      prefetchSession(selectedOfficialTier.id);
-    }
-  }, [selectedOfficialTier, prefetchSession]);
+    selectedItems.forEach((item) => {
+      if (item.officialTier && item.officialTier.availableQuantity > 0) {
+        prefetchSession(item.officialTier.id);
+      }
+    });
+  }, [selectedItems, prefetchSession]);
 
   const openMarketplace = () => router.push('/(tabs)/marketplace');
 
   const handleOpenCheckoutModal = () => {
-    if (!selectedOfficialTier || selectedOfficialTier.availableQuantity <= 0) return;
+    if (!canCheckout || selectedItems.length === 0) return;
     setCheckoutError(null);
     setOrderResult(null);
     setFormErrors({});
@@ -452,7 +486,9 @@ export default function EventDetailScreen() {
       if (!buyerEmail && user.email) setBuyerEmail(user.email);
       if (!buyerPhone && user.phoneNumber) setBuyerPhone(user.phoneNumber);
     }
-    prefetchSession(selectedOfficialTier.id);
+    selectedItems.forEach((item) => {
+      if (item.officialTier) prefetchSession(item.officialTier.id);
+    });
     setIsCheckoutModalOpen(true);
   };
 
@@ -488,32 +524,47 @@ export default function EventDetailScreen() {
   };
 
   const handleConfirmCheckout = async () => {
-    if (!selectedOfficialTier) return;
+    if (!canCheckout || selectedItems.length === 0) return;
     if (!validateForm()) return;
 
     setIsBuying(true);
     setCheckoutError(null);
 
     try {
-      let activeSession = sessionToken;
-      if (!activeSession) {
+      const checkoutPromises = selectedItems.map(async (item) => {
+        if (!item.officialTier) throw new Error(`Hạng vé ${item.zone.name} không khả dụng.`);
+        let activeSession = sessionToken;
         try {
-          const freshSession = await organizerStoreApi.createSession(selectedOfficialTier.id);
+          const freshSession = await organizerStoreApi.createSession(item.officialTier.id);
           activeSession = freshSession.sessionToken;
-          setSessionToken(activeSession);
         } catch {}
-      }
 
-      const result = await organizerStoreApi.checkout({
-        tierId: selectedOfficialTier.id,
-        quantity,
-        buyerEmail: buyerEmail.trim(),
-        buyerName: buyerName.trim(),
-        buyerPhone: buyerPhone.trim(),
-        sessionToken: activeSession || undefined,
+        return organizerStoreApi.checkout({
+          tierId: item.officialTier.id,
+          quantity: item.quantity,
+          buyerEmail: buyerEmail.trim(),
+          buyerName: buyerName.trim(),
+          buyerPhone: buyerPhone.trim(),
+          sessionToken: activeSession || undefined,
+        });
       });
 
-      setOrderResult(result);
+      const results = await Promise.all(checkoutPromises);
+
+      const combinedResult: OrganizerCheckoutResponse = {
+        orderId: results.map((r) => r.orderId).join(', '),
+        tierId: results.map((r) => r.tierId).join(', '),
+        eventId: results[0]?.eventId || '',
+        tierName: results.map((r) => `${r.tierName} (${r.quantity})`).join(', '),
+        quantity: results.reduce((sum, r) => sum + r.quantity, 0),
+        unitPrice: totalPrice / (totalQuantity || 1),
+        totalAmount: results.reduce((sum, r) => sum + r.totalAmount, 0),
+        status: 'SUCCESS',
+        remainingAvailable: results[0]?.remainingAvailable ?? 0,
+        tickets: results.flatMap((r) => r.tickets || []),
+      };
+
+      setOrderResult(combinedResult);
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Unable to complete checkout with organizer.';
       setCheckoutError(message);
@@ -550,24 +601,24 @@ export default function EventDetailScreen() {
   const organizerName = eventData.organizerName || organizerProfile?.name || 'Verified organizer';
   const heroDate = formatEventDateTime(eventData.eventStartAt);
   const showHeroImage = !!eventData.bannerUrl && !heroImageFailed;
-  const ctaTitle = canCheckout ? 'Continue' : offers.length > 0 ? 'Resale deals' : 'No passes yet';
+  const ctaTitle = canCheckout
+    ? `Continue (${totalQuantity} ${totalQuantity === 1 ? 'pass' : 'passes'})`
+    : totalQuantity > 0
+      ? 'Passes selected'
+      : offers.length > 0
+        ? 'Resale deals'
+        : 'No passes yet';
   const ctaDisabled = !canCheckout && offers.length === 0;
 
-  const bottomValue = selectedZone
-    ? canCheckout
-      ? formatPrice(selectedZone.originalPrice * quantity)
-      : formatPrice(selectedZone.minResalePrice ?? selectedZone.originalPrice)
+  const bottomValue = totalQuantity > 0
+    ? formatPrice(totalPrice)
     : resaleStats
       ? formatPrice(resaleStats.lowestPrice)
       : '—';
 
-  const bottomSub = selectedZone
-    ? canCheckout
-      ? `${quantity} × ${formatPrice(selectedZone.originalPrice)} · ${selectedZone.name}`
-      : `${selectedZone.availableListings} verified resale ${
-          selectedZone.availableListings === 1 ? 'pass' : 'passes'
-        }`
-    : 'Verified fan-to-fan resale';
+  const bottomSub = totalQuantity > 0
+    ? `${totalQuantity} ${totalQuantity === 1 ? 'pass' : 'passes'} · ` + selectedItems.map((item) => `${item.quantity}× ${item.zone.name}`).join(', ')
+    : 'Select passes above';
 
   return (
     <View style={styles.screen}>
@@ -654,6 +705,7 @@ export default function EventDetailScreen() {
         </View>
 
         <View style={styles.body}>
+          {!isOriginMode && (
           <View style={styles.statStrip}>
             <View style={styles.statItem}>
               <Text style={styles.statValue}>{activeListings.length}</Text>
@@ -670,10 +722,12 @@ export default function EventDetailScreen() {
                 {resaleStats ? formatPrice(resaleStats.lowestPrice) : faceValueFrom ? formatPrice(faceValueFrom) : '—'}
               </Text>
               <Text style={styles.statLabel}>{resaleStats ? 'Lowest resale' : 'Face value from'}</Text>
-            </View>
-          </View>
-
-          <View style={[styles.ceilingCard, verifiedCeiling ? styles.ceilingCardOk : styles.ceilingCardWarn]}>
+             </View>
+           </View>
+          )}
+ 
+           {!isOriginMode && (
+           <View style={[styles.ceilingCard, verifiedCeiling ? styles.ceilingCardOk : styles.ceilingCardWarn]}>
             <View style={styles.ceilingHeader}>
               <View style={styles.ceilingIcon}>
                 <ShieldCheck
@@ -746,7 +800,8 @@ export default function EventDetailScreen() {
                   : 'Resale sellers must match the original ticket price before escrow can release.'}
             </Text>
           </View>
-
+          )}
+ 
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
               <View style={styles.sectionHeaderText}>
@@ -763,7 +818,11 @@ export default function EventDetailScreen() {
             </View>
 
             {seatZones.length > 0 ? (
-              <EventSeatMap zones={seatZones} selectedKey={selectedZone?.key} onSelect={setSelectedTierKey} />
+              <EventSeatMap
+                zones={seatZones}
+                selectedQuantities={selectedTierQuantities}
+                onQuantityChange={handleQuantityChange}
+              />
             ) : (
               <View style={styles.emptyCard}>
                 <Ticket size={22} color={theme.colors.textMuted} />
@@ -775,89 +834,18 @@ export default function EventDetailScreen() {
               </View>
             )}
 
-            {selectedZone && (
-              <View style={styles.selectedZonePanel}>
-                <View style={styles.selectedZoneTop}>
-                  <Text style={styles.selectedZoneName}>{selectedZone.name}</Text>
-                  <Text style={styles.selectedZonePrice}>{formatPrice(selectedZone.originalPrice)}</Text>
-                </View>
-                <View style={styles.chipRow}>
-                  {selectedZone.isOfficial &&
-                    typeof selectedZone.availableQuantity === 'number' &&
-                    selectedZone.availableQuantity > 0 && (
-                      <View style={styles.chip}>
-                        <Users size={10} color={theme.colors.textSecondary} />
-                        <Text style={styles.chipText}>{selectedZone.availableQuantity} seats left</Text>
-                      </View>
-                    )}
-                  <View style={[styles.chip, styles.chipAccent]}>
-                    <Ticket size={10} color={theme.colors.primary} />
-                    <Text style={[styles.chipText, styles.chipAccentText]}>
-                      {selectedZone.availableListings} resale
-                    </Text>
-                  </View>
-                  {typeof selectedZone.minResalePrice === 'number' && (
-                    <View style={styles.chip}>
-                      <Text style={styles.chipText}>
-                        from {formatPrice(selectedZone.minResalePrice)}
-                      </Text>
-                    </View>
-                  )}
-                  {selectedZone.seatZones.slice(0, 3).map((zone) => (
-                    <View key={zone} style={styles.chip}>
-                      <Text style={styles.chipText}>{zone}</Text>
-                    </View>
-                  ))}
-                </View>
-                {!!selectedZone.seatZones.length && (
-                  <Text style={styles.ceilingFoot}>
-                    Actual seat assignments are shared after a verified transfer.
-                  </Text>
-                )}
-              </View>
-            )}
-
-            {selectedZone && !selectedOfficialTier && (
+            {!isOriginMode && selectedItems.some((item) => !item.officialTier) && (
               <View style={styles.availabilityNotice}>
                 <Info size={16} color={theme.colors.info} />
                 <Text style={styles.availabilityNoticeText}>
-                  The official box office is not connected for this section. Verified resale passes are still
+                  The official box office is not connected for some sections. Verified resale passes are still
                   protected by escrow.
                 </Text>
               </View>
             )}
-
-            {canCheckout && (
-              <View style={styles.quantityCard}>
-                <View style={styles.quantityTextWrap}>
-                  <Text style={styles.quantityLabel}>Quantity</Text>
-                  <Text style={styles.quantityHint}>Up to {maxQuantity} passes per order</Text>
-                </View>
-                <View style={styles.quantityControls}>
-                  <TouchableOpacity
-                    style={[styles.qtyBtn, quantity <= 1 && styles.qtyBtnDisabled]}
-                    onPress={() => setQuantity((current) => Math.max(1, current - 1))}
-                    disabled={quantity <= 1}
-                    accessibilityRole="button"
-                    accessibilityLabel="Remove one ticket"
-                  >
-                    <Minus size={16} color={quantity <= 1 ? theme.colors.textMuted : theme.colors.text} />
-                  </TouchableOpacity>
-                  <Text style={styles.quantityValue}>{quantity}</Text>
-                  <TouchableOpacity
-                    style={[styles.qtyBtn, quantity >= maxQuantity && styles.qtyBtnDisabled]}
-                    onPress={() => setQuantity((current) => Math.min(maxQuantity, current + 1))}
-                    disabled={quantity >= maxQuantity}
-                    accessibilityRole="button"
-                    accessibilityLabel="Add one ticket"
-                  >
-                    <Plus size={16} color={quantity >= maxQuantity ? theme.colors.textMuted : theme.colors.text} />
-                  </TouchableOpacity>
-                </View>
-              </View>
-            )}
           </View>
 
+          {!isOriginMode && (
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
               <View style={styles.sectionHeaderText}>
@@ -929,7 +917,9 @@ export default function EventDetailScreen() {
               </View>
             )}
           </View>
-
+          )}
+ 
+          {!isOriginMode && (
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
               <View style={styles.sectionHeaderText}>
@@ -998,7 +988,8 @@ export default function EventDetailScreen() {
               </View>
             )}
           </View>
-
+          )}
+ 
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
               <View style={styles.sectionHeaderText}>
@@ -1069,7 +1060,15 @@ export default function EventDetailScreen() {
       <View style={[styles.bottomBar, { paddingBottom: insets.bottom + theme.spacing.md }]}>
         <View style={styles.bottomInfo}>
           <Text style={styles.bottomLabel}>
-            {selectedZone ? (canCheckout ? 'Official checkout' : 'Verified resale') : 'Resale market'}
+            {isOriginMode
+              ? totalQuantity > 0
+                ? 'Official checkout'
+                : 'Official tickets'
+              : totalQuantity > 0
+                ? canCheckout
+                  ? 'Official checkout'
+                  : 'Verified resale'
+                : 'Resale market'}
           </Text>
           <Text style={styles.bottomValue}>{bottomValue}</Text>
           <Text style={styles.bottomSub} numberOfLines={1}>
@@ -1133,7 +1132,7 @@ export default function EventDetailScreen() {
                         <View key={ticket.ticketCode || index} style={styles.ticketCodeCard}>
                           <View style={styles.ticketCodeBadge}>
                             <Text style={styles.ticketCodeBadgeText}>
-                              Pass #{index + 1} · {ticket.seatZone || selectedOfficialTier?.tierName}
+                              Pass #{index + 1} · {ticket.seatZone || 'Official Pass'}
                             </Text>
                           </View>
                           <Text style={styles.ticketCodeValue}>{ticket.ticketCode}</Text>
@@ -1167,17 +1166,21 @@ export default function EventDetailScreen() {
                         {eventData.name}
                       </Text>
                     </View>
-                    <View style={styles.summaryRow}>
-                      <Text style={styles.summaryLabel}>Section</Text>
-                      <Text style={styles.summaryValue}>
-                        {selectedOfficialTier?.tierName || selectedZone?.name} × {quantity}
-                      </Text>
-                    </View>
+                    {selectedItems.map((item) => (
+                      <View key={item.zone.key} style={styles.summaryRow}>
+                        <Text style={styles.summaryLabel}>{item.zone.name}</Text>
+                        <Text style={styles.summaryValue}>
+                          {item.quantity} × {formatPrice(item.zone.originalPrice)}
+                        </Text>
+                      </View>
+                    ))}
                     <View style={styles.summaryDivider} />
                     <View style={styles.summaryRow}>
-                      <Text style={[styles.summaryLabel, { fontWeight: '700' }]}>Total Price</Text>
+                      <Text style={[styles.summaryLabel, { fontWeight: '700' }]}>
+                        Total ({totalQuantity} {totalQuantity === 1 ? 'pass' : 'passes'})
+                      </Text>
                       <Text style={[styles.summaryValue, { color: theme.colors.primary, fontSize: 16 }]}>
-                        {formatPrice((selectedOfficialTier?.price || 0) * quantity)}
+                        {formatPrice(totalPrice)}
                       </Text>
                     </View>
                   </View>
