@@ -14,24 +14,19 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
 import {
   AlertTriangle,
-  ArrowRight,
   Calendar,
   CheckCircle,
   CheckSquare,
   ChevronLeft,
   ChevronRight,
-  Info,
   Mail,
   MapPin,
-  Minus,
   Phone,
-  Plus,
   ShieldCheck,
   Square,
   Store,
   Ticket,
   User,
-  Users,
   X,
 } from 'lucide-react-native';
 import { Text } from '../../src/components/AppText';
@@ -43,16 +38,14 @@ import {
   eventsApi,
   organizersApi,
   organizerStoreApi,
-  resaleListingsApi,
   OrganizerBackendTier,
   OrganizerCheckoutResponse,
   OrganizerDto,
-  ResaleListingDetailDto,
   TrendingEventDto,
 } from '@ticketshield/api-client';
 import { useAuthStore } from '../../src/stores/authStore';
 import { theme } from '../../src/theme';
-import { formatEventDateTime, formatPrice, initialsOf } from '../../src/utils/format';
+import { formatEventDateTime, formatPrice } from '../../src/utils/format';
 import { styles } from '../../src/styles/event-detail.styles';
 
 interface OrganizerCatalogEvent {
@@ -67,26 +60,6 @@ interface OrganizerCatalogEvent {
   eventEndAt?: string;
   resaleDeadline?: string;
   tiers?: Array<{ tierName?: string; price?: number; description?: string }>;
-}
-
-interface SellerSnapshot {
-  sellerId: string;
-  fullName: string;
-  activeListings: number;
-  minPrice: number;
-  maxDiscount: number;
-  tiers: string[];
-}
-
-interface ResaleStats {
-  total: number;
-  lowestPrice: number;
-  highestPrice: number;
-  lowestFaceValue: number;
-  highestFaceValue: number;
-  aboveFaceCount: number;
-  maxObservedMarkup: number;
-  maxDiscount: number;
 }
 
 const GUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -131,8 +104,7 @@ function mapCatalogEvent(event: OrganizerCatalogEvent, fallbackRef: string): Tre
 }
 
 export default function EventDetailScreen() {
-  const { id, source } = useLocalSearchParams<{ id: string; source?: string }>();
-  const isOriginParam = source === 'origin';
+  const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const user = useAuthStore((state) => state.user);
@@ -149,7 +121,6 @@ export default function EventDetailScreen() {
   const [eventData, setEventData] = useState<TrendingEventDto | null>(null);
   const [organizerProfile, setOrganizerProfile] = useState<OrganizerDto | null>(null);
   const [officialTiers, setOfficialTiers] = useState<OrganizerBackendTier[]>([]);
-  const [listings, setListings] = useState<ResaleListingDetailDto[]>([]);
   const [selectedTierQuantities, setSelectedTierQuantities] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -170,8 +141,6 @@ export default function EventDetailScreen() {
   const [sessionToken, setSessionToken] = useState<string | null>(null);
   const [orderResult, setOrderResult] = useState<OrganizerCheckoutResponse | null>(null);
   const [isBuying, setIsBuying] = useState(false);
-  const [isOfficialEvent, setIsOfficialEvent] = useState(false);
-  const isOriginMode = isOriginParam || isOfficialEvent;
 
   useEffect(() => {
     if (user) {
@@ -221,31 +190,17 @@ export default function EventDetailScreen() {
       }
 
       setEventData(resolvedEvent);
-      setIsOfficialEvent(!!matchedCatalog);
 
-      const coreEventId = GUID_PATTERN.test(resolvedEvent.id || '')
-        ? resolvedEvent.id
-        : GUID_PATTERN.test(resolvedEvent.eventId || '')
-          ? resolvedEvent.eventId
-          : null;
-
-      const [tiersResult, listingsResult, organizersResult] = await Promise.all([
+      const [tiersResult, organizersResult] = await Promise.all([
         matchedCatalog?.externalEventId
           ? organizerStoreApi
               .getEventTiers(matchedCatalog.externalEventId, matchedCatalog.name || resolvedEvent.name)
               .catch(() => [] as OrganizerBackendTier[])
           : Promise.resolve([] as OrganizerBackendTier[]),
-        matchedCatalog
-          ? Promise.resolve(null)
-          : (coreEventId
-              ? resaleListingsApi.getMarketplaceListings({ eventId: coreEventId, size: 50 })
-              : resaleListingsApi.getMarketplaceListings({ keyword: resolvedEvent.name, size: 50 })
-            ).catch(() => null),
         organizersApi.getOrganizers().catch(() => [] as OrganizerDto[]),
       ]);
 
       setOfficialTiers(Array.isArray(tiersResult) ? tiersResult : []);
-      setListings(Array.isArray(listingsResult?.items) ? listingsResult!.items : []);
 
       const organizerName = resolvedEvent.organizerName || (matchedCatalog ? 'Official organizer' : undefined);
       setOrganizerProfile(
@@ -265,57 +220,20 @@ export default function EventDetailScreen() {
     loadEvent();
   }, [loadEvent]);
 
-  const activeListings = useMemo(
-    () => listings.filter((listing) => listing.listingStatus === 'Verified'),
-    [listings]
-  );
-
   const seatZones = useMemo<SeatMapZone[]>(() => {
-    if (officialTiers.length > 0) {
-      return officialTiers
-        .map((tier) => {
-          const matching = activeListings.filter((listing) => tierMatches(listing.tierName, tier.tierName));
-          const minResalePrice = matching.length
-            ? matching.reduce((lowest, listing) => Math.min(lowest, listing.resalePrice), Number.POSITIVE_INFINITY)
-            : undefined;
-
-          return {
-            key: tier.id,
-            name: tier.tierName,
-            originalPrice: tier.price,
-            minResalePrice: Number.isFinite(minResalePrice) ? minResalePrice : undefined,
-            availableListings: matching.length,
-            totalQuantity: tier.totalQuantity,
-            availableQuantity: tier.availableQuantity,
-            isOfficial: true,
-            seatZones: Array.from(new Set(matching.map((listing) => listing.seatZone).filter(Boolean))) as string[],
-          };
-        })
-        .sort((a, b) => b.originalPrice - a.originalPrice);
-    }
-
-    const groups = new Map<string, ResaleListingDetailDto[]>();
-    activeListings.forEach((listing) => {
-      const key = listing.tierName || 'Verified resale';
-      const bucket = groups.get(key) ?? [];
-      bucket.push(listing);
-      groups.set(key, bucket);
-    });
-
-    return Array.from(groups.entries())
-      .map(([name, group]) => ({
-        key: normalizeKey(name) || name,
-        name,
-        originalPrice: group.reduce((lowest, listing) => Math.min(lowest, listing.originalPrice), Number.POSITIVE_INFINITY),
-        minResalePrice: group.reduce((lowest, listing) => Math.min(lowest, listing.resalePrice), Number.POSITIVE_INFINITY),
-        availableListings: group.length,
-        totalQuantity: undefined,
-        availableQuantity: undefined,
-        isOfficial: false,
-        seatZones: Array.from(new Set(group.map((listing) => listing.seatZone).filter(Boolean))) as string[],
+    return officialTiers
+      .map((tier) => ({
+        key: tier.id,
+        name: tier.tierName,
+        originalPrice: tier.price,
+        totalQuantity: tier.totalQuantity,
+        availableQuantity: tier.availableQuantity,
+        isOfficial: true,
+        availableListings: 0,
+        seatZones: [],
       }))
       .sort((a, b) => b.originalPrice - a.originalPrice);
-  }, [officialTiers, activeListings]);
+  }, [officialTiers]);
 
   const handleQuantityChange = useCallback((tierKey: string, qty: number) => {
     setSelectedTierQuantities((prev) => {
@@ -373,89 +291,10 @@ export default function EventDetailScreen() {
       (item) => !!item.officialTier && (item.officialTier.availableQuantity ?? 0) >= item.quantity
     );
 
-  const resaleStats = useMemo<ResaleStats | null>(() => {
-    if (activeListings.length === 0) return null;
-
-    let lowestPrice = Number.POSITIVE_INFINITY;
-    let highestPrice = 0;
-    let lowestFaceValue = Number.POSITIVE_INFINITY;
-    let highestFaceValue = 0;
-    let aboveFaceCount = 0;
-    let maxObservedMarkup = 0;
-    let maxDiscount = 0;
-
-    activeListings.forEach((listing) => {
-      lowestPrice = Math.min(lowestPrice, listing.resalePrice);
-      highestPrice = Math.max(highestPrice, listing.resalePrice);
-      maxDiscount = Math.max(maxDiscount, listing.discountPercentage || 0);
-
-      if (listing.originalPrice > 0) {
-        lowestFaceValue = Math.min(lowestFaceValue, listing.originalPrice);
-        highestFaceValue = Math.max(highestFaceValue, listing.originalPrice);
-        if (listing.resalePrice > listing.originalPrice) {
-          aboveFaceCount += 1;
-          maxObservedMarkup = Math.max(
-            maxObservedMarkup,
-            ((listing.resalePrice - listing.originalPrice) / listing.originalPrice) * 100
-          );
-        }
-      }
-    });
-
-    return {
-      total: activeListings.length,
-      lowestPrice: Number.isFinite(lowestPrice) ? lowestPrice : 0,
-      highestPrice,
-      lowestFaceValue: Number.isFinite(lowestFaceValue) ? lowestFaceValue : 0,
-      highestFaceValue,
-      aboveFaceCount,
-      maxObservedMarkup,
-      maxDiscount,
-    };
-  }, [activeListings]);
-
-  const sellers = useMemo<SellerSnapshot[]>(() => {
-    const grouped = new Map<string, SellerSnapshot>();
-
-    activeListings.forEach((listing) => {
-      const current = grouped.get(listing.sellerId);
-      if (current) {
-        current.activeListings += 1;
-        current.minPrice = Math.min(current.minPrice, listing.resalePrice);
-        current.maxDiscount = Math.max(current.maxDiscount, listing.discountPercentage || 0);
-        if (!current.tiers.includes(listing.tierName)) current.tiers.push(listing.tierName);
-        return;
-      }
-      grouped.set(listing.sellerId, {
-        sellerId: listing.sellerId,
-        fullName: listing.sellerFullName || 'Verified seller',
-        activeListings: 1,
-        minPrice: listing.resalePrice,
-        maxDiscount: listing.discountPercentage || 0,
-        tiers: [listing.tierName],
-      });
-    });
-
-    return Array.from(grouped.values())
-      .sort((a, b) => b.activeListings - a.activeListings || a.minPrice - b.minPrice)
-      .slice(0, 8);
-  }, [activeListings]);
-
-  const offers = useMemo(
-    () =>
-      [...activeListings]
-        .sort((a, b) => b.discountPercentage - a.discountPercentage || a.resalePrice - b.resalePrice)
-        .slice(0, 5),
-    [activeListings]
-  );
-
-  const faceValueFrom =
-    officialTiers.length > 0
-      ? officialTiers.reduce((lowest, tier) => Math.min(lowest, tier.price), Number.POSITIVE_INFINITY)
-      : resaleStats?.lowestFaceValue;
-
-  const verifiedCeiling =
-    !resaleStats || (resaleStats.aboveFaceCount === 0 && resaleStats.maxObservedMarkup === 0);
+  const faceValueFrom = useMemo(() => {
+    if (officialTiers.length === 0) return eventData?.originalPriceFrom;
+    return officialTiers.reduce((lowest, tier) => Math.min(lowest, tier.price), Number.POSITIVE_INFINITY);
+  }, [officialTiers, eventData]);
 
   const prefetchSession = useCallback(async (tierId: string) => {
     try {
@@ -473,8 +312,6 @@ export default function EventDetailScreen() {
       }
     });
   }, [selectedItems, prefetchSession]);
-
-  const openMarketplace = () => router.push('/(tabs)/marketplace');
 
   const handleOpenCheckoutModal = () => {
     if (!canCheckout || selectedItems.length === 0) return;
@@ -602,23 +439,23 @@ export default function EventDetailScreen() {
   const heroDate = formatEventDateTime(eventData.eventStartAt);
   const showHeroImage = !!eventData.bannerUrl && !heroImageFailed;
   const ctaTitle = canCheckout
-    ? `Continue (${totalQuantity} ${totalQuantity === 1 ? 'pass' : 'passes'})`
+    ? `Continue (${totalQuantity} ${totalQuantity === 1 ? 'ticket' : 'tickets'})`
     : totalQuantity > 0
-      ? 'Passes selected'
-      : offers.length > 0
-        ? 'Resale deals'
-        : 'No passes yet';
-  const ctaDisabled = !canCheckout && offers.length === 0;
+      ? 'Select valid quantity'
+      : officialTiers.length > 0
+        ? 'Select tickets'
+        : 'Sold out';
+  const ctaDisabled = !canCheckout;
 
   const bottomValue = totalQuantity > 0
     ? formatPrice(totalPrice)
-    : resaleStats
-      ? formatPrice(resaleStats.lowestPrice)
+    : typeof faceValueFrom === 'number' && Number.isFinite(faceValueFrom) && faceValueFrom > 0
+      ? `From ${formatPrice(faceValueFrom)}`
       : '—';
 
   const bottomSub = totalQuantity > 0
-    ? `${totalQuantity} ${totalQuantity === 1 ? 'pass' : 'passes'} · ` + selectedItems.map((item) => `${item.quantity}× ${item.zone.name}`).join(', ')
-    : 'Select passes above';
+    ? `${totalQuantity} ${totalQuantity === 1 ? 'ticket' : 'tickets'} · ` + selectedItems.map((item) => `${item.quantity}× ${item.zone.name}`).join(', ')
+    : 'Official organizer box office';
 
   return (
     <View style={styles.screen}>
@@ -664,14 +501,6 @@ export default function EventDetailScreen() {
             >
               <ChevronLeft size={22} color={theme.colors.text} />
             </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.heroIconButton}
-              onPress={openMarketplace}
-              accessibilityRole="button"
-              accessibilityLabel="Open resale marketplace"
-            >
-              <Store size={18} color={theme.colors.text} />
-            </TouchableOpacity>
           </View>
 
           <View style={styles.heroContent}>
@@ -681,9 +510,7 @@ export default function EventDetailScreen() {
               </View>
               <View style={styles.inventoryBadge}>
                 <ShieldCheck size={12} color={theme.colors.success} />
-                <Text style={styles.inventoryBadgeText}>
-                  {officialTiers.length > 0 ? 'OFFICIAL INVENTORY LIVE' : 'VERIFIED RESALE MARKET'}
-                </Text>
+                <Text style={styles.inventoryBadgeText}>OFFICIAL BOX OFFICE</Text>
               </View>
             </View>
 
@@ -705,103 +532,6 @@ export default function EventDetailScreen() {
         </View>
 
         <View style={styles.body}>
-          {!isOriginMode && (
-          <View style={styles.statStrip}>
-            <View style={styles.statItem}>
-              <Text style={styles.statValue}>{activeListings.length}</Text>
-              <Text style={styles.statLabel}>Resale offers</Text>
-            </View>
-            <View style={styles.statDivider} />
-            <View style={styles.statItem}>
-              <Text style={styles.statValue}>{sellers.length}</Text>
-              <Text style={styles.statLabel}>Active sellers</Text>
-            </View>
-            <View style={styles.statDivider} />
-            <View style={styles.statItem}>
-              <Text style={styles.statValue}>
-                {resaleStats ? formatPrice(resaleStats.lowestPrice) : faceValueFrom ? formatPrice(faceValueFrom) : '—'}
-              </Text>
-              <Text style={styles.statLabel}>{resaleStats ? 'Lowest resale' : 'Face value from'}</Text>
-             </View>
-           </View>
-          )}
- 
-           {!isOriginMode && (
-           <View style={[styles.ceilingCard, verifiedCeiling ? styles.ceilingCardOk : styles.ceilingCardWarn]}>
-            <View style={styles.ceilingHeader}>
-              <View style={styles.ceilingIcon}>
-                <ShieldCheck
-                  size={24}
-                  color={verifiedCeiling ? theme.colors.success : theme.colors.warning}
-                />
-              </View>
-              <View style={styles.ceilingTextWrap}>
-                <Text style={styles.ceilingTitle}>Face-value resale promise</Text>
-                <Text style={styles.ceilingSubtitle}>
-                  {resaleStats
-                    ? `${resaleStats.total} active ${
-                        resaleStats.total === 1 ? 'listing' : 'listings'
-                      } checked against the original ticket price.`
-                    : 'No active resale listings yet. Every new listing is checked against its original ticket price.'}
-                </Text>
-              </View>
-              <View
-                style={[
-                  styles.ceilingBadge,
-                  verifiedCeiling ? styles.ceilingBadgeOk : styles.ceilingBadgeWarn,
-                ]}
-              >
-                <Text
-                  style={[
-                    styles.ceilingBadgeText,
-                    { color: verifiedCeiling ? theme.colors.success : theme.colors.warning },
-                  ]}
-                >
-                  {verifiedCeiling ? 'PROTECTED' : 'AT RISK'}
-                </Text>
-              </View>
-            </View>
-
-            <View style={styles.ceilingStats}>
-              <View style={styles.ceilingStat}>
-                <Text style={styles.ceilingStatLabel}>Lowest resale</Text>
-                <Text style={styles.ceilingStatValue}>
-                  {resaleStats ? formatPrice(resaleStats.lowestPrice) : 'No listings'}
-                </Text>
-              </View>
-              <View style={styles.ceilingStat}>
-                <Text style={styles.ceilingStatLabel}>Highest resale</Text>
-                <Text style={styles.ceilingStatValue}>
-                  {resaleStats ? formatPrice(resaleStats.highestPrice) : '—'}
-                </Text>
-              </View>
-              <View style={styles.ceilingStat}>
-                <Text style={styles.ceilingStatLabel}>Above face</Text>
-                <Text style={styles.ceilingStatValue}>
-                  {resaleStats ? `${resaleStats.aboveFaceCount} of ${resaleStats.total}` : '0 listings'}
-                </Text>
-              </View>
-            </View>
-
-            <Text style={styles.ceilingFoot}>
-              {resaleStats
-                ? verifiedCeiling
-                  ? `Every listing is at or below its original price (highest observed mark-up: ${Math.max(
-                      0,
-                      resaleStats.maxObservedMarkup
-                    ).toFixed(0)}%). Escrow releases only after the pass is delivered.`
-                  : `Highest observed mark-up: ${resaleStats.maxObservedMarkup.toFixed(
-                      0
-                    )}%. TicketShield flags these listings and keeps escrow locked until the transfer is verified.`
-                : faceValueFrom
-                  ? `Organizer face value starts at ${formatPrice(
-                      faceValueFrom
-                    )}. Resale sellers must list against this face value before escrow can release.`
-                  : 'Resale sellers must match the original ticket price before escrow can release.'}
-            </Text>
-          </View>
-          )}
- 
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
               <View style={styles.sectionHeaderText}>
@@ -810,9 +540,7 @@ export default function EventDetailScreen() {
                 <Text style={styles.sectionSubtitle}>
                   {officialTiers.length > 0
                     ? `Live availability from ${organizerName}.`
-                    : activeListings.length > 0
-                      ? 'Zone availability from verified resale listings.'
-                      : 'No official inventory is connected for this event yet.'}
+                    : 'No tickets available at this moment.'}
                 </Text>
               </View>
             </View>
@@ -828,168 +556,12 @@ export default function EventDetailScreen() {
                 <Ticket size={22} color={theme.colors.textMuted} />
                 <Text style={styles.emptyTitle}>Seat map not available yet</Text>
                 <Text style={styles.emptyText}>
-                  The organizer has not connected official inventory for this event. Verified resale passes will
-                  appear here automatically.
-                </Text>
-              </View>
-            )}
-
-            {!isOriginMode && selectedItems.some((item) => !item.officialTier) && (
-              <View style={styles.availabilityNotice}>
-                <Info size={16} color={theme.colors.info} />
-                <Text style={styles.availabilityNoticeText}>
-                  The official box office is not connected for some sections. Verified resale passes are still
-                  protected by escrow.
+                  The organizer has not published ticket inventory for this event yet. Please check back later.
                 </Text>
               </View>
             )}
           </View>
 
-          {!isOriginMode && (
-          <View style={styles.section}>
-            <View style={styles.sectionHeader}>
-              <View style={styles.sectionHeaderText}>
-                <Text style={styles.sectionEyebrow}>Trust layer</Text>
-                <Text style={styles.sectionTitle}>Seller snapshot</Text>
-                <Text style={styles.sectionSubtitle}>
-                  {sellers.length > 0
-                    ? `${sellers.length} verified ${sellers.length === 1 ? 'seller' : 'sellers'} priced against face value.`
-                    : 'No resale sellers have listed passes for this event yet.'}
-                </Text>
-              </View>
-            </View>
-
-            <View style={styles.organizerCard}>
-              <View style={styles.organizerAvatar}>
-                <Store size={20} color={theme.colors.primary} />
-              </View>
-              <View style={styles.organizerInfo}>
-                <Text style={styles.organizerName}>{organizerName}</Text>
-                <Text style={styles.organizerSub} numberOfLines={1}>
-                  {organizerProfile?.officialEmail || 'Official event organizer'}
-                </Text>
-              </View>
-              <View style={styles.verifiedPill}>
-                <ShieldCheck size={10} color={theme.colors.success} />
-                <Text style={styles.verifiedPillText}>VERIFIED</Text>
-              </View>
-            </View>
-
-            {sellers.length > 0 ? (
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                style={styles.sellerScroll}
-                contentContainerStyle={styles.sellerScrollContent}
-              >
-                {sellers.map((seller) => (
-                  <View key={seller.sellerId} style={styles.sellerCard}>
-                    <View style={styles.sellerTop}>
-                      <View style={styles.sellerAvatar}>
-                        <Text style={styles.sellerAvatarText}>{initialsOf(seller.fullName)}</Text>
-                      </View>
-                      <Text style={styles.sellerName} numberOfLines={1}>
-                        {seller.fullName}
-                      </Text>
-                    </View>
-                    <Text style={styles.sellerMeta}>
-                      {seller.activeListings} active {seller.activeListings === 1 ? 'listing' : 'listings'} ·{' '}
-                      {seller.tiers.length} {seller.tiers.length === 1 ? 'zone' : 'zones'}
-                    </Text>
-                    <Text style={styles.sellerPrice}>from {formatPrice(seller.minPrice)}</Text>
-                    {seller.maxDiscount > 0 && (
-                      <View style={styles.sellerBadge}>
-                        <Text style={styles.sellerBadgeText}>
-                          -{Math.round(seller.maxDiscount)}% below face
-                        </Text>
-                      </View>
-                    )}
-                  </View>
-                ))}
-              </ScrollView>
-            ) : (
-              <View style={styles.emptyCard}>
-                <Users size={22} color={theme.colors.textMuted} />
-                <Text style={styles.emptyTitle}>No resellers yet</Text>
-                <Text style={styles.emptyText}>
-                  Only verified sellers can appear here. New listings are checked against the original ticket price.
-                </Text>
-              </View>
-            )}
-          </View>
-          )}
- 
-          {!isOriginMode && (
-          <View style={styles.section}>
-            <View style={styles.sectionHeader}>
-              <View style={styles.sectionHeaderText}>
-                <Text style={styles.sectionEyebrow}>Verified passes</Text>
-                <Text style={styles.sectionTitle}>Resale offers</Text>
-                <Text style={styles.sectionSubtitle}>Best face-value deals available right now.</Text>
-              </View>
-              {offers.length > 0 && (
-                <TouchableOpacity onPress={openMarketplace} accessibilityRole="button">
-                  <Text style={styles.sectionAction}>View all</Text>
-                </TouchableOpacity>
-              )}
-            </View>
-
-            {offers.length > 0 ? (
-              <View style={styles.resaleList}>
-                {offers.map((offer) => (
-                  <TouchableOpacity
-                    key={offer.listingId}
-                    style={styles.resaleRow}
-                    onPress={openMarketplace}
-                    activeOpacity={0.86}
-                    accessibilityRole="button"
-                    accessibilityLabel={`${offer.tierName} resale pass, ${formatPrice(
-                      offer.resalePrice
-                    )}, sold by ${offer.sellerFullName}`}
-                  >
-                    <View style={styles.resaleIcon}>
-                      <Ticket size={17} color={theme.colors.primary} />
-                    </View>
-                    <View style={styles.resaleInfo}>
-                      <Text style={styles.resaleTier} numberOfLines={1}>
-                        {offer.tierName}
-                      </Text>
-                      <Text style={styles.resaleSeat} numberOfLines={1}>
-                        {offer.seatZone || 'Verified digital pass'}
-                      </Text>
-                      <Text style={styles.resaleSeller} numberOfLines={1}>
-                        Sold by {offer.sellerFullName}
-                      </Text>
-                    </View>
-                    <View style={styles.resalePriceGroup}>
-                      <Text style={styles.resalePrice}>{formatPrice(offer.resalePrice)}</Text>
-                      {offer.originalPrice > offer.resalePrice && (
-                        <Text style={styles.resaleOriginal}>{formatPrice(offer.originalPrice)}</Text>
-                      )}
-                      <ArrowRight size={13} color={theme.colors.textMuted} />
-                    </View>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            ) : (
-              <View style={styles.emptyCard}>
-                <Ticket size={22} color={theme.colors.textMuted} />
-                <Text style={styles.emptyTitle}>No resale passes yet</Text>
-                <Text style={styles.emptyText}>
-                  When a verified fan lists a pass, it appears here with its original face value and escrow
-                  protection.
-                </Text>
-                <FintechButton
-                  title="Open Resale Market"
-                  variant="secondary"
-                  onPress={openMarketplace}
-                  style={styles.emptyButton}
-                />
-              </View>
-            )}
-          </View>
-          )}
- 
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
               <View style={styles.sectionHeaderText}>
@@ -1037,11 +609,9 @@ export default function EventDetailScreen() {
                   <ShieldCheck size={14} color={theme.colors.success} />
                 </View>
                 <View style={styles.detailTextWrap}>
-                  <Text style={styles.detailLabel}>Face-value check</Text>
+                  <Text style={styles.detailLabel}>Direct Box Office</Text>
                   <Text style={styles.detailValue}>
-                    {faceValueFrom
-                      ? `Official prices from ${formatPrice(faceValueFrom)}`
-                      : 'Checked against the original ticket price'}
+                    Official direct ticket issuance with QR verification
                   </Text>
                 </View>
               </View>
@@ -1059,17 +629,7 @@ export default function EventDetailScreen() {
 
       <View style={[styles.bottomBar, { paddingBottom: insets.bottom + theme.spacing.md }]}>
         <View style={styles.bottomInfo}>
-          <Text style={styles.bottomLabel}>
-            {isOriginMode
-              ? totalQuantity > 0
-                ? 'Official checkout'
-                : 'Official tickets'
-              : totalQuantity > 0
-                ? canCheckout
-                  ? 'Official checkout'
-                  : 'Verified resale'
-                : 'Resale market'}
-          </Text>
+          <Text style={styles.bottomLabel}>Official tickets</Text>
           <Text style={styles.bottomValue}>{bottomValue}</Text>
           <Text style={styles.bottomSub} numberOfLines={1}>
             {bottomSub}
@@ -1078,7 +638,7 @@ export default function EventDetailScreen() {
         <View style={styles.bottomCtaWrap}>
           <FintechButton
             title={ctaTitle}
-            onPress={canCheckout ? handleOpenCheckoutModal : openMarketplace}
+            onPress={handleOpenCheckoutModal}
             disabled={ctaDisabled}
             icon={<ChevronRight size={16} color={theme.colors.onPrimary} />}
             textStyle={{ fontSize: 13 }}
@@ -1177,7 +737,7 @@ export default function EventDetailScreen() {
                     <View style={styles.summaryDivider} />
                     <View style={styles.summaryRow}>
                       <Text style={[styles.summaryLabel, { fontWeight: '700' }]}>
-                        Total ({totalQuantity} {totalQuantity === 1 ? 'pass' : 'passes'})
+                        Total ({totalQuantity} {totalQuantity === 1 ? 'ticket' : 'tickets'})
                       </Text>
                       <Text style={[styles.summaryValue, { color: theme.colors.primary, fontSize: 16 }]}>
                         {formatPrice(totalPrice)}

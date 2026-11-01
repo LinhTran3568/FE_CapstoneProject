@@ -60,14 +60,11 @@ function arcBand(cx: number, cy: number, r1: number, r2: number, start: number, 
 }
 
 function availabilityMeta(zone: SeatMapZone): string {
-  if (zone.isOfficial && typeof zone.totalQuantity === 'number' && typeof zone.availableQuantity === 'number') {
-    if (zone.availableQuantity <= 0) return 'Sold out by organizer';
+  if (typeof zone.totalQuantity === 'number' && typeof zone.availableQuantity === 'number') {
+    if (zone.availableQuantity <= 0) return 'Sold out';
     return `${zone.availableQuantity} / ${zone.totalQuantity} seats left`;
   }
-  if (zone.availableListings > 0) {
-    return `${zone.availableListings} verified resale tickets`;
-  }
-  return 'Official Tickets';
+  return 'Official tickets';
 }
 
 function zoneTagText(index: number, count: number): string {
@@ -522,7 +519,7 @@ export function EventSeatMap({
                     }}
                   >
                     <Text style={{ fontSize: 10, fontWeight: '700', color: theme.colors.textMuted }}>
-                      Hết vé
+                      Sold out
                     </Text>
                   </View>
                 ) : qty === 0 ? (
