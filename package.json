@@ -10,13 +10,14 @@
   "scripts": {
     "start": "npm run dev --workspace=apps/mobile",
     "dev": "doppler run -- npm run dev --workspace=apps/web",
-    "dev:web": "npm run dev --workspace=apps/web",
+    "dev:web": "doppler run -- npm run dev --workspace=apps/web",
     "dev:mobile": "npm run dev --workspace=apps/mobile",
     "build:web": "npm run build --workspace=apps/web",
     "build:mobile": "npm run build --workspace=apps/mobile",
     "typecheck": "npm run typecheck --workspace=apps/web && npm run typecheck --workspace=apps/mobile",
     "lint": "npm run lint --workspace=apps/web && npm run lint --workspace=apps/mobile",
-    "test": "npm run test --workspace=apps/web"
+    "test": "npm run test --workspace=apps/web",
+    "dev:all": "concurrently -n \"WEB,MOBILE\" -c \"cyan,magenta\" \"npm run dev:web\" \"npm run dev:mobile\""
   },
   "keywords": [
     "ticketshield",
@@ -29,5 +30,8 @@
     "monorepo"
   ],
   "author": "TicketShield AI Team",
-  "license": "MIT"
+  "license": "MIT",
+  "devDependencies": {
+    "concurrently": "^10.0.6"
+  }
 }
