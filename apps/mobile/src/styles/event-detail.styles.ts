@@ -1,4 +1,4 @@
-import { StyleSheet } from 'react-native';
+import { StyleSheet, Platform } from 'react-native';
 import { theme } from '../theme';
 
 export const styles = StyleSheet.create({
@@ -250,5 +250,175 @@ export const styles = StyleSheet.create({
     fontSize: theme.typography.sizes.xl,
     fontWeight: theme.typography.weights.extrabold,
     color: theme.colors.primary,
+  },
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.75)',
+    justifyContent: 'flex-end',
+  },
+  modalSheet: {
+    backgroundColor: theme.colors.surface,
+    borderTopLeftRadius: theme.radii['2xl'],
+    borderTopRightRadius: theme.radii['2xl'],
+    maxHeight: '90%',
+    paddingHorizontal: theme.spacing.xl,
+    paddingTop: theme.spacing.md,
+    borderTopWidth: 1,
+    borderColor: theme.colors.border,
+  },
+  sheetHandle: {
+    width: 44,
+    height: 5,
+    borderRadius: 3,
+    backgroundColor: theme.colors.border,
+    alignSelf: 'center',
+    marginBottom: theme.spacing.md,
+  },
+  sheetHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingBottom: theme.spacing.md,
+    borderBottomWidth: 1,
+    borderColor: theme.colors.border,
+    marginBottom: theme.spacing.md,
+  },
+  sheetTitle: {
+    fontSize: theme.typography.sizes.lg,
+    fontWeight: theme.typography.weights.bold,
+    color: theme.colors.text,
+  },
+  sheetCloseBtn: {
+    padding: theme.spacing.xs,
+  },
+  orderSummaryCard: {
+    backgroundColor: theme.colors.surfaceElevated,
+    borderRadius: theme.radii.lg,
+    padding: theme.spacing.md,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    marginBottom: theme.spacing.md,
+    gap: 6,
+  },
+  summaryRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  summaryLabel: {
+    fontSize: theme.typography.sizes.xs,
+    color: theme.colors.textSecondary,
+  },
+  summaryValue: {
+    fontSize: theme.typography.sizes.sm,
+    fontWeight: theme.typography.weights.semibold,
+    color: theme.colors.text,
+  },
+  summaryDivider: {
+    height: 1,
+    backgroundColor: theme.colors.border,
+    marginVertical: 4,
+  },
+  formSection: {
+    gap: theme.spacing.md,
+    paddingBottom: theme.spacing.md,
+  },
+  termsContainer: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
+    marginTop: 4,
+  },
+  checkboxBox: {
+    marginTop: 2,
+  },
+  termsLabel: {
+    flex: 1,
+    fontSize: theme.typography.sizes.xs,
+    color: theme.colors.textSecondary,
+    lineHeight: 18,
+  },
+  fieldError: {
+    fontSize: theme.typography.sizes.xs,
+    color: theme.colors.danger,
+    marginTop: -4,
+  },
+  submitErrorBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: 'rgba(239, 68, 68, 0.15)',
+    padding: theme.spacing.md,
+    borderRadius: theme.radii.md,
+    borderWidth: 1,
+    borderColor: theme.colors.danger,
+  },
+  submitErrorText: {
+    flex: 1,
+    fontSize: theme.typography.sizes.xs,
+    color: theme.colors.danger,
+  },
+  modalFooter: {
+    paddingTop: theme.spacing.md,
+    gap: theme.spacing.sm,
+  },
+  successBox: {
+    alignItems: 'center',
+    paddingVertical: theme.spacing.lg,
+    gap: theme.spacing.sm,
+  },
+  successIcon: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: 'rgba(52, 211, 153, 0.15)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: theme.spacing.xs,
+  },
+  successTitle: {
+    fontSize: theme.typography.sizes.xl,
+    fontWeight: theme.typography.weights.extrabold,
+    color: theme.colors.text,
+    textAlign: 'center',
+  },
+  successMessage: {
+    fontSize: theme.typography.sizes.xs,
+    color: theme.colors.textSecondary,
+    textAlign: 'center',
+    paddingHorizontal: theme.spacing.md,
+  },
+  ticketCodesBox: {
+    width: '100%',
+    backgroundColor: theme.colors.surfaceElevated,
+    borderRadius: theme.radii.lg,
+    padding: theme.spacing.md,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    marginVertical: theme.spacing.md,
+    gap: 8,
+  },
+  ticketCodeCard: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 4,
+  },
+  ticketCodeBadge: {
+    backgroundColor: 'rgba(255, 107, 74, 0.15)',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: theme.radii.full,
+  },
+  ticketCodeBadgeText: {
+    fontSize: 11,
+    fontWeight: theme.typography.weights.bold,
+    color: theme.colors.primary,
+  },
+  ticketCodeValue: {
+    fontSize: theme.typography.sizes.xs,
+    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
+    color: theme.colors.text,
+    fontWeight: theme.typography.weights.bold,
   },
 });

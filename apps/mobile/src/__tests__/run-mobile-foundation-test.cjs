@@ -85,6 +85,9 @@ async function run() {
     assert(getApiBaseUrl() === 'http://192.168.1.88:5000/api/v1', 'api-client base URL configured');
     assert(API_CONFIG.baseURL === 'http://192.168.1.88:5000/api/v1', 'API_CONFIG.baseURL updated');
 
+    const { getOrganizerApiBase } = require('@ticketshield/api-client');
+    assert(getOrganizerApiBase() === 'http://192.168.1.88:5006/api/organizer', 'Organizer API base URL configured');
+
     console.log(` [PASS] 2. Dynamic API Gateway Resolver auto-detected LAN IP: ${gw.url} (Source: ${gw.source})`);
     passed++;
   } catch (err) {

@@ -1,20 +1,127 @@
+import { getApiBaseUrl } from './client';
 import type { MockTicketDto } from '@ticketshield/types';
 
-export const getOrganizerApiBase = (): string => {
+export const DEFAULT_ORGANIZER_PORT = 5006; // TicketShield.AntiBot.Gateway
+export const DEFAULT_MOCK_ORGANIZER_PORT = 5001; // MockOrganizer.API direct
+export const ORGANIZER_API_PATH = '/api/organizer';
+
+const dynamicSlugCache = new Map<string, string>();
+
+let customOrganizerApiBase: string | null = null;
+let activePortOverride: number | null = null;
+
+export const setOrganizerApiBaseUrl = (url: string): void => {
+  customOrganizerApiBase = url;
+};
+
+export const resetOrganizerPortOverride = (): void => {
+  activePortOverride = null;
+};
+
+export const getOrganizerPortFromEnv = (): number => {
   try {
     const globalObj = typeof globalThis !== 'undefined' ? (globalThis as any) : {};
     const win = typeof window !== 'undefined' ? (window as any) : {};
     const env = globalObj?.process?.env || win?.__ENV__ || {};
-    const envUrl = env.VITE_ORGANIZER_API_BASE_URL || env.VITE_ORGANIZER_API_URL;
+    const portVal = env.EXPO_PUBLIC_ORGANIZER_PORT || env.VITE_ORGANIZER_PORT || env.ORGANIZER_PORT;
+    if (portVal && !isNaN(Number(portVal))) {
+      return Number(portVal);
+    }
+  } catch {}
+  return DEFAULT_ORGANIZER_PORT;
+};
+
+export const getOrganizerPort = (): number => {
+  if (activePortOverride) {
+    return activePortOverride;
+  }
+  return getOrganizerPortFromEnv();
+};
+
+export const getMockOrganizerPort = (): number => {
+  try {
+    const globalObj = typeof globalThis !== 'undefined' ? (globalThis as any) : {};
+    const win = typeof window !== 'undefined' ? (window as any) : {};
+    const env = globalObj?.process?.env || win?.__ENV__ || {};
+    const portVal =
+      env.EXPO_PUBLIC_MOCK_ORGANIZER_PORT ||
+      env.VITE_MOCK_ORGANIZER_PORT ||
+      env.MOCK_ORGANIZER_PORT;
+    if (portVal && !isNaN(Number(portVal))) {
+      return Number(portVal);
+    }
+  } catch {}
+  return DEFAULT_MOCK_ORGANIZER_PORT;
+};
+
+export const getOrganizerApiBase = (): string => {
+  // 1. Nếu có cấu hình tùy chỉnh qua setOrganizerApiBaseUrl (do apiResolver truyền vào)
+  if (customOrganizerApiBase) {
+    const clean = customOrganizerApiBase.replace(/\/$/, '');
+    return clean.endsWith(ORGANIZER_API_PATH) ? clean : `${clean}${ORGANIZER_API_PATH}`;
+  }
+
+  // 2. Kiểm tra biến môi trường
+  try {
+    const globalObj = typeof globalThis !== 'undefined' ? (globalThis as any) : {};
+    const win = typeof window !== 'undefined' ? (window as any) : {};
+    const env = globalObj?.process?.env || win?.__ENV__ || {};
+    const envUrl =
+      env.VITE_ORGANIZER_API_BASE_URL ||
+      env.VITE_ORGANIZER_API_URL ||
+      env.EXPO_PUBLIC_ORGANIZER_API_BASE_URL ||
+      env.EXPO_PUBLIC_ORGANIZER_API_URL;
     if (envUrl) {
       const clean = String(envUrl).replace(/\/$/, '');
-      return clean.endsWith('/api/organizer') ? clean : `${clean}/api/organizer`;
+      return clean.endsWith(ORGANIZER_API_PATH) ? clean : `${clean}${ORGANIZER_API_PATH}`;
+    }
+
+    // 3. FE-MOB-9.1.1: Tự động kế thừa Host IP từ Core API Gateway
+    const coreApiBase = getApiBaseUrl();
+    if (coreApiBase) {
+      const parsed = new URL(coreApiBase);
+      const port = getOrganizerPort();
+      return `${parsed.protocol}//${parsed.hostname}:${port}${ORGANIZER_API_PATH}`;
     }
   } catch {}
 
-  // Gateway-First: Mặc định định tuyến qua TicketShield.AntiBot.Gateway (:5006) để lọc Bot
-  return 'http://localhost:5006/api/organizer';
+  // 4. Fallback mặc định
+  const port = getOrganizerPort();
+  return `http://localhost:${port}${ORGANIZER_API_PATH}`;
 };
+
+/**
+ * Robust fetch wrapper for Organizer API:
+ * Tự động gọi endpoint qua URL chính (:5006 AntiBot Gateway hoặc dynamic host LAN).
+ * Nếu cổng chính bị từ chối kết nối (chưa bật AntiBot Gateway), tự động fallback sang cổng trực tiếp (:5001 MockOrganizer).
+ */
+async function fetchWithOrganizerFallback(
+  path: string,
+  options?: RequestInit
+): Promise<Response> {
+  const base = getOrganizerApiBase();
+  const url = `${base}${path}`;
+
+  try {
+    return await fetch(url, options);
+  } catch (err: any) {
+    const primaryPort = getOrganizerPortFromEnv();
+    const fallbackPort = getMockOrganizerPort();
+    if (base.includes(`:${primaryPort}`) && primaryPort !== fallbackPort) {
+      const fallbackBase = base.replace(`:${primaryPort}`, `:${fallbackPort}`);
+      // Dùng console.log thay cho console.warn để không trigger khung LogBox vàng trên ứng dụng React Native Mobile
+      console.log(`[organizerStoreApi] Cổng :${primaryPort} không phản hồi. Tự động chuyển fallback sang :${fallbackPort}...`);
+      const response = await fetch(`${fallbackBase}${path}`, options);
+      // Ghi nhớ cổng hoạt động thành công để các request tiếp theo trong session gọi thẳng vào cổng fallback
+      activePortOverride = fallbackPort;
+      if (customOrganizerApiBase && customOrganizerApiBase.includes(`:${primaryPort}`)) {
+        customOrganizerApiBase = customOrganizerApiBase.replace(`:${primaryPort}`, `:${fallbackPort}`);
+      }
+      return response;
+    }
+    throw err;
+  }
+}
 
 export const getMockOrganizerBaseUrl = (): string => {
   const orgBase = getOrganizerApiBase();
@@ -57,13 +164,10 @@ export interface OrganizerCheckoutRequest {
   tierId: string;
   quantity: number;
   buyerEmail: string;
-  buyerName?: string;
-  buyerPhone?: string;
-  sessionToken?: string;
-  deviceFingerprint?: string;
+  buyerName: string;
+  buyerPhone: string;
   telemetry?: ClientTelemetry;
-  challengeToken?: string;
-  challengeProvider?: string;
+  sessionToken?: string;
 }
 
 export interface OrganizerCheckoutResponse {
@@ -76,72 +180,66 @@ export interface OrganizerCheckoutResponse {
   totalAmount: number;
   status: string;
   remainingAvailable: number;
-  tickets?: Array<{
+  tickets: Array<{
     ticketCode: string;
-    seatZone: string;
+    seatZone?: string;
     ownerEmail: string;
-    ownerName?: string;
-    ownerPhone?: string;
+    ownerName: string;
+    ownerPhone: string;
     status: string;
   }>;
-  telemetry?: {
-    timeToCheckoutSeconds?: number;
-    concurrentHoldCount?: number;
-    executionDurationMs?: number;
-    isSessionValid?: boolean;
+  antiBot?: {
+    decision: string;
+    riskScore: number;
+    isFailOpen: boolean;
+    guardDurationMs: number;
   };
+  telemetry?: {
+    timeToCheckoutSeconds: number;
+    concurrentHoldCount: number;
+    burstRate10s: number;
+    deviceAccountOverlap: number;
+    executionDurationMs: number;
+    redisDurationMs: number;
+    isSessionValid: boolean;
+  };
+}
+
+export interface OrganizerGenerateTicketRequest {
+  eventId: string;
+  seatZone: string;
+  tierName: string;
+  originalPrice: number;
+  ownerEmail: string;
+  ownerName: string;
+  ownerPhone: string;
+  organizerId?: string;
 }
 
 export interface AntiBotPolicyConfig {
   allowThreshold: number;
   blockThreshold: number;
-  challengeMode?: 'recaptcha' | 'turnstile' | 'sequential';
-  lastUpdatedAtUtc: string;
-  updatedBy: string;
-}
-
-export interface UpdateAntiBotPolicyRequest {
-  allowThreshold: number;
-  blockThreshold: number;
-  challengeMode?: 'recaptcha' | 'turnstile' | 'sequential';
-  eventId?: string;
+  guardTimeoutMs: number;
+  updatedAtUtc?: string;
   updatedBy?: string;
 }
 
-export interface AntiBotEvaluationLog {
-  requestId: string;
-  timestampUtc: string;
-  buyerEmail: string;
+export interface UpdateAntiBotPolicyRequest {
   eventId?: string;
-  decision: 'Allow' | 'Challenge' | 'Block';
-  riskScore: number;
-  latencyMs: number;
-  isFailOpen: boolean;
-  reason: string;
+  allowThreshold?: number;
+  blockThreshold?: number;
+  guardTimeoutMs?: number;
 }
 
 export interface AntiBotAnalyticsSummary {
-  totalEvaluations: number;
-  allowCount: number;
-  challengeCount: number;
-  blockCount: number;
-  allowPercentage: number;
-  challengePercentage: number;
-  blockPercentage: number;
-  averageLatencyMs: number;
-  currentPolicy: AntiBotPolicyConfig;
-  recentLogs: AntiBotEvaluationLog[];
-}
-
-export interface OrganizerGenerateTicketRequest {
-  ticketCode?: string;
-  eventName?: string;
-  seatZone?: string;
-  originalPrice?: number;
-  ownerEmail?: string;
-  ownerName?: string;
-  ownerPhone?: string;
-  organizerId?: string;
+  totalRequests: number;
+  totalAllow: number;
+  totalChallenge: number;
+  totalBlock: number;
+  failOpenCount: number;
+  meanLatencyMs: number;
+  botRatePercent: number;
+  p95LatencyMs: number;
   eventId?: string;
   tierId?: string;
 }
@@ -155,25 +253,72 @@ export const organizerStoreApi = {
   },
 
   /**
-   * Lấy danh sách các hạng vé trực tiếp từ Ban Tổ Chức (BE-MOCK-7.1.1)
+   * Lấy danh mục sự kiện từ Ban Tổ Chức phục vụ Catalog Ingestion và nhận diện động
    */
-  getEventTiers: async (eventId: string): Promise<OrganizerBackendTier[]> => {
-    const base = getOrganizerApiBase();
-    const res = await fetch(`${base}/events/${encodeURIComponent(eventId)}/tiers`, {
+  getEventsCatalog: async (): Promise<any[]> => {
+    const res = await fetchWithOrganizerFallback('/events', {
       headers: { Accept: 'application/json' },
     });
-    if (!res.ok) {
-      throw new Error(`Không tìm thấy hạng vé cho sự kiện ${eventId} (HTTP ${res.status})`);
-    }
+    if (!res.ok) return [];
     return res.json();
+  },
+
+  /**
+   * Lấy danh sách các hạng vé trực tiếp từ Ban Tổ Chức (BE-MOCK-7.1.1)
+   * Tự động nhận diện slug hoặc tra cứu động qua /api/organizer/events nếu dùng GUID của Gateway.
+   */
+  getEventTiers: async (eventIdOrSlug: string, eventName?: string): Promise<OrganizerBackendTier[]> => {
+    const key = eventIdOrSlug.toLowerCase().trim();
+
+    // 1. Kiểm tra cache đã phân giải động trước đó
+    const cachedSlug = dynamicSlugCache.get(key);
+    const targetSlug = cachedSlug || eventIdOrSlug;
+
+    try {
+      const directRes = await fetchWithOrganizerFallback(`/events/${encodeURIComponent(targetSlug)}/tiers`, {
+        headers: { Accept: 'application/json' },
+      });
+      if (directRes.ok) {
+        return await directRes.json();
+      }
+    } catch {}
+
+    // 2. Nếu không tìm thấy (404), tự động truy vấn danh mục sự kiện của BTC để lấy slug chuẩn động
+    try {
+      const catalog = await organizerStoreApi.getEventsCatalog();
+      if (Array.isArray(catalog) && catalog.length > 0) {
+        const targetName = (eventName || '').toLowerCase().trim();
+        const matched = catalog.find((e: any) => {
+          if (!e) return false;
+          const extId = String(e.externalEventId || '').toLowerCase();
+          const name = String(e.name || '').toLowerCase();
+          if (extId === key) return true;
+          if (targetName && (name.includes(targetName) || targetName.includes(name))) return true;
+          return false;
+        }) || catalog[0];
+
+        if (matched?.externalEventId) {
+          dynamicSlugCache.set(key, matched.externalEventId);
+          const matchedRes = await fetchWithOrganizerFallback(`/events/${encodeURIComponent(matched.externalEventId)}/tiers`, {
+            headers: { Accept: 'application/json' },
+          });
+          if (matchedRes.ok) {
+            return await matchedRes.json();
+          }
+        }
+      }
+    } catch (err) {
+      console.log('[organizerStoreApi] Dynamic catalog resolution error:', err);
+    }
+
+    throw new Error(`Không tìm thấy hạng vé cho sự kiện "${eventName || eventIdOrSlug}"`);
   },
 
   /**
    * Lấy session token cho một hạng vé khi mở trang chọn vé (BE-PIPE-8.2.1)
    */
   getCheckoutSession: async (tierId: string): Promise<SessionTokenResponse> => {
-    const base = getOrganizerApiBase();
-    const res = await fetch(`${base}/orders/session?tierId=${encodeURIComponent(tierId)}`, {
+    const res = await fetchWithOrganizerFallback(`/orders/session?tierId=${encodeURIComponent(tierId)}`, {
       headers: { Accept: 'application/json' },
     });
     if (!res.ok) {
@@ -186,8 +331,7 @@ export const organizerStoreApi = {
    * Gọi checkout trừ kho nguyên tử từ Ban Tổ Chức (BE-MOCK-7.1.2)
    */
   checkout: async (request: OrganizerCheckoutRequest): Promise<OrganizerCheckoutResponse> => {
-    const base = getOrganizerApiBase();
-    const res = await fetch(`${base}/orders/checkout`, {
+    const res = await fetchWithOrganizerFallback(`/orders/checkout`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
       body: JSON.stringify(request),
@@ -226,6 +370,11 @@ export const organizerStoreApi = {
           } else {
             errMsg = errorJson.message;
           }
+        } else if (errorJson.errors && typeof errorJson.errors === 'object') {
+          const detailMsgs = Object.values(errorJson.errors).flat().join(', ');
+          errMsg = detailMsgs || errorJson.title || errMsg;
+        } else if (errorJson.title) {
+          errMsg = errorJson.title;
         }
       }
       throw new Error(errMsg);
@@ -238,11 +387,10 @@ export const organizerStoreApi = {
    * Lấy danh sách toàn bộ vé có sẵn từ hệ thống Ban Tổ Chức (/api/organizer/tickets)
    */
   getTickets: async (search?: string, status?: string): Promise<MockTicketDto[]> => {
-    const base = getOrganizerApiBase();
     const params = new URLSearchParams();
     if (search) params.append('search', search);
     if (status) params.append('status', status);
-    const res = await fetch(`${base}/tickets?${params.toString()}`, {
+    const res = await fetchWithOrganizerFallback(`/tickets?${params.toString()}`, {
       headers: { Accept: 'application/json' },
     });
     if (!res.ok) {
@@ -255,8 +403,7 @@ export const organizerStoreApi = {
    * Tạo vé chính thức trong cơ sở dữ liệu của Ban Tổ Chức
    */
   generateTicket: async (request: OrganizerGenerateTicketRequest): Promise<any> => {
-    const base = getOrganizerApiBase();
-    const res = await fetch(`${base}/tickets/generate`, {
+    const res = await fetchWithOrganizerFallback(`/tickets/generate`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
       body: JSON.stringify(request),

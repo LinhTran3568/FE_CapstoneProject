@@ -1,6 +1,12 @@
 import Constants from 'expo-constants';
 import { Platform } from 'react-native';
-import { setApiBaseUrl, setTokenAdapter } from '@ticketshield/api-client';
+import {
+  setApiBaseUrl,
+  setTokenAdapter,
+  setOrganizerApiBaseUrl,
+  DEFAULT_ORGANIZER_PORT,
+  ORGANIZER_API_PATH,
+} from '@ticketshield/api-client';
 import { secureStorage, mobileSecureStoreAdapter } from './secureStore';
 
 declare const process: any;
@@ -167,8 +173,16 @@ export async function initApiGateway(): Promise<GatewayInfo> {
   const gatewayInfo = await resolveApiGatewayUrl();
   setApiBaseUrl(gatewayInfo.url);
 
+  // FE-MOB-9.1.1: Dynamically configure Organizer API base URL matching detected Gateway Host
+  const envOrganizerPort = Number(process.env.EXPO_PUBLIC_ORGANIZER_PORT);
+  const organizerPort =
+    !isNaN(envOrganizerPort) && envOrganizerPort > 0 ? envOrganizerPort : DEFAULT_ORGANIZER_PORT;
+  const organizerUrl = `http://${gatewayInfo.host}:${organizerPort}${ORGANIZER_API_PATH}`;
+  setOrganizerApiBaseUrl(organizerUrl);
+
   if (!isInitialized) {
     console.log(`[TicketShield Mobile] Dynamic Gateway Resolved: ${gatewayInfo.url} (Source: ${gatewayInfo.source})`);
+    console.log(`[TicketShield Mobile] Dynamic Organizer API Resolved: ${organizerUrl} (Fallback: :5001)`);
     isInitialized = true;
   }
 
