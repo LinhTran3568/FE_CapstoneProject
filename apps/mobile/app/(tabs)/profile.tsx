@@ -173,9 +173,7 @@ export default function MobileProfileScreen() {
 
         <TouchableOpacity
           style={[styles.menuRow, styles.noBorderBottom]}
-          onPress={() =>
-            Alert.alert('Payout Accounts', 'Linked bank accounts for receiving resale payouts. Managed via web portal.')
-          }
+          onPress={() => router.push('/payout-accounts')}
           activeOpacity={0.7}
         >
           <View style={[styles.menuIconSlot, { backgroundColor: theme.colors.primaryLight }]}>
