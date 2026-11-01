@@ -6,7 +6,13 @@ import { Text } from './AppText';
 import { EventPoster } from './EventPoster';
 import { theme } from '../theme';
 import { formatEventDate } from '../utils/format';
-import { canShowEntryQr, getStatusView, type TicketStatusTone } from '../utils/ticketView';
+import {
+  canShowEntryQr,
+  getPassActionLabel,
+  getStatusView,
+  getTicketCount,
+  type TicketStatusTone,
+} from '../utils/ticketView';
 import { styles } from './TicketCard.styles';
 
 interface TicketCardProps {
@@ -30,7 +36,7 @@ export function TicketCard({ ticket, onPress }: TicketCardProps) {
   const status = getStatusView(ticket.status);
   const StatusIcon =
     status.tone === 'ready' ? ShieldCheck : status.tone === 'warning' ? AlertTriangle : Info;
-  const bundleCount = Math.max(ticket.bundleTotalTickets ?? 0, ticket.bundleItems?.length ?? 0);
+  const ticketCount = getTicketCount(ticket);
 
   return (
     <TouchableOpacity
@@ -50,7 +56,7 @@ export function TicketCard({ ticket, onPress }: TicketCardProps) {
           {canShowEntryQr(ticket) && (
             <View style={styles.passPill}>
               <QrCode size={13} color={theme.colors.onPrimary} />
-              <Text style={styles.passPillText}>Show Pass</Text>
+              <Text style={styles.passPillText}>{getPassActionLabel(ticket)}</Text>
             </View>
           )}
         </View>
@@ -86,9 +92,9 @@ export function TicketCard({ ticket, onPress }: TicketCardProps) {
             </Text>
           </View>
           <View style={styles.detailCol}>
-            <Text style={styles.detailLabel}>{bundleCount >= 2 ? 'Bundle' : 'Zone / Seat'}</Text>
+            <Text style={styles.detailLabel}>{ticketCount >= 2 ? 'Combo Package' : 'Zone / Seat'}</Text>
             <Text style={styles.detailValue} numberOfLines={1}>
-              {bundleCount >= 2 ? `${bundleCount} tickets` : ticket.seatZone}
+              {ticketCount >= 2 ? `${ticketCount} TICKETS` : ticket.seatZone}
             </Text>
           </View>
           {ticket.ticketPassCode ? (

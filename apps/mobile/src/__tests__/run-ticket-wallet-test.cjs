@@ -160,20 +160,40 @@ test('ba trang thai dung duoc deu hien Ready for Entry', () => {
   });
 });
 
-test('DISPUTED hien In Dispute', () => {
+test('DISPUTED hien giong web', () => {
   const { getStatusView } = view();
-  assert.equal(getStatusView('DISPUTED').label, 'In Dispute');
+  assert.equal(getStatusView('DISPUTED').label, 'DISPUTED');
 });
 
-test('REFUNDED hien Refunded', () => {
+test('REFUNDED hien giong web', () => {
   const { getStatusView } = view();
-  assert.equal(getStatusView('REFUNDED').label, 'Refunded');
+  assert.equal(getStatusView('REFUNDED').label, 'ĐÃ HOÀN TIỀN');
 });
 
-test('trang thai la hien Processing, khong hien ma tho', () => {
+test('trang thai la hien ISSUING giong web, khong hien ma tho', () => {
   const { getStatusView } = view();
-  assert.equal(getStatusView('REFUNDQUEUED').label, 'Processing');
-  assert.equal(getStatusView('').label, 'Processing');
+  assert.equal(getStatusView('REFUNDQUEUED').label, 'ISSUING...');
+  assert.equal(getStatusView('').label, 'ISSUING...');
+});
+
+test('nhan tren nut mo QR giong web', () => {
+  const { getPassActionLabel } = view();
+  assert.equal(getPassActionLabel(ticket()), 'VIEW ENTRY QR');
+  assert.equal(getPassActionLabel(ticket({ bundleTotalTickets: 2 })), 'VIEW QRS (2)');
+});
+
+test('so ve trong goi lay tu bundleTotalTickets roi bundleItems', () => {
+  const { getTicketCount } = view();
+  const item = { listingId: 'a', ticketCode: 'A', seatZone: 'A', qrCodeData: 'A', qrCodeImageUrl: '' };
+  assert.equal(getTicketCount(ticket()), 1);
+  assert.equal(getTicketCount(ticket({ bundleTotalTickets: 3 })), 3);
+  assert.equal(getTicketCount(ticket({ bundleItems: [item, { ...item, listingId: 'b' }] })), 2);
+});
+
+test('nhan biet ve da hoan tien', () => {
+  const { isRefundedTicket } = view();
+  assert.equal(isRefundedTicket(ticket({ status: ' refunded ' })), true);
+  assert.equal(isRefundedTicket(ticket()), false);
 });
 
 test('nhan khong phan biet hoa thuong va khoang trang', () => {

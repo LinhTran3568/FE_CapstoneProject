@@ -11,7 +11,12 @@ import { OfflineNotice } from '../../src/components/OfflineNotice';
 import { TicketPassPager } from '../../src/components/TicketPassPager';
 import { useMyTickets } from '../../src/hooks/useMyTickets';
 import { formatEventDateTime } from '../../src/utils/format';
-import { canShowEntryQr, getPassItems, getStatusView } from '../../src/utils/ticketView';
+import {
+  canShowEntryQr,
+  getPassItems,
+  getStatusView,
+  isRefundedTicket,
+} from '../../src/utils/ticketView';
 import { styles } from '../../src/styles/ticket-detail.styles';
 
 export default function TicketDetailScreen() {
@@ -136,7 +141,7 @@ export default function TicketDetailScreen() {
             <View style={styles.noPass}>
               <Text style={styles.noPassTitle}>No entry pass</Text>
               <Text style={styles.noPassDesc}>
-                {status.label === 'Refunded'
+                {isRefundedTicket(ticket)
                   ? 'This ticket was refunded and can no longer be used for entry.'
                   : 'Your entry pass is not available yet.'}
               </Text>

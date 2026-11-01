@@ -29,16 +29,30 @@ const eventStartMs = (ticket: PurchasedTicketDto): number | null => {
   return Number.isNaN(time) ? null : time;
 };
 
+/** Nhãn giữ giống trang My Tickets của web để 2 nền tảng đọc cùng một chữ. */
 export function getStatusView(status: string): TicketStatusView {
   const normalized = normalizeStatus(status);
   if (READY_STATUSES.includes(normalized)) return { label: 'Ready for Entry', tone: 'ready' };
-  if (normalized === 'DISPUTED') return { label: 'In Dispute', tone: 'warning' };
-  if (normalized === 'REFUNDED') return { label: 'Refunded', tone: 'muted' };
-  return { label: 'Processing', tone: 'muted' };
+  if (normalized === 'DISPUTED') return { label: 'DISPUTED', tone: 'warning' };
+  if (normalized === 'REFUNDED') return { label: 'ĐÃ HOÀN TIỀN', tone: 'muted' };
+  return { label: 'ISSUING...', tone: 'muted' };
+}
+
+export function isRefundedTicket(ticket: PurchasedTicketDto): boolean {
+  return normalizeStatus(ticket.status) === 'REFUNDED';
+}
+
+export function getTicketCount(ticket: PurchasedTicketDto): number {
+  return ticket.bundleTotalTickets || ticket.bundleItems?.length || 1;
+}
+
+export function getPassActionLabel(ticket: PurchasedTicketDto): string {
+  const count = getTicketCount(ticket);
+  return count >= 2 ? `VIEW QRS (${count})` : 'VIEW ENTRY QR';
 }
 
 export function isPastTicket(ticket: PurchasedTicketDto, now: Date): boolean {
-  if (normalizeStatus(ticket.status) === 'REFUNDED') return true;
+  if (isRefundedTicket(ticket)) return true;
   const start = eventStartMs(ticket);
   if (start === null) return false;
   return now.getTime() > start + PAST_BUFFER_HOURS * HOUR_MS;
