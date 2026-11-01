@@ -11,6 +11,7 @@
     "typecheck": "npx tsc --noEmit",
     "test:foundation": "npx tsx src/__tests__/run-mobile-foundation-test.cjs",
     "test:wallet": "npx tsx src/__tests__/run-ticket-wallet-test.cjs",
+    "test:orders": "npx tsx src/__tests__/run-order-history-test.cjs",
     "lint": "npx eslint ."
   },
   "dependencies": {
