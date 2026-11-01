@@ -162,6 +162,47 @@ export const BuyTicketBottomSheet: React.FC<BuyTicketBottomSheetProps> = ({
     };
   }, [holdData]);
 
+  // Auto-polling payment status every 3 seconds while hold session is active (FE-MOB-9.3.4)
+  useEffect(() => {
+    if (!holdData || purchaseSuccess || secondsLeft === 0) return;
+
+    let isPolling = true;
+    const pollInterval = setInterval(async () => {
+      if (!isPolling) return;
+      try {
+        const status = await resaleListingsApi.getPaymentStatus(holdData.listingId);
+        const escrowStatus = status?.escrowStatus?.toLowerCase();
+        const listingStatus = status?.listingStatus?.toLowerCase();
+        const hasFunds =
+          escrowStatus === 'funded' ||
+          escrowStatus === 'released' ||
+          listingStatus === 'transacting' ||
+          listingStatus === 'sold';
+
+        if (hasFunds && isPolling) {
+          isPolling = false;
+          clearInterval(pollInterval);
+          setPurchaseSuccess(true);
+          onSuccess?.({
+            orderId: holdData.paymentReference || `TS-${listing?.listingId?.substring(0, 8)}`,
+            listing,
+            escrowId: holdData.escrowId,
+            paymentReference: holdData.paymentReference,
+            totalBuyerPaid: holdData.totalBuyerPaid,
+            recipientName,
+            recipientEmail,
+            recipientPhone,
+          });
+        }
+      } catch {}
+    }, 3000);
+
+    return () => {
+      isPolling = false;
+      clearInterval(pollInterval);
+    };
+  }, [holdData, purchaseSuccess, secondsLeft, listing, recipientName, recipientEmail, recipientPhone, onSuccess]);
+
   // Price calculations
   const escrowFee = useMemo(() => {
     if (!listing) return 0;
