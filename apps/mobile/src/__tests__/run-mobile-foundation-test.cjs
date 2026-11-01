@@ -33,6 +33,12 @@ Module.prototype.require = function(request) {
       },
     };
   }
+  if (request === 'expo-clipboard') {
+    return {
+      setStringAsync: async () => true,
+      getStringAsync: async () => '',
+    };
+  }
   return originalRequire.apply(this, arguments);
 };
 

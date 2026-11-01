@@ -55,13 +55,11 @@ export const getMockOrganizerPort = (): number => {
 };
 
 export const getOrganizerApiBase = (): string => {
-  // 1. Nếu có cấu hình tùy chỉnh qua setOrganizerApiBaseUrl (do apiResolver truyền vào)
   if (customOrganizerApiBase) {
     const clean = customOrganizerApiBase.replace(/\/$/, '');
     return clean.endsWith(ORGANIZER_API_PATH) ? clean : `${clean}${ORGANIZER_API_PATH}`;
   }
 
-  // 2. Kiểm tra biến môi trường
   try {
     const globalObj = typeof globalThis !== 'undefined' ? (globalThis as any) : {};
     const win = typeof window !== 'undefined' ? (window as any) : {};
@@ -76,7 +74,6 @@ export const getOrganizerApiBase = (): string => {
       return clean.endsWith(ORGANIZER_API_PATH) ? clean : `${clean}${ORGANIZER_API_PATH}`;
     }
 
-    // 3. FE-MOB-9.1.1: Tự động kế thừa Host IP từ Core API Gateway
     const coreApiBase = getApiBaseUrl();
     if (coreApiBase) {
       const parsed = new URL(coreApiBase);
@@ -85,16 +82,10 @@ export const getOrganizerApiBase = (): string => {
     }
   } catch {}
 
-  // 4. Fallback mặc định
   const port = getOrganizerPort();
   return `http://localhost:${port}${ORGANIZER_API_PATH}`;
 };
 
-/**
- * Robust fetch wrapper for Organizer API:
- * Tự động gọi endpoint qua URL chính (:5006 AntiBot Gateway hoặc dynamic host LAN).
- * Nếu cổng chính bị từ chối kết nối (chưa bật AntiBot Gateway), tự động fallback sang cổng trực tiếp (:5001 MockOrganizer).
- */
 async function fetchWithOrganizerFallback(
   path: string,
   options?: RequestInit
@@ -109,10 +100,8 @@ async function fetchWithOrganizerFallback(
     const fallbackPort = getMockOrganizerPort();
     if (base.includes(`:${primaryPort}`) && primaryPort !== fallbackPort) {
       const fallbackBase = base.replace(`:${primaryPort}`, `:${fallbackPort}`);
-      // Dùng console.log thay cho console.warn để không trigger khung LogBox vàng trên ứng dụng React Native Mobile
-      console.log(`[organizerStoreApi] Cổng :${primaryPort} không phản hồi. Tự động chuyển fallback sang :${fallbackPort}...`);
+      console.log(`[organizerStoreApi] Port :${primaryPort} unreachable. Falling back to :${fallbackPort}...`);
       const response = await fetch(`${fallbackBase}${path}`, options);
-      // Ghi nhớ cổng hoạt động thành công để các request tiếp theo trong session gọi thẳng vào cổng fallback
       activePortOverride = fallbackPort;
       if (customOrganizerApiBase && customOrganizerApiBase.includes(`:${primaryPort}`)) {
         customOrganizerApiBase = customOrganizerApiBase.replace(`:${primaryPort}`, `:${fallbackPort}`);
@@ -138,21 +127,14 @@ export interface OrganizerBackendTier {
   createdAt?: string;
 }
 
-/**
- * Tín hiệu do Client Telemetry SDK đo trong trình duyệt (Spec 08 + SCRUM-247).
- * Tên trường giữ snake_case đúng hợp đồng với MockOrganizer.API.
- */
 export interface ClientTelemetry {
   is_webdriver: 0 | 1;
-  /** Bỏ trường khi có ít hơn 3 lần bấm. */
   action_interval_std_dev?: number;
   device_fingerprint: string;
   nonce: string;
-  /** Epoch ms đã chỉnh theo giờ server. */
   client_timestamp: number;
 }
 
-/** Session token cấp khi mở trang chọn vé, dùng đo time_to_checkout (BE-PIPE-8.2.1). */
 export interface SessionTokenResponse {
   sessionToken: string;
   tierId: string;
@@ -245,16 +227,10 @@ export interface AntiBotAnalyticsSummary {
 }
 
 export const organizerStoreApi = {
-  /**
-   * Cấp phát session token chứa timestamp server phục vụ đo time_to_checkout (BE-PIPE-8.2.1)
-   */
   createSession: async (tierId: string): Promise<SessionTokenResponse> => {
     return organizerStoreApi.getCheckoutSession(tierId);
   },
 
-  /**
-   * Lấy danh mục sự kiện từ Ban Tổ Chức phục vụ Catalog Ingestion và nhận diện động
-   */
   getEventsCatalog: async (): Promise<any[]> => {
     const res = await fetchWithOrganizerFallback('/events', {
       headers: { Accept: 'application/json' },
@@ -263,14 +239,9 @@ export const organizerStoreApi = {
     return res.json();
   },
 
-  /**
-   * Lấy danh sách các hạng vé trực tiếp từ Ban Tổ Chức (BE-MOCK-7.1.1)
-   * Tự động nhận diện slug hoặc tra cứu động qua /api/organizer/events nếu dùng GUID của Gateway.
-   */
   getEventTiers: async (eventIdOrSlug: string, eventName?: string): Promise<OrganizerBackendTier[]> => {
     const key = eventIdOrSlug.toLowerCase().trim();
 
-    // 1. Kiểm tra cache đã phân giải động trước đó
     const cachedSlug = dynamicSlugCache.get(key);
     const targetSlug = cachedSlug || eventIdOrSlug;
 
@@ -283,7 +254,6 @@ export const organizerStoreApi = {
       }
     } catch {}
 
-    // 2. Nếu không tìm thấy (404), tự động truy vấn danh mục sự kiện của BTC để lấy slug chuẩn động
     try {
       const catalog = await organizerStoreApi.getEventsCatalog();
       if (Array.isArray(catalog) && catalog.length > 0) {
@@ -311,25 +281,19 @@ export const organizerStoreApi = {
       console.log('[organizerStoreApi] Dynamic catalog resolution error:', err);
     }
 
-    throw new Error(`Không tìm thấy hạng vé cho sự kiện "${eventName || eventIdOrSlug}"`);
+    throw new Error(`Ticket tiers not found for event "${eventName || eventIdOrSlug}"`);
   },
 
-  /**
-   * Lấy session token cho một hạng vé khi mở trang chọn vé (BE-PIPE-8.2.1)
-   */
   getCheckoutSession: async (tierId: string): Promise<SessionTokenResponse> => {
     const res = await fetchWithOrganizerFallback(`/orders/session?tierId=${encodeURIComponent(tierId)}`, {
       headers: { Accept: 'application/json' },
     });
     if (!res.ok) {
-      throw new Error(`Không lấy được phiên đặt vé cho hạng vé ${tierId} (HTTP ${res.status})`);
+      throw new Error(`Unable to obtain checkout session for tier ${tierId} (HTTP ${res.status})`);
     }
     return res.json();
   },
 
-  /**
-   * Gọi checkout trừ kho nguyên tử từ Ban Tổ Chức (BE-MOCK-7.1.2)
-   */
   checkout: async (request: OrganizerCheckoutRequest): Promise<OrganizerCheckoutResponse> => {
     const res = await fetchWithOrganizerFallback(`/orders/checkout`, {
       method: 'POST',
@@ -338,18 +302,15 @@ export const organizerStoreApi = {
     });
 
     if (!res.ok) {
-      let errMsg = `Lỗi đặt vé từ Ban Tổ Chức (HTTP ${res.status})`;
+      let errMsg = `Organizer checkout failed (HTTP ${res.status})`;
       let errorJson: Record<string, any> | null = null;
       try {
         errorJson = await res.json();
-      } catch {
-        // Non-JSON response
-      }
+      } catch {}
 
       if (errorJson) {
-        // Anti-Bot (US-8.1 / US-8.4): 409 có `code` là bị chặn phát lại, 403 cần xác minh, 429 bị chặn
         if (res.status === 409 && errorJson.code) {
-          errMsg = 'Phiên đặt vé đã hết hiệu lực. Vui lòng tải lại trang rồi đặt vé lại.';
+          errMsg = 'Checkout session expired. Please refresh and try again.';
         } else if (res.status === 403 && (errorJson.challengeRequired || errorJson.decision === 'Challenge')) {
           const challengeErr = new Error('CHALLENGE_REQUIRED');
           Object.assign(challengeErr, {
@@ -359,14 +320,14 @@ export const organizerStoreApi = {
           });
           throw challengeErr;
         } else if (res.status === 429) {
-          errMsg = 'Giao dịch đang bị tạm chặn vì có thao tác bất thường. Vui lòng thử lại sau.';
+          errMsg = 'Too many requests detected. Please try again shortly.';
         } else if (errorJson.message) {
           if (res.status === 409) {
-            errMsg = `Hạng vé đã hết hoặc không đủ tồn kho (Còn lại: ${errorJson.available ?? 0} vé)`;
+            errMsg = `Ticket tier is sold out or has insufficient inventory (Remaining: ${errorJson.available ?? 0})`;
           } else if (res.status === 404) {
-            errMsg = 'Hạng vé không tồn tại trên hệ thống Ban Tổ Chức';
+            errMsg = 'Ticket tier not found in organizer inventory.';
           } else if (res.status === 503) {
-            errMsg = 'Máy chủ Ban Tổ Chức đang bận, vui lòng thử lại sau giây lát';
+            errMsg = 'Organizer service is temporarily busy. Please retry shortly.';
           } else {
             errMsg = errorJson.message;
           }
@@ -383,9 +344,6 @@ export const organizerStoreApi = {
     return res.json();
   },
 
-  /**
-   * Lấy danh sách toàn bộ vé có sẵn từ hệ thống Ban Tổ Chức (/api/organizer/tickets)
-   */
   getTickets: async (search?: string, status?: string): Promise<MockTicketDto[]> => {
     const params = new URLSearchParams();
     if (search) params.append('search', search);
@@ -394,14 +352,11 @@ export const organizerStoreApi = {
       headers: { Accept: 'application/json' },
     });
     if (!res.ok) {
-      throw new Error(`Không thể lấy danh sách vé từ Ban Tổ Chức (HTTP ${res.status})`);
+      throw new Error(`Unable to fetch tickets from organizer (HTTP ${res.status})`);
     }
     return res.json();
   },
 
-  /**
-   * Tạo vé chính thức trong cơ sở dữ liệu của Ban Tổ Chức
-   */
   generateTicket: async (request: OrganizerGenerateTicketRequest): Promise<any> => {
     const res = await fetchWithOrganizerFallback(`/tickets/generate`, {
       method: 'POST',
@@ -411,25 +366,19 @@ export const organizerStoreApi = {
     if (!res.ok) {
       const errorJson = await res.json().catch(() => null);
       const msg = errorJson?.message || `HTTP ${res.status}`;
-      throw new Error(`Không thể phát hành vé vào hệ thống Ban Tổ Chức (${msg})`);
+      throw new Error(`Unable to issue ticket in organizer system (${msg})`);
     }
     return res.json();
   },
 
-  /**
-   * Lấy cấu hình ngưỡng phân luồng quyết định (US-8.4, SCRUM-260)
-   */
   getAntiBotPolicy: async (eventId?: string): Promise<AntiBotPolicyConfig> => {
     const base = getMockOrganizerBaseUrl();
     const url = eventId ? `${base}/api/anti-bot/policy?eventId=${encodeURIComponent(eventId)}` : `${base}/api/anti-bot/policy`;
     const res = await fetch(url, { headers: { Accept: 'application/json' } });
-    if (!res.ok) throw new Error(`Không thể tải cấu hình ngưỡng (HTTP ${res.status})`);
+    if (!res.ok) throw new Error(`Unable to load policy configuration (HTTP ${res.status})`);
     return res.json();
   },
 
-  /**
-   * Cập nhật ngưỡng động không cần restart server (US-8.4, SCRUM-260)
-   */
   updateAntiBotPolicy: async (payload: UpdateAntiBotPolicyRequest): Promise<AntiBotPolicyConfig> => {
     const base = getMockOrganizerBaseUrl();
     const res = await fetch(`${base}/api/anti-bot/policy`, {
@@ -439,36 +388,27 @@ export const organizerStoreApi = {
     });
     if (!res.ok) {
       const errJson = await res.json().catch(() => null);
-      throw new Error(errJson?.message || `Cập nhật ngưỡng thất bại (HTTP ${res.status})`);
+      throw new Error(errJson?.message || `Policy update failed (HTTP ${res.status})`);
     }
     return res.json();
   },
 
-  /**
-   * Đặt lại ngưỡng về mặc định ban đầu
-   */
   resetAntiBotPolicy: async (eventId?: string): Promise<AntiBotPolicyConfig> => {
     const base = getMockOrganizerBaseUrl();
     const url = eventId ? `${base}/api/anti-bot/policy/reset?eventId=${encodeURIComponent(eventId)}` : `${base}/api/anti-bot/policy/reset`;
     const res = await fetch(url, { method: 'POST', headers: { Accept: 'application/json' } });
-    if (!res.ok) throw new Error(`Không thể đặt lại cấu hình ngưỡng (HTTP ${res.status})`);
+    if (!res.ok) throw new Error(`Unable to reset policy configuration (HTTP ${res.status})`);
     return res.json();
   },
 
-  /**
-   * Lấy báo cáo phân tích lưu lượng an ninh (US-8.4, SCRUM-259)
-   */
   getAntiBotAnalytics: async (eventId?: string): Promise<AntiBotAnalyticsSummary> => {
     const base = getMockOrganizerBaseUrl();
     const url = eventId ? `${base}/api/anti-bot/analytics?eventId=${encodeURIComponent(eventId)}` : `${base}/api/anti-bot/analytics`;
     const res = await fetch(url, { headers: { Accept: 'application/json' } });
-    if (!res.ok) throw new Error(`Không thể tải số liệu phân tích lưu lượng (HTTP ${res.status})`);
+    if (!res.ok) throw new Error(`Unable to load anti-bot analytics (HTTP ${res.status})`);
     return res.json();
   },
 
-  /**
-   * Đặt lại số liệu thống kê phân tích
-   */
   resetAntiBotAnalytics: async (eventId?: string): Promise<void> => {
     const base = getMockOrganizerBaseUrl();
     const url = eventId ? `${base}/api/anti-bot/analytics/reset?eventId=${encodeURIComponent(eventId)}` : `${base}/api/anti-bot/analytics/reset`;

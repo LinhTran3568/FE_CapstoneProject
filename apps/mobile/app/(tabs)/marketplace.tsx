@@ -8,10 +8,12 @@ import {
   ActivityIndicator,
   Image,
   ScrollView,
+  Linking,
 } from 'react-native';
 import { Text } from '../../src/components/AppText';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import * as Clipboard from 'expo-clipboard';
 import {
   Search,
   X,
@@ -26,6 +28,9 @@ import {
   AlertTriangle,
   RefreshCw,
   Ticket,
+  Copy,
+  Check,
+  ExternalLink,
 } from 'lucide-react-native';
 import type { ResaleListingDetailDto, HoldListingForPurchaseResponse } from '@ticketshield/types';
 import { resaleListingsApi } from '@ticketshield/api-client';
@@ -78,6 +83,7 @@ export default function MarketplaceScreen() {
   const [purchaseSuccess, setPurchaseSuccess] = useState(false);
   const [paymentNote, setPaymentNote] = useState<string | null>(null);
   const [secondsLeft, setSecondsLeft] = useState(0);
+  const [copiedField, setCopiedField] = useState<string | null>(null);
 
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedKeyword(keyword.trim()), 350);
@@ -95,7 +101,7 @@ export default function MarketplaceScreen() {
       setListings(res?.items || []);
     } catch (err) {
       const message =
-        err instanceof Error ? err.message : 'Unable to load marketplace. Please try again.';
+        err instanceof Error ? err.message : 'Unable to load marketplace listings.';
       setError(message);
     } finally {
       if (!silent) setLoading(false);
@@ -119,6 +125,44 @@ export default function MarketplaceScreen() {
     return () => clearInterval(interval);
   }, [holdData?.unlockAt]);
 
+  useEffect(() => {
+    if (!holdData || purchaseSuccess || secondsLeft === 0) return;
+
+    let isPolling = true;
+    const pollInterval = setInterval(async () => {
+      if (!isPolling) return;
+      try {
+        const status = await resaleListingsApi.getPaymentStatus(holdData.listingId);
+        const escrowStatus = status?.escrowStatus?.toLowerCase();
+        const listingStatus = status?.listingStatus?.toLowerCase();
+        const hasFunds =
+          escrowStatus === 'funded' ||
+          escrowStatus === 'released' ||
+          listingStatus === 'transacting' ||
+          listingStatus === 'sold';
+
+        if (hasFunds && isPolling) {
+          isPolling = false;
+          clearInterval(pollInterval);
+          setPurchaseSuccess(true);
+        }
+      } catch {}
+    }, 3000);
+
+    return () => {
+      isPolling = false;
+      clearInterval(pollInterval);
+    };
+  }, [holdData, purchaseSuccess, secondsLeft]);
+
+  const copyToClipboard = async (text: string, fieldName: string) => {
+    try {
+      await Clipboard.setStringAsync(text);
+      setCopiedField(fieldName);
+      setTimeout(() => setCopiedField(null), 2000);
+    } catch {}
+  };
+
   const filteredListings = useMemo(
     () => listings.filter((listing) => matchesBand(listing.resalePrice, priceBand)),
     [listings, priceBand]
@@ -141,6 +185,7 @@ export default function MarketplaceScreen() {
     setHoldData(null);
     setPurchaseSuccess(false);
     setPaymentNote(null);
+    setCopiedField(null);
   };
 
   const buyerInfo = {
@@ -161,7 +206,9 @@ export default function MarketplaceScreen() {
       setHoldData(hold);
     } catch (err) {
       const message =
-        err instanceof Error ? err.message : 'Unable to reserve ticket right now. Please try again.';
+        err instanceof Error
+          ? err.message
+          : 'This ticket is currently held or in transaction. Please try again shortly.';
       setPaymentNote(message);
     } finally {
       setIsHolding(false);
@@ -184,7 +231,7 @@ export default function MarketplaceScreen() {
 
       if (!hasFunds) {
         setPaymentNote(
-          'Payment not detected yet. Please ensure the exact reference was included in your transfer and retry in a moment.'
+          'Payment not detected yet. Please ensure the exact reference is included in your transfer and retry in a moment.'
         );
         return;
       }
@@ -194,7 +241,7 @@ export default function MarketplaceScreen() {
       const message =
         err instanceof Error
           ? err.message
-          : 'Unable to confirm payment. Please try again.';
+          : 'Unable to check payment status. Please try again.';
       setPaymentNote(message);
     } finally {
       setIsCheckingTransfer(false);
@@ -233,6 +280,7 @@ export default function MarketplaceScreen() {
           setHoldData(null);
           setPurchaseSuccess(false);
           setPaymentNote(null);
+          setCopiedField(null);
         }}
       >
         <View style={styles.posterWrap}>
@@ -306,7 +354,7 @@ export default function MarketplaceScreen() {
           </View>
 
           <View style={styles.cardCta}>
-            <Text style={styles.cardCtaText}>Buy with Escrow</Text>
+            <Text style={styles.cardCtaText}>Buy Ticket</Text>
             <ArrowRight size={16} color={theme.colors.primary} />
           </View>
         </View>
@@ -319,7 +367,7 @@ export default function MarketplaceScreen() {
       <View style={styles.header}>
         <View>
           <Text style={styles.title}>Marketplace</Text>
-          <Text style={styles.subtitle}>Verified fan-to-fan resale tickets</Text>
+          <Text style={styles.subtitle}>Verified fan-to-fan resale tickets backed by escrow</Text>
         </View>
         <TouchableOpacity
           style={styles.refreshButton}
@@ -412,7 +460,7 @@ export default function MarketplaceScreen() {
               <View style={styles.notice}>
                 <ShieldCheck size={18} color={theme.colors.success} />
                 <Text style={styles.noticeText}>
-                  Seller only receives payment after your ticket is scanned at the venue.
+                  Seller only receives payout after your ticket is scanned and verified at the venue.
                 </Text>
               </View>
               <Text style={styles.resultCount}>{filteredListings.length} listings available</Text>
@@ -449,7 +497,7 @@ export default function MarketplaceScreen() {
                 {purchaseSuccess
                   ? 'Purchase Complete'
                   : holdData
-                    ? 'Escrow Payment'
+                    ? 'VietQR Escrow Payment'
                     : 'Ticket Details'}
               </Text>
               <TouchableOpacity
@@ -469,7 +517,7 @@ export default function MarketplaceScreen() {
                 </View>
                 <Text style={styles.successTitle}>Ticket Added to Your Wallet</Text>
                 <Text style={styles.successText}>
-                  Escrow is securely holding the funds. They will only be released to the seller after your check-in at the venue.
+                  Escrow is securely holding the funds. Ticket ownership has been transferred to your account.
                 </Text>
                 <FintechButton
                   title="View My Tickets"
@@ -535,7 +583,7 @@ export default function MarketplaceScreen() {
                     <View style={styles.sheetNote}>
                       <ShieldCheck size={16} color={theme.colors.success} />
                       <Text style={styles.sheetNoteText}>
-                        This ticket will be reserved exclusively for you for 10 minutes.
+                        This ticket will be reserved exclusively for you for 5 minutes.
                       </Text>
                     </View>
 
@@ -547,7 +595,7 @@ export default function MarketplaceScreen() {
                     )}
 
                     <FintechButton
-                      title={isHolding ? 'Reserving Ticket...' : 'Reserve & Proceed to Payment'}
+                      title={isHolding ? 'Reserving Ticket...' : 'Reserve Ticket (5-Min Hold)'}
                       onPress={handleStartPurchase}
                       loading={isHolding}
                     />
@@ -575,29 +623,116 @@ export default function MarketplaceScreen() {
                       <Text style={styles.qrHint}>Open your banking app and scan VietQR</Text>
                     </View>
 
+                    {holdData.quickLinkUrl ? (
+                      <TouchableOpacity
+                        style={styles.oneTouchBtn}
+                        onPress={() => Linking.openURL(holdData.quickLinkUrl)}
+                        activeOpacity={0.85}
+                      >
+                        <ExternalLink size={16} color="#ffffff" />
+                        <Text style={styles.oneTouchBtnText}>
+                          Open Banking App (VietQR One-Touch)
+                        </Text>
+                      </TouchableOpacity>
+                    ) : null}
+
                     <View style={styles.bankPanel}>
                       <View style={styles.bankRow}>
                         <Text style={styles.bankLabel}>Bank</Text>
                         <Text style={styles.bankValue}>BIN {holdData.bankBin}</Text>
                       </View>
+
                       <View style={styles.bankRow}>
                         <Text style={styles.bankLabel}>Account Number</Text>
-                        <Text style={styles.bankValue}>{holdData.accountNumber}</Text>
+                        <View style={styles.bankRowValueGroup}>
+                          <Text style={styles.bankValue}>{holdData.accountNumber}</Text>
+                          <TouchableOpacity
+                            style={styles.copyBtn}
+                            onPress={() => copyToClipboard(holdData.accountNumber, 'accountNumber')}
+                            activeOpacity={0.7}
+                          >
+                            {copiedField === 'accountNumber' ? (
+                              <>
+                                <Check size={12} color={theme.colors.success} />
+                                <Text style={[styles.copyBtnText, { color: theme.colors.success }]}>
+                                  Copied
+                                </Text>
+                              </>
+                            ) : (
+                              <>
+                                <Copy size={12} color={theme.colors.primary} />
+                                <Text style={styles.copyBtnText}>Copy</Text>
+                              </>
+                            )}
+                          </TouchableOpacity>
+                        </View>
                       </View>
+
                       <View style={styles.bankRow}>
                         <Text style={styles.bankLabel}>Account Holder</Text>
                         <Text style={styles.bankValue} numberOfLines={1}>
                           {holdData.accountName}
                         </Text>
                       </View>
+
                       <View style={styles.bankRow}>
                         <Text style={styles.bankLabel}>Amount</Text>
-                        <Text style={styles.bankAmount}>{formatPrice(holdData.totalBuyerPaid)}</Text>
+                        <View style={styles.bankRowValueGroup}>
+                          <Text style={styles.bankAmount}>{formatPrice(holdData.totalBuyerPaid)}</Text>
+                          <TouchableOpacity
+                            style={styles.copyBtn}
+                            onPress={() => copyToClipboard(String(holdData.totalBuyerPaid), 'amount')}
+                            activeOpacity={0.7}
+                          >
+                            {copiedField === 'amount' ? (
+                              <>
+                                <Check size={12} color={theme.colors.success} />
+                                <Text style={[styles.copyBtnText, { color: theme.colors.success }]}>
+                                  Copied
+                                </Text>
+                              </>
+                            ) : (
+                              <>
+                                <Copy size={12} color={theme.colors.primary} />
+                                <Text style={styles.copyBtnText}>Copy</Text>
+                              </>
+                            )}
+                          </TouchableOpacity>
+                        </View>
                       </View>
+
                       <View style={styles.bankRow}>
                         <Text style={styles.bankLabel}>Reference</Text>
-                        <Text style={styles.bankReference}>{holdData.paymentReference}</Text>
+                        <View style={styles.bankRowValueGroup}>
+                          <Text style={styles.bankReference}>{holdData.paymentReference}</Text>
+                          <TouchableOpacity
+                            style={styles.copyBtn}
+                            onPress={() => copyToClipboard(holdData.paymentReference, 'reference')}
+                            activeOpacity={0.7}
+                          >
+                            {copiedField === 'reference' ? (
+                              <>
+                                <Check size={12} color={theme.colors.success} />
+                                <Text style={[styles.copyBtnText, { color: theme.colors.success }]}>
+                                  Copied
+                                </Text>
+                              </>
+                            ) : (
+                              <>
+                                <Copy size={12} color={theme.colors.primary} />
+                                <Text style={styles.copyBtnText}>Copy</Text>
+                              </>
+                            )}
+                          </TouchableOpacity>
+                        </View>
                       </View>
+                    </View>
+
+                    <View style={styles.autoPollingBox}>
+                      <ActivityIndicator size="small" color={theme.colors.success} />
+                      <Text style={styles.autoPollingText}>
+                        Listening for bank transfer. Your ticket will be automatically transferred to your wallet upon payment confirmation.
+                      </Text>
                     </View>
 
                     {secondsLeft === 0 && (

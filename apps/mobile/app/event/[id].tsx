@@ -62,7 +62,6 @@ export default function EventDetailScreen() {
   const [isBuying, setIsBuying] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Form states cho Modal Đặt Vé sơ cấp từ Ban Tổ Chức (giống trải nghiệm Web)
   const [isCheckoutModalOpen, setIsCheckoutModalOpen] = useState(false);
   const [buyerName, setBuyerName] = useState(user?.fullName || '');
   const [buyerEmail, setBuyerEmail] = useState(user?.email || '');
@@ -78,7 +77,6 @@ export default function EventDetailScreen() {
   const [sessionToken, setSessionToken] = useState<string | null>(null);
   const [orderResult, setOrderResult] = useState<OrganizerCheckoutResponse | null>(null);
 
-  // Cập nhật thông tin người dùng từ store khi mở màn hình
   useEffect(() => {
     if (user) {
       if (!buyerName && user.fullName) setBuyerName(user.fullName);
@@ -91,12 +89,10 @@ export default function EventDetailScreen() {
     setLoading(true);
     setError(null);
     try {
-      // 1. Fetch real event details from Gateway
       const trending = await eventsApi.getTrendingEvents({ limit: 10 });
       const found = trending.find((e) => (e.eventId || e.id) === eventId) || trending[0];
       setEventData(found || null);
 
-      // 2. Tự động lấy danh sách hạng vé thực từ Ban Tổ Chức (hệ thống tự nhận diện động)
       try {
         const remoteTiers = await organizerStoreApi.getEventTiers(eventId, found?.name);
         if (remoteTiers && remoteTiers.length > 0) {
@@ -118,7 +114,6 @@ export default function EventDetailScreen() {
     loadEventAndTiers();
   }, [loadEventAndTiers]);
 
-  // Khởi tạo Anti-Bot session token khi người dùng chọn hạng vé hoặc mở Modal
   const prefetchSession = useCallback(async (tierId: string) => {
     try {
       const session = await organizerStoreApi.createSession(tierId);
@@ -153,28 +148,28 @@ export default function EventDetailScreen() {
   const validateForm = (): boolean => {
     const errors: typeof formErrors = {};
     if (!buyerName.trim()) {
-      errors.name = 'Vui lòng nhập họ và tên người nhận vé';
+      errors.name = 'Please enter attendee full name';
     } else if (buyerName.trim().length < 2) {
-      errors.name = 'Họ và tên tối thiểu 2 ký tự';
+      errors.name = 'Full name must be at least 2 characters';
     }
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!buyerEmail.trim()) {
-      errors.email = 'Vui lòng nhập email nhận vé điện tử';
+      errors.email = 'Please enter email address';
     } else if (!emailRegex.test(buyerEmail.trim())) {
-      errors.email = 'Email không hợp lệ (ví dụ: user@example.com)';
+      errors.email = 'Invalid email address (e.g. user@example.com)';
     }
 
     const phoneDigits = buyerPhone.replace(/[\s.-]/g, '');
     const phoneRegex = /(84|0[3|5|7|8|9])+([0-9]{8})\b/;
     if (!buyerPhone.trim()) {
-      errors.phone = 'Vui lòng nhập số điện thoại';
+      errors.phone = 'Please enter phone number';
     } else if (!phoneRegex.test(phoneDigits)) {
-      errors.phone = 'Số điện thoại không hợp lệ (gồm 10 số, ví dụ 0901234567)';
+      errors.phone = 'Invalid phone number (must be 10 digits)';
     }
 
     if (!agreedTerms) {
-      errors.terms = 'Bạn cần đồng ý với điều khoản phát hành vé của Ban Tổ Chức';
+      errors.terms = 'Please accept the organizer ticketing terms';
     }
 
     setFormErrors(errors);
@@ -189,7 +184,6 @@ export default function EventDetailScreen() {
     setCheckoutError(null);
 
     try {
-      // Đảm bảo có Anti-Bot session token
       let activeSession = sessionToken;
       if (!activeSession) {
         try {
@@ -210,7 +204,7 @@ export default function EventDetailScreen() {
 
       setOrderResult(res);
     } catch (e: any) {
-      const message = e instanceof Error ? e.message : 'Không thể hoàn tất đặt vé từ Ban Tổ Chức.';
+      const message = e instanceof Error ? e.message : 'Unable to complete checkout with organizer.';
       setCheckoutError(message);
     } finally {
       setIsBuying(false);
@@ -383,7 +377,6 @@ export default function EventDetailScreen() {
         )}
       </ScrollView>
 
-      {/* Modal Nhập Thông Tin Nhận Vé Sơ Cấp (Giống Web Checkout Modal) */}
       <Modal
         visible={isCheckoutModalOpen}
         animationType="slide"
@@ -399,13 +392,13 @@ export default function EventDetailScreen() {
 
             <View style={styles.sheetHeader}>
               <Text style={styles.sheetTitle}>
-                {orderResult ? 'Đặt vé thành công' : 'Thông tin người nhận vé'}
+                {orderResult ? 'Order Successful' : 'Attendee Information'}
               </Text>
               <TouchableOpacity
                 style={styles.sheetCloseBtn}
                 onPress={() => setIsCheckoutModalOpen(false)}
                 accessibilityRole="button"
-                accessibilityLabel="Đóng modal"
+                accessibilityLabel="Close modal"
               >
                 <X size={20} color={theme.colors.textMuted} />
               </TouchableOpacity>
@@ -413,24 +406,23 @@ export default function EventDetailScreen() {
 
             <ScrollView showsVerticalScrollIndicator={false}>
               {orderResult ? (
-                /* Giao diện Đặt Vé Thành Công */
                 <View style={styles.successBox}>
                   <View style={styles.successIcon}>
                     <CheckCircle size={36} color={theme.colors.success} />
                   </View>
-                  <Text style={styles.successTitle}>Vé đã sẵn sàng trong Ví!</Text>
+                  <Text style={styles.successTitle}>Passes Ready in Your Wallet!</Text>
                   <Text style={styles.successMessage}>
-                    Đơn hàng #{orderResult.orderId.slice(0, 8)} đã được hệ thống Ban Tổ Chức phê duyệt thành công.
+                    Order #{orderResult.orderId.slice(0, 8)} has been confirmed by the official organizer.
                   </Text>
 
                   {orderResult.tickets && orderResult.tickets.length > 0 && (
                     <View style={styles.ticketCodesBox}>
-                      <Text style={styles.summaryLabel}>MÃ VÉ ĐIỆN TỬ CỦA BẠN:</Text>
+                      <Text style={styles.summaryLabel}>YOUR OFFICIAL PASS CODES:</Text>
                       {orderResult.tickets.map((t, idx) => (
                         <View key={t.ticketCode || idx} style={styles.ticketCodeCard}>
                           <View style={styles.ticketCodeBadge}>
                             <Text style={styles.ticketCodeBadgeText}>
-                              Vé #{idx + 1} • {t.seatZone || selectedTier?.tierName}
+                              Pass #{idx + 1} • {t.seatZone || selectedTier?.tierName}
                             </Text>
                           </View>
                           <Text style={styles.ticketCodeValue}>{t.ticketCode}</Text>
@@ -441,7 +433,7 @@ export default function EventDetailScreen() {
 
                   <View style={{ width: '100%', gap: 10, marginTop: 12 }}>
                     <FintechButton
-                      title="Xem vé trong Ví"
+                      title="View in Wallet"
                       onPress={() => {
                         setIsCheckoutModalOpen(false);
                         router.push('/(tabs)/tickets');
@@ -449,39 +441,36 @@ export default function EventDetailScreen() {
                       icon={<Ticket size={18} color={theme.colors.onPrimary} />}
                     />
                     <FintechButton
-                      title="Hoàn tất"
+                      title="Done"
                       variant="secondary"
                       onPress={() => setIsCheckoutModalOpen(false)}
                     />
                   </View>
                 </View>
               ) : (
-                /* Form Nhập Thông Tin Người Nhận Vé */
                 <View style={styles.formSection}>
-                  {/* Tóm tắt đơn hàng */}
                   <View style={styles.orderSummaryCard}>
                     <View style={styles.summaryRow}>
-                      <Text style={styles.summaryLabel}>Sự kiện</Text>
+                      <Text style={styles.summaryLabel}>Event</Text>
                       <Text style={styles.summaryValue} numberOfLines={1}>
                         {eventData.name}
                       </Text>
                     </View>
                     <View style={styles.summaryRow}>
-                      <Text style={styles.summaryLabel}>Hạng vé</Text>
+                      <Text style={styles.summaryLabel}>Tier</Text>
                       <Text style={styles.summaryValue}>
                         {selectedTier?.tierName} × {quantity}
                       </Text>
                     </View>
                     <View style={styles.summaryDivider} />
                     <View style={styles.summaryRow}>
-                      <Text style={[styles.summaryLabel, { fontWeight: '700' }]}>Tổng thanh toán</Text>
+                      <Text style={[styles.summaryLabel, { fontWeight: '700' }]}>Total Price</Text>
                       <Text style={[styles.summaryValue, { color: theme.colors.primary, fontSize: 16 }]}>
                         {formatPrice((selectedTier?.price || 0) * quantity)}
                       </Text>
                     </View>
                   </View>
 
-                  {/* Thông báo lỗi nếu có */}
                   {checkoutError && (
                     <View style={styles.submitErrorBox}>
                       <AlertTriangle size={18} color={theme.colors.danger} />
@@ -489,10 +478,9 @@ export default function EventDetailScreen() {
                     </View>
                   )}
 
-                  {/* Các trường thông tin */}
                   <FintechInput
-                    label="Họ và tên người nhận vé *"
-                    placeholder="Nguyễn Văn A"
+                    label="Full Name *"
+                    placeholder="Enter your full name"
                     value={buyerName}
                     onChangeText={(val) => {
                       setBuyerName(val);
@@ -503,8 +491,8 @@ export default function EventDetailScreen() {
                   />
 
                   <FintechInput
-                    label="Email nhận vé điện tử *"
-                    placeholder="user@example.com"
+                    label="Email Address *"
+                    placeholder="Enter your email address"
                     value={buyerEmail}
                     onChangeText={(val) => {
                       setBuyerEmail(val);
@@ -517,8 +505,8 @@ export default function EventDetailScreen() {
                   />
 
                   <FintechInput
-                    label="Số điện thoại nhận vé *"
-                    placeholder="0901234567"
+                    label="Phone Number *"
+                    placeholder="Enter your phone number"
                     value={buyerPhone}
                     onChangeText={(val) => {
                       setBuyerPhone(val);
@@ -529,7 +517,6 @@ export default function EventDetailScreen() {
                     icon={<Phone size={18} color={theme.colors.primary} />}
                   />
 
-                  {/* Checkbox điều khoản */}
                   <TouchableOpacity
                     style={styles.termsContainer}
                     onPress={() => {
@@ -546,14 +533,14 @@ export default function EventDetailScreen() {
                       )}
                     </View>
                     <Text style={styles.termsLabel}>
-                      Tôi xác nhận thông tin nhận vé chính xác và đồng ý với điều khoản phát hành vé và xác thực danh tính của Ban Tổ Chức.
+                      I confirm the attendee details are accurate and agree to the official organizer ticketing terms.
                     </Text>
                   </TouchableOpacity>
                   {formErrors.terms && <Text style={styles.fieldError}>{formErrors.terms}</Text>}
 
                   <View style={styles.modalFooter}>
                     <FintechButton
-                      title="Xác nhận & Nhận vé"
+                      title="Confirm & Receive Tickets"
                       onPress={handleConfirmCheckout}
                       loading={isBuying}
                       icon={<ShieldCheck size={18} color={theme.colors.onPrimary} />}
