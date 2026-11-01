@@ -2,6 +2,7 @@ import Constants from 'expo-constants';
 import { Platform } from 'react-native';
 import {
   setApiBaseUrl,
+  setApiTimeout,
   setTokenAdapter,
   setOrganizerApiBaseUrl,
   DEFAULT_ORGANIZER_PORT,
@@ -21,6 +22,7 @@ export interface GatewayInfo {
 
 const DEFAULT_BACKEND_PORT = 5000;
 const API_PATH = '/api/v1';
+const REQUEST_TIMEOUT_MS = 10000;
 
 /**
  * Extracts host IP from Expo Constants / debugger runtime
@@ -172,6 +174,7 @@ export async function initApiGateway(): Promise<GatewayInfo> {
 
   const gatewayInfo = await resolveApiGatewayUrl();
   setApiBaseUrl(gatewayInfo.url);
+  setApiTimeout(REQUEST_TIMEOUT_MS);
 
   // FE-MOB-9.1.1: Dynamically configure Organizer API base URL matching detected Gateway Host
   const envOrganizerPort = Number(process.env.EXPO_PUBLIC_ORGANIZER_PORT);

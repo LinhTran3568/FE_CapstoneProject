@@ -15,6 +15,21 @@ export const setApiBaseUrl = (url: string): void => {
   axiosClient.defaults.baseURL = url;
 };
 
+/** Giới hạn thời gian chờ cho mỗi request. Chỉ mobile gọi vì web có tải tệp lâu hơn. */
+export const setApiTimeout = (ms: number): void => {
+  axiosClient.defaults.timeout = ms;
+};
+
+/**
+ * Máy chủ có thật sự từ chối phiên hay không.
+ * Mất mạng, hết thời gian chờ và lỗi 5xx không nói lên điều gì về phiên nên không được đăng xuất.
+ */
+export const isSessionRejected = (error: unknown): boolean => {
+  if (!axios.isAxiosError(error)) return true;
+  const status = error.response?.status;
+  return status !== undefined && status < 500;
+};
+
 export const getApiBaseUrl = (): string => {
   if (customBaseUrl) return customBaseUrl;
   try {
@@ -218,7 +233,7 @@ axiosClient.interceptors.response.use(
         const response = await axios.post<ApiResponse<{ accessToken?: string; token?: string; refreshToken?: string }>>(
           refreshUrl,
           { refreshToken },
-          { headers: { 'Content-Type': 'application/json' } }
+          { headers: { 'Content-Type': 'application/json' }, timeout: axiosClient.defaults.timeout }
         );
 
         const resData = response.data;
@@ -241,8 +256,10 @@ axiosClient.interceptors.response.use(
       } catch (refreshError) {
         processQueue(refreshError, null);
         isRefreshingToken = false;
-        await currentTokenAdapter.clearTokens();
-        notifyUnauthorized();
+        if (isSessionRejected(refreshError)) {
+          await currentTokenAdapter.clearTokens();
+          notifyUnauthorized();
+        }
         return Promise.reject(refreshError);
       }
     }

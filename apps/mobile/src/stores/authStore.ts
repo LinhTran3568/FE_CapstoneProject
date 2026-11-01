@@ -4,6 +4,7 @@ import { LoginFormData, RegisterFormData } from '@ticketshield/validation';
 import { authApi, onUnauthorized, normalizeErrorMessage } from '@ticketshield/api-client';
 import { secureStorage } from '../lib/secureStore';
 import { initApiGateway, GatewayInfo } from '../lib/apiResolver';
+import { clearAllTickets } from '../services/ticketCacheService';
 
 interface AuthState {
   user: User | null;
@@ -171,6 +172,7 @@ export const useAuthStore = create<AuthState>((set, get) => {
         // Continue clearing client session even if remote logout fails
       }
       await secureStorage.clearAllSessionData();
+      await clearAllTickets();
       set({
         user: null,
         userProfile: null,
@@ -209,7 +211,31 @@ export const useAuthStore = create<AuthState>((set, get) => {
           return;
         }
 
-        // 3. User has token: attempt to verify with backend
+        // 3. Saved user: enter the app now so a weak signal cannot block the screen, verify in background
+        if (cachedUser) {
+          set({
+            user: cachedUser,
+            userProfile: cachedUser,
+            token: storedToken,
+            accessToken: storedToken,
+            refreshToken: storedRefreshToken,
+            isAuthenticated: true,
+            isLoading: false,
+          });
+          authApi
+            .getCurrentUser()
+            .then(async (freshUser) => {
+              if (!get().isAuthenticated) return;
+              await secureStorage.setUser(freshUser);
+              set({ user: freshUser, userProfile: freshUser });
+            })
+            .catch(() => {
+              // Network errors keep the session; a rejected session is logged out by the interceptor
+            });
+          return;
+        }
+
+        // 4. Token without a saved user: the screen has to wait for the backend
         try {
           const freshUser = await authApi.getCurrentUser();
           await secureStorage.setUser(freshUser);
@@ -223,30 +249,16 @@ export const useAuthStore = create<AuthState>((set, get) => {
             isLoading: false,
           });
         } catch (fetchErr: any) {
-          // If offline or network error, fallback to cached user from SecureStore
-          if (cachedUser) {
-            set({
-              user: cachedUser,
-              userProfile: cachedUser,
-              token: storedToken,
-              accessToken: storedToken,
-              refreshToken: storedRefreshToken,
-              isAuthenticated: true,
-              isLoading: false,
-            });
-          } else {
-            // Token is invalid/expired and no cache
-            await secureStorage.clearAllSessionData();
-            set({
-              user: null,
-              userProfile: null,
-              token: null,
-              accessToken: null,
-              refreshToken: null,
-              isAuthenticated: false,
-              isLoading: false,
-            });
-          }
+          await secureStorage.clearAllSessionData();
+          set({
+            user: null,
+            userProfile: null,
+            token: null,
+            accessToken: null,
+            refreshToken: null,
+            isAuthenticated: false,
+            isLoading: false,
+          });
         }
       } catch (err) {
         console.warn('[AuthStore] loadStoredAuth error:', err);
