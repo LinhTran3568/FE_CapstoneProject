@@ -705,7 +705,6 @@ export default function EventDetailScreen() {
         </View>
 
         <View style={styles.body}>
-          {!isOriginMode && (
           <View style={styles.statStrip}>
             <View style={styles.statItem}>
               <Text style={styles.statValue}>{activeListings.length}</Text>
@@ -724,10 +723,8 @@ export default function EventDetailScreen() {
               <Text style={styles.statLabel}>{resaleStats ? 'Lowest resale' : 'Face value from'}</Text>
              </View>
            </View>
-          )}
- 
-           {!isOriginMode && (
-           <View style={[styles.ceilingCard, verifiedCeiling ? styles.ceilingCardOk : styles.ceilingCardWarn]}>
+
+          <View style={[styles.ceilingCard, verifiedCeiling ? styles.ceilingCardOk : styles.ceilingCardWarn]}>
             <View style={styles.ceilingHeader}>
               <View style={styles.ceilingIcon}>
                 <ShieldCheck
@@ -800,8 +797,7 @@ export default function EventDetailScreen() {
                   : 'Resale sellers must match the original ticket price before escrow can release.'}
             </Text>
           </View>
-          )}
- 
+
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
               <View style={styles.sectionHeaderText}>
@@ -845,7 +841,6 @@ export default function EventDetailScreen() {
             )}
           </View>
 
-          {!isOriginMode && (
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
               <View style={styles.sectionHeaderText}>
@@ -917,9 +912,7 @@ export default function EventDetailScreen() {
               </View>
             )}
           </View>
-          )}
- 
-          {!isOriginMode && (
+
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
               <View style={styles.sectionHeaderText}>
@@ -988,8 +981,7 @@ export default function EventDetailScreen() {
               </View>
             )}
           </View>
-          )}
- 
+
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
               <View style={styles.sectionHeaderText}>
