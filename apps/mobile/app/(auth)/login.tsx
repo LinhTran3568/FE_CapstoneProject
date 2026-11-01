@@ -13,7 +13,7 @@ import { useRouter } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
 import * as Google from 'expo-auth-session/providers/google';
 import * as AuthSession from 'expo-auth-session';
-import { ResponseType } from 'expo-auth-session';
+import { ResponseType, Prompt } from 'expo-auth-session';
 import Constants, { ExecutionEnvironment } from 'expo-constants';
 import { Mail, Lock, ShieldCheck } from 'lucide-react-native';
 import { theme } from '../../src/theme';
@@ -55,6 +55,7 @@ export default function LoginScreen() {
     responseType: ResponseType.IdToken,
     redirectUri: GOOGLE_REDIRECT_URI,
     scopes: ['openid', 'profile', 'email'],
+    prompt: Prompt.SelectAccount,
   });
 
   useEffect(() => {
