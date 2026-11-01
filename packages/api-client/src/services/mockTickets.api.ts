@@ -1,7 +1,7 @@
 import type { MockTicketDto, MockTicketsListResponse } from '@ticketshield/types';
 
 const ORGANIZER_DOWN_MESSAGE =
-  'MockOrganizer chưa chạy (:5001). Không tải được vé đã mua.';
+  'MockOrganizer service is unreachable (:5001). Unable to load purchased tickets.';
 
 const getOrganizerBaseUrl = (): string => {
   try {

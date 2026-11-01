@@ -70,6 +70,44 @@ export const styles = StyleSheet.create({
   submitBtn: {
     marginTop: theme.spacing.xs,
   },
+  dividerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: theme.spacing.lg,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: theme.colors.borderSubtle,
+  },
+  dividerText: {
+    paddingHorizontal: theme.spacing.md,
+    fontSize: theme.typography.sizes.xs,
+    color: theme.colors.textMuted,
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
+    fontWeight: theme.typography.weights.semibold,
+  },
+  googleBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: theme.spacing.sm,
+    backgroundColor: theme.colors.surfaceElevated,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    borderRadius: theme.radii.xl,
+    paddingVertical: 13,
+    paddingHorizontal: theme.spacing.lg,
+  },
+  googleBtnDisabled: {
+    opacity: 0.65,
+  },
+  googleBtnText: {
+    fontSize: theme.typography.sizes.sm,
+    fontWeight: theme.typography.weights.semibold,
+    color: theme.colors.text,
+  },
   registerRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -85,63 +123,5 @@ export const styles = StyleSheet.create({
     fontSize: theme.typography.sizes.sm,
     fontWeight: theme.typography.weights.bold,
     color: theme.colors.primary,
-  },
-  demoSection: {
-    marginTop: theme.spacing.xl,
-    paddingTop: theme.spacing.md,
-    borderTopWidth: 1,
-    borderTopColor: theme.colors.borderSubtle,
-  },
-  demoHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    marginBottom: theme.spacing.sm,
-  },
-  demoHeaderText: {
-    fontSize: theme.typography.sizes.xs,
-    fontWeight: theme.typography.weights.semibold,
-    color: theme.colors.textSecondary,
-    textTransform: 'uppercase',
-    letterSpacing: 0.6,
-  },
-  demoSegment: {
-    flexDirection: 'row',
-    gap: 6,
-    backgroundColor: theme.colors.surfaceElevated,
-    padding: 3,
-    borderRadius: theme.radii.lg,
-  },
-  demoTab: {
-    flex: 1,
-    paddingVertical: 7,
-    borderRadius: theme.radii.md,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  demoTabActive: {
-    backgroundColor: theme.colors.primary,
-  },
-  demoTabText: {
-    fontSize: theme.typography.sizes.xs,
-    fontWeight: theme.typography.weights.semibold,
-    color: theme.colors.textSecondary,
-  },
-  demoTabTextActive: {
-    color: theme.colors.onPrimary,
-    fontWeight: theme.typography.weights.bold,
-  },
-  securityFooter: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: theme.spacing.xs,
-    marginTop: theme.spacing.xl,
-    paddingHorizontal: theme.spacing.md,
-  },
-  securityFooterText: {
-    fontSize: theme.typography.sizes.xs,
-    color: theme.colors.textMuted,
-    textAlign: 'center',
   },
 });

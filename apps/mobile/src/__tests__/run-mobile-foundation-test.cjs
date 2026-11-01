@@ -39,6 +39,16 @@ Module.prototype.require = function(request) {
       getStringAsync: async () => '',
     };
   }
+  if (request === 'expo-web-browser') {
+    return {
+      maybeCompleteAuthSession: () => ({ type: 'dismiss' }),
+    };
+  }
+  if (request === 'expo-auth-session/providers/google' || request === 'expo-auth-session') {
+    return {
+      useIdTokenAuthRequest: () => [null, null, async () => ({ type: 'dismiss' })],
+    };
+  }
   return originalRequire.apply(this, arguments);
 };
 

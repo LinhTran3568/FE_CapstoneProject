@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { User } from '@ticketshield/types';
 import { LoginFormData, RegisterFormData } from '@ticketshield/validation';
-import { authApi, onUnauthorized } from '@ticketshield/api-client';
+import { authApi, onUnauthorized, normalizeErrorMessage } from '@ticketshield/api-client';
 import { secureStorage } from '../lib/secureStore';
 import { initApiGateway, GatewayInfo } from '../lib/apiResolver';
 
@@ -18,6 +18,7 @@ interface AuthState {
 
   // Actions
   login: (credentials: LoginFormData) => Promise<boolean>;
+  googleLogin: (idToken: string) => Promise<boolean>;
   register: (data: RegisterFormData) => Promise<boolean>;
   logout: () => Promise<void>;
   checkAuth: () => Promise<void>;
@@ -73,10 +74,49 @@ export const useAuthStore = create<AuthState>((set, get) => {
 
         return true;
       } catch (err: any) {
-        const errorMsg =
-          err?.message ||
+        const rawMsg =
           err?.response?.data?.message ||
+          err?.message ||
           'Sign in failed. Please check your credentials or server connection.';
+        const errorMsg = normalizeErrorMessage(rawMsg, 'Sign in failed. Please check your credentials or server connection.');
+        set({
+          isLoading: false,
+          error: errorMsg,
+          isAuthenticated: false,
+        });
+        return false;
+      }
+    },
+
+    googleLogin: async (idToken: string): Promise<boolean> => {
+      set({ isLoading: true, error: null });
+      try {
+        const gw = await initApiGateway();
+        set({ gatewayInfo: gw });
+
+        const response = await authApi.googleLogin(idToken);
+
+        await secureStorage.setTokens(response.token, response.refreshToken);
+        await secureStorage.setUser(response.user);
+
+        set({
+          user: response.user,
+          userProfile: response.user,
+          token: response.token,
+          accessToken: response.token,
+          refreshToken: response.refreshToken ?? null,
+          isAuthenticated: true,
+          isLoading: false,
+          error: null,
+        });
+
+        return true;
+      } catch (err: any) {
+        const rawMsg =
+          err?.response?.data?.message ||
+          err?.message ||
+          'Google authentication failed. Please try again.';
+        const errorMsg = normalizeErrorMessage(rawMsg, 'Google authentication failed. Please try again.');
         set({
           isLoading: false,
           error: errorMsg,
@@ -110,10 +150,11 @@ export const useAuthStore = create<AuthState>((set, get) => {
 
         return true;
       } catch (err: any) {
-        const errorMsg =
-          err?.message ||
+        const rawMsg =
           err?.response?.data?.message ||
+          err?.message ||
           'Registration failed. Please check your information.';
+        const errorMsg = normalizeErrorMessage(rawMsg, 'Registration failed. Please check your information.');
         set({
           isLoading: false,
           error: errorMsg,

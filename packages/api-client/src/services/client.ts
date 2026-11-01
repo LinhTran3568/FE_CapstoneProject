@@ -237,7 +237,7 @@ axiosClient.interceptors.response.use(
           }
         }
 
-        throw new Error('Mã refresh-token không hợp lệ hoặc đã hết hạn');
+        throw new Error('Refresh token is invalid or has expired');
       } catch (refreshError) {
         processQueue(refreshError, null);
         isRefreshingToken = false;
@@ -251,21 +251,52 @@ axiosClient.interceptors.response.use(
   }
 );
 
+export const VIETNAMESE_TO_ENGLISH_ERRORS: Record<string, string> = {
+  'Email hoặc mật khẩu không chính xác.': 'Invalid email address or password.',
+  'Email hoặc mật khẩu không chính xác': 'Invalid email address or password.',
+  'Tài khoản của bạn đã bị khóa. Vui lòng liên hệ quản trị viên.': 'Your account has been suspended. Please contact administrator.',
+  'Tài khoản của bạn đã bị khóa': 'Your account has been suspended.',
+  'Tài khoản của bạn đã bị vô hiệu hóa.': 'Your account has been deactivated.',
+  'Mã xác thực Google IdToken không hợp lệ hoặc đã hết hạn.': 'Google authentication token is invalid or has expired.',
+  'Email này đã được sử dụng. Vui lòng chọn một email khác.': 'This email is already in use. Please use a different email address.',
+  'Email này đã được đăng ký tài khoản.': 'This email is already registered.',
+  'Mã refresh-token không hợp lệ hoặc đã hết hạn': 'Refresh token is invalid or has expired.',
+  'Mật khẩu cũ không chính xác.': 'Current password is incorrect.',
+  'Phiên làm việc không hợp lệ hoặc bạn chưa đăng nhập.': 'Session is invalid or you are not signed in.',
+  'Bạn phải đăng nhập để thực hiện thao tác này.': 'You must be signed in to perform this action.',
+  'Không tìm thấy người dùng.': 'User not found.',
+  'Đã xảy ra lỗi không xác định.': 'An unexpected error occurred.',
+};
+
+export const normalizeErrorMessage = (msg?: string, defaultMessage = 'An unexpected error occurred.'): string => {
+  if (!msg) return defaultMessage;
+  const trimmed = msg.trim();
+  if (VIETNAMESE_TO_ENGLISH_ERRORS[trimmed]) {
+    return VIETNAMESE_TO_ENGLISH_ERRORS[trimmed];
+  }
+  for (const [vi, en] of Object.entries(VIETNAMESE_TO_ENGLISH_ERRORS)) {
+    if (trimmed.includes(vi)) {
+      return trimmed.replace(vi, en);
+    }
+  }
+  return trimmed;
+};
+
 const parseApiResponseErrorMessage = (data: ApiResponse<any>, defaultMessage?: string): string => {
   const rawData = data as any;
   const errors = data?.errors || rawData?.Errors;
   const message = data?.message || rawData?.Message;
 
+  let result = message || defaultMessage || 'An unexpected error occurred.';
   if (errors) {
     if (Array.isArray(errors) && errors.length > 0) {
-      return errors.join(', ');
-    }
-    if (typeof errors === 'object' && errors !== null) {
+      result = errors.join(', ');
+    } else if (typeof errors === 'object' && errors !== null) {
       const messages = Object.values(errors).flat().filter(Boolean);
-      if (messages.length > 0) return messages.join(', ');
+      if (messages.length > 0) result = messages.join(', ');
     }
   }
-  return message || defaultMessage || 'Đã xảy ra lỗi không xác định.';
+  return normalizeErrorMessage(result, defaultMessage);
 };
 
 export async function httpClient<T>(
