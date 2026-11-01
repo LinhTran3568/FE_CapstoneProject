@@ -1,12 +1,6 @@
 import { StyleSheet } from 'react-native';
 import { theme } from '../theme';
-
-const fontFamilies = {
-  regular: 'PlusJakartaSans_400Regular',
-  medium: 'PlusJakartaSans_500Medium',
-  bold: 'PlusJakartaSans_700Bold',
-  mono: 'JetBrainsMono_500Medium',
-};
+import { fontFamilies } from '../theme/typography';
 
 export const styles = StyleSheet.create({
   modalBackdrop: {

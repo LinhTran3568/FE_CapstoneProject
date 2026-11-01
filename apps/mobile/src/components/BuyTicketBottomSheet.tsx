@@ -51,7 +51,7 @@ export interface BuyTicketBottomSheetProps {
   onSuccess?: (orderData?: any) => void;
 }
 
-const DEFAULT_HOLD_DURATION_SECONDS = 300; // 5-minute escrow hold
+const DEFAULT_HOLD_DURATION_SECONDS = 600; // 10-minute escrow hold
 
 export const BuyTicketBottomSheet: React.FC<BuyTicketBottomSheetProps> = ({
   visible,
@@ -604,7 +604,7 @@ export const BuyTicketBottomSheet: React.FC<BuyTicketBottomSheetProps> = ({
                     )}
 
                     <FintechButton
-                      title={isHolding ? 'Reserving Ticket...' : 'Reserve Ticket (5-Min Hold)'}
+                      title={isHolding ? 'Reserving Ticket...' : 'Reserve Ticket'}
                       onPress={handleHoldListing}
                       loading={isHolding}
                       icon={<Clock size={16} color={theme.colors.onPrimary} />}

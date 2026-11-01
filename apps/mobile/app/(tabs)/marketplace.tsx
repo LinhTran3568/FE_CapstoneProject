@@ -330,23 +330,6 @@ export default function MarketplaceScreen() {
           onRefresh={handleRefresh}
           ListHeaderComponent={
             <View style={styles.listHeader}>
-              <View style={styles.marketTrustBanner}>
-                <View style={styles.marketTrustIcon}>
-                  <ShieldCheck size={20} color={theme.colors.success} />
-                </View>
-                <View style={styles.marketTrustBody}>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <Text style={styles.marketTrustTitle}>Face-Value Resale Guarantee</Text>
-                    <View style={styles.marketProtectedBadge}>
-                      <Text style={styles.marketProtectedText}>PROTECTED</Text>
-                    </View>
-                  </View>
-                  <Text style={styles.marketTrustDesc}>
-                    All resale passes are capped at original face value. Zero price gouging, 100% backed by TicketShield Escrow.
-                  </Text>
-                </View>
-              </View>
-
               <Text style={styles.resultCount}>
                 {filteredListings.length} {filteredListings.length === 1 ? 'listing' : 'listings'} available
               </Text>
