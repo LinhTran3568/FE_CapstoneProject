@@ -62,7 +62,6 @@ export default function MobileProfileScreen() {
   const router = useRouter();
   const { user, logout } = useAuthStore();
 
-  const kyc = KYC_STATES[user?.kycStatus ?? 'NOT_STARTED'];
 
   const handleLogout = () => {
     Alert.alert(
@@ -96,18 +95,7 @@ export default function MobileProfileScreen() {
         <Text style={styles.userName}>{user?.fullName || 'TicketShield Member'}</Text>
         <Text style={styles.userEmail}>{user?.email || '—'}</Text>
 
-        <View style={styles.badgeRow}>
-          <View style={styles.roleBadge}>
-            <Text style={styles.roleBadgeText}>
-              {ROLE_LABELS[user?.role ?? 'BUYER'] ?? user?.role}
-            </Text>
-          </View>
 
-          <View style={[styles.kycBadge, { backgroundColor: kyc.background }]}>
-            <kyc.Icon size={13} color={kyc.color} />
-            <Text style={[styles.kycBadgeText, { color: kyc.color }]}>{kyc.label}</Text>
-          </View>
-        </View>
       </View>
 
       {/* Primary Actions (Matching Web: Tickets, Orders) */}

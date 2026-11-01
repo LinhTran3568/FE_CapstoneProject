@@ -27,7 +27,7 @@ export default function RegisterScreen() {
   const [phoneNumber, setPhoneNumber] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [role, setRole] = useState<'BUYER' | 'RESELLER'>('BUYER');
+  const role = 'BUYER';
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
 
   const validate = (): boolean => {
@@ -162,30 +162,7 @@ export default function RegisterScreen() {
               error={validationErrors.phoneNumber}
             />
 
-            <View style={styles.roleContainer}>
-              <Text style={styles.roleLabel}>I want to:</Text>
-              <View style={styles.roleSegment}>
-                <TouchableOpacity
-                  style={[styles.roleOption, role === 'BUYER' && styles.roleOptionActive]}
-                  onPress={() => setRole('BUYER')}
-                  activeOpacity={0.8}
-                >
-                  <Text style={[styles.roleOptionText, role === 'BUYER' && styles.roleOptionTextActive]}>
-                    Buy Tickets
-                  </Text>
-                </TouchableOpacity>
 
-                <TouchableOpacity
-                  style={[styles.roleOption, role === 'RESELLER' && styles.roleOptionActive]}
-                  onPress={() => setRole('RESELLER')}
-                  activeOpacity={0.8}
-                >
-                  <Text style={[styles.roleOptionText, role === 'RESELLER' && styles.roleOptionTextActive]}>
-                    Resell Tickets
-                  </Text>
-                </TouchableOpacity>
-              </View>
-            </View>
 
             <FintechInput
               label="Password"
