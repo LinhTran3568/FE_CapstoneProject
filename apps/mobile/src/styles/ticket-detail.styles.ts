@@ -284,4 +284,30 @@ export const styles = StyleSheet.create({
     fontWeight: theme.typography.weights.semibold,
     color: theme.colors.text,
   },
+  disputeBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    marginTop: theme.spacing.sm,
+    paddingVertical: 12,
+    backgroundColor: theme.colors.dangerLight,
+    borderRadius: theme.radii.lg,
+    borderWidth: 1,
+    borderColor: theme.colors.dangerBorder,
+  },
+  disputeBtnActive: {
+    backgroundColor: theme.colors.warningLight,
+    borderColor: theme.colors.warningBorder,
+  },
+  disputeBtnText: {
+    fontSize: theme.typography.sizes.sm,
+    fontFamily: fontFamilies.bold,
+    color: theme.colors.danger,
+  },
+  disputeBtnTextActive: {
+    fontSize: theme.typography.sizes.sm,
+    fontFamily: fontFamilies.bold,
+    color: theme.colors.warning,
+  },
 });

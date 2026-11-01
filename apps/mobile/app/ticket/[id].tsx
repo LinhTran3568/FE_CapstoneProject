@@ -19,6 +19,8 @@ import {
   AlertCircle,
   Info,
   QrCode,
+  ShieldAlert,
+  Clock,
 } from 'lucide-react-native';
 import { theme } from '../../src/theme';
 import type { PurchasedTicketDto } from '@ticketshield/types';
@@ -28,6 +30,7 @@ import { FintechButton } from '../../src/components/FintechButton';
 import { EventPoster } from '../../src/components/EventPoster';
 import { formatEventDateTime } from '../../src/utils/format';
 import { styles } from '../../src/styles/ticket-detail.styles';
+import { DisputeTicketModal } from '../../src/components/DisputeTicketModal';
 
 const STATUS_LABELS: Record<string, string> = {
   VALID: 'Valid — Ready for Admission',
@@ -49,6 +52,7 @@ export default function TicketDetailScreen() {
   const [rotatingToken, setRotatingToken] = useState('');
   const [secondsRemaining, setSecondsRemaining] = useState(30);
   const [qrLoadFailed, setQrLoadFailed] = useState(false);
+  const [isDisputeModalOpen, setIsDisputeModalOpen] = useState(false);
 
   const loadTicket = async () => {
     if (!id) {
@@ -288,6 +292,45 @@ export default function TicketDetailScreen() {
             <Share2 size={16} color={theme.colors.text} />
             <Text style={styles.shareBtnText}>Share Pass Details</Text>
           </TouchableOpacity>
+
+          {Boolean(ticket.escrowId) && (
+            <TouchableOpacity
+              style={[
+                styles.disputeBtn,
+                Boolean(ticket.disputeId || ticket.status === 'DISPUTED') &&
+                  styles.disputeBtnActive,
+              ]}
+              onPress={() => setIsDisputeModalOpen(true)}
+              activeOpacity={0.85}
+            >
+              {ticket.disputeId || ticket.status === 'DISPUTED' ? (
+                <>
+                  <Clock size={16} color={theme.colors.warning} />
+                  <Text style={styles.disputeBtnTextActive}>
+                    View Dispute Progress
+                  </Text>
+                </>
+              ) : (
+                <>
+                  <ShieldAlert size={16} color={theme.colors.danger} />
+                  <Text style={styles.disputeBtnText}>
+                    Report Ticket Issue (Escrow)
+                  </Text>
+                </>
+              )}
+            </TouchableOpacity>
+          )}
+
+          <DisputeTicketModal
+            visible={isDisputeModalOpen}
+            ticket={ticket}
+            onClose={() => setIsDisputeModalOpen(false)}
+            onDisputeSubmitted={(disputeId) => {
+              setTicket((prev) =>
+                prev ? { ...prev, status: 'DISPUTED', disputeId } : null
+              );
+            }}
+          />
         </View>
       </ScrollView>
     </>

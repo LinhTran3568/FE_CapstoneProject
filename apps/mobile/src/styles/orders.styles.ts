@@ -163,6 +163,7 @@ export const styles = StyleSheet.create({
     lineHeight: 16,
   },
   viewPassBtn: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -172,7 +173,6 @@ export const styles = StyleSheet.create({
     borderRadius: theme.radii.md,
     borderWidth: 1,
     borderColor: theme.colors.border,
-    marginTop: 4,
   },
   viewPassBtnText: {
     fontSize: theme.typography.sizes.xs,
@@ -259,5 +259,59 @@ export const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingVertical: theme.spacing['3xl'],
     paddingHorizontal: theme.spacing.xl,
+  },
+  orderActionsRow: {
+    flexDirection: 'row',
+    gap: theme.spacing.sm,
+    marginTop: 4,
+  },
+  reportOrderBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    backgroundColor: theme.colors.dangerLight,
+    borderRadius: theme.radii.md,
+    borderWidth: 1,
+    borderColor: theme.colors.dangerBorder,
+  },
+  reportOrderBtnText: {
+    fontSize: theme.typography.sizes.xs,
+    fontFamily: fontFamilies.bold,
+    color: theme.colors.danger,
+  },
+  disputeProgressOrderBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    backgroundColor: theme.colors.warningLight,
+    borderRadius: theme.radii.md,
+    borderWidth: 1,
+    borderColor: theme.colors.warningBorder,
+  },
+  disputeProgressOrderBtnText: {
+    fontSize: theme.typography.sizes.xs,
+    fontFamily: fontFamilies.bold,
+    color: theme.colors.warning,
+  },
+  escrowNoticeDanger: {
+    backgroundColor: theme.colors.dangerLight,
+    borderWidth: 1,
+    borderColor: theme.colors.dangerBorder,
+  },
+  escrowNoticeTextDanger: {
+    color: theme.colors.danger,
+  },
+  statusBadgeDisputed: {
+    backgroundColor: theme.colors.dangerLight,
+    borderColor: theme.colors.dangerBorder,
+  },
+  statusTextDisputed: {
+    color: theme.colors.danger,
   },
 });

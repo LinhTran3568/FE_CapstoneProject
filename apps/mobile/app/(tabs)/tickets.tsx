@@ -23,8 +23,10 @@ import {
   Share2,
   AlertTriangle,
   Search,
+  ShieldAlert,
+  Clock,
 } from 'lucide-react-native';
-import { theme } from '../../src/theme';
+import { theme, fontFamilies } from '../../src/theme';
 import type { PurchasedTicketDto } from '@ticketshield/types';
 import { resaleListingsApi } from '@ticketshield/api-client';
 import { generateRotatingToken } from '../../src/utils/totp';
@@ -32,6 +34,7 @@ import { FintechButton } from '../../src/components/FintechButton';
 import { EventPoster } from '../../src/components/EventPoster';
 import { formatEventDate } from '../../src/utils/format';
 import { styles } from '../../src/styles/tickets.styles';
+import { DisputeTicketModal } from '../../src/components/DisputeTicketModal';
 
 const STATUS_LABELS: Record<string, string> = {
   VALID: 'Valid for Entry',
@@ -70,6 +73,8 @@ export default function MobileTicketsScreen() {
   const [qrLoadFailed, setQrLoadFailed] = useState(false);
   const [selectedStatus, setSelectedStatus] = useState<TicketStatusFilter>('ALL');
   const [searchQuery, setSearchQuery] = useState('');
+  const [isDisputeModalOpen, setIsDisputeModalOpen] = useState(false);
+  const [disputeModalTicket, setDisputeModalTicket] = useState<PurchasedTicketDto | null>(null);
 
   const counts = useMemo(() => {
     const valid = tickets.filter((t) => t.status === 'VALID').length;
@@ -160,6 +165,16 @@ export default function MobileTicketsScreen() {
   };
 
   const renderStatusBadge = (status: string) => {
+    if (status === 'DISPUTED') {
+      return (
+        <View style={[styles.statusBadge, { backgroundColor: theme.colors.dangerLight, borderColor: theme.colors.dangerBorder }]}>
+          <ShieldAlert size={13} color={theme.colors.danger} />
+          <Text style={[styles.statusText, { color: theme.colors.danger, fontFamily: fontFamilies.bold }]}>
+            DISPUTED
+          </Text>
+        </View>
+      );
+    }
     const isValid = status === 'VALID';
     return (
       <View style={[styles.statusBadge, isValid ? styles.statusBadgeValid : styles.statusBadgeMuted]}>
@@ -497,11 +512,65 @@ export default function MobileTicketsScreen() {
                     <Text style={styles.detailPageBtnText}>Full Pass Details</Text>
                   </TouchableOpacity>
                 </View>
+
+                {Boolean(selectedTicket.escrowId) && (
+                  <TouchableOpacity
+                    style={[
+                      styles.disputeActionBtn,
+                      Boolean(selectedTicket.disputeId || selectedTicket.status === 'DISPUTED') &&
+                        styles.disputeActionBtnActive,
+                    ]}
+                    onPress={() => {
+                      setDisputeModalTicket(selectedTicket);
+                      setIsDisputeModalOpen(true);
+                    }}
+                    activeOpacity={0.85}
+                  >
+                    {selectedTicket.disputeId || selectedTicket.status === 'DISPUTED' ? (
+                      <>
+                        <Clock size={16} color={theme.colors.warning} />
+                        <Text style={styles.disputeActionTextActive}>
+                          View Dispute Progress
+                        </Text>
+                      </>
+                    ) : (
+                      <>
+                        <ShieldAlert size={16} color={theme.colors.danger} />
+                        <Text style={styles.disputeActionText}>
+                          Report Ticket Issue (Escrow)
+                        </Text>
+                      </>
+                    )}
+                  </TouchableOpacity>
+                )}
               </ScrollView>
             )}
           </View>
         </View>
       </Modal>
+
+      <DisputeTicketModal
+        visible={isDisputeModalOpen}
+        ticket={disputeModalTicket}
+        onClose={() => {
+          setIsDisputeModalOpen(false);
+          setDisputeModalTicket(null);
+        }}
+        onDisputeSubmitted={(disputeId, ticketCode) => {
+          setTickets((prev) =>
+            prev.map((t) =>
+              t.ticketPassCode === ticketCode
+                ? { ...t, status: 'DISPUTED', disputeId }
+                : t
+            )
+          );
+          if (selectedTicket?.ticketPassCode === ticketCode) {
+            setSelectedTicket((prev) =>
+              prev ? { ...prev, status: 'DISPUTED', disputeId } : null
+            );
+          }
+        }}
+      />
     </View>
   );
 }

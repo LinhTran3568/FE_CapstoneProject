@@ -20,12 +20,15 @@ import {
   AlertTriangle,
   Search,
   X,
+  ShieldAlert,
 } from 'lucide-react-native';
 import { theme } from '../../src/theme';
 import { resaleListingsApi } from '@ticketshield/api-client';
 import { FintechButton } from '../../src/components/FintechButton';
 import { formatPrice, formatEventDateTime } from '../../src/utils/format';
 import { styles } from '../../src/styles/orders.styles';
+import type { PurchasedTicketDto } from '@ticketshield/types';
+import { DisputeTicketModal } from '../../src/components/DisputeTicketModal';
 
 interface MobileEscrowOrder {
   orderId: string;
@@ -35,12 +38,14 @@ interface MobileEscrowOrder {
   seatZone: string;
   totalPaid: number;
   paymentReference: string;
-  status: 'ESCROW_HOLDING' | 'COMPLETED' | 'CANCELLED';
+  status: 'ESCROW_HOLDING' | 'COMPLETED' | 'CANCELLED' | 'DISPUTED';
   createdAt: string;
   ticketPassCode: string;
+  disputeId?: string | null;
+  escrowId?: string | null;
 }
 
-type OrderStatusFilter = 'ALL' | 'ESCROW_HOLDING' | 'COMPLETED' | 'CANCELLED';
+type OrderStatusFilter = 'ALL' | 'ESCROW_HOLDING' | 'COMPLETED' | 'DISPUTED' | 'CANCELLED';
 
 interface OrderFilterItem {
   key: OrderStatusFilter;
@@ -52,6 +57,7 @@ const ORDER_FILTERS: OrderFilterItem[] = [
   { key: 'ALL', label: 'All Orders', icon: Receipt },
   { key: 'ESCROW_HOLDING', label: 'In Escrow', icon: Clock },
   { key: 'COMPLETED', label: 'Completed', icon: CheckCircle2 },
+  { key: 'DISPUTED', label: 'Disputed', icon: ShieldAlert },
   { key: 'CANCELLED', label: 'Cancelled', icon: XCircle },
 ];
 
@@ -63,15 +69,19 @@ export default function MobileOrdersScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [selectedStatus, setSelectedStatus] = useState<OrderStatusFilter>('ALL');
   const [searchQuery, setSearchQuery] = useState('');
+  const [isDisputeModalOpen, setIsDisputeModalOpen] = useState(false);
+  const [selectedOrderTicket, setSelectedOrderTicket] = useState<PurchasedTicketDto | null>(null);
 
   const counts = useMemo(() => {
     const holding = orders.filter((o) => o.status === 'ESCROW_HOLDING').length;
     const completed = orders.filter((o) => o.status === 'COMPLETED').length;
+    const disputed = orders.filter((o) => o.status === 'DISPUTED').length;
     const cancelled = orders.filter((o) => o.status === 'CANCELLED').length;
     return {
       ALL: orders.length,
       ESCROW_HOLDING: holding,
       COMPLETED: completed,
+      DISPUTED: disputed,
       CANCELLED: cancelled,
     };
   }, [orders]);
@@ -101,18 +111,29 @@ export default function MobileOrdersScreen() {
     setError(null);
     try {
       const tickets = await resaleListingsApi.getMyPurchasedTickets();
-      const mappedOrders: MobileEscrowOrder[] = (tickets || []).map((t) => ({
-        orderId: t.escrowId ? `ORD-${t.escrowId.slice(-8).toUpperCase()}` : `ORD-${t.ticketPassCode}`,
-        listingId: t.listingId,
-        eventName: t.eventName,
-        tierName: t.tierName,
-        seatZone: t.seatZone || 'General Admission',
-        totalPaid: t.totalAmountPaid,
-        paymentReference: t.paymentReference || 'TS-ESCROW',
-        status: t.status === 'VALID' ? 'COMPLETED' : t.status === 'CANCELLED' ? 'CANCELLED' : 'COMPLETED',
-        createdAt: t.purchasedAt || new Date().toISOString(),
-        ticketPassCode: t.ticketPassCode,
-      }));
+      const mappedOrders: MobileEscrowOrder[] = (tickets || []).map((t) => {
+        const isDisputed = t.status === 'DISPUTED' || Boolean(t.disputeId);
+        return {
+          orderId: t.escrowId ? `ORD-${t.escrowId.slice(-8).toUpperCase()}` : `ORD-${t.ticketPassCode}`,
+          listingId: t.listingId,
+          eventName: t.eventName,
+          tierName: t.tierName,
+          seatZone: t.seatZone || 'General Admission',
+          totalPaid: t.totalAmountPaid,
+          paymentReference: t.paymentReference || 'TS-ESCROW',
+          status: isDisputed
+            ? 'DISPUTED'
+            : t.status === 'VALID'
+              ? 'COMPLETED'
+              : t.status === 'CANCELLED'
+                ? 'CANCELLED'
+                : 'ESCROW_HOLDING',
+          createdAt: t.purchasedAt || new Date().toISOString(),
+          ticketPassCode: t.ticketPassCode,
+          disputeId: t.disputeId || null,
+          escrowId: t.escrowId || null,
+        };
+      });
       setOrders(mappedOrders);
     } catch (err) {
       const message =
@@ -134,6 +155,14 @@ export default function MobileOrdersScreen() {
   };
 
   const getStatusBadge = (status: MobileEscrowOrder['status']) => {
+    if (status === 'DISPUTED') {
+      return (
+        <View style={[styles.statusBadge, styles.statusBadgeDisputed]}>
+          <ShieldAlert size={13} color={theme.colors.danger} />
+          <Text style={[styles.statusText, styles.statusTextDisputed]}>Disputed (Frozen)</Text>
+        </View>
+      );
+    }
     if (status === 'ESCROW_HOLDING') {
       return (
         <View style={[styles.statusBadge, styles.statusBadgeWarning]}>
@@ -156,6 +185,31 @@ export default function MobileOrdersScreen() {
         <Text style={[styles.statusText, styles.statusTextDanger]}>Cancelled</Text>
       </View>
     );
+  };
+
+  const handleReportOrder = (item: MobileEscrowOrder) => {
+    const isDisputed = item.status === 'DISPUTED' || Boolean(item.disputeId);
+    const syntheticTicket: PurchasedTicketDto = {
+      escrowId: item.escrowId || item.orderId.replace('ORD-', ''),
+      listingId: item.listingId,
+      eventId: '',
+      eventName: item.eventName,
+      eventVenue: 'Venue',
+      eventStartAt: item.createdAt,
+      tierName: item.tierName,
+      seatZone: item.seatZone,
+      ticketPassCode: item.ticketPassCode,
+      totalAmountPaid: item.totalPaid,
+      status: isDisputed ? 'DISPUTED' : item.status === 'COMPLETED' ? 'VALID' : 'IN_ESCROW',
+      disputeId: item.disputeId || null,
+      recipientName: 'Ticket Holder',
+      recipientEmail: '',
+      qrCodeData: item.ticketPassCode,
+      qrCodeImageUrl: '',
+      purchasedAt: item.createdAt,
+    };
+    setSelectedOrderTicket(syntheticTicket);
+    setIsDisputeModalOpen(true);
   };
 
   const renderOrder = ({ item }: { item: MobileEscrowOrder }) => (
@@ -189,25 +243,58 @@ export default function MobileOrdersScreen() {
         </View>
       </View>
 
-      <View style={styles.escrowNotice}>
-        <ShieldCheck size={14} color={theme.colors.success} />
-        <Text style={styles.escrowNoticeText}>
-          {item.status === 'ESCROW_HOLDING'
-            ? 'Funds are locked in Escrow and will be released to seller after admission.'
-            : item.status === 'COMPLETED'
-              ? 'Admission verified. Escrow settlement successfully disbursed.'
-              : 'Order was cancelled and any held deposit refunded.'}
+      <View style={[styles.escrowNotice, item.status === 'DISPUTED' && styles.escrowNoticeDanger]}>
+        {item.status === 'DISPUTED' ? (
+          <ShieldAlert size={14} color={theme.colors.danger} />
+        ) : (
+          <ShieldCheck size={14} color={theme.colors.success} />
+        )}
+        <Text
+          style={[
+            styles.escrowNoticeText,
+            item.status === 'DISPUTED' && styles.escrowNoticeTextDanger,
+          ]}
+        >
+          {item.status === 'DISPUTED'
+            ? 'Dispute opened. Payout is frozen in Escrow pending turnstile scan audit.'
+            : item.status === 'ESCROW_HOLDING'
+              ? 'Funds are locked in Escrow and will be released to seller after admission.'
+              : item.status === 'COMPLETED'
+                ? 'Admission verified. Escrow settlement successfully disbursed.'
+                : 'Order was cancelled and any held deposit refunded.'}
         </Text>
       </View>
 
-      <TouchableOpacity
-        style={styles.viewPassBtn}
-        onPress={() => router.push('/(tabs)/tickets')}
-        activeOpacity={0.8}
-      >
-        <Text style={styles.viewPassBtnText}>View Ticket in Wallet</Text>
-        <ArrowRight size={15} color={theme.colors.primary} />
-      </TouchableOpacity>
+      <View style={styles.orderActionsRow}>
+        <TouchableOpacity
+          style={styles.viewPassBtn}
+          onPress={() => router.push('/(tabs)/tickets')}
+          activeOpacity={0.8}
+        >
+          <Text style={styles.viewPassBtnText}>View in Wallet</Text>
+          <ArrowRight size={14} color={theme.colors.primary} />
+        </TouchableOpacity>
+
+        {item.status === 'DISPUTED' || Boolean(item.disputeId) ? (
+          <TouchableOpacity
+            style={styles.disputeProgressOrderBtn}
+            onPress={() => handleReportOrder(item)}
+            activeOpacity={0.8}
+          >
+            <Clock size={14} color={theme.colors.warning} />
+            <Text style={styles.disputeProgressOrderBtnText}>View Dispute</Text>
+          </TouchableOpacity>
+        ) : item.status !== 'CANCELLED' ? (
+          <TouchableOpacity
+            style={styles.reportOrderBtn}
+            onPress={() => handleReportOrder(item)}
+            activeOpacity={0.8}
+          >
+            <ShieldAlert size={14} color={theme.colors.danger} />
+            <Text style={styles.reportOrderBtnText}>Report Issue</Text>
+          </TouchableOpacity>
+        ) : null}
+      </View>
     </View>
   );
 
@@ -355,6 +442,27 @@ export default function MobileOrdersScreen() {
           />
         </>
       )}
+      <DisputeTicketModal
+        visible={isDisputeModalOpen}
+        ticket={selectedOrderTicket}
+        onClose={() => {
+          setIsDisputeModalOpen(false);
+          setSelectedOrderTicket(null);
+        }}
+        onDisputeSubmitted={(disputeId, ticketCode) => {
+          setOrders((prev) =>
+            prev.map((o) =>
+              o.ticketPassCode === ticketCode ||
+              (selectedOrderTicket?.escrowId && o.escrowId === selectedOrderTicket.escrowId)
+                ? { ...o, status: 'DISPUTED', disputeId }
+                : o
+            )
+          );
+          setSelectedOrderTicket((prev) =>
+            prev ? { ...prev, status: 'DISPUTED', disputeId } : null
+          );
+        }}
+      />
     </View>
   );
 }

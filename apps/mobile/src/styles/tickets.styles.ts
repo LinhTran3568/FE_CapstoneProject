@@ -433,4 +433,31 @@ export const styles = StyleSheet.create({
     paddingVertical: theme.spacing['3xl'],
     paddingHorizontal: theme.spacing.xl,
   },
+  disputeActionBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    marginTop: theme.spacing.sm,
+    paddingVertical: 12,
+    paddingHorizontal: theme.spacing.md,
+    backgroundColor: theme.colors.dangerLight,
+    borderRadius: theme.radii.lg,
+    borderWidth: 1,
+    borderColor: theme.colors.dangerBorder,
+  },
+  disputeActionBtnActive: {
+    backgroundColor: theme.colors.warningLight,
+    borderColor: theme.colors.warningBorder,
+  },
+  disputeActionText: {
+    fontSize: theme.typography.sizes.sm,
+    fontFamily: fontFamilies.bold,
+    color: theme.colors.danger,
+  },
+  disputeActionTextActive: {
+    fontSize: theme.typography.sizes.sm,
+    fontFamily: fontFamilies.bold,
+    color: theme.colors.warning,
+  },
 });
