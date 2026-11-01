@@ -9,7 +9,7 @@ import {
 } from 'react-native';
 import { Text } from '../../src/components/AppText';
 import { useRouter } from 'expo-router';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useSafeAreaInsets, SafeAreaView } from 'react-native-safe-area-context';
 import {
   Search,
   X,
@@ -223,7 +223,7 @@ export default function MarketplaceScreen() {
   };
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.header}>
         <View>
           <Text style={styles.title}>Marketplace</Text>
@@ -430,6 +430,6 @@ export default function MarketplaceScreen() {
         listing={selectedListing}
         onClose={() => setSelectedListing(null)}
       />
-    </View>
+    </SafeAreaView>
   );
 }

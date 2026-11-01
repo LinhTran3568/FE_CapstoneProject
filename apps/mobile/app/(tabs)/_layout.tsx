@@ -36,7 +36,7 @@ export default function TabLayout() {
         name="index"
         options={{
           title: 'Home',
-          headerTitle: 'TicketShield',
+          headerShown: false,
           tabBarIcon: ({ color, size, focused }) => (
             <Home size={size || 22} color={color} strokeWidth={focused ? 2.4 : 1.8} />
           ),
@@ -46,7 +46,7 @@ export default function TabLayout() {
         name="marketplace"
         options={{
           title: 'Marketplace',
-          headerTitle: 'Ticket Marketplace',
+          headerShown: false,
           tabBarIcon: ({ color, size, focused }) => (
             <Store size={size || 22} color={color} strokeWidth={focused ? 2.4 : 1.8} />
           ),

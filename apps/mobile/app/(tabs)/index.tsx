@@ -10,6 +10,7 @@ import {
   NativeScrollEvent,
 } from 'react-native';
 import { Text } from '../../src/components/AppText';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import {
   ArrowRight,
@@ -124,9 +125,10 @@ export default function MobileHomeScreen() {
   };
 
   return (
-    <ScrollView
-      style={styles.container}
-      contentContainerStyle={styles.content}
+    <SafeAreaView style={styles.container} edges={['top']}>
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={styles.content}
       showsVerticalScrollIndicator={false}
       refreshControl={
         <RefreshControl
@@ -322,5 +324,6 @@ export default function MobileHomeScreen() {
         </>
       )}
     </ScrollView>
+  </SafeAreaView>
   );
 }
