@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import {
   View,
   FlatList,
@@ -6,7 +6,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { Text } from '../../src/components/AppText';
-import { useRouter } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import {
   ShieldCheck,
   Clock,
@@ -18,8 +18,8 @@ import {
   AlertTriangle,
 } from 'lucide-react-native';
 import { theme } from '../../src/theme';
-import { resaleListingsApi } from '@ticketshield/api-client';
 import { FintechButton } from '../../src/components/FintechButton';
+import { useMyTickets } from '../../src/hooks/useMyTickets';
 import { formatPrice, formatEventDateTime } from '../../src/utils/format';
 import { styles } from '../../src/styles/orders.styles';
 
@@ -38,45 +38,33 @@ interface MobileEscrowOrder {
 
 export default function MobileOrdersScreen() {
   const router = useRouter();
-  const [orders, setOrders] = useState<MobileEscrowOrder[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { tickets, isLoading: loading, error: loadError, refetch } = useMyTickets();
   const [refreshing, setRefreshing] = useState(false);
 
-  const fetchOrders = useCallback(async (silent = false) => {
-    if (!silent) setLoading(true);
-    setError(null);
-    try {
-      const tickets = await resaleListingsApi.getMyPurchasedTickets();
-      const mappedOrders: MobileEscrowOrder[] = (tickets || []).map((t) => ({
-        orderId: t.escrowId ? `ORD-${t.escrowId.slice(-8).toUpperCase()}` : `ORD-${t.ticketPassCode}`,
-        listingId: t.listingId,
-        eventName: t.eventName,
-        tierName: t.tierName,
-        seatZone: t.seatZone || 'General Admission',
-        totalPaid: t.totalAmountPaid,
-        paymentReference: t.paymentReference || 'TS-ESCROW',
-        status: t.status === 'VALID' ? 'COMPLETED' : t.status === 'CANCELLED' ? 'CANCELLED' : 'COMPLETED',
-        createdAt: t.purchasedAt || new Date().toISOString(),
-        ticketPassCode: t.ticketPassCode,
-      }));
-      setOrders(mappedOrders);
-    } catch (err) {
-      const message =
-        err instanceof Error ? err.message : 'Unable to load orders. Please try again.';
-      setError(message);
-    } finally {
-      if (!silent) setLoading(false);
-    }
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      refetch();
+    }, [refetch])
+  );
 
-  useEffect(() => {
-    fetchOrders();
-  }, [fetchOrders]);
+  const orders: MobileEscrowOrder[] = tickets.map((t) => ({
+    orderId: t.escrowId ? `ORD-${t.escrowId.slice(-8).toUpperCase()}` : `ORD-${t.ticketPassCode}`,
+    listingId: t.listingId,
+    eventName: t.eventName,
+    tierName: t.tierName,
+    seatZone: t.seatZone || 'General Admission',
+    totalPaid: t.totalAmountPaid,
+    paymentReference: t.paymentReference || 'TS-ESCROW',
+    status: t.status === 'VALID' ? 'COMPLETED' : t.status === 'CANCELLED' ? 'CANCELLED' : 'COMPLETED',
+    createdAt: t.purchasedAt || new Date().toISOString(),
+    ticketPassCode: t.ticketPassCode,
+  }));
+
+  const error = loadError && orders.length === 0 ? loadError.message : null;
 
   const handleRefresh = async () => {
     setRefreshing(true);
-    await fetchOrders(true);
+    await refetch();
     setRefreshing(false);
   };
 
@@ -174,7 +162,7 @@ export default function MobileOrdersScreen() {
           <Text style={styles.emptyDesc}>{error}</Text>
           <FintechButton
             title="Try Again"
-            onPress={() => fetchOrders()}
+            onPress={() => refetch()}
             variant="secondary"
             style={styles.emptyBtn}
           />

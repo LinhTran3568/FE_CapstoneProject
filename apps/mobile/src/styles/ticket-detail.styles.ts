@@ -1,6 +1,5 @@
 import { StyleSheet } from 'react-native';
 import { theme } from '../theme';
-import { fontFamilies } from '../theme/typography';
 
 export const styles = StyleSheet.create({
   container: {
@@ -93,11 +92,6 @@ export const styles = StyleSheet.create({
     color: theme.colors.text,
     lineHeight: 30,
   },
-  passCode: {
-    fontSize: theme.typography.sizes.xs,
-    fontFamily: fontFamilies.mono,
-    color: theme.colors.textMuted,
-  },
   metaRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -135,72 +129,23 @@ export const styles = StyleSheet.create({
     borderStyle: 'dashed',
     marginHorizontal: 12,
   },
-  qrContainer: {
+  noPass: {
     alignItems: 'center',
-  },
-  qrWhiteBox: {
-    backgroundColor: '#ffffff',
-    borderRadius: theme.radii.xl,
     padding: theme.spacing.lg,
-    width: 260,
-    height: 260,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  qrImage: {
-    width: 230,
-    height: 230,
-  },
-  qrFallback: {
-    alignItems: 'center',
-    justifyContent: 'center',
     gap: 6,
-  },
-  qrFallbackTitle: {
-    fontSize: theme.typography.sizes.sm,
-    fontWeight: theme.typography.weights.bold,
-    color: '#0C0A09',
-  },
-  qrFallbackHint: {
-    fontSize: 11,
-    color: '#666666',
-    textAlign: 'center',
-  },
-  qrFallbackCode: {
-    fontSize: theme.typography.sizes.sm,
-    fontFamily: fontFamilies.mono,
-    color: '#0C0A09',
-    fontWeight: theme.typography.weights.bold,
-  },
-  countdownPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
+    borderRadius: theme.radii.lg,
     backgroundColor: theme.colors.surfaceElevated,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: theme.radii.full,
-    marginTop: theme.spacing.md,
   },
-  countdownPillText: {
+  noPassTitle: {
+    fontSize: theme.typography.sizes.md,
+    fontWeight: theme.typography.weights.bold,
+    color: theme.colors.text,
+  },
+  noPassDesc: {
     fontSize: theme.typography.sizes.xs,
     color: theme.colors.textSecondary,
-  },
-  countdownSeconds: {
-    fontWeight: theme.typography.weights.bold,
-    color: theme.colors.primary,
-  },
-  progressTrack: {
-    width: 200,
-    height: 3,
-    backgroundColor: theme.colors.surfaceElevated,
-    borderRadius: 2,
-    marginTop: 8,
-    overflow: 'hidden',
-  },
-  progressFill: {
-    height: '100%',
-    backgroundColor: theme.colors.primary,
+    textAlign: 'center',
+    lineHeight: 18,
   },
   specsGrid: {
     flexDirection: 'row',
