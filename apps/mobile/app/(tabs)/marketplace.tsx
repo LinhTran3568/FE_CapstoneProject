@@ -42,7 +42,7 @@ import { EventPoster } from '../../src/components/EventPoster';
 import { FintechButton } from '../../src/components/FintechButton';
 import { CategoryFilterBar } from '../../src/components/CategoryFilterBar';
 import { FairPriceBadge } from '../../src/components/FairPriceBadge';
-import { formatPrice, formatEventDateTime } from '../../src/utils/format';
+import { formatPrice, formatEventDateTime, initialsOf } from '../../src/utils/format';
 import { styles } from '../../src/styles/marketplace.styles';
 
 type PriceBand = 'ALL' | 'UNDER_1M' | 'FROM_1M_TO_2M' | 'OVER_2M';
@@ -497,7 +497,26 @@ export default function MarketplaceScreen() {
           onRefresh={handleRefresh}
           ListHeaderComponent={
             <View style={styles.listHeader}>
-              <Text style={styles.resultCount}>{filteredListings.length} listings available</Text>
+              <View style={styles.marketTrustBanner}>
+                <View style={styles.marketTrustIcon}>
+                  <ShieldCheck size={20} color={theme.colors.success} />
+                </View>
+                <View style={styles.marketTrustBody}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <Text style={styles.marketTrustTitle}>Face-Value Resale Guarantee</Text>
+                    <View style={styles.marketProtectedBadge}>
+                      <Text style={styles.marketProtectedText}>PROTECTED</Text>
+                    </View>
+                  </View>
+                  <Text style={styles.marketTrustDesc}>
+                    All resale passes are capped at original face value. Zero price gouging, 100% backed by TicketShield Escrow.
+                  </Text>
+                </View>
+              </View>
+
+              <Text style={styles.resultCount}>
+                {filteredListings.length} {filteredListings.length === 1 ? 'listing' : 'listings'} available
+              </Text>
             </View>
           }
           ListEmptyComponent={
@@ -665,6 +684,86 @@ export default function MarketplaceScreen() {
 
                 {!holdData ? (
                   <>
+                    {/* Seller Snapshot */}
+                    <View style={styles.sheetSellerCard}>
+                      <View style={styles.sheetSellerTop}>
+                        <View style={styles.sheetSellerAvatar}>
+                          <Text style={styles.sheetSellerAvatarText}>
+                            {initialsOf(selectedListing.sellerFullName)}
+                          </Text>
+                        </View>
+                        <View style={styles.sheetSellerInfo}>
+                          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                            <Text style={styles.sheetSellerName}>
+                              {selectedListing.sellerFullName || 'Verified Seller'}
+                            </Text>
+                            <View style={styles.sheetVerifiedPill}>
+                              <ShieldCheck size={10} color={theme.colors.success} />
+                              <Text style={styles.sheetVerifiedPillText}>VERIFIED</Text>
+                            </View>
+                          </View>
+                          <Text style={styles.sheetSellerSub}>
+                            Zone: {selectedListing.seatZone || selectedListing.tierName} • Pass #{selectedListing.maskedTicketCode}
+                          </Text>
+                        </View>
+                      </View>
+                    </View>
+
+                    {/* Face-Value Price Ceiling & Escrow Guarantee */}
+                    <View style={styles.sheetCeilingCard}>
+                      <View style={styles.sheetCeilingHeader}>
+                        <View style={styles.sheetCeilingIcon}>
+                          <ShieldCheck size={18} color={theme.colors.success} />
+                        </View>
+                        <View style={styles.sheetCeilingTextWrap}>
+                          <Text style={styles.sheetCeilingTitle}>Face-Value Price Cap Guarantee</Text>
+                          <Text style={styles.sheetCeilingSub}>
+                            Anti-scalping verified: Resale price is capped at original box office value.
+                          </Text>
+                        </View>
+                        <View style={styles.sheetCeilingBadge}>
+                          <Text style={styles.sheetCeilingBadgeText}>
+                            {selectedListing.resalePrice <= selectedListing.originalPrice ? 'PROTECTED' : 'VERIFIED'}
+                          </Text>
+                        </View>
+                      </View>
+
+                      <View style={styles.sheetCeilingPriceRow}>
+                        <View style={styles.sheetCeilingCol}>
+                          <Text style={styles.sheetCeilingLabel}>Original Face Value</Text>
+                          <Text
+                            style={[
+                              styles.sheetCeilingValue,
+                              selectedListing.discountPercentage > 0 && styles.sheetCeilingStrikethrough,
+                            ]}
+                          >
+                            {formatPrice(selectedListing.originalPrice)}
+                          </Text>
+                        </View>
+                        <View style={styles.sheetCeilingDivider} />
+                        <View style={styles.sheetCeilingCol}>
+                          <Text style={styles.sheetCeilingLabel}>Resale Price</Text>
+                          <Text style={[styles.sheetCeilingValue, { color: theme.colors.primary }]}>
+                            {formatPrice(selectedListing.resalePrice)}
+                          </Text>
+                        </View>
+                        {selectedListing.discountPercentage > 0 && (
+                          <View style={styles.sheetDiscountBadge}>
+                            <Text style={styles.sheetDiscountBadgeText}>
+                              -{Math.round(selectedListing.discountPercentage)}% OFF
+                            </Text>
+                          </View>
+                        )}
+                      </View>
+
+                      <View style={styles.sheetEscrowNotice}>
+                        <CheckCircle2 size={13} color={theme.colors.success} />
+                        <Text style={styles.sheetEscrowNoticeText}>
+                          TicketShield Escrow: Funds are held safely and only released to the seller after the ticket is delivered and validated.
+                        </Text>
+                      </View>
+                    </View>
+
                     <View style={styles.pricePanel}>
                       <View style={styles.pricePanelRow}>
                         <Text style={styles.pricePanelLabel}>Listing Price</Text>
