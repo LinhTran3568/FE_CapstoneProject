@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useReducer } from 'react';
 import {
   View,
   ScrollView,
@@ -9,48 +9,55 @@ import {
   Alert,
 } from 'react-native';
 import { Text } from '../src/components/AppText';
-import { Stack, useRouter } from 'expo-router';
+import { Stack } from 'expo-router';
 import {
-  Building2,
+  ArrowLeft,
+  ArrowRight,
   CreditCard,
-  ShieldCheck,
   CheckCircle2,
   AlertCircle,
   ChevronDown,
   Check,
+  RefreshCw,
   X,
-  Plus,
 } from 'lucide-react-native';
 import { bankAccountsApi, VIETNAM_BANKS } from '@ticketshield/api-client';
 import { UserBankAccountDto } from '@ticketshield/types';
 import { FintechButton } from '../src/components/FintechButton';
 import { FintechInput } from '../src/components/FintechInput';
+import {
+  MIN_ACCOUNT_DIGITS,
+  canContinue,
+  initialFormState,
+  payoutAccountFormReducer,
+} from '../src/utils/payoutAccountForm';
 import { theme } from '../src/theme';
 import { styles } from '../src/styles/payout-accounts.styles';
 
-export default function PayoutAccountsScreen() {
-  const router = useRouter();
+const LOOKUP_DEBOUNCE_MS = 600;
 
+const getBankNameByCode = (code: string) => {
+  const bank = VIETNAM_BANKS.find((item) => item.code.toUpperCase() === code.toUpperCase());
+  return bank ? bank.name : code;
+};
+
+export default function PayoutAccountsScreen() {
   // Danh sách tài khoản đã liên kết
   const [bankAccounts, setBankAccounts] = useState<UserBankAccountDto[]>([]);
   const [isLoadingList, setIsLoadingList] = useState(true);
 
-  // Form liên kết tài khoản mới
-  const [bankCode, setBankCode] = useState('MB');
-  const [accountNumber, setAccountNumber] = useState('');
-  const [accountHolderName, setAccountHolderName] = useState('');
+  // Form: bước 1 nhập liệu, bước 2 xác nhận lại
+  const [formStep, setFormStep] = useState<'input' | 'confirm'>('input');
+  const [form, dispatch] = useReducer(payoutAccountFormReducer, initialFormState);
   const [isDefault, setIsDefault] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
-
-  // Tra cứu tự động tên chủ tài khoản
-  const [isSearchingName, setIsSearchingName] = useState(false);
-  const [isVerifiedName, setIsVerifiedName] = useState(false);
-  const [lookupFailed, setLookupFailed] = useState(false);
 
   // Modal chọn ngân hàng
   const [isBankModalVisible, setIsBankModalVisible] = useState(false);
 
+  const { bankCode, accountNumber, accountHolderName, lookup } = form;
   const selectedBank = VIETNAM_BANKS.find((b) => b.code === bankCode) || VIETNAM_BANKS[0];
+  const holderName = accountHolderName.trim();
 
   const fetchBankAccounts = useCallback(async () => {
     try {
@@ -70,71 +77,254 @@ export default function PayoutAccountsScreen() {
 
   // Tự động tra cứu tên chủ tài khoản khi nhập đủ số tài khoản
   useEffect(() => {
-    const cleanAcc = accountNumber.trim().replace(/\D/g, '');
-    if (cleanAcc.length < 6) {
-      setIsVerifiedName(false);
-      setLookupFailed(false);
-      return;
-    }
+    if (accountNumber.length < MIN_ACCOUNT_DIGITS) return;
 
     const timer = setTimeout(async () => {
-      setIsSearchingName(true);
-      setLookupFailed(false);
       try {
-        const res = await bankAccountsApi.lookupAccountHolderName(bankCode, cleanAcc);
+        const res = await bankAccountsApi.lookupAccountHolderName(bankCode, accountNumber);
         if (res.success && res.accountName) {
-          setAccountHolderName(res.accountName);
-          setIsVerifiedName(true);
-          setLookupFailed(false);
+          dispatch({
+            type: 'lookupSucceeded',
+            bankCode,
+            accountNumber,
+            accountName: res.accountName,
+          });
         } else {
-          setIsVerifiedName(false);
-          setLookupFailed(true);
+          dispatch({ type: 'lookupFailed', bankCode, accountNumber });
         }
       } catch {
-        setIsVerifiedName(false);
-        setLookupFailed(true);
-      } finally {
-        setIsSearchingName(false);
+        dispatch({ type: 'lookupFailed', bankCode, accountNumber });
       }
-    }, 600);
+    }, LOOKUP_DEBOUNCE_MS);
 
     return () => clearTimeout(timer);
-  }, [accountNumber, bankCode]);
+  }, [bankCode, accountNumber]);
 
-  const handleLinkAccount = async () => {
-    const cleanAcc = accountNumber.trim().replace(/\D/g, '');
-    if (cleanAcc.length < 6) {
-      Alert.alert('Validation Error', 'Please enter a valid bank account number (at least 6 digits).');
-      return;
-    }
-
-    if (!accountHolderName.trim()) {
-      Alert.alert('Validation Error', 'Account holder name is required.');
-      return;
-    }
-
+  const handleConfirmSave = async () => {
     setIsSubmitting(true);
     try {
       await bankAccountsApi.addBankAccount({
         bankCode,
-        bankAccountNumber: cleanAcc,
-        accountHolderName: accountHolderName.trim().toUpperCase(),
+        bankAccountNumber: accountNumber,
+        accountHolderName: holderName,
         isDefault,
       });
 
-      Alert.alert('Success', 'Bank account linked successfully for resale payouts!');
-      setAccountNumber('');
-      setAccountHolderName('');
-      setIsVerifiedName(false);
-      setLookupFailed(false);
+      Alert.alert('Success', 'Bank account linked successfully!');
+      dispatch({ type: 'reset' });
+      setIsDefault(true);
+      setFormStep('input');
       await fetchBankAccounts();
     } catch (err: any) {
-      const msg = err?.response?.data?.message || err?.message || 'Failed to link bank account. Please try again.';
+      const msg =
+        err?.response?.data?.message ||
+        err?.message ||
+        'Failed to link bank account. Please try again!';
       Alert.alert('Link Account Failed', msg);
     } finally {
       setIsSubmitting(false);
     }
   };
+
+  const renderLinkedAccounts = () => {
+    if (isLoadingList) {
+      return (
+        <View style={styles.emptyContainer}>
+          <ActivityIndicator size="small" color={theme.colors.primary} />
+          <Text style={styles.emptyText}>Loading bank accounts...</Text>
+        </View>
+      );
+    }
+
+    if (bankAccounts.length === 0) {
+      return (
+        <View style={styles.emptyContainer}>
+          <CreditCard size={36} color={theme.colors.textMuted} />
+          <Text style={styles.emptyTitle}>No payout account linked</Text>
+          <Text style={styles.emptyText}>
+            Add your beneficiary bank account using the form below to receive automatic payouts.
+          </Text>
+        </View>
+      );
+    }
+
+    return bankAccounts.map((account) => (
+      <View
+        key={account.id}
+        style={[styles.accountCard, account.isDefault && styles.accountCardDefault]}
+      >
+        <View style={styles.accountCardHeader}>
+          <View style={styles.bankChip}>
+            <Text style={styles.bankChipText}>{account.bankCode}</Text>
+          </View>
+          <Text style={styles.bankName} numberOfLines={1}>
+            {getBankNameByCode(account.bankCode)}
+          </Text>
+          {account.isDefault && (
+            <View style={styles.defaultBadge}>
+              <Text style={styles.defaultBadgeText}>Default</Text>
+            </View>
+          )}
+        </View>
+
+        <Text style={styles.accountNumber}>{account.bankAccountNumber}</Text>
+
+        <View style={styles.accountCardBottom}>
+          <Text style={styles.accountHolder} numberOfLines={1}>
+            {account.accountHolderName}
+          </Text>
+          <View style={styles.verifiedTag}>
+            <Check size={12} color={theme.colors.success} />
+            <Text style={styles.verifiedTagText}>Bank Verified</Text>
+          </View>
+        </View>
+      </View>
+    ));
+  };
+
+  const renderLookupStatus = () => {
+    if (lookup === 'searching' && accountNumber.length >= MIN_ACCOUNT_DIGITS) {
+      return (
+        <View style={styles.lookupRow}>
+          <ActivityIndicator size="small" color={theme.colors.primary} />
+          <Text style={styles.lookupSearchingText}>Verifying with bank...</Text>
+        </View>
+      );
+    }
+    if (lookup === 'verified') {
+      return (
+        <View style={styles.lookupRow}>
+          <View style={styles.verifiedPill}>
+            <Check size={12} color={theme.colors.success} />
+            <Text style={styles.verifiedTagText}>Bank Verified</Text>
+          </View>
+        </View>
+      );
+    }
+    if (lookup === 'failed') {
+      return (
+        <View style={styles.lookupRow}>
+          <Text style={styles.lookupFailedText}>✏️ Enter name manually</Text>
+        </View>
+      );
+    }
+    return null;
+  };
+
+  const renderInputStep = () => (
+    <>
+      <View>
+        <Text style={styles.formLabel}>Beneficiary Bank *</Text>
+        <TouchableOpacity
+          style={styles.bankSelectorBtn}
+          onPress={() => setIsBankModalVisible(true)}
+          activeOpacity={0.7}
+        >
+          <Text style={styles.bankSelectorText}>
+            {selectedBank.name} ({selectedBank.code})
+          </Text>
+          <ChevronDown size={18} color={theme.colors.textSecondary} />
+        </TouchableOpacity>
+      </View>
+
+      <FintechInput
+        label="Bank Account Number *"
+        placeholder="Enter account number (e.g. 0938434102)"
+        value={accountNumber}
+        onChangeText={(txt) => dispatch({ type: 'numberChanged', accountNumber: txt })}
+        keyboardType="numeric"
+      />
+
+      {/* Đặt trên ô tên để không bị bàn phím che khi đang nhập số tài khoản */}
+      {renderLookupStatus()}
+
+      <FintechInput
+        label="Account Holder Name *"
+        placeholder="NGUYEN VAN A"
+        value={accountHolderName}
+        onChangeText={(txt) => dispatch({ type: 'nameEdited', accountHolderName: txt })}
+        autoCapitalize="characters"
+      />
+
+      <TouchableOpacity
+        style={styles.checkboxRow}
+        onPress={() => setIsDefault(!isDefault)}
+        activeOpacity={0.8}
+        accessibilityRole="checkbox"
+        accessibilityState={{ checked: isDefault }}
+      >
+        <View style={[styles.checkbox, isDefault && styles.checkboxChecked]}>
+          {isDefault && <Check size={14} color={theme.colors.onPrimary} />}
+        </View>
+        <Text style={styles.checkboxLabel}>Set as default payout account</Text>
+      </TouchableOpacity>
+
+      <FintechButton
+        title="Continue to Review"
+        onPress={() => setFormStep('confirm')}
+        disabled={!canContinue(form)}
+        icon={<ArrowRight size={18} color={theme.colors.onPrimary} />}
+      />
+    </>
+  );
+
+  const renderConfirmStep = () => (
+    <>
+      <View style={styles.reviewCard}>
+        <Text style={styles.reviewHeading}>CONFIRM ACCOUNT DETAILS</Text>
+
+        <View>
+          <Text style={styles.reviewLabel}>Bank</Text>
+          <Text style={styles.reviewValue}>
+            {selectedBank.name} ({selectedBank.code})
+          </Text>
+        </View>
+
+        <View>
+          <Text style={styles.reviewLabel}>Account Number</Text>
+          <Text style={styles.reviewNumber}>{accountNumber}</Text>
+        </View>
+
+        <View>
+          <Text style={styles.reviewLabel}>Account Holder Name</Text>
+          <Text style={styles.reviewName}>{holderName}</Text>
+        </View>
+
+        <View>
+          <Text style={styles.reviewLabel}>Account Role</Text>
+          <View style={styles.reviewRoleRow}>
+            <CheckCircle2 size={14} color={theme.colors.success} />
+            <Text style={styles.reviewRole}>
+              {isDefault ? 'Default Payout Account' : 'Secondary Account'}
+            </Text>
+          </View>
+        </View>
+
+        <View style={styles.reviewNotice}>
+          <AlertCircle size={16} color={theme.colors.warning} />
+          <Text style={styles.reviewNoticeText}>
+            Please verify your bank account number and beneficiary name before confirming.
+          </Text>
+        </View>
+      </View>
+
+      <FintechButton
+        title={isSubmitting ? 'Saving Account...' : 'Confirm & Save Account'}
+        onPress={handleConfirmSave}
+        disabled={isSubmitting}
+        icon={isSubmitting ? undefined : <Check size={18} color={theme.colors.onPrimary} />}
+      />
+      <FintechButton
+        title="Back to Edit"
+        onPress={() => setFormStep('input')}
+        disabled={isSubmitting}
+        variant="outline"
+        icon={<ArrowLeft size={18} color={theme.colors.primary} />}
+      />
+    </>
+  );
+
+  const isConfirmStep = formStep === 'confirm';
 
   return (
     <>
@@ -150,152 +340,68 @@ export default function PayoutAccountsScreen() {
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
-        {/* Banner giới thiệu */}
-        <View style={styles.headerBanner}>
-          <ShieldCheck size={20} color={theme.colors.primary} />
-          <Text style={styles.headerBannerText}>
-            Payout bank accounts are used to disburse funds automatically when your tickets are verified & sold on TicketShield Escrow.
-          </Text>
-        </View>
-
         {/* Danh sách tài khoản đã liên kết */}
         <View style={styles.sectionCard}>
           <View style={styles.sectionTitleRow}>
-            <Text style={styles.sectionTitle}>Linked Accounts</Text>
-            {isLoadingList && <ActivityIndicator size="small" color={theme.colors.primary} />}
-          </View>
-
-          {bankAccounts.length === 0 && !isLoadingList ? (
-            <View style={styles.emptyContainer}>
-              <CreditCard size={36} color={theme.colors.textMuted} />
-              <Text style={styles.emptyText}>
-                No payout bank accounts linked yet. Use the form below to link your first beneficiary account.
+            <View style={styles.sectionTitleGroup}>
+              <View style={styles.titleWithCount}>
+                <Text style={styles.sectionTitle}>Linked Accounts</Text>
+                <View style={styles.countBadge}>
+                  <Text style={styles.countBadgeText}>{bankAccounts.length}</Text>
+                </View>
+              </View>
+              <Text style={styles.sectionSubtitle}>
+                Beneficiary accounts for payout settlements
               </Text>
             </View>
-          ) : (
-            bankAccounts.map((acc, index) => {
-              const bank = VIETNAM_BANKS.find((b) => b.code === acc.bankCode);
-              return (
-                <View key={acc.id || index} style={styles.accountCard}>
-                  <View style={styles.accountCardHeader}>
-                    <View style={styles.bankInfoSlot}>
-                      <View style={styles.bankBadgeIcon}>
-                        <Building2 size={18} color={theme.colors.primary} />
-                      </View>
-                      <View style={styles.bankTextGroup}>
-                        <Text style={styles.bankShortName}>{bank?.shortName || acc.bankCode}</Text>
-                        <Text style={styles.bankFullName} numberOfLines={1}>
-                          {bank?.name || acc.bankCode}
-                        </Text>
-                      </View>
-                    </View>
-                    {acc.isDefault && (
-                      <View style={styles.defaultBadge}>
-                        <Check size={12} color={theme.colors.success} />
-                        <Text style={styles.defaultBadgeText}>Default Payout</Text>
-                      </View>
-                    )}
-                  </View>
-
-                  <View style={styles.accountCardDivider} />
-
-                  <View style={styles.accountCardBottom}>
-                    <View>
-                      <Text style={styles.accountNumberLabel}>Account Number</Text>
-                      <Text style={styles.accountNumber}>{acc.bankAccountNumber}</Text>
-                    </View>
-                    <View style={styles.accountHolderGroup}>
-                      <Text style={styles.accountHolderLabel}>Beneficiary Name</Text>
-                      <Text style={styles.accountHolder}>{acc.accountHolderName}</Text>
-                    </View>
-                  </View>
-                </View>
-              );
-            })
-          )}
-        </View>
-
-        {/* Form liên kết tài khoản mới */}
-        <View style={styles.sectionCard}>
-          <Text style={styles.sectionTitle}>Link New Bank Account</Text>
-
-          {/* Chọn ngân hàng */}
-          <View>
-            <Text style={styles.formLabel}>Select Bank</Text>
             <TouchableOpacity
-              style={styles.bankSelectorBtn}
-              onPress={() => setIsBankModalVisible(true)}
+              onPress={fetchBankAccounts}
+              disabled={isLoadingList}
               activeOpacity={0.7}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              accessibilityRole="button"
+              accessibilityLabel="Refresh"
             >
-              <Text style={styles.bankSelectorText}>{selectedBank.name}</Text>
-              <ChevronDown size={18} color={theme.colors.textSecondary} />
+              <RefreshCw
+                size={18}
+                color={isLoadingList ? theme.colors.primary : theme.colors.textSecondary}
+              />
             </TouchableOpacity>
           </View>
 
-          {/* Nhập số tài khoản */}
-          <FintechInput
-            label="Account Number"
-            placeholder="e.g. 0123456789"
-            value={accountNumber}
-            onChangeText={(txt) => setAccountNumber(txt.replace(/\D/g, ''))}
-            keyboardType="numeric"
-            icon={<CreditCard size={18} color={theme.colors.textSecondary} />}
-          />
+          {renderLinkedAccounts()}
+        </View>
 
-          {/* Trạng thái tra cứu tự động */}
-          {isSearchingName && (
-            <View style={styles.verifiedCard}>
-              <ActivityIndicator size="small" color={theme.colors.success} />
-              <Text style={styles.verifiedText}>Verifying account with NAPAS / VietQR...</Text>
-            </View>
-          )}
-
-          {isVerifiedName && (
-            <View style={styles.verifiedCard}>
-              <CheckCircle2 size={18} color={theme.colors.success} />
-              <Text style={styles.verifiedText}>
-                Verified: {accountHolderName}
+        {/* Form thêm tài khoản: bước 1 nhập, bước 2 xác nhận */}
+        <View style={styles.sectionCard}>
+          <View style={styles.sectionTitleRow}>
+            <View style={styles.sectionTitleGroup}>
+              <Text style={styles.sectionTitle}>
+                {isConfirmStep ? 'Confirm Account Details' : 'Add Bank Account'}
+              </Text>
+              <Text style={styles.sectionSubtitle}>
+                {isConfirmStep
+                  ? 'Step 2: Review account details before saving'
+                  : 'Step 1: Enter beneficiary account number and bank'}
               </Text>
             </View>
-          )}
 
-          {lookupFailed && (
-            <View style={styles.lookupErrorCard}>
-              <AlertCircle size={18} color={theme.colors.danger} />
-              <Text style={styles.lookupErrorText}>
-                Could not automatically verify account holder. You can enter your name manually.
-              </Text>
+            <View style={styles.stepIndicator}>
+              <View style={[styles.stepDot, isConfirmStep ? styles.stepDotDone : styles.stepDotActive]}>
+                {isConfirmStep ? (
+                  <Check size={13} color={theme.colors.onSuccess} />
+                ) : (
+                  <Text style={styles.stepDotActiveText}>1</Text>
+                )}
+              </View>
+              <View style={[styles.stepLine, isConfirmStep && styles.stepLineDone]} />
+              <View style={[styles.stepDot, isConfirmStep && styles.stepDotActive]}>
+                <Text style={isConfirmStep ? styles.stepDotActiveText : styles.stepDotText}>2</Text>
+              </View>
             </View>
-          )}
+          </View>
 
-          {/* Tên chủ tài khoản */}
-          <FintechInput
-            label="Account Holder Name"
-            placeholder="FULL NAME (AS ON BANK ACCOUNT)"
-            value={accountHolderName}
-            onChangeText={(txt) => setAccountHolderName(txt.toUpperCase())}
-            autoCapitalize="characters"
-          />
-
-          {/* Checkbox đặt làm mặc định */}
-          <TouchableOpacity
-            style={styles.checkboxRow}
-            onPress={() => setIsDefault(!isDefault)}
-            activeOpacity={0.8}
-          >
-            <View style={[styles.checkbox, isDefault && styles.checkboxChecked]}>
-              {isDefault && <Check size={14} color={theme.colors.onPrimary} />}
-            </View>
-            <Text style={styles.checkboxLabel}>Set as default payout account</Text>
-          </TouchableOpacity>
-
-          {/* Nút Submit */}
-          <FintechButton
-            title="Link Bank Account"
-            onPress={handleLinkAccount}
-            loading={isSubmitting}
-            icon={<Plus size={18} color={theme.colors.onPrimary} />}
-          />
+          {isConfirmStep ? renderConfirmStep() : renderInputStep()}
         </View>
       </ScrollView>
 
@@ -323,13 +429,12 @@ export default function PayoutAccountsScreen() {
                   <TouchableOpacity
                     style={styles.bankItem}
                     onPress={() => {
-                      setBankCode(item.code);
+                      dispatch({ type: 'bankChanged', bankCode: item.code });
                       setIsBankModalVisible(false);
-                      setIsVerifiedName(false);
                     }}
                   >
                     <Text style={[styles.bankItemText, isActive && styles.bankItemActiveText]}>
-                      {item.name}
+                      {item.name} ({item.code})
                     </Text>
                     {isActive && <Check size={18} color={theme.colors.primary} />}
                   </TouchableOpacity>
