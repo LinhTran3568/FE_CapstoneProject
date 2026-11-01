@@ -15,6 +15,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Clipboard from 'expo-clipboard';
 import {
   AlertTriangle,
+  ArrowRight,
+  ChevronLeft,
   Check,
   CheckCircle2,
   Clock,
@@ -69,6 +71,7 @@ export const BuyTicketBottomSheet: React.FC<BuyTicketBottomSheetProps> = ({
   const [recipientPhone, setRecipientPhone] = useState(user?.phoneNumber || '');
   const [recipientIdCard, setRecipientIdCard] = useState('');
   const [showIdCard, setShowIdCard] = useState(false);
+  const [checkoutStep, setCheckoutStep] = useState<'REVIEW' | 'RECIPIENT'>('REVIEW');
   const [formErrors, setFormErrors] = useState<{
     name?: string;
     email?: string;
@@ -107,6 +110,7 @@ export const BuyTicketBottomSheet: React.FC<BuyTicketBottomSheetProps> = ({
       setPurchaseSuccess(false);
       setCopiedField(null);
       setFormErrors({});
+      setCheckoutStep('REVIEW');
       if (user) {
         setRecipientName(user.fullName || '');
         setRecipientEmail(user.email || '');
@@ -358,13 +362,26 @@ export const BuyTicketBottomSheet: React.FC<BuyTicketBottomSheetProps> = ({
 
             <View style={styles.sheetHeader}>
               <View style={styles.sheetHeaderLeft}>
-                <ShieldCheck size={18} color={theme.colors.success} />
+                {checkoutStep === 'RECIPIENT' && !holdData && !purchaseSuccess ? (
+                  <TouchableOpacity
+                    style={styles.backButton}
+                    onPress={() => setCheckoutStep('REVIEW')}
+                    accessibilityRole="button"
+                    accessibilityLabel="Back to ticket review"
+                  >
+                    <ChevronLeft size={22} color={theme.colors.text} />
+                  </TouchableOpacity>
+                ) : (
+                  <ShieldCheck size={18} color={theme.colors.success} />
+                )}
                 <Text style={styles.sheetTitle}>
                   {purchaseSuccess
                     ? 'Purchase Complete'
                     : holdData
                       ? 'VietQR Escrow Payment'
-                      : 'Buy Ticket'}
+                      : checkoutStep === 'RECIPIENT'
+                        ? 'Attendee Information'
+                        : 'Buy Ticket'}
                 </Text>
               </View>
               <TouchableOpacity
@@ -423,193 +440,216 @@ export const BuyTicketBottomSheet: React.FC<BuyTicketBottomSheetProps> = ({
                 </View>
 
                 {!holdData ? (
-                  <>
-                    {/* Seller Trust Snapshot */}
-                    <View style={styles.sheetSellerCard}>
-                      <View style={styles.sheetSellerTop}>
-                        <View style={styles.sheetSellerAvatar}>
-                          <Text style={styles.sheetSellerAvatarText}>
-                            {initialsOf(listing.sellerFullName)}
-                          </Text>
-                        </View>
-                        <View style={styles.sheetSellerInfo}>
-                          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                            <Text style={styles.sheetSellerName}>
-                              {listing.sellerFullName || 'Verified Seller'}
+                  checkoutStep === 'REVIEW' ? (
+                    <>
+                      {/* Seller Trust Snapshot */}
+                      <View style={styles.sheetSellerCard}>
+                        <View style={styles.sheetSellerTop}>
+                          <View style={styles.sheetSellerAvatar}>
+                            <Text style={styles.sheetSellerAvatarText}>
+                              {initialsOf(listing.sellerFullName)}
                             </Text>
-                            <View style={styles.sheetVerifiedPill}>
-                              <ShieldCheck size={10} color={theme.colors.success} />
-                              <Text style={styles.sheetVerifiedPillText}>VERIFIED</Text>
-                            </View>
                           </View>
-                          <Text style={styles.sheetSellerSub}>
-                            Zone: {listing.seatZone || listing.tierName} • Pass #{listing.maskedTicketCode}
-                          </Text>
-                        </View>
-                      </View>
-                    </View>
-
-                    {/* Face-Value Price Cap Guarantee Card */}
-                    <View style={styles.sheetCeilingCard}>
-                      <View style={styles.sheetCeilingHeader}>
-                        <View style={styles.sheetCeilingIcon}>
-                          <ShieldCheck size={18} color={theme.colors.success} />
-                        </View>
-                        <View style={styles.sheetCeilingTextWrap}>
-                          <Text style={styles.sheetCeilingTitle}>Face-Value Price Cap Guarantee</Text>
-                          <Text style={styles.sheetCeilingSub}>
-                            Anti-scalping verified: Resale price is capped at original box office value.
-                          </Text>
-                        </View>
-                        <View style={styles.sheetCeilingBadge}>
-                          <Text style={styles.sheetCeilingBadgeText}>
-                            {listing.resalePrice <= listing.originalPrice ? 'PROTECTED' : 'VERIFIED'}
-                          </Text>
+                          <View style={styles.sheetSellerInfo}>
+                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                              <Text style={styles.sheetSellerName}>
+                                {listing.sellerFullName || 'Verified Seller'}
+                              </Text>
+                              <View style={styles.sheetVerifiedPill}>
+                                <ShieldCheck size={10} color={theme.colors.success} />
+                                <Text style={styles.sheetVerifiedPillText}>VERIFIED</Text>
+                              </View>
+                            </View>
+                            <Text style={styles.sheetSellerSub}>
+                              Zone: {listing.seatZone || listing.tierName} • Pass #{listing.maskedTicketCode}
+                            </Text>
+                          </View>
                         </View>
                       </View>
 
-                      <View style={styles.sheetCeilingPriceRow}>
-                        <View style={styles.sheetCeilingCol}>
-                          <Text style={styles.sheetCeilingLabel}>Original Face Value</Text>
-                          <Text
-                            style={[
-                              styles.sheetCeilingValue,
-                              listing.discountPercentage > 0 && styles.sheetCeilingStrikethrough,
-                            ]}
-                          >
-                            {formatPrice(listing.originalPrice)}
-                          </Text>
+                      {/* Face-Value Price Cap Guarantee Card */}
+                      <View style={styles.sheetCeilingCard}>
+                        <View style={styles.sheetCeilingHeader}>
+                          <View style={styles.sheetCeilingIcon}>
+                            <ShieldCheck size={18} color={theme.colors.success} />
+                          </View>
+                          <View style={styles.sheetCeilingTextWrap}>
+                            <Text style={styles.sheetCeilingTitle}>Face-Value Price Cap Guarantee</Text>
+                          </View>
+                          <View style={styles.sheetCeilingBadge}>
+                            <Text style={styles.sheetCeilingBadgeText}>
+                              {listing.resalePrice <= listing.originalPrice ? 'PROTECTED' : 'VERIFIED'}
+                            </Text>
+                          </View>
                         </View>
-                        <View style={styles.sheetCeilingDivider} />
-                        <View style={styles.sheetCeilingCol}>
-                          <Text style={styles.sheetCeilingLabel}>Resale Price</Text>
-                          <Text style={[styles.sheetCeilingValue, { color: theme.colors.primary }]}>
+
+                        <View style={styles.sheetCeilingPriceRow}>
+                          <View style={styles.sheetCeilingCol}>
+                            <Text style={styles.sheetCeilingLabel}>Original Face Value</Text>
+                            <Text
+                              style={[
+                                styles.sheetCeilingValue,
+                                listing.discountPercentage > 0 && styles.sheetCeilingStrikethrough,
+                              ]}
+                            >
+                              {formatPrice(listing.originalPrice)}
+                            </Text>
+                          </View>
+                          <View style={styles.sheetCeilingDivider} />
+                          <View style={styles.sheetCeilingCol}>
+                            <Text style={styles.sheetCeilingLabel}>Resale Price</Text>
+                            <Text style={[styles.sheetCeilingValue, { color: theme.colors.primary }]}>
+                              {formatPrice(listing.resalePrice)}
+                            </Text>
+                          </View>
+                          {listing.discountPercentage > 0 && (
+                            <View style={styles.sheetDiscountBadge}>
+                              <Text style={styles.sheetDiscountBadgeText}>
+                                -{Math.round(listing.discountPercentage)}% OFF
+                              </Text>
+                            </View>
+                          )}
+                        </View>
+                      </View>
+
+                      {/* Price Breakdown Panel */}
+                      <View style={styles.pricePanel}>
+                        <View style={styles.pricePanelRow}>
+                          <Text style={styles.pricePanelLabel}>Listing Price</Text>
+                          <Text style={styles.pricePanelValue}>
                             {formatPrice(listing.resalePrice)}
                           </Text>
                         </View>
-                        {listing.discountPercentage > 0 && (
-                          <View style={styles.sheetDiscountBadge}>
-                            <Text style={styles.sheetDiscountBadgeText}>
-                              -{Math.round(listing.discountPercentage)}% OFF
-                            </Text>
-                          </View>
+                        <View style={styles.pricePanelRow}>
+                          <Text style={styles.pricePanelLabel}>Escrow Protection Fee (3%)</Text>
+                          <Text style={styles.pricePanelValue}>
+                            {formatPrice(escrowFee)}
+                          </Text>
+                        </View>
+                        <View style={styles.pricePanelDivider} />
+                        <View style={styles.pricePanelRow}>
+                          <Text style={styles.pricePanelTotal}>Total Amount</Text>
+                          <Text style={styles.pricePanelTotalValue}>
+                            {formatPrice(totalAmount)}
+                          </Text>
+                        </View>
+                      </View>
+
+                      {holdError && (
+                        <View style={styles.errorNote}>
+                          <AlertTriangle size={16} color={theme.colors.danger} />
+                          <Text style={styles.errorNoteText}>{holdError}</Text>
+                        </View>
+                      )}
+
+                      <FintechButton
+                        title="Buy Ticket"
+                        onPress={() => setCheckoutStep('RECIPIENT')}
+                        icon={<ArrowRight size={16} color={theme.colors.onPrimary} />}
+                      />
+                    </>
+                  ) : (
+                    <>
+                      {/* Compact Summary of Ticket & Price */}
+                      <View style={styles.compactSummaryCard}>
+                        <View style={styles.compactSummaryEvent}>
+                          <Text style={styles.compactSummaryName} numberOfLines={1}>
+                            {listing.eventName}
+                          </Text>
+                          <Text style={styles.compactSummaryMeta} numberOfLines={1}>
+                            {listing.tierName} • {listing.seatZone || 'General Admission'}
+                          </Text>
+                        </View>
+                        <View style={styles.compactSummaryTotalBlock}>
+                          <Text style={styles.compactSummaryTotalLabel}>Total</Text>
+                          <Text style={styles.compactSummaryTotal}>{formatPrice(totalAmount)}</Text>
+                        </View>
+                      </View>
+
+                      {/* Recipient Information Form */}
+                      <View style={styles.formSection}>
+                        <View style={styles.formSectionHeader}>
+                          <Text style={styles.formSectionTitle}>Ticket Recipient Details</Text>
+                          <Text style={styles.formSectionSubtitle}>
+                            Enter attendee information for digital ticket issuance.
+                          </Text>
+                        </View>
+
+                        <FintechInput
+                          label="Attendee Full Name *"
+                          placeholder="Enter full name"
+                          value={recipientName}
+                          onChangeText={(text) => {
+                            setRecipientName(text);
+                            if (formErrors.name) setFormErrors((prev) => ({ ...prev, name: undefined }));
+                          }}
+                          error={formErrors.name}
+                          icon={<User size={18} color={theme.colors.primary} />}
+                        />
+
+                        <FintechInput
+                          label="Email Address *"
+                          placeholder="Enter recipient email"
+                          value={recipientEmail}
+                          onChangeText={(text) => {
+                            setRecipientEmail(text);
+                            if (formErrors.email) setFormErrors((prev) => ({ ...prev, email: undefined }));
+                          }}
+                          error={formErrors.email}
+                          keyboardType="email-address"
+                          autoCapitalize="none"
+                          icon={<Mail size={18} color={theme.colors.primary} />}
+                        />
+
+                        <FintechInput
+                          label="Phone Number *"
+                          placeholder="Enter 10-digit phone number"
+                          value={recipientPhone}
+                          onChangeText={(text) => {
+                            setRecipientPhone(text);
+                            if (formErrors.phone) setFormErrors((prev) => ({ ...prev, phone: undefined }));
+                          }}
+                          error={formErrors.phone}
+                          keyboardType="phone-pad"
+                          icon={<Phone size={18} color={theme.colors.primary} />}
+                        />
+
+                        {showIdCard ? (
+                          <FintechInput
+                            label="ID Card / CCCD Number"
+                            placeholder="Enter 12-digit citizen ID"
+                            value={recipientIdCard}
+                            onChangeText={setRecipientIdCard}
+                            keyboardType="numeric"
+                            icon={<CreditCard size={18} color={theme.colors.primary} />}
+                          />
+                        ) : (
+                          <TouchableOpacity
+                            style={styles.idCardToggleBtn}
+                            onPress={() => setShowIdCard(true)}
+                            activeOpacity={0.7}
+                          >
+                            <Plus size={14} color={theme.colors.primary} />
+                            <Text style={styles.idCardToggleText}>+ Add Citizen ID (CCCD) for Check-in</Text>
+                          </TouchableOpacity>
                         )}
                       </View>
 
-                      <View style={styles.sheetEscrowNotice}>
-                        <CheckCircle2 size={13} color={theme.colors.success} />
-                        <Text style={styles.sheetEscrowNoticeText}>
-                          TicketShield Escrow: Funds are held safely and only released after ticket check-in is validated.
-                        </Text>
-                      </View>
-                    </View>
-
-                    {/* Price Breakdown Panel */}
-                    <View style={styles.pricePanel}>
-                      <View style={styles.pricePanelRow}>
-                        <Text style={styles.pricePanelLabel}>Listing Price</Text>
-                        <Text style={styles.pricePanelValue}>
-                          {formatPrice(listing.resalePrice)}
-                        </Text>
-                      </View>
-                      <View style={styles.pricePanelRow}>
-                        <Text style={styles.pricePanelLabel}>Escrow Protection Fee (3%)</Text>
-                        <Text style={styles.pricePanelValue}>
-                          {formatPrice(escrowFee)}
-                        </Text>
-                      </View>
-                      <View style={styles.pricePanelDivider} />
-                      <View style={styles.pricePanelRow}>
-                        <Text style={styles.pricePanelTotal}>Total Amount</Text>
-                        <Text style={styles.pricePanelTotalValue}>
-                          {formatPrice(totalAmount)}
-                        </Text>
-                      </View>
-                    </View>
-
-                    {/* Recipient Information Form */}
-                    <View style={styles.formSection}>
-                      <View style={styles.formSectionHeader}>
-                        <Text style={styles.formSectionTitle}>Ticket Recipient Details</Text>
-                        <Text style={styles.formSectionSubtitle}>
-                          Enter attendee information for digital ticket issuance.
-                        </Text>
-                      </View>
-
-                      <FintechInput
-                        label="Attendee Full Name *"
-                        placeholder="Enter full name"
-                        value={recipientName}
-                        onChangeText={(text) => {
-                          setRecipientName(text);
-                          if (formErrors.name) setFormErrors((prev) => ({ ...prev, name: undefined }));
-                        }}
-                        error={formErrors.name}
-                        icon={<User size={18} color={theme.colors.primary} />}
-                      />
-
-                      <FintechInput
-                        label="Email Address *"
-                        placeholder="Enter recipient email"
-                        value={recipientEmail}
-                        onChangeText={(text) => {
-                          setRecipientEmail(text);
-                          if (formErrors.email) setFormErrors((prev) => ({ ...prev, email: undefined }));
-                        }}
-                        error={formErrors.email}
-                        keyboardType="email-address"
-                        autoCapitalize="none"
-                        icon={<Mail size={18} color={theme.colors.primary} />}
-                      />
-
-                      <FintechInput
-                        label="Phone Number *"
-                        placeholder="Enter 10-digit phone number"
-                        value={recipientPhone}
-                        onChangeText={(text) => {
-                          setRecipientPhone(text);
-                          if (formErrors.phone) setFormErrors((prev) => ({ ...prev, phone: undefined }));
-                        }}
-                        error={formErrors.phone}
-                        keyboardType="phone-pad"
-                        icon={<Phone size={18} color={theme.colors.primary} />}
-                      />
-
-                      {showIdCard ? (
-                        <FintechInput
-                          label="ID Card / CCCD Number"
-                          placeholder="Enter 12-digit citizen ID"
-                          value={recipientIdCard}
-                          onChangeText={setRecipientIdCard}
-                          keyboardType="numeric"
-                          icon={<CreditCard size={18} color={theme.colors.primary} />}
-                        />
-                      ) : (
-                        <TouchableOpacity
-                          style={styles.idCardToggleBtn}
-                          onPress={() => setShowIdCard(true)}
-                          activeOpacity={0.7}
-                        >
-                          <Plus size={14} color={theme.colors.primary} />
-                          <Text style={styles.idCardToggleText}>+ Add Citizen ID (CCCD) for Check-in</Text>
-                        </TouchableOpacity>
+                      {holdError && (
+                        <View style={styles.errorNote}>
+                          <AlertTriangle size={16} color={theme.colors.danger} />
+                          <Text style={styles.errorNoteText}>{holdError}</Text>
+                        </View>
                       )}
-                    </View>
 
-                    {holdError && (
-                      <View style={styles.errorNote}>
-                        <AlertTriangle size={16} color={theme.colors.danger} />
-                        <Text style={styles.errorNoteText}>{holdError}</Text>
-                      </View>
-                    )}
-
-                    <FintechButton
-                      title={isHolding ? 'Reserving Ticket...' : 'Reserve Ticket'}
-                      onPress={handleHoldListing}
-                      loading={isHolding}
-                      icon={<Clock size={16} color={theme.colors.onPrimary} />}
-                    />
-                  </>
+                      <FintechButton
+                        title={isHolding ? 'Reserving Ticket...' : 'Reserve Ticket'}
+                        onPress={handleHoldListing}
+                        loading={isHolding}
+                        icon={<Clock size={16} color={theme.colors.onPrimary} />}
+                      />
+                    </>
+                  )
                 ) : (
                   <>
                     {/* 5-Minute Hold Countdown Timer Bar */}

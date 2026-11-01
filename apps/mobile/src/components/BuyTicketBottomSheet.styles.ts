@@ -36,6 +36,49 @@ export const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: theme.colors.borderSubtle,
   },
+  backButton: {
+    padding: theme.spacing.xs,
+    marginRight: 4,
+    marginLeft: -4,
+  },
+  compactSummaryCard: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: theme.colors.surfaceElevated,
+    padding: theme.spacing.md,
+    borderRadius: theme.radii.lg,
+    borderWidth: 1,
+    borderColor: theme.colors.borderSubtle,
+    gap: 12,
+  },
+  compactSummaryEvent: {
+    flex: 1,
+    gap: 2,
+  },
+  compactSummaryName: {
+    fontSize: theme.typography.sizes.sm,
+    fontFamily: fontFamilies.bold,
+    color: theme.colors.text,
+  },
+  compactSummaryMeta: {
+    fontSize: 11,
+    color: theme.colors.textSecondary,
+  },
+  compactSummaryTotalBlock: {
+    alignItems: 'flex-end',
+    gap: 1,
+  },
+  compactSummaryTotalLabel: {
+    fontSize: 10,
+    color: theme.colors.textMuted,
+    textTransform: 'uppercase',
+  },
+  compactSummaryTotal: {
+    fontSize: theme.typography.sizes.base,
+    fontFamily: fontFamilies.bold,
+    color: theme.colors.primary,
+  },
   sheetHeaderLeft: {
     flexDirection: 'row',
     alignItems: 'center',
