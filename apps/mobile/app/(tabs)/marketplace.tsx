@@ -457,12 +457,6 @@ export default function MarketplaceScreen() {
           onRefresh={handleRefresh}
           ListHeaderComponent={
             <View style={styles.listHeader}>
-              <View style={styles.notice}>
-                <ShieldCheck size={18} color={theme.colors.success} />
-                <Text style={styles.noticeText}>
-                  Seller only receives payout after your ticket is scanned and verified at the venue.
-                </Text>
-              </View>
               <Text style={styles.resultCount}>{filteredListings.length} listings available</Text>
             </View>
           }
@@ -578,13 +572,6 @@ export default function MarketplaceScreen() {
                           {formatPrice(Math.round(selectedListing.resalePrice * 1.03))}
                         </Text>
                       </View>
-                    </View>
-
-                    <View style={styles.sheetNote}>
-                      <ShieldCheck size={16} color={theme.colors.success} />
-                      <Text style={styles.sheetNoteText}>
-                        This ticket will be reserved exclusively for you for 5 minutes.
-                      </Text>
                     </View>
 
                     {paymentNote && (

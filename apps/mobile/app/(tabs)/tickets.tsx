@@ -21,7 +21,6 @@ import {
   X,
   Share2,
   AlertTriangle,
-  ScanLine,
 } from 'lucide-react-native';
 import { theme } from '../../src/theme';
 import type { PurchasedTicketDto } from '@ticketshield/types';
@@ -224,14 +223,6 @@ export default function MobileTicketsScreen() {
           showsVerticalScrollIndicator={false}
           refreshing={refreshing}
           onRefresh={handleRefresh}
-          ListHeaderComponent={
-            <View style={styles.securityBanner}>
-              <ScanLine size={18} color={theme.colors.success} />
-              <Text style={styles.securityBannerText}>
-                QR code rotates every 30 seconds to prevent duplication and screenshot fraud.
-              </Text>
-            </View>
-          }
         />
       )}
 

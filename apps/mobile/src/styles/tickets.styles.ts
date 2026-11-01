@@ -51,23 +51,6 @@ export const styles = StyleSheet.create({
     paddingBottom: theme.spacing['4xl'],
     gap: theme.spacing.lg,
   },
-  securityBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: theme.spacing.sm,
-    padding: theme.spacing.md,
-    borderRadius: theme.radii.lg,
-    backgroundColor: theme.colors.successLight,
-    borderWidth: 1,
-    borderColor: theme.colors.successBorder,
-    marginBottom: theme.spacing.xs,
-  },
-  securityBannerText: {
-    flex: 1,
-    fontSize: theme.typography.sizes.xs,
-    color: theme.colors.textSecondary,
-    lineHeight: 18,
-  },
   ticketCard: {
     backgroundColor: theme.colors.surface,
     borderRadius: theme.radii.xl,

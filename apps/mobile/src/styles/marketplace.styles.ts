@@ -97,22 +97,6 @@ export const styles = StyleSheet.create({
     gap: theme.spacing.md,
     marginBottom: theme.spacing.xs,
   },
-  notice: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: theme.spacing.sm,
-    padding: theme.spacing.md,
-    borderRadius: theme.radii.lg,
-    backgroundColor: theme.colors.successLight,
-    borderWidth: 1,
-    borderColor: theme.colors.successBorder,
-  },
-  noticeText: {
-    flex: 1,
-    fontSize: theme.typography.sizes.xs,
-    color: theme.colors.textSecondary,
-    lineHeight: 18,
-  },
   resultCount: {
     fontSize: theme.typography.sizes.xs,
     fontFamily: fontFamilies.semibold,
@@ -409,19 +393,6 @@ export const styles = StyleSheet.create({
     fontSize: theme.typography.sizes.lg,
     fontWeight: theme.typography.weights.extrabold,
     color: theme.colors.primary,
-  },
-  sheetNote: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    backgroundColor: theme.colors.successLight,
-    padding: theme.spacing.md,
-    borderRadius: theme.radii.md,
-  },
-  sheetNoteText: {
-    flex: 1,
-    fontSize: theme.typography.sizes.xs,
-    color: theme.colors.textSecondary,
   },
   errorNote: {
     flexDirection: 'row',
