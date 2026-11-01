@@ -25,7 +25,9 @@ import {
   Check,
   SlidersHorizontal,
   ChevronDown,
+  Lock,
 } from 'lucide-react-native';
+import { useAuthStore } from '../../src/stores/authStore';
 import type { ResaleListingDetailDto } from '@ticketshield/types';
 import { resaleListingsApi } from '@ticketshield/api-client';
 import { theme } from '../../src/theme';
@@ -56,6 +58,7 @@ function matchesBand(price: number, band: PriceBand): boolean {
 export default function MarketplaceScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const user = useAuthStore((state) => state.user);
 
   const [keyword, setKeyword] = useState('');
   const [debouncedKeyword, setDebouncedKeyword] = useState('');
@@ -146,11 +149,20 @@ export default function MarketplaceScreen() {
 
   const renderListing = ({ item }: { item: ResaleListingDetailDto }) => {
     const hasDiscount = item.discountPercentage > 0;
+    const isOwnListing = Boolean(
+      user && (
+        (item.sellerId && user.id && item.sellerId.toLowerCase() === user.id.toLowerCase()) ||
+        (item.sellerFullName && user.fullName && item.sellerFullName.trim().toLowerCase() === user.fullName.trim().toLowerCase()) ||
+        ((item as any).userId && user.id && (item as any).userId.toLowerCase() === user.id.toLowerCase())
+      )
+    );
+
     return (
       <TouchableOpacity
         style={styles.card}
-        activeOpacity={0.92}
-        onPress={() => setSelectedListing(item)}
+        activeOpacity={isOwnListing ? 1 : 0.92}
+        disabled={isOwnListing}
+        onPress={() => !isOwnListing && setSelectedListing(item)}
       >
         <View style={styles.posterWrap}>
           <EventPoster seed={`${item.eventId}-${item.listingId}`} height={148} />
@@ -219,9 +231,15 @@ export default function MarketplaceScreen() {
             </View>
           </View>
 
-          <View style={styles.cardCta}>
-            <Text style={styles.cardCtaText}>Buy Ticket</Text>
-            <ArrowRight size={16} color={theme.colors.primary} />
+          <View style={[styles.cardCta, isOwnListing && styles.cardCtaDisabled]}>
+            <Text style={[styles.cardCtaText, isOwnListing && styles.cardCtaDisabledText]}>
+              Buy Ticket
+            </Text>
+            {isOwnListing ? (
+              <Lock size={15} color={theme.colors.textMuted} />
+            ) : (
+              <ArrowRight size={16} color={theme.colors.primary} />
+            )}
           </View>
         </View>
       </TouchableOpacity>
