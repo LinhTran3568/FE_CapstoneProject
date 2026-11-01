@@ -23,6 +23,7 @@ import {
   ShieldAlert,
   Tag,
   Lock,
+  Ticket,
 } from 'lucide-react-native';
 import { theme } from '../../src/theme';
 import { resaleListingsApi } from '@ticketshield/api-client';
@@ -48,7 +49,14 @@ interface MobileEscrowOrder {
   type?: 'BUY' | 'SELL';
 }
 
-type OrderStatusFilter = 'ALL' | 'ESCROW_HOLDING' | 'LISTING_ACTIVE' | 'COMPLETED' | 'DISPUTED' | 'CANCELLED';
+type OrderStatusFilter =
+  | 'ALL'
+  | 'MY_LISTINGS'
+  | 'BUY_ORDERS'
+  | 'ESCROW_HOLDING'
+  | 'COMPLETED'
+  | 'DISPUTED'
+  | 'CANCELLED';
 
 interface OrderFilterItem {
   key: OrderStatusFilter;
@@ -58,7 +66,8 @@ interface OrderFilterItem {
 
 const ORDER_FILTERS: OrderFilterItem[] = [
   { key: 'ALL', label: 'All Orders', icon: Receipt },
-  { key: 'LISTING_ACTIVE', label: 'My Listings', icon: Tag },
+  { key: 'MY_LISTINGS', label: 'My Listings', icon: Tag },
+  { key: 'BUY_ORDERS', label: 'Purchases', icon: Ticket },
   { key: 'ESCROW_HOLDING', label: 'In Escrow', icon: Clock },
   { key: 'COMPLETED', label: 'Completed', icon: CheckCircle2 },
   { key: 'DISPUTED', label: 'Disputed', icon: ShieldAlert },
@@ -77,14 +86,16 @@ export default function MobileOrdersScreen() {
   const [selectedOrderTicket, setSelectedOrderTicket] = useState<PurchasedTicketDto | null>(null);
 
   const counts = useMemo(() => {
-    const listingActive = orders.filter((o) => o.status === 'LISTING_ACTIVE').length;
+    const myListings = orders.filter((o) => o.type === 'SELL').length;
+    const buyOrders = orders.filter((o) => o.type === 'BUY').length;
     const holding = orders.filter((o) => o.status === 'ESCROW_HOLDING').length;
     const completed = orders.filter((o) => o.status === 'COMPLETED').length;
     const disputed = orders.filter((o) => o.status === 'DISPUTED').length;
     const cancelled = orders.filter((o) => o.status === 'CANCELLED').length;
     return {
       ALL: orders.length,
-      LISTING_ACTIVE: listingActive,
+      MY_LISTINGS: myListings,
+      BUY_ORDERS: buyOrders,
       ESCROW_HOLDING: holding,
       COMPLETED: completed,
       DISPUTED: disputed,
@@ -94,7 +105,18 @@ export default function MobileOrdersScreen() {
 
   const filteredOrders = useMemo(() => {
     return orders.filter((order) => {
-      if (selectedStatus !== 'ALL' && order.status !== selectedStatus) {
+      if (selectedStatus === 'MY_LISTINGS' && order.type !== 'SELL') {
+        return false;
+      }
+      if (selectedStatus === 'BUY_ORDERS' && order.type !== 'BUY') {
+        return false;
+      }
+      if (
+        selectedStatus !== 'ALL' &&
+        selectedStatus !== 'MY_LISTINGS' &&
+        selectedStatus !== 'BUY_ORDERS' &&
+        order.status !== selectedStatus
+      ) {
         return false;
       }
 
@@ -117,11 +139,24 @@ export default function MobileOrdersScreen() {
     setError(null);
     try {
       const [tickets, listings] = await Promise.all([
-        resaleListingsApi.getMyPurchasedTickets().catch(() => []),
-        resaleListingsApi.getMyListings().catch(() => []),
+        resaleListingsApi.getMyPurchasedTickets().catch((err) => {
+          console.warn('[Orders] getMyPurchasedTickets error:', err);
+          return [];
+        }),
+        resaleListingsApi.getMyListings().catch((err) => {
+          console.warn('[Orders] getMyListings error:', err);
+          return [];
+        }),
       ]);
 
-      const buyOrders: MobileEscrowOrder[] = (tickets || []).map((t) => {
+      const safeTickets: any[] = Array.isArray(tickets)
+        ? tickets
+        : (tickets as any)?.data || (tickets as any)?.items || [];
+      const safeListings: any[] = Array.isArray(listings)
+        ? listings
+        : (listings as any)?.data || (listings as any)?.items || [];
+
+      const buyOrders: MobileEscrowOrder[] = safeTickets.map((t) => {
         const isDisputed = t.status === 'DISPUTED' || Boolean(t.disputeId);
         return {
           orderId: t.escrowId ? `ORD-${t.escrowId.slice(-8).toUpperCase()}` : `ORD-${t.ticketPassCode}`,
@@ -146,7 +181,7 @@ export default function MobileOrdersScreen() {
         };
       });
 
-      const sellOrders: MobileEscrowOrder[] = (listings || []).map((l) => {
+      const sellOrders: MobileEscrowOrder[] = safeListings.map((l: any) => {
         const rawStatus = (l.listingStatus || '').toLowerCase();
         const mappedStatus: MobileEscrowOrder['status'] =
           rawStatus === 'sold'
