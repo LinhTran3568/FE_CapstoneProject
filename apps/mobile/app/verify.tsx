@@ -817,13 +817,6 @@ export default function MobileVerifyTicketScreen() {
               </View>
             </View>
 
-            <View style={styles.escrowNoticeBox}>
-              <ShieldCheck size={16} color={theme.colors.success} />
-              <Text style={styles.escrowNoticeText}>
-                TicketShield Escrow Guarantee: Buyer funds are held safely in escrow. Payout is released directly to your account upon verified admission scan.
-              </Text>
-            </View>
-
             <FintechButton
               title={isPrivateListing ? 'Create Private Listing' : 'Publish to Marketplace'}
               onPress={handlePublish}
