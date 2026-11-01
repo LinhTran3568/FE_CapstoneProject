@@ -109,6 +109,14 @@ export const styles = StyleSheet.create({
     fontWeight: theme.typography.weights.bold,
     color: theme.colors.onPrimary,
   },
+  lockedQrPill: {
+    backgroundColor: 'rgba(0, 0, 0, 0.65)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.15)',
+  },
+  lockedQrPillText: {
+    color: theme.colors.textMuted,
+  },
   cardBody: {
     padding: theme.spacing.lg,
   },

@@ -21,6 +21,8 @@ import {
   Search,
   X,
   ShieldAlert,
+  Tag,
+  Lock,
 } from 'lucide-react-native';
 import { theme } from '../../src/theme';
 import { resaleListingsApi } from '@ticketshield/api-client';
@@ -38,14 +40,15 @@ interface MobileEscrowOrder {
   seatZone: string;
   totalPaid: number;
   paymentReference: string;
-  status: 'ESCROW_HOLDING' | 'COMPLETED' | 'CANCELLED' | 'DISPUTED';
+  status: 'ESCROW_HOLDING' | 'COMPLETED' | 'CANCELLED' | 'DISPUTED' | 'LISTING_ACTIVE';
   createdAt: string;
   ticketPassCode: string;
   disputeId?: string | null;
   escrowId?: string | null;
+  type?: 'BUY' | 'SELL';
 }
 
-type OrderStatusFilter = 'ALL' | 'ESCROW_HOLDING' | 'COMPLETED' | 'DISPUTED' | 'CANCELLED';
+type OrderStatusFilter = 'ALL' | 'ESCROW_HOLDING' | 'LISTING_ACTIVE' | 'COMPLETED' | 'DISPUTED' | 'CANCELLED';
 
 interface OrderFilterItem {
   key: OrderStatusFilter;
@@ -55,6 +58,7 @@ interface OrderFilterItem {
 
 const ORDER_FILTERS: OrderFilterItem[] = [
   { key: 'ALL', label: 'All Orders', icon: Receipt },
+  { key: 'LISTING_ACTIVE', label: 'My Listings', icon: Tag },
   { key: 'ESCROW_HOLDING', label: 'In Escrow', icon: Clock },
   { key: 'COMPLETED', label: 'Completed', icon: CheckCircle2 },
   { key: 'DISPUTED', label: 'Disputed', icon: ShieldAlert },
@@ -73,12 +77,14 @@ export default function MobileOrdersScreen() {
   const [selectedOrderTicket, setSelectedOrderTicket] = useState<PurchasedTicketDto | null>(null);
 
   const counts = useMemo(() => {
+    const listingActive = orders.filter((o) => o.status === 'LISTING_ACTIVE').length;
     const holding = orders.filter((o) => o.status === 'ESCROW_HOLDING').length;
     const completed = orders.filter((o) => o.status === 'COMPLETED').length;
     const disputed = orders.filter((o) => o.status === 'DISPUTED').length;
     const cancelled = orders.filter((o) => o.status === 'CANCELLED').length;
     return {
       ALL: orders.length,
+      LISTING_ACTIVE: listingActive,
       ESCROW_HOLDING: holding,
       COMPLETED: completed,
       DISPUTED: disputed,
@@ -110,8 +116,12 @@ export default function MobileOrdersScreen() {
     if (!silent) setLoading(true);
     setError(null);
     try {
-      const tickets = await resaleListingsApi.getMyPurchasedTickets();
-      const mappedOrders: MobileEscrowOrder[] = (tickets || []).map((t) => {
+      const [tickets, listings] = await Promise.all([
+        resaleListingsApi.getMyPurchasedTickets().catch(() => []),
+        resaleListingsApi.getMyListings().catch(() => []),
+      ]);
+
+      const buyOrders: MobileEscrowOrder[] = (tickets || []).map((t) => {
         const isDisputed = t.status === 'DISPUTED' || Boolean(t.disputeId);
         return {
           orderId: t.escrowId ? `ORD-${t.escrowId.slice(-8).toUpperCase()}` : `ORD-${t.ticketPassCode}`,
@@ -132,9 +142,43 @@ export default function MobileOrdersScreen() {
           ticketPassCode: t.ticketPassCode,
           disputeId: t.disputeId || null,
           escrowId: t.escrowId || null,
+          type: 'BUY',
         };
       });
-      setOrders(mappedOrders);
+
+      const sellOrders: MobileEscrowOrder[] = (listings || []).map((l) => {
+        const rawStatus = (l.listingStatus || '').toLowerCase();
+        const mappedStatus: MobileEscrowOrder['status'] =
+          rawStatus === 'sold'
+            ? 'COMPLETED'
+            : rawStatus === 'transacting'
+              ? 'ESCROW_HOLDING'
+              : rawStatus === 'cancelled'
+                ? 'CANCELLED'
+                : 'LISTING_ACTIVE';
+
+        return {
+          orderId: `LST-${l.listingId.slice(-8).toUpperCase()}`,
+          listingId: l.listingId,
+          eventName: l.eventName,
+          tierName: l.tierName,
+          seatZone: l.seatZone || 'General Admission',
+          totalPaid: l.resalePrice,
+          paymentReference: l.originalTicketCode || 'TS-LISTING',
+          status: mappedStatus,
+          createdAt: l.createdAt || new Date().toISOString(),
+          ticketPassCode: l.originalTicketCode || '',
+          disputeId: l.disputeId || null,
+          escrowId: null,
+          type: 'SELL',
+        };
+      });
+
+      const combined = [...buyOrders, ...sellOrders].sort((a, b) => {
+        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+      });
+
+      setOrders(combined);
     } catch (err) {
       const message =
         err instanceof Error ? err.message : 'Unable to load orders. Please try again.';
@@ -160,7 +204,8 @@ export default function MobileOrdersScreen() {
     setRefreshing(false);
   };
 
-  const getStatusBadge = (status: MobileEscrowOrder['status']) => {
+  const getStatusBadge = (order: MobileEscrowOrder) => {
+    const { status, type } = order;
     if (status === 'DISPUTED') {
       return (
         <View style={[styles.statusBadge, styles.statusBadgeDisputed]}>
@@ -169,11 +214,21 @@ export default function MobileOrdersScreen() {
         </View>
       );
     }
+    if (status === 'LISTING_ACTIVE') {
+      return (
+        <View style={[styles.statusBadge, { backgroundColor: 'rgba(16, 185, 129, 0.15)', borderWidth: 1, borderColor: 'rgba(16, 185, 129, 0.4)' }]}>
+          <Tag size={12} color={theme.colors.success} />
+          <Text style={[styles.statusText, { color: theme.colors.success }]}>Listing Active</Text>
+        </View>
+      );
+    }
     if (status === 'ESCROW_HOLDING') {
       return (
         <View style={[styles.statusBadge, styles.statusBadgeWarning]}>
           <Clock size={13} color={theme.colors.warning} />
-          <Text style={[styles.statusText, styles.statusTextWarning]}>Escrow Holding</Text>
+          <Text style={[styles.statusText, styles.statusTextWarning]}>
+            {type === 'SELL' ? 'Escrow Pending' : 'In Escrow (Locked)'}
+          </Text>
         </View>
       );
     }
@@ -181,7 +236,9 @@ export default function MobileOrdersScreen() {
       return (
         <View style={[styles.statusBadge, styles.statusBadgeSuccess]}>
           <CheckCircle2 size={13} color={theme.colors.success} />
-          <Text style={[styles.statusText, styles.statusTextSuccess]}>Completed</Text>
+          <Text style={[styles.statusText, styles.statusTextSuccess]}>
+            {type === 'SELL' ? 'Sold' : 'Completed'}
+          </Text>
         </View>
       );
     }
@@ -221,8 +278,20 @@ export default function MobileOrdersScreen() {
   const renderOrder = ({ item }: { item: MobileEscrowOrder }) => (
     <View style={styles.orderCard}>
       <View style={styles.orderTopRow}>
-        <Text style={styles.orderIdText}>{item.orderId}</Text>
-        {getStatusBadge(item.status)}
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+          <View style={[
+            { paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4, borderWidth: 1 },
+            item.type === 'SELL'
+              ? { backgroundColor: 'rgba(255, 90, 54, 0.12)', borderColor: 'rgba(255, 90, 54, 0.3)' }
+              : { backgroundColor: 'rgba(255, 255, 255, 0.08)', borderColor: 'rgba(255, 255, 255, 0.15)' }
+          ]}>
+            <Text style={{ fontSize: 9, fontWeight: '700', color: item.type === 'SELL' ? theme.colors.primary : theme.colors.textSecondary }}>
+              {item.type === 'SELL' ? 'SELLER' : 'BUYER'}
+            </Text>
+          </View>
+          <Text style={styles.orderIdText}>{item.orderId}</Text>
+        </View>
+        {getStatusBadge(item)}
       </View>
 
       <Text style={styles.eventName} numberOfLines={2}>
@@ -244,7 +313,7 @@ export default function MobileOrdersScreen() {
           </Text>
         </View>
         <View style={styles.priceCol}>
-          <Text style={styles.infoLabel}>Total Paid</Text>
+          <Text style={styles.infoLabel}>{item.type === 'SELL' ? 'Listing Price' : 'Total Paid'}</Text>
           <Text style={styles.priceValue}>{formatPrice(item.totalPaid)}</Text>
         </View>
       </View>
@@ -261,25 +330,52 @@ export default function MobileOrdersScreen() {
             item.status === 'DISPUTED' && styles.escrowNoticeTextDanger,
           ]}
         >
-          {item.status === 'DISPUTED'
-            ? 'Dispute opened. Payout is frozen in Escrow pending turnstile scan audit.'
-            : item.status === 'ESCROW_HOLDING'
-              ? 'Funds are locked in Escrow and will be released to seller after admission.'
-              : item.status === 'COMPLETED'
-                ? 'Admission verified. Escrow settlement successfully disbursed.'
-                : 'Order was cancelled and any held deposit refunded.'}
+          {item.type === 'SELL' ? (
+            item.status === 'COMPLETED'
+              ? 'Ticket sold! Escrow payout is released upon verified event check-in.'
+              : item.status === 'ESCROW_HOLDING'
+                ? 'A buyer is currently in checkout. Payment is secured in Escrow.'
+                : item.status === 'LISTING_ACTIVE'
+                  ? 'Your ticket is live on Marketplace. Original barcode is locked with organizer.'
+                  : 'Resale listing was cancelled and ticket barcode unlocked.'
+          ) : (
+            item.status === 'DISPUTED'
+              ? 'Dispute opened. Payout is frozen in Escrow pending turnstile scan audit.'
+              : item.status === 'ESCROW_HOLDING'
+                ? 'Ticket barcode is locked for resale. Funds are held safely in Escrow.'
+                : item.status === 'COMPLETED'
+                  ? 'Admission verified. Escrow settlement successfully disbursed.'
+                  : 'Order was cancelled and any held deposit refunded.'
+          )}
         </Text>
       </View>
 
       <View style={styles.orderActionsRow}>
-        <TouchableOpacity
-          style={styles.viewPassBtn}
-          onPress={() => router.push('/(tabs)/tickets')}
-          activeOpacity={0.8}
-        >
-          <Text style={styles.viewPassBtnText}>View in Wallet</Text>
-          <ArrowRight size={14} color={theme.colors.primary} />
-        </TouchableOpacity>
+        {item.type === 'SELL' ? (
+          <TouchableOpacity
+            style={styles.viewPassBtn}
+            onPress={() => router.push('/(tabs)/marketplace')}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.viewPassBtnText}>View on Marketplace</Text>
+            <ArrowRight size={14} color={theme.colors.primary} />
+          </TouchableOpacity>
+        ) : (
+          <TouchableOpacity
+            style={styles.viewPassBtn}
+            onPress={() => router.push('/(tabs)/tickets')}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.viewPassBtnText}>
+              {item.status === 'ESCROW_HOLDING' ? 'View in Wallet (Locked)' : 'View in Wallet'}
+            </Text>
+            {item.status === 'ESCROW_HOLDING' ? (
+              <Lock size={13} color={theme.colors.primary} />
+            ) : (
+              <ArrowRight size={14} color={theme.colors.primary} />
+            )}
+          </TouchableOpacity>
+        )}
 
         {item.status === 'DISPUTED' || Boolean(item.disputeId) ? (
           <TouchableOpacity
@@ -290,7 +386,7 @@ export default function MobileOrdersScreen() {
             <Clock size={14} color={theme.colors.warning} />
             <Text style={styles.disputeProgressOrderBtnText}>View Dispute</Text>
           </TouchableOpacity>
-        ) : item.status !== 'CANCELLED' ? (
+        ) : item.status !== 'CANCELLED' && item.type !== 'SELL' ? (
           <TouchableOpacity
             style={styles.reportOrderBtn}
             onPress={() => handleReportOrder(item)}

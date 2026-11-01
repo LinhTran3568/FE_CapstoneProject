@@ -25,6 +25,7 @@ import {
   Search,
   ShieldAlert,
   Clock,
+  Lock,
 } from 'lucide-react-native';
 import { theme, fontFamilies } from '../../src/theme';
 import type { PurchasedTicketDto } from '@ticketshield/types';
@@ -38,7 +39,7 @@ import { DisputeTicketModal } from '../../src/components/DisputeTicketModal';
 
 const STATUS_LABELS: Record<string, string> = {
   VALID: 'Valid for Entry',
-  IN_ESCROW: 'In Escrow (Secured)',
+  IN_ESCROW: 'Locked for Resale',
   USED: 'Checked In',
   EXPIRED: 'Expired',
   CANCELLED: 'Cancelled',
@@ -78,9 +79,9 @@ export default function MobileTicketsScreen() {
   const [disputeModalTicket, setDisputeModalTicket] = useState<PurchasedTicketDto | null>(null);
 
   const counts = useMemo(() => {
-    const valid = tickets.filter((t) => t.status === 'VALID' || t.status === 'IN_ESCROW').length;
+    const valid = tickets.filter((t) => t.status === 'VALID').length;
     const used = tickets.filter((t) => t.status === 'USED').length;
-    const expired = tickets.filter((t) => t.status !== 'VALID' && t.status !== 'IN_ESCROW' && t.status !== 'USED').length;
+    const expired = tickets.filter((t) => t.status !== 'VALID' && t.status !== 'USED').length;
     return {
       ALL: tickets.length,
       VALID: valid,
@@ -91,9 +92,9 @@ export default function MobileTicketsScreen() {
 
   const filteredTickets = useMemo(() => {
     return tickets.filter((ticket) => {
-      if (selectedStatus === 'VALID' && ticket.status !== 'VALID' && ticket.status !== 'IN_ESCROW') return false;
+      if (selectedStatus === 'VALID' && ticket.status !== 'VALID') return false;
       if (selectedStatus === 'USED' && ticket.status !== 'USED') return false;
-      if (selectedStatus === 'EXPIRED' && (ticket.status === 'VALID' || ticket.status === 'IN_ESCROW' || ticket.status === 'USED')) return false;
+      if (selectedStatus === 'EXPIRED' && (ticket.status === 'VALID' || ticket.status === 'USED')) return false;
 
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase().trim();
@@ -182,12 +183,22 @@ export default function MobileTicketsScreen() {
         </View>
       );
     }
-    if (status === 'IN_ESCROW') {
+    if (status === 'IN_ESCROW' || status === 'LOCKED') {
       return (
-        <View style={[styles.statusBadge, { backgroundColor: 'rgba(16, 185, 129, 0.15)', borderColor: '#10B981' }]}>
-          <ShieldCheck size={13} color="#10B981" />
-          <Text style={[styles.statusText, { color: '#10B981', fontFamily: fontFamilies.bold }]}>
-            In Escrow (Secured)
+        <View style={[styles.statusBadge, { backgroundColor: 'rgba(255, 152, 0, 0.15)', borderColor: 'rgba(255, 152, 0, 0.4)' }]}>
+          <Lock size={12} color="#FF9800" />
+          <Text style={[styles.statusText, { color: '#FF9800', fontFamily: fontFamilies.bold }]}>
+            Locked for Resale
+          </Text>
+        </View>
+      );
+    }
+    if (status === 'CANCELLED') {
+      return (
+        <View style={[styles.statusBadge, { backgroundColor: 'rgba(239, 68, 68, 0.15)', borderColor: 'rgba(239, 68, 68, 0.4)' }]}>
+          <AlertTriangle size={12} color={theme.colors.danger} />
+          <Text style={[styles.statusText, { color: theme.colors.danger, fontFamily: fontFamilies.bold }]}>
+            Cancelled
           </Text>
         </View>
       );
@@ -207,22 +218,36 @@ export default function MobileTicketsScreen() {
     );
   };
 
-  const renderTicket = ({ item }: { item: PurchasedTicketDto }) => (
-    <TouchableOpacity
-      style={styles.ticketCard}
-      onPress={() => setSelectedTicket(item)}
-      activeOpacity={0.9}
-    >
-      <View style={styles.posterWrap}>
-        <EventPoster seed={item.eventId || item.ticketPassCode} height={104} />
-        <View style={styles.posterOverlay}>
-          {renderStatusBadge(item.status)}
-          <View style={styles.openQrPill}>
-            <QrCode size={13} color={theme.colors.onPrimary} />
-            <Text style={styles.openQrPillText}>Show Pass</Text>
+  const renderTicket = ({ item }: { item: PurchasedTicketDto }) => {
+    const isValid = item.status === 'VALID';
+    return (
+      <TouchableOpacity
+        style={[styles.ticketCard, !isValid && { opacity: 0.75 }]}
+        onPress={() => isValid && setSelectedTicket(item)}
+        activeOpacity={isValid ? 0.9 : 1}
+        disabled={!isValid}
+      >
+        <View style={styles.posterWrap}>
+          <EventPoster seed={item.eventId || item.ticketPassCode} height={104} />
+          <View style={styles.posterOverlay}>
+            {renderStatusBadge(item.status)}
+            <View style={[styles.openQrPill, !isValid && styles.lockedQrPill]}>
+              {isValid ? (
+                <>
+                  <QrCode size={13} color={theme.colors.onPrimary} />
+                  <Text style={styles.openQrPillText}>Show Pass</Text>
+                </>
+              ) : (
+                <>
+                  <Lock size={12} color={theme.colors.textMuted} />
+                  <Text style={[styles.openQrPillText, styles.lockedQrPillText]}>
+                    {item.status === 'IN_ESCROW' ? 'Pass Locked' : item.status === 'USED' ? 'Checked In' : 'Invalid'}
+                  </Text>
+                </>
+              )}
+            </View>
           </View>
         </View>
-      </View>
 
       <View style={styles.cardBody}>
         <Text style={styles.eventName} numberOfLines={2}>
@@ -262,8 +287,9 @@ export default function MobileTicketsScreen() {
           <Text style={styles.ticketCode}>•••• {item.ticketPassCode.slice(-4)}</Text>
         </View>
       </View>
-    </TouchableOpacity>
-  );
+      </TouchableOpacity>
+    );
+  };
 
   return (
     <View style={styles.container}>
