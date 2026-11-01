@@ -6,14 +6,10 @@ import {
   TouchableOpacity,
   Modal,
   ActivityIndicator,
-  Image,
-  ScrollView,
-  Linking,
 } from 'react-native';
 import { Text } from '../../src/components/AppText';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import * as Clipboard from 'expo-clipboard';
 import {
   Search,
   X,
@@ -21,28 +17,24 @@ import {
   Calendar,
   MapPin,
   Tag,
-  Clock,
-  CheckCircle2,
-  ArrowRight,
   UserRound,
+  ArrowRight,
   AlertTriangle,
   RefreshCw,
   Ticket,
-  Copy,
   Check,
-  ExternalLink,
   SlidersHorizontal,
   ChevronDown,
 } from 'lucide-react-native';
-import type { ResaleListingDetailDto, HoldListingForPurchaseResponse } from '@ticketshield/types';
+import type { ResaleListingDetailDto } from '@ticketshield/types';
 import { resaleListingsApi } from '@ticketshield/api-client';
 import { theme } from '../../src/theme';
-import { useAuthStore } from '../../src/stores/authStore';
 import { EventPoster } from '../../src/components/EventPoster';
 import { FintechButton } from '../../src/components/FintechButton';
 import { CategoryFilterBar } from '../../src/components/CategoryFilterBar';
 import { FairPriceBadge } from '../../src/components/FairPriceBadge';
-import { formatPrice, formatEventDateTime, initialsOf } from '../../src/utils/format';
+import { BuyTicketBottomSheet } from '../../src/components/BuyTicketBottomSheet';
+import { formatPrice, formatEventDateTime } from '../../src/utils/format';
 import { styles } from '../../src/styles/marketplace.styles';
 
 type PriceBand = 'ALL' | 'UNDER_1M' | 'FROM_1M_TO_2M' | 'OVER_2M';
@@ -61,16 +53,9 @@ function matchesBand(price: number, band: PriceBand): boolean {
   return true;
 }
 
-function formatCountdown(totalSeconds: number): string {
-  const minutes = Math.floor(totalSeconds / 60);
-  const seconds = totalSeconds % 60;
-  return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
-}
-
 export default function MarketplaceScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const user = useAuthStore((state) => state.user);
 
   const [keyword, setKeyword] = useState('');
   const [debouncedKeyword, setDebouncedKeyword] = useState('');
@@ -83,13 +68,6 @@ export default function MarketplaceScreen() {
   const [error, setError] = useState<string | null>(null);
 
   const [selectedListing, setSelectedListing] = useState<ResaleListingDetailDto | null>(null);
-  const [holdData, setHoldData] = useState<HoldListingForPurchaseResponse | null>(null);
-  const [isHolding, setIsHolding] = useState(false);
-  const [isCheckingTransfer, setIsCheckingTransfer] = useState(false);
-  const [purchaseSuccess, setPurchaseSuccess] = useState(false);
-  const [paymentNote, setPaymentNote] = useState<string | null>(null);
-  const [secondsLeft, setSecondsLeft] = useState(0);
-  const [copiedField, setCopiedField] = useState<string | null>(null);
 
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedKeyword(keyword.trim()), 350);
@@ -117,57 +95,6 @@ export default function MarketplaceScreen() {
   useEffect(() => {
     loadListings(debouncedKeyword);
   }, [debouncedKeyword, loadListings]);
-
-  useEffect(() => {
-    if (!holdData?.unlockAt) {
-      setSecondsLeft(0);
-      return;
-    }
-    const deadline = new Date(holdData.unlockAt).getTime();
-    const tick = () =>
-      setSecondsLeft(Math.max(0, Math.floor((deadline - Date.now()) / 1000)));
-    tick();
-    const interval = setInterval(tick, 1000);
-    return () => clearInterval(interval);
-  }, [holdData?.unlockAt]);
-
-  useEffect(() => {
-    if (!holdData || purchaseSuccess || secondsLeft === 0) return;
-
-    let isPolling = true;
-    const pollInterval = setInterval(async () => {
-      if (!isPolling) return;
-      try {
-        const status = await resaleListingsApi.getPaymentStatus(holdData.listingId);
-        const escrowStatus = status?.escrowStatus?.toLowerCase();
-        const listingStatus = status?.listingStatus?.toLowerCase();
-        const hasFunds =
-          escrowStatus === 'funded' ||
-          escrowStatus === 'released' ||
-          listingStatus === 'transacting' ||
-          listingStatus === 'sold';
-
-        if (hasFunds && isPolling) {
-          isPolling = false;
-          clearInterval(pollInterval);
-          setPurchaseSuccess(true);
-        }
-      } catch {}
-    }, 3000);
-
-    return () => {
-      isPolling = false;
-      clearInterval(pollInterval);
-    };
-  }, [holdData, purchaseSuccess, secondsLeft]);
-
-  const copyToClipboard = async (text: string, fieldName: string) => {
-    try {
-      await Clipboard.setStringAsync(text);
-      setCopiedField(fieldName);
-      setTimeout(() => setCopiedField(null), 2000);
-    } catch {}
-  };
 
   
   const inferCategory = (eventName: string, organizer?: string): string => {
@@ -209,95 +136,7 @@ export default function MarketplaceScreen() {
     setKeyword('');
   };
 
-  const closeModal = () => {
-    if (isCheckingTransfer || isHolding) return;
-    setSelectedListing(null);
-    setHoldData(null);
-    setPurchaseSuccess(false);
-    setPaymentNote(null);
-    setCopiedField(null);
-  };
 
-  const buyerInfo = {
-    fullName: user?.fullName || 'TicketShield Buyer',
-    email: user?.email || 'buyer@ticketshield.vn',
-    phone: user?.phoneNumber || '0900000000',
-  };
-
-  const handleStartPurchase = async () => {
-    if (!selectedListing) return;
-    setIsHolding(true);
-    setPaymentNote(null);
-    try {
-      const hold = await resaleListingsApi.holdListing(selectedListing.listingId, {
-        recipientName: buyerInfo.fullName,
-        recipientEmail: buyerInfo.email,
-      });
-      setHoldData(hold);
-    } catch (err) {
-      const message =
-        err instanceof Error
-          ? err.message
-          : 'This ticket is currently held or in transaction. Please try again shortly.';
-      setPaymentNote(message);
-    } finally {
-      setIsHolding(false);
-    }
-  };
-
-  const handleConfirmTransfer = async () => {
-    if (!selectedListing || !holdData) return;
-    setIsCheckingTransfer(true);
-    setPaymentNote(null);
-    try {
-      const status = await resaleListingsApi.getPaymentStatus(selectedListing.listingId);
-      const escrowStatus = status?.escrowStatus?.toLowerCase();
-      const listingStatus = status?.listingStatus?.toLowerCase();
-      const hasFunds =
-        escrowStatus === 'funded' ||
-        escrowStatus === 'released' ||
-        listingStatus === 'transacting' ||
-        listingStatus === 'sold';
-
-      if (!hasFunds) {
-        setPaymentNote(
-          'Payment not detected yet. Please ensure the exact reference is included in your transfer and retry in a moment.'
-        );
-        return;
-      }
-
-      setPurchaseSuccess(true);
-    } catch (err) {
-      const message =
-        err instanceof Error
-          ? err.message
-          : 'Unable to check payment status. Please try again.';
-      setPaymentNote(message);
-    } finally {
-      setIsCheckingTransfer(false);
-    }
-  };
-
-  const handleSimulatePayment = async () => {
-    if (!selectedListing || !holdData) return;
-    setIsCheckingTransfer(true);
-    try {
-      try {
-        await resaleListingsApi.simulatePaymentSuccess(selectedListing.listingId);
-      } catch {
-        await resaleListingsApi.simulatePaymentWebhook(
-          holdData.paymentReference,
-          holdData.totalBuyerPaid
-        );
-      }
-      setPurchaseSuccess(true);
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Payment simulation failed.';
-      setPaymentNote(message);
-    } finally {
-      setIsCheckingTransfer(false);
-    }
-  };
 
   const renderListing = ({ item }: { item: ResaleListingDetailDto }) => {
     const hasDiscount = item.discountPercentage > 0;
@@ -305,13 +144,7 @@ export default function MarketplaceScreen() {
       <TouchableOpacity
         style={styles.card}
         activeOpacity={0.92}
-        onPress={() => {
-          setSelectedListing(item);
-          setHoldData(null);
-          setPurchaseSuccess(false);
-          setPaymentNote(null);
-          setCopiedField(null);
-        }}
+        onPress={() => setSelectedListing(item)}
       >
         <View style={styles.posterWrap}>
           <EventPoster seed={`${item.eventId}-${item.listingId}`} height={148} />
@@ -609,386 +442,11 @@ export default function MarketplaceScreen() {
         </View>
       </Modal>
 
-      <Modal
+      <BuyTicketBottomSheet
         visible={!!selectedListing}
-        animationType="slide"
-        transparent
-        onRequestClose={closeModal}
-      >
-        <View style={styles.modalBackdrop}>
-          <View style={[styles.modalSheet, { paddingBottom: insets.bottom + theme.spacing.lg }]}>
-            <View style={styles.sheetHandle} />
-            <View style={styles.sheetHeader}>
-              <Text style={styles.sheetTitle}>
-                {purchaseSuccess
-                  ? 'Purchase Complete'
-                  : holdData
-                    ? 'VietQR Escrow Payment'
-                    : 'Ticket Details'}
-              </Text>
-              <TouchableOpacity
-                style={styles.closeButton}
-                onPress={closeModal}
-                accessibilityRole="button"
-                accessibilityLabel="Close"
-              >
-                <X size={20} color={theme.colors.textSecondary} />
-              </TouchableOpacity>
-            </View>
-
-            {!selectedListing ? null : purchaseSuccess ? (
-              <View style={styles.successBox}>
-                <View style={styles.successIcon}>
-                  <CheckCircle2 size={38} color={theme.colors.success} />
-                </View>
-                <Text style={styles.successTitle}>Ticket Added to Your Wallet</Text>
-                <Text style={styles.successText}>
-                  Escrow is securely holding the funds. Ticket ownership has been transferred to your account.
-                </Text>
-                <FintechButton
-                  title="View My Tickets"
-                  onPress={() => {
-                    closeModal();
-                    router.push('/(tabs)/tickets');
-                  }}
-                />
-                <View style={styles.successSecondary}>
-                  <FintechButton title="Close" onPress={closeModal} variant="outline" />
-                </View>
-              </View>
-            ) : (
-              <ScrollView
-                style={styles.sheetScroll}
-                contentContainerStyle={styles.sheetScrollContent}
-                showsVerticalScrollIndicator={false}
-              >
-                <View style={styles.sheetEventRow}>
-                  <EventPoster
-                    seed={`${selectedListing.eventId}-${selectedListing.listingId}`}
-                    height={72}
-                    style={styles.sheetPoster}
-                    rounded
-                  />
-                  <View style={styles.sheetEventInfo}>
-                    <Text style={styles.sheetEventName} numberOfLines={2}>
-                      {selectedListing.eventName}
-                    </Text>
-                    <Text style={styles.sheetEventMeta} numberOfLines={1}>
-                      {selectedListing.tierName} • {selectedListing.seatZone || 'General Admission'}
-                    </Text>
-                    <Text style={styles.sheetEventMeta} numberOfLines={1}>
-                      {formatEventDateTime(selectedListing.eventStartAt)}
-                    </Text>
-                  </View>
-                </View>
-
-                {!holdData ? (
-                  <>
-                    {/* Seller Snapshot */}
-                    <View style={styles.sheetSellerCard}>
-                      <View style={styles.sheetSellerTop}>
-                        <View style={styles.sheetSellerAvatar}>
-                          <Text style={styles.sheetSellerAvatarText}>
-                            {initialsOf(selectedListing.sellerFullName)}
-                          </Text>
-                        </View>
-                        <View style={styles.sheetSellerInfo}>
-                          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                            <Text style={styles.sheetSellerName}>
-                              {selectedListing.sellerFullName || 'Verified Seller'}
-                            </Text>
-                            <View style={styles.sheetVerifiedPill}>
-                              <ShieldCheck size={10} color={theme.colors.success} />
-                              <Text style={styles.sheetVerifiedPillText}>VERIFIED</Text>
-                            </View>
-                          </View>
-                          <Text style={styles.sheetSellerSub}>
-                            Zone: {selectedListing.seatZone || selectedListing.tierName} • Pass #{selectedListing.maskedTicketCode}
-                          </Text>
-                        </View>
-                      </View>
-                    </View>
-
-                    {/* Face-Value Price Ceiling & Escrow Guarantee */}
-                    <View style={styles.sheetCeilingCard}>
-                      <View style={styles.sheetCeilingHeader}>
-                        <View style={styles.sheetCeilingIcon}>
-                          <ShieldCheck size={18} color={theme.colors.success} />
-                        </View>
-                        <View style={styles.sheetCeilingTextWrap}>
-                          <Text style={styles.sheetCeilingTitle}>Face-Value Price Cap Guarantee</Text>
-                          <Text style={styles.sheetCeilingSub}>
-                            Anti-scalping verified: Resale price is capped at original box office value.
-                          </Text>
-                        </View>
-                        <View style={styles.sheetCeilingBadge}>
-                          <Text style={styles.sheetCeilingBadgeText}>
-                            {selectedListing.resalePrice <= selectedListing.originalPrice ? 'PROTECTED' : 'VERIFIED'}
-                          </Text>
-                        </View>
-                      </View>
-
-                      <View style={styles.sheetCeilingPriceRow}>
-                        <View style={styles.sheetCeilingCol}>
-                          <Text style={styles.sheetCeilingLabel}>Original Face Value</Text>
-                          <Text
-                            style={[
-                              styles.sheetCeilingValue,
-                              selectedListing.discountPercentage > 0 && styles.sheetCeilingStrikethrough,
-                            ]}
-                          >
-                            {formatPrice(selectedListing.originalPrice)}
-                          </Text>
-                        </View>
-                        <View style={styles.sheetCeilingDivider} />
-                        <View style={styles.sheetCeilingCol}>
-                          <Text style={styles.sheetCeilingLabel}>Resale Price</Text>
-                          <Text style={[styles.sheetCeilingValue, { color: theme.colors.primary }]}>
-                            {formatPrice(selectedListing.resalePrice)}
-                          </Text>
-                        </View>
-                        {selectedListing.discountPercentage > 0 && (
-                          <View style={styles.sheetDiscountBadge}>
-                            <Text style={styles.sheetDiscountBadgeText}>
-                              -{Math.round(selectedListing.discountPercentage)}% OFF
-                            </Text>
-                          </View>
-                        )}
-                      </View>
-
-                      <View style={styles.sheetEscrowNotice}>
-                        <CheckCircle2 size={13} color={theme.colors.success} />
-                        <Text style={styles.sheetEscrowNoticeText}>
-                          TicketShield Escrow: Funds are held safely and only released to the seller after the ticket is delivered and validated.
-                        </Text>
-                      </View>
-                    </View>
-
-                    <View style={styles.pricePanel}>
-                      <View style={styles.pricePanelRow}>
-                        <Text style={styles.pricePanelLabel}>Listing Price</Text>
-                        <Text style={styles.pricePanelValue}>
-                          {formatPrice(selectedListing.resalePrice)}
-                        </Text>
-                      </View>
-                      <View style={styles.pricePanelRow}>
-                        <Text style={styles.pricePanelLabel}>Escrow Protection Fee (3%)</Text>
-                        <Text style={styles.pricePanelValue}>
-                          {formatPrice(Math.round(selectedListing.resalePrice * 0.03))}
-                        </Text>
-                      </View>
-                      <View style={styles.pricePanelDivider} />
-                      <View style={styles.pricePanelRow}>
-                        <Text style={styles.pricePanelTotal}>Total Amount</Text>
-                        <Text style={styles.pricePanelTotalValue}>
-                          {formatPrice(Math.round(selectedListing.resalePrice * 1.03))}
-                        </Text>
-                      </View>
-                    </View>
-
-                    {paymentNote && (
-                      <View style={styles.errorNote}>
-                        <AlertTriangle size={16} color={theme.colors.danger} />
-                        <Text style={styles.errorNoteText}>{paymentNote}</Text>
-                      </View>
-                    )}
-
-                    <FintechButton
-                      title={isHolding ? 'Reserving Ticket...' : 'Reserve Ticket (5-Min Hold)'}
-                      onPress={handleStartPurchase}
-                      loading={isHolding}
-                    />
-                  </>
-                ) : (
-                  <>
-                    <View style={styles.countdownRow}>
-                      <View style={styles.countdownBadge}>
-                        <Clock size={14} color={theme.colors.warning} />
-                        <Text style={styles.countdownText}>
-                          {secondsLeft > 0
-                            ? `Held for ${formatCountdown(secondsLeft)}`
-                            : 'Hold Expired'}
-                        </Text>
-                      </View>
-                      <Text style={styles.countdownHint}>Scan VietQR or Bank Transfer</Text>
-                    </View>
-
-                    <View style={styles.qrCard}>
-                      <Image
-                        source={{ uri: holdData.qrImageUrl }}
-                        style={styles.qrImage}
-                        resizeMode="contain"
-                      />
-                      <Text style={styles.qrHint}>Open your banking app and scan VietQR</Text>
-                    </View>
-
-                    {holdData.quickLinkUrl ? (
-                      <TouchableOpacity
-                        style={styles.oneTouchBtn}
-                        onPress={() => Linking.openURL(holdData.quickLinkUrl)}
-                        activeOpacity={0.85}
-                      >
-                        <ExternalLink size={16} color="#ffffff" />
-                        <Text style={styles.oneTouchBtnText}>
-                          Open Banking App (VietQR One-Touch)
-                        </Text>
-                      </TouchableOpacity>
-                    ) : null}
-
-                    <View style={styles.bankPanel}>
-                      <View style={styles.bankRow}>
-                        <Text style={styles.bankLabel}>Bank</Text>
-                        <Text style={styles.bankValue}>BIN {holdData.bankBin}</Text>
-                      </View>
-
-                      <View style={styles.bankRow}>
-                        <Text style={styles.bankLabel}>Account Number</Text>
-                        <View style={styles.bankRowValueGroup}>
-                          <Text style={styles.bankValue}>{holdData.accountNumber}</Text>
-                          <TouchableOpacity
-                            style={styles.copyBtn}
-                            onPress={() => copyToClipboard(holdData.accountNumber, 'accountNumber')}
-                            activeOpacity={0.7}
-                          >
-                            {copiedField === 'accountNumber' ? (
-                              <>
-                                <Check size={12} color={theme.colors.success} />
-                                <Text style={[styles.copyBtnText, { color: theme.colors.success }]}>
-                                  Copied
-                                </Text>
-                              </>
-                            ) : (
-                              <>
-                                <Copy size={12} color={theme.colors.primary} />
-                                <Text style={styles.copyBtnText}>Copy</Text>
-                              </>
-                            )}
-                          </TouchableOpacity>
-                        </View>
-                      </View>
-
-                      <View style={styles.bankRow}>
-                        <Text style={styles.bankLabel}>Account Holder</Text>
-                        <Text style={styles.bankValue} numberOfLines={1}>
-                          {holdData.accountName}
-                        </Text>
-                      </View>
-
-                      <View style={styles.bankRow}>
-                        <Text style={styles.bankLabel}>Amount</Text>
-                        <View style={styles.bankRowValueGroup}>
-                          <Text style={styles.bankAmount}>{formatPrice(holdData.totalBuyerPaid)}</Text>
-                          <TouchableOpacity
-                            style={styles.copyBtn}
-                            onPress={() => copyToClipboard(String(holdData.totalBuyerPaid), 'amount')}
-                            activeOpacity={0.7}
-                          >
-                            {copiedField === 'amount' ? (
-                              <>
-                                <Check size={12} color={theme.colors.success} />
-                                <Text style={[styles.copyBtnText, { color: theme.colors.success }]}>
-                                  Copied
-                                </Text>
-                              </>
-                            ) : (
-                              <>
-                                <Copy size={12} color={theme.colors.primary} />
-                                <Text style={styles.copyBtnText}>Copy</Text>
-                              </>
-                            )}
-                          </TouchableOpacity>
-                        </View>
-                      </View>
-
-                      <View style={styles.bankRow}>
-                        <Text style={styles.bankLabel}>Reference</Text>
-                        <View style={styles.bankRowValueGroup}>
-                          <Text style={styles.bankReference}>{holdData.paymentReference}</Text>
-                          <TouchableOpacity
-                            style={styles.copyBtn}
-                            onPress={() => copyToClipboard(holdData.paymentReference, 'reference')}
-                            activeOpacity={0.7}
-                          >
-                            {copiedField === 'reference' ? (
-                              <>
-                                <Check size={12} color={theme.colors.success} />
-                                <Text style={[styles.copyBtnText, { color: theme.colors.success }]}>
-                                  Copied
-                                </Text>
-                              </>
-                            ) : (
-                              <>
-                                <Copy size={12} color={theme.colors.primary} />
-                                <Text style={styles.copyBtnText}>Copy</Text>
-                              </>
-                            )}
-                          </TouchableOpacity>
-                        </View>
-                      </View>
-                    </View>
-
-                    <View style={styles.autoPollingBox}>
-                      <ActivityIndicator size="small" color={theme.colors.success} />
-                      <Text style={styles.autoPollingText}>
-                        Listening for bank transfer. Your ticket will be automatically transferred to your wallet upon payment confirmation.
-                      </Text>
-                    </View>
-
-                    {secondsLeft === 0 && (
-                      <View style={styles.errorNote}>
-                        <Clock size={16} color={theme.colors.danger} />
-                        <Text style={styles.errorNoteText}>
-                          Hold session expired. Close and reserve again to generate a new payment code.
-                        </Text>
-                      </View>
-                    )}
-
-                    {paymentNote && (
-                      <View style={styles.errorNote}>
-                        <AlertTriangle size={16} color={theme.colors.danger} />
-                        <Text style={styles.errorNoteText}>{paymentNote}</Text>
-                      </View>
-                    )}
-
-                    <FintechButton
-                      title={
-                        isCheckingTransfer ? 'Verifying Transfer...' : 'I Have Transferred'
-                      }
-                      onPress={handleConfirmTransfer}
-                      loading={isCheckingTransfer}
-                      disabled={secondsLeft === 0}
-                    />
-
-                    {secondsLeft === 0 && (
-                      <View style={styles.successSecondary}>
-                        <FintechButton
-                          title="Choose Another Ticket"
-                          onPress={closeModal}
-                          variant="outline"
-                        />
-                      </View>
-                    )}
-
-                    {__DEV__ && (
-                      <View style={styles.devBox}>
-                        <FintechButton
-                          title="Simulate Payment Success"
-                          onPress={handleSimulatePayment}
-                          variant="success"
-                          disabled={isCheckingTransfer}
-                        />
-                        <Text style={styles.devHint}>
-                          Developer button for testing escrow settlement flow.
-                        </Text>
-                      </View>
-                    )}
-                  </>
-                )}
-              </ScrollView>
-            )}
-          </View>
-        </View>
-      </Modal>
+        listing={selectedListing}
+        onClose={() => setSelectedListing(null)}
+      />
     </View>
   );
 }

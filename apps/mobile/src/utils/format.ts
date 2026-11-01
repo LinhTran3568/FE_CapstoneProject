@@ -46,3 +46,10 @@ export function initialsOf(name?: string | null): string {
     .map((part) => part.charAt(0).toUpperCase())
     .join('');
 }
+
+export function formatCountdown(totalSeconds: number): string {
+  const safeSeconds = Math.max(0, Math.floor(totalSeconds));
+  const m = Math.floor(safeSeconds / 60);
+  const s = safeSeconds % 60;
+  return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+}
