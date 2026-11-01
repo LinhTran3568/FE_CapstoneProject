@@ -181,7 +181,7 @@ export default function MobileProfileScreen() {
           </View>
           <View style={styles.menuTextSlot}>
             <Text style={styles.menuTitle}>Payout Accounts</Text>
-            <Text style={styles.menuDesc}>Bank accounts for resale disbursements</Text>
+            <Text style={styles.menuDesc}>Direct transfer for completed sales</Text>
           </View>
           <ChevronRight size={18} color={theme.colors.textMuted} />
         </TouchableOpacity>

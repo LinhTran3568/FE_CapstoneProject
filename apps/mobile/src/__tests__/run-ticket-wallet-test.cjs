@@ -426,6 +426,38 @@ test('dang xuat xoa ve da luu', async () => {
   assert.equal(await cache().loadTickets('user-a'), null);
 });
 
+test('dang xuat xoa token va thong tin nguoi dung', async () => {
+  storage.clear();
+  await signedIn();
+  apiClient().authApi.logout = async () => {};
+
+  await authStore().getState().logout();
+
+  assert.equal(await secure().getAccessToken(), null);
+  assert.equal(await secure().getRefreshToken(), null);
+  assert.equal(await secure().getUser(), null);
+  assert.equal(authStore().getState().user, null);
+  assert.equal(authStore().getState().token, null);
+  assert.equal(authStore().getState().isAuthenticated, false);
+});
+
+test('mat mang khi dang xuat van xoa du lieu tren may', async () => {
+  storage.clear();
+  await signedIn();
+  await cache().saveTickets('user-a', [ticket()]);
+  apiClient().authApi.logout = async () => {
+    throw new AxiosError('Network Error', 'ERR_NETWORK');
+  };
+
+  await authStore().getState().logout();
+
+  assert.equal(await secure().getAccessToken(), null);
+  assert.equal(await secure().getRefreshToken(), null);
+  assert.equal(await secure().getUser(), null);
+  assert.equal(await cache().loadTickets('user-a'), null);
+  assert.equal(authStore().getState().isAuthenticated, false);
+});
+
 test('may chu tu choi phien thi dang xuat va xoa ve', async () => {
   storage.clear();
   await signedIn();
