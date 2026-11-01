@@ -5,45 +5,50 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   RefreshControl,
+  useWindowDimensions,
+  NativeSyntheticEvent,
+  NativeScrollEvent,
 } from 'react-native';
 import { Text } from '../../src/components/AppText';
 import { useRouter } from 'expo-router';
 import {
-  Ticket,
-  Store,
   ArrowRight,
   Calendar,
   MapPin,
-  ScanLine,
-  Building2,
   AlertTriangle,
+  Store,
+  Building2,
+  ScanLine,
+  Ticket,
 } from 'lucide-react-native';
 import { eventsApi, organizerStoreApi, TrendingEventDto } from '@ticketshield/api-client';
 import { theme } from '../../src/theme';
 import { useAuthStore } from '../../src/stores/authStore';
 import { GatewayStatusBadge } from '../../src/components/GatewayStatusBadge';
 import { EventPoster } from '../../src/components/EventPoster';
-import { formatPrice, initialsOf, formatEventDateTime } from '../../src/utils/format';
+import { initialsOf, formatEventDateTime } from '../../src/utils/format';
 import {
   eventNamesMatch,
   mapCatalogEventToTrending,
   OrganizerCatalogEvent,
 } from '../../src/utils/organizerCatalog';
 import { FintechButton } from '../../src/components/FintechButton';
-import { CategoryFilterBar } from '../../src/components/CategoryFilterBar';
-import { FairPriceBadge } from '../../src/components/FairPriceBadge';
 import { styles } from '../../src/styles/home.styles';
 
 export default function MobileHomeScreen() {
   const router = useRouter();
   const user = useAuthStore((state) => state.user);
+  const { width: windowWidth } = useWindowDimensions();
 
   const [trendingEvents, setTrendingEvents] = useState<TrendingEventDto[]>([]);
   const [catalogEvents, setCatalogEvents] = useState<OrganizerCatalogEvent[]>([]);
-  const [selectedCategory, setSelectedCategory] = useState('ALL');
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [activeIndex, setActiveIndex] = useState(0);
+
+  const cardGap = 14;
+  const cardWidth = Math.min(Math.round(windowWidth * 0.86), 360);
 
   const fetchHomeData = useCallback(async (silent = false) => {
     if (!silent) setLoading(true);
@@ -110,13 +115,13 @@ export default function MobileHomeScreen() {
     return [...officialEvents, ...resaleOnlyEvents];
   }, [catalogEvents, trendingEvents]);
 
-  const filteredEvents = homeEvents.filter((ev) => {
-    if (selectedCategory === 'ALL') return true;
-    const cat = (ev.category || '').toUpperCase();
-    return cat === selectedCategory;
-  });
-  const heroEvent = filteredEvents.length > 0 ? filteredEvents[0] : homeEvents[0];
-  const listEvents = filteredEvents.length > 0 ? filteredEvents.slice(1) : [];
+  const handleScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+    const offsetX = event.nativeEvent.contentOffset.x;
+    const index = Math.round(offsetX / (cardWidth + cardGap));
+    if (index >= 0 && index < homeEvents.length && index !== activeIndex) {
+      setActiveIndex(index);
+    }
+  };
 
   return (
     <ScrollView
@@ -170,44 +175,99 @@ export default function MobileHomeScreen() {
             style={styles.retryBtn}
           />
         </View>
+      ) : homeEvents.length === 0 ? (
+        <View style={styles.emptyContainer}>
+          <Text style={styles.emptyTitle}>No events available</Text>
+          <Text style={styles.emptySubtitle}>Upcoming events will appear here soon.</Text>
+        </View>
       ) : (
         <>
-          {/* Hero Featured Event */}
-          {heroEvent && (
-            <TouchableOpacity
-              style={styles.heroCard}
-              onPress={() => router.push(`/event/${heroEvent.eventId || heroEvent.id || 'featured'}`)}
-              activeOpacity={0.9}
+          {/* Horizontal Events Carousel */}
+          <View style={styles.carouselContainer}>
+            <View style={styles.carouselHeader}>
+              <Text style={styles.sectionHeading}>Upcoming Events</Text>
+              {homeEvents.length > 1 && (
+                <Text style={styles.carouselCounterText}>
+                  {activeIndex + 1} / {homeEvents.length}
+                </Text>
+              )}
+            </View>
+
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              snapToInterval={cardWidth + cardGap}
+              snapToAlignment="start"
+              decelerationRate="fast"
+              contentContainerStyle={styles.carouselScrollContent}
+              onScroll={handleScroll}
+              scrollEventThrottle={16}
             >
-              <EventPoster seed={heroEvent.eventId || heroEvent.name} height={190} />
-              <View style={styles.heroOverlay}>
-                <View style={styles.heroBadge}>
-                  <Calendar size={12} color={theme.colors.text} />
-                  <Text style={styles.heroBadgeText}>
-                    {formatEventDateTime(heroEvent.eventStartAt)}
-                  </Text>
-                </View>
-                <Text style={styles.heroEyebrow}>
-                  {heroEvent.category || heroEvent.artist || 'FEATURED EVENT'}
-                </Text>
-                <Text style={styles.heroTitle} numberOfLines={2}>
-                  {heroEvent.name}
-                </Text>
-                <View style={styles.heroFooter}>
-                  <View style={styles.heroVenue}>
-                    <MapPin size={13} color={theme.colors.textSecondary} />
-                    <Text style={styles.heroVenueText} numberOfLines={1}>
-                      {heroEvent.venue}
-                    </Text>
-                  </View>
-                  <View style={styles.heroCta}>
-                    <Text style={styles.heroCtaText}>Get Tickets</Text>
-                    <ArrowRight size={14} color={theme.colors.onPrimary} />
-                  </View>
-                </View>
+              {homeEvents.map((event, idx) => {
+                const eventKey = event.eventId || event.id || event.name;
+                const isLast = idx === homeEvents.length - 1;
+
+                return (
+                  <TouchableOpacity
+                    key={eventKey}
+                    style={[
+                      styles.carouselCard,
+                      {
+                        width: cardWidth,
+                        marginRight: isLast ? 0 : cardGap,
+                      },
+                    ]}
+                    onPress={() => router.push(`/event/${eventKey}?source=origin`)}
+                    activeOpacity={0.9}
+                  >
+                    <EventPoster seed={eventKey} height={190} />
+                    <View style={styles.heroOverlay}>
+                      <View style={styles.heroBadge}>
+                        <Calendar size={12} color={theme.colors.text} />
+                        <Text style={styles.heroBadgeText}>
+                          {formatEventDateTime(event.eventStartAt)}
+                        </Text>
+                      </View>
+
+                      <Text style={styles.heroEyebrow}>
+                        {event.category || event.artist || 'FEATURED EVENT'}
+                      </Text>
+                      <Text style={styles.heroTitle} numberOfLines={2}>
+                        {event.name}
+                      </Text>
+
+                      <View style={styles.heroFooter}>
+                        <View style={styles.heroVenue}>
+                          <MapPin size={13} color={theme.colors.textSecondary} />
+                          <Text style={styles.heroVenueText} numberOfLines={1}>
+                            {event.venue}
+                          </Text>
+                        </View>
+                        <View style={styles.heroCta}>
+                          <Text style={styles.heroCtaText}>Get Tickets</Text>
+                          <ArrowRight size={14} color={theme.colors.onPrimary} />
+                        </View>
+                      </View>
+                    </View>
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+
+            {homeEvents.length > 1 && (
+              <View style={styles.paginationDots}>
+                {homeEvents.map((_, i) => (
+                  <View
+                    key={i}
+                    style={[
+                      styles.paginationDot,
+                      i === activeIndex && styles.paginationDotActive,
+                    ]}
+                  />
+                ))}
               </View>
-            </TouchableOpacity>
-          )}
+            )}
+          </View>
 
           {/* Quick Navigation Grid */}
           <View style={styles.quickGrid}>
@@ -259,76 +319,6 @@ export default function MobileHomeScreen() {
               <Text style={styles.gridSubtitle}>Live digital passes</Text>
             </TouchableOpacity>
           </View>
-
-
-          {/* Category Horizontal Filter Bar */}
-          <CategoryFilterBar
-            selectedCategory={selectedCategory}
-            onSelectCategory={setSelectedCategory}
-            style={styles.categoryFilterSlot}
-          />
-
-          {/* Section Header */}
-          {listEvents.length > 0 && (
-            <>
-              <View style={styles.sectionHeader}>
-                <Text style={styles.sectionHeading}>Official Events</Text>
-                <TouchableOpacity
-                  onPress={() => router.push('/origin')}
-                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                >
-                  <Text style={styles.viewMoreText}>See All</Text>
-                </TouchableOpacity>
-              </View>
-
-              {/* Event Cards */}
-              {listEvents.map((event) => {
-                const eventKey = event.eventId || event.id || event.name;
-                const price = event.minResalePrice || event.originalPriceFrom || 0;
-                return (
-                  <TouchableOpacity
-                    key={eventKey}
-                    style={styles.eventCard}
-                    onPress={() => router.push(`/event/${eventKey}?source=origin`)}
-                    activeOpacity={0.9}
-                  >
-                    <EventPoster seed={eventKey} height={120} />
-                    <View style={styles.eventBody}>
-                      <View style={styles.eventTopRow}>
-                        <Text style={styles.eventCategory}>
-                          {event.category || event.artist || 'LIVE'}
-                        </Text>
-                        {price > 0 && (
-                          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                            {event.minResalePrice ? (
-                              <FairPriceBadge
-                                resalePrice={event.minResalePrice}
-                                originalPrice={event.originalPriceFrom || event.minResalePrice}
-                              />
-                            ) : null}
-                            <Text style={styles.eventPriceFrom}>From {formatPrice(price)}</Text>
-                          </View>
-                        )}
-                      </View>
-                      <Text style={styles.eventTitle}>{event.name}</Text>
-                      <View style={styles.eventMetaRow}>
-                        <Calendar size={13} color={theme.colors.textSecondary} />
-                        <Text style={styles.eventMetaText}>
-                          {formatEventDateTime(event.eventStartAt)}
-                        </Text>
-                      </View>
-                      <View style={styles.eventMetaRow}>
-                        <MapPin size={13} color={theme.colors.textSecondary} />
-                        <Text style={styles.eventMetaText} numberOfLines={1}>
-                          {event.venue}
-                        </Text>
-                      </View>
-                    </View>
-                  </TouchableOpacity>
-                );
-              })}
-            </>
-          )}
         </>
       )}
     </ScrollView>

@@ -61,19 +61,19 @@ function arcBand(cx: number, cy: number, r1: number, r2: number, start: number, 
 
 function availabilityMeta(zone: SeatMapZone): string {
   if (zone.isOfficial && typeof zone.totalQuantity === 'number' && typeof zone.availableQuantity === 'number') {
-    if (zone.availableQuantity <= 0) return 'Hết vé ban tổ chức';
-    return `Còn ${zone.availableQuantity} / ${zone.totalQuantity} chỗ`;
+    if (zone.availableQuantity <= 0) return 'Sold out by organizer';
+    return `${zone.availableQuantity} / ${zone.totalQuantity} seats left`;
   }
   if (zone.availableListings > 0) {
-    return `${zone.availableListings} vé bán lại đã xác thực`;
+    return `${zone.availableListings} verified resale tickets`;
   }
-  return 'Vé chính thức';
+  return 'Official Tickets';
 }
 
 function zoneTagText(index: number, count: number): string {
-  if (index === 0) return 'VIP · SÁT SÂN KHẤU';
-  if (index === count - 1) return 'KHÁN ĐÀI TIÊU CHUẨN';
-  return 'KHU VỰC TRUNG TÂM';
+  if (index === 0) return 'VIP · STAGE FRONT';
+  if (index === count - 1) return 'STANDARD TIER';
+  return 'CENTER SECTION';
 }
 
 export function EventSeatMap({
@@ -365,7 +365,7 @@ export function EventSeatMap({
                 borderColor: theme.colors.primary,
               }}
             />
-            <Text style={{ fontSize: 10, color: theme.colors.textMuted }}>Còn trống</Text>
+            <Text style={{ fontSize: 10, color: theme.colors.textMuted }}>Available</Text>
           </View>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
             <View
@@ -378,7 +378,7 @@ export function EventSeatMap({
                 borderColor: '#382E28',
               }}
             />
-            <Text style={{ fontSize: 10, color: theme.colors.textMuted }}>Đã bán</Text>
+            <Text style={{ fontSize: 10, color: theme.colors.textMuted }}>Sold</Text>
           </View>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
             <View
@@ -391,7 +391,7 @@ export function EventSeatMap({
                 borderColor: theme.colors.primary,
               }}
             />
-            <Text style={{ fontSize: 10, color: theme.colors.textMuted }}>Khu vực đang chọn</Text>
+            <Text style={{ fontSize: 10, color: theme.colors.textMuted }}>Selected</Text>
           </View>
         </View>
       </View>
@@ -545,7 +545,7 @@ export function EventSeatMap({
                     }}
                   >
                     <Plus size={12} color={zoneColor} strokeWidth={2.5} />
-                    <Text style={{ fontSize: 11, fontWeight: '800', color: zoneColor }}>Chọn vé</Text>
+                    <Text style={{ fontSize: 11, fontWeight: '800', color: zoneColor }}>Select</Text>
                   </TouchableOpacity>
                 ) : (
                   <View

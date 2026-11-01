@@ -9,26 +9,32 @@ export function formatPrice(value: number): string {
 export function formatEventDate(
   iso: string,
   options: Intl.DateTimeFormatOptions = {
-    weekday: 'long',
+    weekday: 'short',
     day: 'numeric',
-    month: 'long',
+    month: 'short',
     year: 'numeric',
   }
 ): string {
   const date = new Date(iso);
   if (Number.isNaN(date.getTime())) return iso;
-  return date.toLocaleDateString('vi-VN', options);
+  return date.toLocaleDateString('en-US', options);
 }
 
 export function formatEventDateTime(iso: string): string {
-  return formatEventDate(iso, {
-    weekday: 'long',
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return iso;
+  const time = date.toLocaleTimeString('en-US', {
     hour: '2-digit',
     minute: '2-digit',
+    hour12: false,
   });
+  const dateStr = date.toLocaleDateString('en-US', {
+    weekday: 'short',
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  });
+  return `${time} ${dateStr}`;
 }
 
 export function initialsOf(name?: string | null): string {
