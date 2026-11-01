@@ -31,6 +31,8 @@ import {
   Copy,
   Check,
   ExternalLink,
+  SlidersHorizontal,
+  ChevronDown,
 } from 'lucide-react-native';
 import type { ResaleListingDetailDto, HoldListingForPurchaseResponse } from '@ticketshield/types';
 import { resaleListingsApi } from '@ticketshield/api-client';
@@ -38,16 +40,18 @@ import { theme } from '../../src/theme';
 import { useAuthStore } from '../../src/stores/authStore';
 import { EventPoster } from '../../src/components/EventPoster';
 import { FintechButton } from '../../src/components/FintechButton';
+import { CategoryFilterBar } from '../../src/components/CategoryFilterBar';
+import { FairPriceBadge } from '../../src/components/FairPriceBadge';
 import { formatPrice, formatEventDateTime } from '../../src/utils/format';
 import { styles } from '../../src/styles/marketplace.styles';
 
 type PriceBand = 'ALL' | 'UNDER_1M' | 'FROM_1M_TO_2M' | 'OVER_2M';
 
-const PRICE_BANDS: { key: PriceBand; label: string }[] = [
-  { key: 'ALL', label: 'All' },
-  { key: 'UNDER_1M', label: '< 1M ₫' },
-  { key: 'FROM_1M_TO_2M', label: '1M – 2M ₫' },
-  { key: 'OVER_2M', label: '> 2M ₫' },
+const PRICE_BANDS: { key: PriceBand; label: string; fullLabel: string }[] = [
+  { key: 'ALL', label: 'All Prices', fullLabel: 'All Prices' },
+  { key: 'UNDER_1M', label: '< 1M ₫', fullLabel: 'Under 1.000.000 ₫' },
+  { key: 'FROM_1M_TO_2M', label: '1M – 2M ₫', fullLabel: '1.000.000 ₫ – 2.000.000 ₫' },
+  { key: 'OVER_2M', label: '> 2M ₫', fullLabel: 'Over 2.000.000 ₫' },
 ];
 
 function matchesBand(price: number, band: PriceBand): boolean {
@@ -71,6 +75,8 @@ export default function MarketplaceScreen() {
   const [keyword, setKeyword] = useState('');
   const [debouncedKeyword, setDebouncedKeyword] = useState('');
   const [priceBand, setPriceBand] = useState<PriceBand>('ALL');
+  const [selectedCategory, setSelectedCategory] = useState<string>('ALL');
+  const [isPriceModalOpen, setIsPriceModalOpen] = useState(false);
   const [listings, setListings] = useState<ResaleListingDetailDto[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -163,9 +169,32 @@ export default function MarketplaceScreen() {
     } catch {}
   };
 
+  
+  const inferCategory = (eventName: string, organizer?: string): string => {
+    const text = `${eventName} ${organizer || ''}`.toLowerCase();
+    if (/derby|bóng đá|match|tournament|sport|clb|v-league|football|cúp/i.test(text)) return 'SPORTS';
+    if (/festival|edm|rave|ravolution|music festival/i.test(text)) return 'FESTIVAL';
+    if (/kịch|theater|thể nghiệm|sân khấu|play|opera|vở kịch/i.test(text)) return 'THEATER';
+    if (/workshop|hội thảo|seminar|talk|masterclass|chia sẻ/i.test(text)) return 'WORKSHOP';
+    return 'CONCERT';
+  };
+
+  const matchesCategory = (listing: ResaleListingDetailDto, category: string): boolean => {
+    if (category === 'ALL') return true;
+    const cat = (listing as any).category
+      ? String((listing as any).category).toUpperCase()
+      : inferCategory(listing.eventName, listing.organizerName);
+    return cat === category;
+  };
+
   const filteredListings = useMemo(
-    () => listings.filter((listing) => matchesBand(listing.resalePrice, priceBand)),
-    [listings, priceBand]
+    () =>
+      listings.filter(
+        (listing) =>
+          matchesBand(listing.resalePrice, priceBand) &&
+          matchesCategory(listing, selectedCategory)
+      ),
+    [listings, priceBand, selectedCategory]
   );
 
   const handleRefresh = async () => {
@@ -176,6 +205,7 @@ export default function MarketplaceScreen() {
 
   const resetFilters = () => {
     setPriceBand('ALL');
+    setSelectedCategory('ALL');
     setKeyword('');
   };
 
@@ -290,14 +320,11 @@ export default function MarketplaceScreen() {
               <ShieldCheck size={12} color={theme.colors.success} />
               <Text style={styles.verifiedBadgeText}>VERIFIED ESCROW</Text>
             </View>
-            {hasDiscount && (
-              <View style={styles.discountBadge}>
-                <Tag size={12} color={theme.colors.onPrimary} />
-                <Text style={styles.discountBadgeText}>
-                  -{Math.round(item.discountPercentage)}%
-                </Text>
-              </View>
-            )}
+            <FairPriceBadge
+              resalePrice={item.resalePrice}
+              originalPrice={item.originalPrice}
+              discountPercentage={item.discountPercentage}
+            />
           </View>
         </View>
 
@@ -403,28 +430,41 @@ export default function MarketplaceScreen() {
         )}
       </View>
 
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        style={styles.filtersScroll}
-        contentContainerStyle={styles.filtersRow}
-      >
-        {PRICE_BANDS.map((band) => {
-          const active = priceBand === band.key;
-          return (
-            <TouchableOpacity
-              key={band.key}
-              style={[styles.filterPill, active && styles.filterPillActive]}
-              onPress={() => setPriceBand(band.key)}
-              activeOpacity={0.8}
+            <CategoryFilterBar
+        selectedCategory={selectedCategory}
+        onSelectCategory={setSelectedCategory}
+        prependNode={
+          <TouchableOpacity
+            style={[
+              styles.priceTriggerPill,
+              priceBand !== 'ALL' && styles.priceTriggerPillActive,
+            ]}
+            onPress={() => setIsPriceModalOpen(true)}
+            activeOpacity={0.8}
+            accessibilityRole="button"
+            accessibilityLabel="Filter by price"
+          >
+            <SlidersHorizontal
+              size={13}
+              color={priceBand !== 'ALL' ? theme.colors.onPrimary : theme.colors.primary}
+            />
+            <Text
+              style={[
+                styles.priceTriggerText,
+                priceBand !== 'ALL' && styles.priceTriggerTextActive,
+              ]}
             >
-              <Text style={[styles.filterText, active && styles.filterTextActive]}>
-                {band.label}
-              </Text>
-            </TouchableOpacity>
-          );
-        })}
-      </ScrollView>
+              {priceBand === 'ALL'
+                ? 'Price'
+                : PRICE_BANDS.find((b) => b.key === priceBand)?.label || 'Price'}
+            </Text>
+            <ChevronDown
+              size={13}
+              color={priceBand !== 'ALL' ? theme.colors.onPrimary : theme.colors.textMuted}
+            />
+          </TouchableOpacity>
+        }
+      />
 
       {loading ? (
         <View style={styles.stateBox}>
@@ -476,6 +516,79 @@ export default function MarketplaceScreen() {
           }
         />
       )}
+
+      {/* Unified Price Filter Modal Sheet */}
+      <Modal
+        visible={isPriceModalOpen}
+        animationType="slide"
+        transparent
+        onRequestClose={() => setIsPriceModalOpen(false)}
+      >
+        <View style={styles.modalBackdrop}>
+          <View style={[styles.modalSheet, { paddingBottom: insets.bottom + theme.spacing.lg }]}>
+            <View style={styles.sheetHandle} />
+            <View style={styles.sheetHeader}>
+              <View>
+                <Text style={styles.sheetTitle}>Filter by Price</Text>
+                <Text style={styles.sheetSubtitle}>Show tickets within your budget</Text>
+              </View>
+              <TouchableOpacity
+                style={styles.closeButton}
+                onPress={() => setIsPriceModalOpen(false)}
+                accessibilityRole="button"
+                accessibilityLabel="Close price filter"
+              >
+                <X size={20} color={theme.colors.textSecondary} />
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.priceModalOptions}>
+              {PRICE_BANDS.map((band) => {
+                const isSelected = priceBand === band.key;
+                return (
+                  <TouchableOpacity
+                    key={band.key}
+                    style={[
+                      styles.priceOptionItem,
+                      isSelected && styles.priceOptionItemSelected,
+                    ]}
+                    onPress={() => {
+                      setPriceBand(band.key);
+                      setIsPriceModalOpen(false);
+                    }}
+                    activeOpacity={0.8}
+                  >
+                    <Text
+                      style={[
+                        styles.priceOptionText,
+                        isSelected && styles.priceOptionTextSelected,
+                      ]}
+                    >
+                      {band.fullLabel}
+                    </Text>
+                    {isSelected && (
+                      <Check size={18} color={theme.colors.primary} />
+                    )}
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+
+            {priceBand !== 'ALL' && (
+              <View style={{ marginTop: theme.spacing.md }}>
+                <FintechButton
+                  title="Clear Price Filter"
+                  variant="outline"
+                  onPress={() => {
+                    setPriceBand('ALL');
+                    setIsPriceModalOpen(false);
+                  }}
+                />
+              </View>
+            )}
+          </View>
+        </View>
+      </Modal>
 
       <Modal
         visible={!!selectedListing}

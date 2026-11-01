@@ -58,9 +58,8 @@ export const styles = StyleSheet.create({
   clearButton: {
     padding: theme.spacing.sm,
   },
-  filtersScroll: {
-    marginTop: theme.spacing.md,
-    maxHeight: 46,
+  priceFilterContainer: {
+    marginBottom: theme.spacing.sm,
   },
   filtersRow: {
     paddingHorizontal: theme.spacing.lg,
@@ -81,12 +80,12 @@ export const styles = StyleSheet.create({
   },
   filterText: {
     fontSize: theme.typography.sizes.xs,
-    fontFamily: fontFamilies.semibold,
+    fontFamily: fontFamilies.medium,
     color: theme.colors.textSecondary,
   },
   filterTextActive: {
     color: theme.colors.onPrimary,
-    fontWeight: theme.typography.weights.bold,
+    fontFamily: fontFamilies.bold,
   },
   listContent: {
     padding: theme.spacing.lg,
@@ -99,7 +98,7 @@ export const styles = StyleSheet.create({
   },
   resultCount: {
     fontSize: theme.typography.sizes.xs,
-    fontFamily: fontFamilies.semibold,
+    fontFamily: fontFamilies.medium,
     color: theme.colors.textMuted,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
@@ -141,7 +140,7 @@ export const styles = StyleSheet.create({
   },
   verifiedBadgeText: {
     fontSize: 10,
-    fontWeight: theme.typography.weights.bold,
+    fontFamily: fontFamilies.bold,
     color: theme.colors.success,
     letterSpacing: 0.5,
   },
@@ -156,7 +155,7 @@ export const styles = StyleSheet.create({
   },
   discountBadgeText: {
     fontSize: 10,
-    fontWeight: theme.typography.weights.bold,
+    fontFamily: fontFamilies.bold,
     color: theme.colors.onPrimary,
   },
   cardBody: {
@@ -166,13 +165,13 @@ export const styles = StyleSheet.create({
   organizer: {
     fontSize: theme.typography.sizes.xs,
     color: theme.colors.primary,
-    fontFamily: fontFamilies.semibold,
+    fontFamily: fontFamilies.medium,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
   eventName: {
     fontSize: theme.typography.sizes.lg,
-    fontWeight: theme.typography.weights.bold,
+    fontFamily: fontFamilies.bold,
     color: theme.colors.text,
     lineHeight: 24,
   },
@@ -205,7 +204,7 @@ export const styles = StyleSheet.create({
   },
   seatValue: {
     fontSize: theme.typography.sizes.xs,
-    fontWeight: theme.typography.weights.bold,
+    fontFamily: fontFamilies.bold,
     color: theme.colors.text,
     marginTop: 2,
   },
@@ -260,7 +259,7 @@ export const styles = StyleSheet.create({
   },
   cardCtaText: {
     fontSize: theme.typography.sizes.xs,
-    fontWeight: theme.typography.weights.bold,
+    fontFamily: fontFamilies.bold,
     color: theme.colors.primary,
   },
   stateBox: {
@@ -280,7 +279,7 @@ export const styles = StyleSheet.create({
   },
   stateTitle: {
     fontSize: theme.typography.sizes.lg,
-    fontWeight: theme.typography.weights.bold,
+    fontFamily: fontFamilies.bold,
     color: theme.colors.text,
     textAlign: 'center',
   },
@@ -325,7 +324,7 @@ export const styles = StyleSheet.create({
   },
   sheetTitle: {
     fontSize: theme.typography.sizes.lg,
-    fontWeight: theme.typography.weights.bold,
+    fontFamily: fontFamilies.bold,
     color: theme.colors.text,
   },
   closeButton: {
@@ -352,7 +351,7 @@ export const styles = StyleSheet.create({
   },
   sheetEventName: {
     fontSize: theme.typography.sizes.base,
-    fontWeight: theme.typography.weights.bold,
+    fontFamily: fontFamilies.bold,
     color: theme.colors.text,
   },
   sheetEventMeta: {
@@ -377,7 +376,7 @@ export const styles = StyleSheet.create({
   pricePanelValue: {
     fontSize: theme.typography.sizes.sm,
     color: theme.colors.text,
-    fontFamily: fontFamilies.semibold,
+    fontFamily: fontFamilies.medium,
   },
   pricePanelDivider: {
     height: 1,
@@ -386,7 +385,7 @@ export const styles = StyleSheet.create({
   },
   pricePanelTotal: {
     fontSize: theme.typography.sizes.sm,
-    fontWeight: theme.typography.weights.bold,
+    fontFamily: fontFamilies.bold,
     color: theme.colors.text,
   },
   pricePanelTotalValue: {
@@ -423,7 +422,7 @@ export const styles = StyleSheet.create({
   },
   countdownText: {
     fontSize: theme.typography.sizes.xs,
-    fontWeight: theme.typography.weights.bold,
+    fontFamily: fontFamilies.bold,
     color: theme.colors.warning,
   },
   countdownHint: {
@@ -468,14 +467,13 @@ export const styles = StyleSheet.create({
   },
   bankAmount: {
     fontSize: theme.typography.sizes.base,
-    fontWeight: theme.typography.weights.bold,
+    fontFamily: fontFamilies.bold,
     color: theme.colors.primary,
   },
   bankReference: {
     fontSize: theme.typography.sizes.xs,
     fontFamily: fontFamilies.mono,
     color: theme.colors.accent,
-    fontWeight: theme.typography.weights.bold,
   },
   bankRowValueGroup: {
     flexDirection: 'row',
@@ -496,7 +494,7 @@ export const styles = StyleSheet.create({
   copyBtnText: {
     fontSize: 11,
     color: theme.colors.primary,
-    fontWeight: theme.typography.weights.bold,
+    fontFamily: fontFamilies.bold,
   },
   oneTouchBtn: {
     flexDirection: 'row',
@@ -511,7 +509,7 @@ export const styles = StyleSheet.create({
   oneTouchBtnText: {
     color: '#ffffff',
     fontSize: theme.typography.sizes.sm,
-    fontWeight: theme.typography.weights.bold,
+    fontFamily: fontFamilies.bold,
   },
   autoPollingBox: {
     flexDirection: 'row',
@@ -545,7 +543,7 @@ export const styles = StyleSheet.create({
   },
   successTitle: {
     fontSize: theme.typography.sizes.xl,
-    fontWeight: theme.typography.weights.bold,
+    fontFamily: fontFamilies.bold,
     color: theme.colors.text,
     textAlign: 'center',
   },
@@ -573,5 +571,63 @@ export const styles = StyleSheet.create({
     fontSize: 11,
     color: theme.colors.textMuted,
     textAlign: 'center',
+  },
+  priceTriggerPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: theme.radii.full,
+    backgroundColor: theme.colors.surface,
+    borderWidth: 1,
+    borderColor: theme.colors.primary,
+  },
+  priceTriggerPillActive: {
+    backgroundColor: theme.colors.primary,
+    borderColor: theme.colors.primary,
+  },
+  priceTriggerText: {
+    fontSize: theme.typography.sizes.xs,
+    fontFamily: fontFamilies.medium,
+    color: theme.colors.primary,
+  },
+  priceTriggerTextActive: {
+    color: theme.colors.onPrimary,
+    fontFamily: fontFamilies.bold,
+  },
+  sheetSubtitle: {
+    fontSize: theme.typography.sizes.xs,
+    fontFamily: fontFamilies.medium,
+    color: theme.colors.textMuted,
+    marginTop: 2,
+  },
+  priceModalOptions: {
+    gap: theme.spacing.sm,
+    marginTop: theme.spacing.md,
+  },
+  priceOptionItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: theme.spacing.md,
+    paddingHorizontal: theme.spacing.lg,
+    backgroundColor: theme.colors.surface,
+    borderRadius: theme.radii.lg,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+  },
+  priceOptionItemSelected: {
+    borderColor: theme.colors.primary,
+    backgroundColor: 'rgba(255, 107, 74, 0.08)',
+  },
+  priceOptionText: {
+    fontSize: theme.typography.sizes.sm,
+    fontFamily: fontFamilies.medium,
+    color: theme.colors.textSecondary,
+  },
+  priceOptionTextSelected: {
+    color: theme.colors.text,
+    fontFamily: fontFamilies.bold,
   },
 });

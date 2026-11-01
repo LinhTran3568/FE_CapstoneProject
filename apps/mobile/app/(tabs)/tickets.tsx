@@ -217,7 +217,7 @@ export default function MobileTicketsScreen() {
       ) : (
         <FlatList
           data={tickets}
-          keyExtractor={(item) => item.ticketPassCode}
+          keyExtractor={(item, index) => `${item.ticketPassCode || 'ticket'}-${index}`}
           renderItem={renderTicket}
           contentContainerStyle={styles.scrollList}
           showsVerticalScrollIndicator={false}

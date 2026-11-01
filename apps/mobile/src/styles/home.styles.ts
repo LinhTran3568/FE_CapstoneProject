@@ -222,6 +222,10 @@ export const styles = StyleSheet.create({
     marginTop: 2,
     lineHeight: 17,
   },
+  categoryFilterSlot: {
+    marginHorizontal: -theme.spacing.lg,
+    marginBottom: theme.spacing.sm,
+  },
   sectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',

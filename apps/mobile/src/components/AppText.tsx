@@ -44,7 +44,7 @@ export const Text = React.forwardRef<RNText, TextProps>(({ style, ...props }, re
   return (
     <RNText
       ref={ref}
-      style={[rest, { fontFamily: familyForWeight(_weight) }]}
+      style={[rest, { fontFamily: flat.fontFamily || familyForWeight(_weight) }]}
       {...props}
     />
   );

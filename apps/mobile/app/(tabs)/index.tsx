@@ -25,6 +25,8 @@ import { GatewayStatusBadge } from '../../src/components/GatewayStatusBadge';
 import { EventPoster } from '../../src/components/EventPoster';
 import { formatPrice, initialsOf, formatEventDateTime } from '../../src/utils/format';
 import { FintechButton } from '../../src/components/FintechButton';
+import { CategoryFilterBar } from '../../src/components/CategoryFilterBar';
+import { FairPriceBadge } from '../../src/components/FairPriceBadge';
 import { styles } from '../../src/styles/home.styles';
 
 export default function MobileHomeScreen() {
@@ -32,6 +34,7 @@ export default function MobileHomeScreen() {
   const user = useAuthStore((state) => state.user);
 
   const [trendingEvents, setTrendingEvents] = useState<TrendingEventDto[]>([]);
+  const [selectedCategory, setSelectedCategory] = useState('ALL');
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -60,8 +63,13 @@ export default function MobileHomeScreen() {
     setRefreshing(false);
   };
 
-  const heroEvent = trendingEvents[0];
-  const listEvents = trendingEvents.slice(1);
+  const filteredEvents = trendingEvents.filter((ev) => {
+    if (selectedCategory === 'ALL') return true;
+    const cat = (ev.category || '').toUpperCase();
+    return cat === selectedCategory;
+  });
+  const heroEvent = filteredEvents.length > 0 ? filteredEvents[0] : trendingEvents[0];
+  const listEvents = filteredEvents.length > 0 ? filteredEvents.slice(1) : [];
 
   return (
     <ScrollView
@@ -212,6 +220,13 @@ export default function MobileHomeScreen() {
           </View>
 
 
+          {/* Category Horizontal Filter Bar */}
+          <CategoryFilterBar
+            selectedCategory={selectedCategory}
+            onSelectCategory={setSelectedCategory}
+            style={styles.categoryFilterSlot}
+          />
+
           {/* Section Header */}
           {listEvents.length > 0 && (
             <>
@@ -243,7 +258,13 @@ export default function MobileHomeScreen() {
                           {event.category || event.artist || 'LIVE'}
                         </Text>
                         {price > 0 && (
-                          <Text style={styles.eventPriceFrom}>From {formatPrice(price)}</Text>
+                          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                            <FairPriceBadge
+                              resalePrice={event.minResalePrice || price}
+                              originalPrice={event.originalPriceFrom || price}
+                            />
+                            <Text style={styles.eventPriceFrom}>From {formatPrice(price)}</Text>
+                          </View>
                         )}
                       </View>
                       <Text style={styles.eventTitle}>{event.name}</Text>
