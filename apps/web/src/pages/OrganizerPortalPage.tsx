@@ -2,13 +2,15 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Copy, RefreshCw, Plus, RotateCcw, Check, Ticket, KeyRound, Activity, Sliders, AlertCircle, Minus } from 'lucide-react';
 import { useUIStore } from '../stores/uiStore';
 import {
-  getOrganizerApiBase,
+  getMockOrganizerApiBase,
   organizerStoreApi,
   type AntiBotAnalyticsSummary,
   type AntiBotPolicyConfig,
 } from '@ticketshield/api-client';
 
-const ORGANIZER_API = getOrganizerApiBase();
+// Inventory and policy controls belong to MockOrganizer, not the AntiBot
+// gateway. The gateway's default port (:5006) does not expose these routes.
+const ORGANIZER_API = getMockOrganizerApiBase();
 
 interface MockTicketDto {
   id: string;
