@@ -251,7 +251,6 @@ export default function MarketplaceScreen() {
       <View style={styles.header}>
         <View>
           <Text style={styles.title}>Marketplace</Text>
-          <Text style={styles.subtitle}>Verified fan-to-fan resale tickets backed by escrow</Text>
         </View>
         <TouchableOpacity
           style={styles.refreshButton}

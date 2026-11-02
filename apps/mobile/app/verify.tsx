@@ -315,9 +315,6 @@ export default function MobileVerifyTicketScreen() {
             </View>
             <Text style={styles.headerTitle}>Organizer Escrow Verification</Text>
           </View>
-          <Text style={styles.headerSubtitle}>
-            TicketShield validates original ownership with event organizers and locks the barcode before listing to prevent fraud.
-          </Text>
         </View>
 
         <View style={styles.stepperPill}>
@@ -529,7 +526,6 @@ export default function MobileVerifyTicketScreen() {
                   {resendCooldown > 0 ? `Resend OTP in ${resendCooldown}s` : 'Resend OTP'}
                 </Text>
               </TouchableOpacity>
-              <Text style={styles.otpExpiryHint}>Code valid for several minutes</Text>
             </View>
 
             <FintechButton
@@ -559,9 +555,6 @@ export default function MobileVerifyTicketScreen() {
               </View>
               <View style={styles.resultTitleGroup}>
                 <Text style={styles.resultTitle}>Ticket Valid & Escrow Locked</Text>
-                <Text style={styles.resultSubtitle}>
-                  Event organizer has confirmed ownership of this ticket.
-                </Text>
               </View>
             </View>
 
@@ -590,13 +583,6 @@ export default function MobileVerifyTicketScreen() {
                   Barcode Locked & Verified
                 </Text>
               </View>
-            </View>
-
-            <View style={styles.helperRow}>
-              <ShieldCheck size={15} color={theme.colors.success} />
-              <Text style={styles.helperText}>
-                Your original barcode is temporarily locked to prevent duplicate entry. You can now set your resale listing price.
-              </Text>
             </View>
 
             <FintechButton
@@ -639,15 +625,6 @@ export default function MobileVerifyTicketScreen() {
               keyboardType="number-pad"
               maxLength={12}
             />
-
-            {priceCeiling > 0 && (
-              <View style={styles.helperRow}>
-                <ShieldCheck size={15} color={theme.colors.warning} />
-                <Text style={styles.helperText}>
-                  Organizer price ceiling: {formatPrice(priceCeiling)}. Anti-scalping policy strictly enforced.
-                </Text>
-              </View>
-            )}
 
             {enteredPrice > 0 && (
               <View style={styles.breakdownBox}>

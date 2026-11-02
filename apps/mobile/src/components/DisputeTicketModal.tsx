@@ -214,9 +214,6 @@ export function DisputeTicketModal({
                     ? 'Report Ticket Issue'
                     : 'Escrow Dispute Progress'}
                 </Text>
-                <Text style={styles.headerSubtitle}>
-                  Buyer protection backed by TicketShield Escrow
-                </Text>
               </View>
             </View>
             <TouchableOpacity
@@ -355,11 +352,6 @@ export function DisputeTicketModal({
                   <Text style={styles.codeLabel}>Dispute ID:</Text>
                   <Text style={styles.codeValue}>{createdDispute.code}</Text>
                 </View>
-                <Text style={styles.successDesc}>
-                  Your payment is now safely frozen in TicketShield Escrow.
-                  Our resolution team will audit organizer gate turnstile logs
-                  within 24 hours to secure your refund.
-                </Text>
                 <FintechButton
                   title="Got It"
                   onPress={onClose}

@@ -353,38 +353,6 @@ export default function MobileOrdersScreen() {
         </View>
       </View>
 
-      <View style={[styles.escrowNotice, item.status === 'DISPUTED' && styles.escrowNoticeDanger]}>
-        {item.status === 'DISPUTED' ? (
-          <ShieldAlert size={14} color={theme.colors.danger} />
-        ) : (
-          <ShieldCheck size={14} color={theme.colors.success} />
-        )}
-        <Text
-          style={[
-            styles.escrowNoticeText,
-            item.status === 'DISPUTED' && styles.escrowNoticeTextDanger,
-          ]}
-        >
-          {item.type === 'SELL' ? (
-            item.status === 'COMPLETED'
-              ? 'Ticket sold. Awaiting check-in.'
-              : item.status === 'ESCROW_HOLDING'
-                ? 'Buyer is checking out.'
-                : item.status === 'LISTING_ACTIVE'
-                  ? 'Listing is active.'
-                  : 'Listing cancelled.'
-          ) : (
-            item.status === 'DISPUTED'
-              ? 'Dispute opened. Funds are frozen.'
-              : item.status === 'ESCROW_HOLDING'
-                ? 'Payment is held in escrow.'
-                : item.status === 'COMPLETED'
-                  ? 'Payment settled.'
-                  : 'Order cancelled.'
-          )}
-        </Text>
-      </View>
-
       <View style={styles.orderActionsRow}>
         {item.type === 'SELL' ? (
           <TouchableOpacity
@@ -462,9 +430,6 @@ export default function MobileOrdersScreen() {
             <Receipt size={30} color={theme.colors.textMuted} />
           </View>
           <Text style={styles.emptyTitle}>No Orders Yet</Text>
-          <Text style={styles.emptyDesc}>
-            When you purchase resale tickets through Escrow, your payment tracking and receipts will appear here.
-          </Text>
           <FintechButton
             title="Browse Marketplace"
             onPress={() => router.push('/(tabs)/marketplace')}

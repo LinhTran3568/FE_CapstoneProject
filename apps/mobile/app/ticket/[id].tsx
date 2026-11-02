@@ -16,7 +16,6 @@ import {
   MapPin,
   Share2,
   AlertCircle,
-  Info,
   QrCode,
   ShieldAlert,
   Clock,
@@ -242,22 +241,6 @@ export default function TicketDetailScreen() {
                 {STATUS_LABELS[ticket.status] || ticket.status}
               </Text>
             </View>
-          </View>
-
-          <View style={styles.rulesCard}>
-            <View style={styles.rulesHeader}>
-              <Info size={15} color={theme.colors.textSecondary} />
-              <Text style={styles.rulesTitle}>Admission Guidelines</Text>
-            </View>
-            <Text style={styles.rulesItem}>
-              • Present the QR issued by the organizer at the entrance.
-            </Text>
-            <Text style={styles.rulesItem}>
-              • Do not share screenshots: expired codes will be rejected by gate scanners.
-            </Text>
-            <Text style={styles.rulesItem}>
-              • Escrow settlement is finalized once you are admitted to the event.
-            </Text>
           </View>
 
           <TouchableOpacity style={styles.shareBtn} onPress={handleShare} activeOpacity={0.85}>

@@ -490,9 +490,6 @@ export const BuyTicketBottomSheet: React.FC<BuyTicketBottomSheetProps> = ({
                   <CheckCircle2 size={38} color={theme.colors.success} />
                 </View>
                 <Text style={styles.successTitle}>Ticket Added to Your Wallet</Text>
-                <Text style={styles.successText}>
-                  Escrow is securely holding the funds. Ticket ownership has been transferred to {recipientName}.
-                </Text>
                 <FintechButton
                   title="View My Tickets"
                   onPress={handleNavigateToWallet}
@@ -952,9 +949,6 @@ export const BuyTicketBottomSheet: React.FC<BuyTicketBottomSheetProps> = ({
                           variant="success"
                           disabled={isCheckingTransfer}
                         />
-                        <Text style={styles.devHint}>
-                          Developer button for testing escrow settlement flow.
-                        </Text>
                       </View>
                     )}
                   </>

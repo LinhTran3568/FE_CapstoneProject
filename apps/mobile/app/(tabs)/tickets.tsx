@@ -311,9 +311,6 @@ export default function MobileTicketsScreen() {
             <Ticket size={30} color={theme.colors.textMuted} />
           </View>
           <Text style={styles.emptyTitle}>Your Ticket Wallet is Empty</Text>
-          <Text style={styles.emptyDesc}>
-            You do not own any tickets yet. Explore the Marketplace to purchase verified tickets backed by guaranteed escrow protection.
-          </Text>
           <FintechButton
             title="Explore Marketplace"
             onPress={() => router.push('/(tabs)/marketplace')}
