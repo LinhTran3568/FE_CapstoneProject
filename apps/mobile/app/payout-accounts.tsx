@@ -20,7 +20,7 @@ import {
   X,
   Plus,
 } from 'lucide-react-native';
-import { bankAccountsApi, VIETNAM_BANKS } from '@ticketshield/api-client';
+import { bankAccountsApi, BankInfo } from '@ticketshield/api-client';
 import { UserBankAccountDto } from '@ticketshield/types';
 import { FintechButton } from '../src/components/FintechButton';
 import { FintechInput } from '../src/components/FintechInput';
@@ -35,7 +35,9 @@ export default function PayoutAccountsScreen() {
   const [isLoadingList, setIsLoadingList] = useState(true);
 
   // Form liên kết tài khoản mới
-  const [bankCode, setBankCode] = useState('MB');
+  const [banks, setBanks] = useState<BankInfo[]>([]);
+  const [isLoadingBanks, setIsLoadingBanks] = useState(true);
+  const [bankCode, setBankCode] = useState('');
   const [accountNumber, setAccountNumber] = useState('');
   const [accountHolderName, setAccountHolderName] = useState('');
   const [isDefault, setIsDefault] = useState(true);
@@ -49,7 +51,7 @@ export default function PayoutAccountsScreen() {
   // Modal chọn ngân hàng
   const [isBankModalVisible, setIsBankModalVisible] = useState(false);
 
-  const selectedBank = VIETNAM_BANKS.find((b) => b.code === bankCode) || VIETNAM_BANKS[0];
+  const selectedBank = banks.find((b) => b.code === bankCode) ?? null;
 
   const fetchBankAccounts = useCallback(async () => {
     try {
@@ -67,6 +69,26 @@ export default function PayoutAccountsScreen() {
     fetchBankAccounts();
   }, [fetchBankAccounts]);
 
+  useEffect(() => {
+    let active = true;
+    bankAccountsApi
+      .getBanks()
+      .then((items) => {
+        if (!active) return;
+        setBanks(items);
+        setBankCode((current) => current || items[0]?.code || '');
+      })
+      .catch(() => {
+        if (active) setBanks([]);
+      })
+      .finally(() => {
+        if (active) setIsLoadingBanks(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
+
   // Tự động tra cứu tên chủ tài khoản khi nhập đủ số tài khoản
   useEffect(() => {
     const cleanAcc = accountNumber.trim().replace(/\D/g, '');
@@ -80,7 +102,7 @@ export default function PayoutAccountsScreen() {
       setIsSearchingName(true);
       setLookupFailed(false);
       try {
-        const res = await bankAccountsApi.lookupAccountHolderName(bankCode, cleanAcc);
+        const res = await bankAccountsApi.lookupAccountHolderName(selectedBank?.bin || '', cleanAcc);
         if (res.success && res.accountName) {
           setAccountHolderName(res.accountName);
           setIsVerifiedName(true);
@@ -98,7 +120,7 @@ export default function PayoutAccountsScreen() {
     }, 600);
 
     return () => clearTimeout(timer);
-  }, [accountNumber, bankCode]);
+  }, [accountNumber, selectedBank?.bin]);
 
   const handleLinkAccount = async () => {
     const cleanAcc = accountNumber.trim().replace(/\D/g, '');
@@ -109,6 +131,10 @@ export default function PayoutAccountsScreen() {
 
     if (!accountHolderName.trim()) {
       Alert.alert('Validation Error', 'Account holder name is required.');
+      return;
+    }
+    if (!selectedBank) {
+      Alert.alert('Validation Error', 'Please select a bank from the current bank directory.');
       return;
     }
 
@@ -165,7 +191,7 @@ export default function PayoutAccountsScreen() {
             </View>
           ) : (
             bankAccounts.map((acc, index) => {
-              const bank = VIETNAM_BANKS.find((b) => b.code === acc.bankCode);
+              const bank = banks.find((b) => b.code === acc.bankCode);
               return (
                 <View key={acc.id || index} style={styles.accountCard}>
                   <View style={styles.accountCardHeader}>
@@ -218,7 +244,9 @@ export default function PayoutAccountsScreen() {
               onPress={() => setIsBankModalVisible(true)}
               activeOpacity={0.7}
             >
-              <Text style={styles.bankSelectorText}>{selectedBank.name}</Text>
+              <Text style={styles.bankSelectorText}>
+                {isLoadingBanks ? 'Loading bank directory...' : selectedBank?.name || 'Select a bank'}
+              </Text>
               <ChevronDown size={18} color={theme.colors.textSecondary} />
             </TouchableOpacity>
           </View>
@@ -306,7 +334,7 @@ export default function PayoutAccountsScreen() {
               </TouchableOpacity>
             </View>
             <FlatList
-              data={VIETNAM_BANKS}
+              data={banks}
               keyExtractor={(item) => item.code}
               renderItem={({ item }) => {
                 const isActive = item.code === bankCode;

@@ -8,6 +8,9 @@ export interface BankInfo {
   shortName: string;
 }
 
+// Compatibility export for the existing web account forms. Mobile reads the
+// server directory through getBanks(); the web forms will be migrated to it
+// without breaking the running web bundle in the meantime.
 export const VIETNAM_BANKS: BankInfo[] = [
   { code: 'MB', name: 'MBBank - Ngân hàng Quân Đội', bin: '970422', shortName: 'MBBank' },
   { code: 'VCB', name: 'Vietcombank - Ngân hàng Ngoại Thương', bin: '970436', shortName: 'Vietcombank' },
@@ -23,6 +26,10 @@ export const VIETNAM_BANKS: BankInfo[] = [
 ];
 
 export const bankAccountsApi = {
+  /** Server-owned directory so FE never duplicates bank codes and NAPAS BINs. */
+  getBanks: async (): Promise<BankInfo[]> => {
+    return httpClient<BankInfo[]>('/user-bank-accounts/banks', { method: 'GET' });
+  },
   /**
    * Get list of seller's linked beneficiary bank accounts.
    * GET /api/v1/user-bank-accounts (JWT required)
@@ -52,20 +59,17 @@ export const bankAccountsApi = {
    * Returns isVerified:true ONLY when the bank API confirms the name.
    */
   lookupAccountHolderName: async (
-    bankCode: string,
+    bankBin: string,
     accountNumber: string,
   ): Promise<{ success: boolean; accountName: string; isVerified: boolean }> => {
-    const bank = VIETNAM_BANKS.find((b) => b.code === bankCode);
-    const bin = bank?.bin;
-
     const cleanAcc = accountNumber.replace(/\D/g, '');
-    if (!cleanAcc || cleanAcc.length < 6 || !bin) {
+    if (!cleanAcc || cleanAcc.length < 6 || !bankBin) {
       return { success: false, accountName: '', isVerified: false };
     }
 
     try {
       const result = await httpClient<{ success: boolean; accountName: string; isVerified: boolean }>(
-        `/user-bank-accounts/lookup-name?bin=${encodeURIComponent(bin)}&accountNumber=${encodeURIComponent(cleanAcc)}`,
+        `/user-bank-accounts/lookup-name?bin=${encodeURIComponent(bankBin)}&accountNumber=${encodeURIComponent(cleanAcc)}`,
         { method: 'GET' }
       );
       return result;

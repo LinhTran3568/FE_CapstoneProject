@@ -582,6 +582,11 @@ export const styles = StyleSheet.create({
     color: theme.colors.textMuted,
     textAlign: 'center',
   },
+  priceFilterRow: {
+    flexDirection: 'row',
+    paddingHorizontal: theme.spacing.lg,
+    paddingBottom: theme.spacing.sm,
+  },
   priceTriggerPill: {
     flexDirection: 'row',
     alignItems: 'center',

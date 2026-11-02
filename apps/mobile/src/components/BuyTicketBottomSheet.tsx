@@ -23,7 +23,6 @@ import {
   CreditCard,
   ExternalLink,
   Mail,
-  Phone,
   Plus,
   ShieldCheck,
   User,
@@ -56,8 +55,6 @@ export interface BuyTicketBottomSheetProps {
   onSuccess?: (orderData?: any) => void;
 }
 
-const DEFAULT_HOLD_DURATION_SECONDS = 600; // 10-minute escrow hold
-
 // Mirrors .NET Math.Round(decimal, 0): midpoint values round to the nearest
 // even integer. The hold response remains the authoritative payment amount.
 const roundToEven = (value: number): number => {
@@ -80,14 +77,12 @@ export const BuyTicketBottomSheet: React.FC<BuyTicketBottomSheetProps> = ({
   // Recipient form state
   const [recipientName, setRecipientName] = useState(user?.fullName || '');
   const [recipientEmail, setRecipientEmail] = useState(user?.email || '');
-  const [recipientPhone, setRecipientPhone] = useState(user?.phoneNumber || '');
   const [recipientIdCard, setRecipientIdCard] = useState('');
   const [showIdCard, setShowIdCard] = useState(false);
   const [checkoutStep, setCheckoutStep] = useState<'REVIEW' | 'RECIPIENT'>('REVIEW');
   const [formErrors, setFormErrors] = useState<{
     name?: string;
     email?: string;
-    phone?: string;
   }>({});
 
   // Hold transaction state
@@ -99,8 +94,8 @@ export const BuyTicketBottomSheet: React.FC<BuyTicketBottomSheetProps> = ({
   const [feeConfigError, setFeeConfigError] = useState<string | null>(null);
 
   // 5-minute countdown timer state
-  const [secondsLeft, setSecondsLeft] = useState<number>(DEFAULT_HOLD_DURATION_SECONDS);
-  const [initialDuration, setInitialDuration] = useState<number>(DEFAULT_HOLD_DURATION_SECONDS);
+  const [secondsLeft, setSecondsLeft] = useState<number>(0);
+  const [initialDuration, setInitialDuration] = useState<number>(0);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // Verification & status state (FE-MOB-9.3.4 ready)
@@ -113,7 +108,6 @@ export const BuyTicketBottomSheet: React.FC<BuyTicketBottomSheetProps> = ({
     if (user) {
       if (!recipientName && user.fullName) setRecipientName(user.fullName);
       if (!recipientEmail && user.email) setRecipientEmail(user.email);
-      if (!recipientPhone && user.phoneNumber) setRecipientPhone(user.phoneNumber);
     }
   }, [user]);
 
@@ -129,7 +123,6 @@ export const BuyTicketBottomSheet: React.FC<BuyTicketBottomSheetProps> = ({
       if (user) {
         setRecipientName(user.fullName || '');
         setRecipientEmail(user.email || '');
-        setRecipientPhone(user.phoneNumber || '');
       }
     } else {
       if (timerRef.current) {
@@ -178,7 +171,7 @@ export const BuyTicketBottomSheet: React.FC<BuyTicketBottomSheetProps> = ({
       return;
     }
 
-    const duration = holdData.holdDurationSeconds || DEFAULT_HOLD_DURATION_SECONDS;
+    const duration = Math.max(0, holdData.holdDurationSeconds);
     setInitialDuration(duration);
 
     const unlockTime = holdData.unlockAt
@@ -217,10 +210,12 @@ export const BuyTicketBottomSheet: React.FC<BuyTicketBottomSheetProps> = ({
         const status = await resaleListingsApi.getPaymentStatus(holdData.listingId);
         const escrowStatus = status?.escrowStatus?.toLowerCase();
         const listingStatus = status?.listingStatus?.toLowerCase();
+        // `Transacting` only means that BE has reserved the listing. It is not
+        // a bank-confirmed payment and must never unlock a ticket in the app.
         const hasFunds =
           escrowStatus === 'funded' ||
+          escrowStatus === 'releasing' ||
           escrowStatus === 'released' ||
-          listingStatus === 'transacting' ||
           listingStatus === 'sold';
 
         if (hasFunds && isPolling) {
@@ -235,7 +230,6 @@ export const BuyTicketBottomSheet: React.FC<BuyTicketBottomSheetProps> = ({
             totalBuyerPaid: holdData.totalBuyerPaid,
             recipientName,
             recipientEmail,
-            recipientPhone,
           });
         }
       } catch {}
@@ -245,7 +239,7 @@ export const BuyTicketBottomSheet: React.FC<BuyTicketBottomSheetProps> = ({
       isPolling = false;
       clearInterval(pollInterval);
     };
-  }, [holdData, purchaseSuccess, secondsLeft, listing, recipientName, recipientEmail, recipientPhone, onSuccess]);
+  }, [holdData, purchaseSuccess, secondsLeft, listing, recipientName, recipientEmail, onSuccess]);
 
   // Mirrors DynamicResaleFeeCalculator on the backend for the review screen.
   const feePreview = useMemo(() => {
@@ -280,14 +274,6 @@ export const BuyTicketBottomSheet: React.FC<BuyTicketBottomSheetProps> = ({
       errors.email = 'Please enter recipient email';
     } else if (!emailRegex.test(recipientEmail.trim())) {
       errors.email = 'Invalid email address (e.g. name@domain.com)';
-    }
-
-    const digits = recipientPhone.replace(/[\s.-]/g, '');
-    const phoneRegex = /(84|0[3|5|7|8|9])+([0-9]{8})\b/;
-    if (!recipientPhone.trim()) {
-      errors.phone = 'Please enter recipient phone number';
-    } else if (!phoneRegex.test(digits)) {
-      errors.phone = 'Invalid phone number (must be 10 digits)';
     }
 
     setFormErrors(errors);
@@ -349,8 +335,8 @@ export const BuyTicketBottomSheet: React.FC<BuyTicketBottomSheetProps> = ({
 
       const hasFunds =
         escrowStatus === 'funded' ||
+        escrowStatus === 'releasing' ||
         escrowStatus === 'released' ||
-        listingStatus === 'transacting' ||
         listingStatus === 'sold';
 
       if (!hasFunds) {
@@ -369,7 +355,6 @@ export const BuyTicketBottomSheet: React.FC<BuyTicketBottomSheetProps> = ({
         totalBuyerPaid: holdData.totalBuyerPaid,
         recipientName,
         recipientEmail,
-        recipientPhone,
       });
     } catch (err) {
       const message =
@@ -387,14 +372,7 @@ export const BuyTicketBottomSheet: React.FC<BuyTicketBottomSheetProps> = ({
     if (!listing || !holdData) return;
     setIsCheckingTransfer(true);
     try {
-      try {
-        await resaleListingsApi.simulatePaymentSuccess(listing.listingId);
-      } catch {
-        await resaleListingsApi.simulatePaymentWebhook(
-          holdData.paymentReference,
-          holdData.totalBuyerPaid
-        );
-      }
+      await resaleListingsApi.simulatePaymentSuccess(listing.listingId);
       setPurchaseSuccess(true);
       onSuccess?.({
         orderId: holdData.paymentReference,
@@ -404,7 +382,6 @@ export const BuyTicketBottomSheet: React.FC<BuyTicketBottomSheetProps> = ({
         totalBuyerPaid: holdData.totalBuyerPaid,
         recipientName,
         recipientEmail,
-        recipientPhone,
       });
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Payment simulation failed.';
@@ -706,18 +683,6 @@ export const BuyTicketBottomSheet: React.FC<BuyTicketBottomSheetProps> = ({
                           icon={<Mail size={18} color={theme.colors.primary} />}
                         />
 
-                        <FintechInput
-                          label="Phone Number *"
-                          placeholder="Enter 10-digit phone number"
-                          value={recipientPhone}
-                          onChangeText={(text) => {
-                            setRecipientPhone(text);
-                            if (formErrors.phone) setFormErrors((prev) => ({ ...prev, phone: undefined }));
-                          }}
-                          error={formErrors.phone}
-                          keyboardType="phone-pad"
-                          icon={<Phone size={18} color={theme.colors.primary} />}
-                        />
 
                         {showIdCard ? (
                           <FintechInput

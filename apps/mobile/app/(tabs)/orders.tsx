@@ -424,7 +424,7 @@ export default function MobileOrdersScreen() {
             activeOpacity={0.8}
           >
             <Text style={styles.viewPassBtnText}>
-              {item.status === 'ESCROW_HOLDING' ? 'View in Wallet (Locked)' : 'View in Wallet'}
+              View in Wallet
             </Text>
             {item.status === 'ESCROW_HOLDING' ? (
               <Lock size={13} color={theme.colors.primary} />
