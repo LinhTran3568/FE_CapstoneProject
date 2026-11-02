@@ -18,7 +18,6 @@ import {
   ShieldCheck,
   Calendar,
   MapPin,
-  RefreshCw,
   X,
   Share2,
   AlertTriangle,
@@ -30,7 +29,7 @@ import {
 import { theme, fontFamilies } from '../../src/theme';
 import type { PurchasedTicketDto } from '@ticketshield/types';
 import { resaleListingsApi } from '@ticketshield/api-client';
-import { generateRotatingToken } from '../../src/utils/totp';
+import { expandPurchasedTickets, getIssuedQrImageUrl } from '../../src/utils/purchasedTickets';
 import { FintechButton } from '../../src/components/FintechButton';
 import { EventPoster } from '../../src/components/EventPoster';
 import { formatEventDate } from '../../src/utils/format';
@@ -77,8 +76,6 @@ export default function MobileTicketsScreen() {
   const [refreshing, setRefreshing] = useState(false);
 
   const [selectedTicket, setSelectedTicket] = useState<PurchasedTicketDto | null>(null);
-  const [rotatingToken, setRotatingToken] = useState('');
-  const [secondsRemaining, setSecondsRemaining] = useState(30);
   const [qrLoadFailed, setQrLoadFailed] = useState(false);
   const [selectedStatus, setSelectedStatus] = useState<TicketStatusFilter>('ALL');
   const [searchQuery, setSearchQuery] = useState('');
@@ -126,7 +123,7 @@ export default function MobileTicketsScreen() {
     setError(null);
     try {
       const data = await resaleListingsApi.getMyPurchasedTickets();
-      setTickets(data);
+      setTickets(expandPurchasedTickets(data));
     } catch (err) {
       const message =
         err instanceof Error ? err.message : 'Unable to sync tickets. Please try again.';
@@ -153,18 +150,7 @@ export default function MobileTicketsScreen() {
   };
 
   useEffect(() => {
-    if (!selectedTicket) return;
-    setQrLoadFailed(false);
-
-    const updateToken = () => {
-      const res = generateRotatingToken(selectedTicket.ticketPassCode);
-      setRotatingToken(res.token);
-      setSecondsRemaining(res.secondsRemaining);
-    };
-
-    updateToken();
-    const interval = setInterval(updateToken, 1000);
-    return () => clearInterval(interval);
+    if (selectedTicket) setQrLoadFailed(false);
   }, [selectedTicket]);
 
   const handleShareTicket = async () => {
@@ -486,9 +472,7 @@ export default function MobileTicketsScreen() {
                   ) : (
                     <Image
                       source={{
-                        uri: `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(
-                          rotatingToken || selectedTicket.ticketPassCode
-                        )}`,
+                        uri: getIssuedQrImageUrl(selectedTicket),
                       }}
                       style={styles.qrImage}
                       resizeMode="contain"
@@ -496,21 +480,6 @@ export default function MobileTicketsScreen() {
                     />
                   )}
 
-                  <View style={styles.tokenTimerRow}>
-                    <RefreshCw size={14} color="#0C0A09" />
-                    <Text style={styles.tokenTimerText}>
-                      Refreshes in{' '}
-                      <Text style={styles.timerHighlight}>{secondsRemaining}s</Text>
-                    </Text>
-                  </View>
-                  <View style={styles.progressTrack}>
-                    <View
-                      style={[
-                        styles.progressFill,
-                        { width: `${Math.max(0, Math.min(100, (secondsRemaining / 30) * 100))}%` },
-                      ]}
-                    />
-                  </View>
                 </View>
 
                 <View style={styles.infoGrid}>

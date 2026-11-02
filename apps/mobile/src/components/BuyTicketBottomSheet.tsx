@@ -58,6 +58,15 @@ export interface BuyTicketBottomSheetProps {
 
 const DEFAULT_HOLD_DURATION_SECONDS = 600; // 10-minute escrow hold
 
+// Mirrors .NET Math.Round(decimal, 0): midpoint values round to the nearest
+// even integer. The hold response remains the authoritative payment amount.
+const roundToEven = (value: number): number => {
+  const lower = Math.floor(value);
+  const fraction = value - lower;
+  if (Math.abs(fraction - 0.5) < 1e-9) return lower % 2 === 0 ? lower : lower + 1;
+  return Math.round(value);
+};
+
 export const BuyTicketBottomSheet: React.FC<BuyTicketBottomSheetProps> = ({
   visible,
   listing,
@@ -241,14 +250,14 @@ export const BuyTicketBottomSheet: React.FC<BuyTicketBottomSheetProps> = ({
   // Mirrors DynamicResaleFeeCalculator on the backend for the review screen.
   const feePreview = useMemo(() => {
     if (!listing || !feeConfig) return null;
-    const percentageFee = Math.round(listing.resalePrice * feeConfig.buyerFeePercentage);
-    const isMinimumApplied =
-      feeConfig.minimumBuyerFee > 0 && percentageFee < feeConfig.minimumBuyerFee;
-    const buyerFee = isMinimumApplied ? feeConfig.minimumBuyerFee : percentageFee;
+    const percentageFee = listing.resalePrice * feeConfig.buyerFeePercentage;
+    const rawBuyerFee = Math.max(percentageFee, feeConfig.minimumBuyerFee);
+    const isMinimumApplied = feeConfig.minimumBuyerFee > 0 && percentageFee < feeConfig.minimumBuyerFee;
+    const buyerFee = roundToEven(rawBuyerFee);
 
     return {
       buyerFee,
-      totalBuyerPaid: Math.round(listing.resalePrice + buyerFee),
+      totalBuyerPaid: roundToEven(listing.resalePrice + buyerFee),
       isMinimumApplied,
       percentageLabel: `${Number((feeConfig.buyerFeePercentage * 100).toFixed(2))}%`,
     };
