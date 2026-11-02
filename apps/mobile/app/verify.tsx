@@ -1,11 +1,11 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import {
   View,
   ScrollView,
   TouchableOpacity,
   ActivityIndicator,
 } from 'react-native';
-import { Stack, useRouter } from 'expo-router';
+import { Stack, useFocusEffect, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   AlertTriangle,
@@ -24,7 +24,7 @@ import {
   Copy,
 } from 'lucide-react-native';
 import * as Clipboard from 'expo-clipboard';
-import { resaleApi, resaleListingsApi } from '@ticketshield/api-client';
+import { bankAccountsApi, resaleApi, resaleListingsApi } from '@ticketshield/api-client';
 import type { PurchasedTicketDto } from '@ticketshield/types';
 import { theme } from '../src/theme';
 import { Text } from '../src/components/AppText';
@@ -68,6 +68,28 @@ export default function MobileVerifyTicketScreen() {
   const [isPrivateListing, setIsPrivateListing] = useState(false);
   const [publishedPrivateToken, setPublishedPrivateToken] = useState<string | null>(null);
   const [isCopied, setIsCopied] = useState(false);
+
+  const requirePayoutAccount = useCallback(async (): Promise<boolean> => {
+    try {
+      const accounts = await bankAccountsApi.getMyBankAccounts();
+      if (accounts.length > 0) return true;
+
+      setErrorMessage('Link a payout account before selling.');
+      router.push('/payout-accounts');
+      return false;
+    } catch {
+      setErrorMessage('Unable to check payout account. Please try again.');
+      return false;
+    }
+  }, [router]);
+
+  // A seller must configure where the escrow payout goes before starting the
+  // verification flow. The backend repeats this check as the final authority.
+  useFocusEffect(
+    useCallback(() => {
+      void requirePayoutAccount();
+    }, [requirePayoutAccount])
+  );
 
   const [myTickets, setMyTickets] = useState<PurchasedTicketDto[]>([]);
   const [isLoadingTickets, setIsLoadingTickets] = useState(false);
@@ -152,6 +174,8 @@ export default function MobileVerifyTicketScreen() {
   };
 
   const handleRequestOtp = async () => {
+    if (!(await requirePayoutAccount())) return;
+
     const code = ticketCode.trim();
     if (!code) {
       setErrorMessage('Please enter the ticket code to verify.');
@@ -242,6 +266,8 @@ export default function MobileVerifyTicketScreen() {
   };
 
   const handlePublish = async () => {
+    if (!(await requirePayoutAccount())) return;
+
     if (!verification?.verificationId) return;
     const price = Number(resalePriceInput);
     if (!price || price <= 0) {
