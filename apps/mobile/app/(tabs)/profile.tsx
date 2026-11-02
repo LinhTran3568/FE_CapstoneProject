@@ -130,7 +130,7 @@ export default function MobileProfileScreen() {
 
         <TouchableOpacity
           style={styles.menuRow}
-          onPress={() => router.push('/verify')}
+          onPress={() => router.push('/(tabs)/sell')}
           activeOpacity={0.7}
         >
           <View style={[styles.menuIconSlot, { backgroundColor: theme.colors.successLight }]}>

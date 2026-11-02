@@ -51,8 +51,8 @@ function AuthNavigationCoordinator() {
       // Unauthenticated user attempting to access protected screens -> redirect to login
       router.replace('/(auth)/login');
     } else if (isAuthenticated && inAuthGroup) {
-      // Authenticated user on auth screen -> redirect to main tabs
-      router.replace('/(tabs)');
+      // Marketplace is the app entry point after authentication.
+      router.replace('/(tabs)/marketplace');
     }
   }, [isAuthenticated, isLoading, segments]);
 
