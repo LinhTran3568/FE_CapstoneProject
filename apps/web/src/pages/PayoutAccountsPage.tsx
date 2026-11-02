@@ -48,6 +48,7 @@ export const PayoutAccountsPage: React.FC = () => {
 
   // Dropdown ngân hàng
   const [isBankDropdownOpen, setIsBankDropdownOpen] = useState<boolean>(false);
+  const [bankSearch, setBankSearch] = useState('');
   const bankDropdownRef = useRef<HTMLDivElement>(null);
 
   // Load danh sách tài khoản
@@ -128,6 +129,19 @@ export const PayoutAccountsPage: React.FC = () => {
   }, [bankCode, accountNumber, banks]);
 
   const selectedBank = banks.find((bank) => bank.code === bankCode);
+  const normalizedBankSearch = bankSearch
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .trim();
+  const filteredBanks = banks.filter((bank) =>
+    [bank.name, bank.shortName, bank.code, bank.bin]
+      .join(' ')
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase()
+      .includes(normalizedBankSearch)
+  );
 
   const getBankNameByCode = (code: string) => {
     const b = banks.find((item) => item.code.toUpperCase() === code.toUpperCase());
@@ -408,7 +422,10 @@ export const PayoutAccountsPage: React.FC = () => {
                     </label>
                     <button
                       type="button"
-                      onClick={() => setIsBankDropdownOpen((prev) => !prev)}
+                      onClick={() => {
+                        setBankSearch('');
+                        setIsBankDropdownOpen((prev) => !prev);
+                      }}
                       className={`w-full h-12 px-4 rounded-xl bg-[#05070A] border ${
                         isBankDropdownOpen ? 'border-[#FF5A36] ring-2 ring-[#FF5A36]/20' : 'border-white/15 hover:border-white/25'
                       } text-sm text-white flex items-center justify-between transition-all cursor-pointer text-left`}
@@ -422,8 +439,20 @@ export const PayoutAccountsPage: React.FC = () => {
                     </button>
 
                     {isBankDropdownOpen && (
-                      <div className="absolute top-full left-0 right-0 mt-1.5 bg-[#0A0D12] border border-white/15 rounded-xl shadow-2xl p-1 z-50 animate-in fade-in zoom-in-95 max-h-56 overflow-y-auto space-y-0.5 custom-scrollbar">
-                        {banks.map((bank) => {
+                      <div className="absolute top-full left-0 right-0 mt-1.5 bg-[#0A0D12] border border-white/15 rounded-xl shadow-2xl p-1 z-50 animate-in fade-in zoom-in-95">
+                        <div className="p-2 border-b border-white/10">
+                          <input
+                            autoFocus
+                            type="search"
+                            value={bankSearch}
+                            onChange={(event) => setBankSearch(event.target.value)}
+                            onKeyDown={(event) => event.stopPropagation()}
+                            placeholder="Search bank, code or BIN..."
+                            className="w-full h-9 px-3 rounded-lg bg-[#05070A] border border-white/15 text-xs text-white placeholder-white/35 outline-none focus:border-[#FF5A36]"
+                          />
+                        </div>
+                        <div className="max-h-44 overflow-y-auto space-y-0.5 p-1 custom-scrollbar">
+                        {filteredBanks.map((bank) => {
                           const isSelected = bank.code === bankCode;
                           return (
                             <button
@@ -431,6 +460,7 @@ export const PayoutAccountsPage: React.FC = () => {
                               type="button"
                               onClick={() => {
                                 setBankCode(bank.code);
+                                setBankSearch('');
                                 setIsBankDropdownOpen(false);
                               }}
                               className={`w-full px-3.5 py-2.5 rounded-lg text-left text-xs sm:text-sm flex items-center justify-between transition-colors cursor-pointer ${
@@ -444,6 +474,10 @@ export const PayoutAccountsPage: React.FC = () => {
                             </button>
                           );
                         })}
+                        {filteredBanks.length === 0 && (
+                          <p className="px-3 py-4 text-center text-xs text-[#8B929C]">No matching banks found.</p>
+                        )}
+                        </div>
                       </div>
                     )}
                   </div>

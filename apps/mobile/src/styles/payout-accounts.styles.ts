@@ -243,6 +243,23 @@ export const styles = StyleSheet.create({
     fontFamily: theme.typography.families.bold,
     color: theme.colors.text,
   },
+  bankSearchInput: {
+    height: 42,
+    paddingHorizontal: theme.spacing.md,
+    marginBottom: theme.spacing.sm,
+    borderRadius: theme.radii.md,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    backgroundColor: theme.colors.surfaceHighlight,
+    color: theme.colors.text,
+    fontSize: theme.typography.sizes.sm,
+  },
+  emptyBankSearchText: {
+    paddingVertical: theme.spacing.xl,
+    textAlign: 'center',
+    color: theme.colors.textMuted,
+    fontSize: theme.typography.sizes.sm,
+  },
   bankItem: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -251,10 +268,19 @@ export const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: theme.colors.border,
   },
-  bankItemText: {
+  bankItemTextGroup: {
+    flex: 1,
+    marginRight: theme.spacing.sm,
+  },
+  bankItemShortName: {
     fontSize: theme.typography.sizes.sm,
     color: theme.colors.text,
-    flex: 1,
+    fontFamily: theme.typography.families.semibold,
+  },
+  bankItemFullName: {
+    marginTop: 2,
+    fontSize: theme.typography.sizes.xs,
+    color: theme.colors.textMuted,
   },
   bankItemActiveText: {
     color: theme.colors.primary,

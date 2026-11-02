@@ -7,6 +7,7 @@ import {
   FlatList,
   ActivityIndicator,
   Alert,
+  TextInput,
 } from 'react-native';
 import { Text } from '../src/components/AppText';
 import { Stack, useRouter } from 'expo-router';
@@ -50,8 +51,22 @@ export default function PayoutAccountsScreen() {
 
   // Modal chọn ngân hàng
   const [isBankModalVisible, setIsBankModalVisible] = useState(false);
+  const [bankSearch, setBankSearch] = useState('');
 
   const selectedBank = banks.find((b) => b.code === bankCode) ?? null;
+  const normalizedBankSearch = bankSearch
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .trim();
+  const filteredBanks = banks.filter((bank) =>
+    [bank.name, bank.shortName, bank.code, bank.bin]
+      .join(' ')
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase()
+      .includes(normalizedBankSearch)
+  );
 
   const fetchBankAccounts = useCallback(async () => {
     try {
@@ -241,11 +256,18 @@ export default function PayoutAccountsScreen() {
             <Text style={styles.formLabel}>Select Bank</Text>
             <TouchableOpacity
               style={styles.bankSelectorBtn}
-              onPress={() => setIsBankModalVisible(true)}
+              onPress={() => {
+                setBankSearch('');
+                setIsBankModalVisible(true);
+              }}
               activeOpacity={0.7}
             >
               <Text style={styles.bankSelectorText}>
-                {isLoadingBanks ? 'Loading bank directory...' : selectedBank?.name || 'Select a bank'}
+                {isLoadingBanks
+                  ? 'Loading bank directory...'
+                  : selectedBank
+                    ? `${selectedBank.shortName} (${selectedBank.code}) — ${selectedBank.name}`
+                    : 'Select a bank'}
               </Text>
               <ChevronDown size={18} color={theme.colors.textSecondary} />
             </TouchableOpacity>
@@ -329,13 +351,30 @@ export default function PayoutAccountsScreen() {
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Select Bank</Text>
-              <TouchableOpacity onPress={() => setIsBankModalVisible(false)}>
+              <TouchableOpacity onPress={() => {
+                setBankSearch('');
+                setIsBankModalVisible(false);
+              }}>
                 <X size={22} color={theme.colors.textSecondary} />
               </TouchableOpacity>
             </View>
+            <TextInput
+              autoFocus
+              value={bankSearch}
+              onChangeText={setBankSearch}
+              placeholder="Search name, code, or BIN..."
+              placeholderTextColor={theme.colors.textMuted}
+              style={styles.bankSearchInput}
+              returnKeyType="search"
+              clearButtonMode="while-editing"
+            />
             <FlatList
-              data={banks}
+              data={filteredBanks}
               keyExtractor={(item) => item.code}
+              keyboardShouldPersistTaps="handled"
+              ListEmptyComponent={
+                <Text style={styles.emptyBankSearchText}>No matching banks found.</Text>
+              }
               renderItem={({ item }) => {
                 const isActive = item.code === bankCode;
                 return (
@@ -343,13 +382,17 @@ export default function PayoutAccountsScreen() {
                     style={styles.bankItem}
                     onPress={() => {
                       setBankCode(item.code);
+                      setBankSearch('');
                       setIsBankModalVisible(false);
                       setIsVerifiedName(false);
                     }}
                   >
-                    <Text style={[styles.bankItemText, isActive && styles.bankItemActiveText]}>
-                      {item.name}
-                    </Text>
+                    <View style={styles.bankItemTextGroup}>
+                      <Text style={[styles.bankItemShortName, isActive && styles.bankItemActiveText]}>
+                        {item.shortName} ({item.code})
+                      </Text>
+                      <Text style={styles.bankItemFullName} numberOfLines={1}>{item.name}</Text>
+                    </View>
                     {isActive && <Check size={18} color={theme.colors.primary} />}
                   </TouchableOpacity>
                 );

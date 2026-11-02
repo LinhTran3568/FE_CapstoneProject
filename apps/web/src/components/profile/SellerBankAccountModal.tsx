@@ -33,6 +33,7 @@ export const SellerBankAccountModal: React.FC<SellerBankAccountModalProps> = ({
 
   // Bank selection dropdown state
   const [isBankDropdownOpen, setIsBankDropdownOpen] = useState(false);
+  const [bankSearch, setBankSearch] = useState('');
   const bankDropdownRef = useRef<HTMLDivElement>(null);
 
   // Lock body scroll when modal is open to eliminate background double scrollbar
@@ -79,6 +80,19 @@ export const SellerBankAccountModal: React.FC<SellerBankAccountModalProps> = ({
   }, [isOpen, showToast]);
 
   const selectedBank = banks.find((bank) => bank.code === bankCode);
+  const normalizedBankSearch = bankSearch
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .trim();
+  const filteredBanks = banks.filter((bank) =>
+    [bank.name, bank.shortName, bank.code, bank.bin]
+      .join(' ')
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase()
+      .includes(normalizedBankSearch)
+  );
 
   // Effect to automatically lookup account name when bank or accountNumber changes
   useEffect(() => {
@@ -229,7 +243,10 @@ export const SellerBankAccountModal: React.FC<SellerBankAccountModalProps> = ({
                 </label>
                 <button
                   type="button"
-                  onClick={() => setIsBankDropdownOpen((prev) => !prev)}
+                  onClick={() => {
+                    setBankSearch('');
+                    setIsBankDropdownOpen((prev) => !prev);
+                  }}
                   className={`w-full h-11 px-3.5 rounded-xl bg-[#05070A] border ${
                     isBankDropdownOpen ? 'border-[#FF5A36] ring-2 ring-[#FF5A36]/20' : 'border-white/15 hover:border-white/25'
                   } text-xs sm:text-sm text-white flex items-center justify-between transition-all cursor-pointer text-left`}
@@ -243,8 +260,20 @@ export const SellerBankAccountModal: React.FC<SellerBankAccountModalProps> = ({
                 </button>
 
                 {isBankDropdownOpen && (
-                  <div className="absolute top-full left-0 right-0 mt-1.5 bg-[#0A0D12] border border-white/15 rounded-xl shadow-2xl p-1 z-50 animate-in fade-in zoom-in-95 max-h-52 overflow-y-auto space-y-0.5">
-                    {banks.map((bank) => {
+                  <div className="absolute top-full left-0 right-0 mt-1.5 bg-[#0A0D12] border border-white/15 rounded-xl shadow-2xl p-1 z-50 animate-in fade-in zoom-in-95">
+                    <div className="p-2 border-b border-white/10">
+                      <input
+                        autoFocus
+                        type="search"
+                        value={bankSearch}
+                        onChange={(event) => setBankSearch(event.target.value)}
+                        onKeyDown={(event) => event.stopPropagation()}
+                        placeholder="Tìm tên, mã ngân hàng hoặc BIN..."
+                        className="w-full h-8 px-3 rounded-lg bg-[#05070A] border border-white/15 text-xs text-white placeholder-white/35 outline-none focus:border-[#FF5A36]"
+                      />
+                    </div>
+                    <div className="max-h-40 overflow-y-auto space-y-0.5 p-1 custom-scrollbar">
+                    {filteredBanks.map((bank) => {
                       const isSelected = bank.code === bankCode;
                       return (
                         <button
@@ -252,6 +281,7 @@ export const SellerBankAccountModal: React.FC<SellerBankAccountModalProps> = ({
                           type="button"
                           onClick={() => {
                             setBankCode(bank.code);
+                            setBankSearch('');
                             setIsBankDropdownOpen(false);
                           }}
                           className={`w-full px-3 py-2 rounded-lg text-left text-xs flex items-center justify-between transition-colors cursor-pointer ${
@@ -265,6 +295,10 @@ export const SellerBankAccountModal: React.FC<SellerBankAccountModalProps> = ({
                         </button>
                       );
                     })}
+                    {filteredBanks.length === 0 && (
+                      <p className="px-3 py-4 text-center text-xs text-[#8B929C]">Không tìm thấy ngân hàng phù hợp.</p>
+                    )}
+                    </div>
                   </div>
                 )}
               </div>
