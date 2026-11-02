@@ -42,7 +42,7 @@ interface MobileEscrowOrder {
   seatZone: string;
   totalPaid: number;
   paymentReference: string;
-  status: 'ESCROW_HOLDING' | 'COMPLETED' | 'CANCELLED' | 'DISPUTED' | 'LISTING_ACTIVE';
+  status: 'ESCROW_HOLDING' | 'COMPLETED' | 'CANCELLED' | 'DISPUTED' | 'REFUNDED' | 'LISTING_ACTIVE';
   createdAt: string;
   ticketPassCode: string;
   disputeId?: string | null;
@@ -57,6 +57,7 @@ type OrderStatusFilter =
   | 'ESCROW_HOLDING'
   | 'COMPLETED'
   | 'DISPUTED'
+  | 'REFUNDED'
   | 'CANCELLED';
 
 interface OrderFilterItem {
@@ -72,6 +73,7 @@ const ORDER_FILTERS: OrderFilterItem[] = [
   { key: 'ESCROW_HOLDING', label: 'In Escrow', icon: Clock },
   { key: 'COMPLETED', label: 'Completed', icon: CheckCircle2 },
   { key: 'DISPUTED', label: 'Disputed', icon: ShieldAlert },
+  { key: 'REFUNDED', label: 'Refunded', icon: AlertTriangle },
   { key: 'CANCELLED', label: 'Cancelled', icon: XCircle },
 ];
 
@@ -95,6 +97,7 @@ export default function MobileOrdersScreen() {
     const holding = orders.filter((o) => o.status === 'ESCROW_HOLDING').length;
     const completed = orders.filter((o) => o.status === 'COMPLETED').length;
     const disputed = orders.filter((o) => o.status === 'DISPUTED').length;
+    const refunded = orders.filter((o) => o.status === 'REFUNDED').length;
     const cancelled = orders.filter((o) => o.status === 'CANCELLED').length;
     return {
       ALL: orders.length,
@@ -103,6 +106,7 @@ export default function MobileOrdersScreen() {
       ESCROW_HOLDING: holding,
       COMPLETED: completed,
       DISPUTED: disputed,
+      REFUNDED: refunded,
       CANCELLED: cancelled,
     };
   }, [orders]);
@@ -172,6 +176,8 @@ export default function MobileOrdersScreen() {
           paymentReference: t.paymentReference || 'TS-ESCROW',
           status: isDisputed
             ? 'DISPUTED'
+            : t.status === 'REFUNDED'
+              ? 'REFUNDED'
             : t.status === 'VALID'
               ? 'COMPLETED'
               : t.status === 'CANCELLED'
@@ -278,6 +284,14 @@ export default function MobileOrdersScreen() {
           <Text style={[styles.statusText, styles.statusTextSuccess]}>
             {type === 'SELL' ? 'Sold' : 'Completed'}
           </Text>
+        </View>
+      );
+    }
+    if (status === 'REFUNDED') {
+      return (
+        <View style={[styles.statusBadge, styles.statusBadgeDanger]}>
+          <AlertTriangle size={13} color={theme.colors.danger} />
+          <Text style={[styles.statusText, styles.statusTextDanger]}>Refunded</Text>
         </View>
       );
     }
@@ -403,7 +417,7 @@ export default function MobileOrdersScreen() {
               </TouchableOpacity>
             </>
           ) : null
-        ) : (
+        ) : item.status !== 'REFUNDED' ? (
           <TouchableOpacity
             style={styles.viewPassBtn}
             onPress={() => router.push('/(tabs)/tickets')}
@@ -418,7 +432,7 @@ export default function MobileOrdersScreen() {
               <ArrowRight size={14} color={theme.colors.primary} />
             )}
           </TouchableOpacity>
-        )}
+        ) : null}
 
         {item.status === 'DISPUTED' || Boolean(item.disputeId) ? (
           <TouchableOpacity
@@ -429,7 +443,7 @@ export default function MobileOrdersScreen() {
             <Clock size={14} color={theme.colors.warning} />
             <Text style={styles.disputeProgressOrderBtnText}>View Dispute</Text>
           </TouchableOpacity>
-        ) : item.status !== 'CANCELLED' && item.type !== 'SELL' ? (
+        ) : item.status !== 'CANCELLED' && item.status !== 'REFUNDED' && item.type !== 'SELL' ? (
           <TouchableOpacity
             style={styles.reportOrderBtn}
             onPress={() => handleReportOrder(item)}

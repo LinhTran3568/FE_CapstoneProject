@@ -25,7 +25,7 @@ import {
 } from 'lucide-react-native';
 import * as Clipboard from 'expo-clipboard';
 import { bankAccountsApi, resaleApi, resaleListingsApi } from '@ticketshield/api-client';
-import type { PurchasedTicketDto } from '@ticketshield/types';
+import type { PurchasedTicketDto, ResaleFeeConfigDto } from '@ticketshield/types';
 import { theme } from '../src/theme';
 import { Text } from '../src/components/AppText';
 import { FintechInput } from '../src/components/FintechInput';
@@ -68,6 +68,9 @@ export default function MobileVerifyTicketScreen() {
   const [isPrivateListing, setIsPrivateListing] = useState(false);
   const [publishedPrivateToken, setPublishedPrivateToken] = useState<string | null>(null);
   const [isCopied, setIsCopied] = useState(false);
+  const [feeConfig, setFeeConfig] = useState<ResaleFeeConfigDto | null>(null);
+  const [isLoadingFeeConfig, setIsLoadingFeeConfig] = useState(true);
+  const [feeConfigError, setFeeConfigError] = useState<string | null>(null);
 
   const requirePayoutAccount = useCallback(async (): Promise<boolean> => {
     try {
@@ -89,6 +92,27 @@ export default function MobileVerifyTicketScreen() {
     useCallback(() => {
       void requirePayoutAccount();
     }, [requirePayoutAccount])
+  );
+
+  // Fee settings are administered by the backend. Never derive buyer or seller
+  // amounts from a client-side percentage because the policy can change at runtime.
+  const loadFeeConfig = useCallback(async () => {
+    setIsLoadingFeeConfig(true);
+    setFeeConfigError(null);
+    try {
+      setFeeConfig(await resaleListingsApi.getFeePolicy());
+    } catch {
+      setFeeConfig(null);
+      setFeeConfigError('Unable to load the current resale fee policy. Please try again.');
+    } finally {
+      setIsLoadingFeeConfig(false);
+    }
+  }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      void loadFeeConfig();
+    }, [loadFeeConfig])
   );
 
   const [myTickets, setMyTickets] = useState<PurchasedTicketDto[]>([]);
@@ -159,8 +183,36 @@ export default function MobileVerifyTicketScreen() {
   const priceCeiling = verification?.priceCeiling ?? 0;
   const originalPrice = verification?.originalPrice ?? 0;
   const enteredPrice = Number(resalePriceInput) || 0;
-  const buyerFee = Math.round(enteredPrice * 0.03);
-  const totalBuyerPrice = enteredPrice + buyerFee;
+  const feePreview = useMemo(() => {
+    if (!feeConfig || enteredPrice <= 0) return null;
+
+    // Mirrors DynamicResaleFeeCalculator (.NET decimal Math.Round defaults to ToEven).
+    const roundToEven = (value: number) => {
+      const lower = Math.floor(value);
+      const fraction = value - lower;
+      if (Math.abs(fraction - 0.5) < 1e-9) return lower % 2 === 0 ? lower : lower + 1;
+      return Math.round(value);
+    };
+    const buyerFee = roundToEven(
+      Math.max(enteredPrice * feeConfig.buyerFeePercentage, feeConfig.minimumBuyerFee)
+    );
+    const sellerFee = roundToEven(
+      Math.max(enteredPrice * feeConfig.sellerFeePercentage, feeConfig.minimumSellerFee)
+    );
+
+    return {
+      buyerFee,
+      sellerFee,
+      totalBuyerPrice: roundToEven(enteredPrice + buyerFee),
+      netSellerPayout: roundToEven(enteredPrice - sellerFee),
+      buyerFeeLabel: feeConfig.minimumBuyerFee > enteredPrice * feeConfig.buyerFeePercentage
+        ? `min. ${formatPrice(feeConfig.minimumBuyerFee)}`
+        : `${Number((feeConfig.buyerFeePercentage * 100).toFixed(2))}%`,
+      sellerFeeLabel: feeConfig.minimumSellerFee > enteredPrice * feeConfig.sellerFeePercentage
+        ? `min. ${formatPrice(feeConfig.minimumSellerFee)}`
+        : `${Number((feeConfig.sellerFeePercentage * 100).toFixed(2))}%`,
+    };
+  }, [enteredPrice, feeConfig]);
 
   const resetFlow = async () => {
     if (verification?.verificationId && step !== 'ticket' && step !== 'published') {
@@ -273,6 +325,14 @@ export default function MobileVerifyTicketScreen() {
       );
       return;
     }
+    if (!feeConfig) {
+      setErrorMessage('Unable to load the current resale fee policy. Please try again.');
+      return;
+    }
+    if (price < feeConfig.minimumSellerFee) {
+      setErrorMessage(`Resale price must be at least ${formatPrice(feeConfig.minimumSellerFee)}.`);
+      return;
+    }
     setErrorMessage(null);
     setStep('review');
   };
@@ -289,6 +349,14 @@ export default function MobileVerifyTicketScreen() {
     if (priceCeiling > 0 && price > priceCeiling) {
       setErrorMessage(
         `Resale price cannot exceed the organizer cap of ${formatPrice(priceCeiling)}.`
+      );
+      return;
+    }
+    if (!feeConfig || price < feeConfig.minimumSellerFee) {
+      setErrorMessage(
+        feeConfig
+          ? `Resale price must be at least ${formatPrice(feeConfig.minimumSellerFee)}.`
+          : 'Unable to load the current resale fee policy. Please try again.'
       );
       return;
     }
@@ -665,31 +733,40 @@ export default function MobileVerifyTicketScreen() {
               maxLength={12}
             />
 
-            {enteredPrice > 0 && (
+            {enteredPrice > 0 && feePreview && (
               <View style={styles.breakdownBox}>
                 <View style={styles.breakdownRow}>
                   <Text style={styles.breakdownLabel}>Listing Price</Text>
                   <Text style={styles.breakdownValue}>{formatPrice(enteredPrice)}</Text>
                 </View>
                 <View style={styles.breakdownRow}>
-                  <Text style={styles.breakdownLabel}>Buyer Escrow Fee (3%)</Text>
-                  <Text style={styles.breakdownValue}>+{formatPrice(buyerFee)}</Text>
+                  <Text style={styles.breakdownLabel}>Buyer Escrow Fee ({feePreview.buyerFeeLabel})</Text>
+                  <Text style={styles.breakdownValue}>+{formatPrice(feePreview.buyerFee)}</Text>
                 </View>
                 <View style={styles.breakdownRow}>
                   <Text style={styles.breakdownLabel}>Total Buyer Pays</Text>
-                  <Text style={styles.breakdownValue}>{formatPrice(totalBuyerPrice)}</Text>
+                  <Text style={styles.breakdownValue}>{formatPrice(feePreview.totalBuyerPrice)}</Text>
                 </View>
                 <View style={styles.breakdownDivider} />
                 <View style={styles.breakdownRow}>
-                  <Text style={styles.breakdownLabel}>Your Net Payout (100%)</Text>
-                  <Text style={styles.breakdownHighlight}>{formatPrice(enteredPrice)}</Text>
+                  <Text style={styles.breakdownLabel}>Seller Fee ({feePreview.sellerFeeLabel})</Text>
+                  <Text style={styles.breakdownValue}>-{formatPrice(feePreview.sellerFee)}</Text>
+                </View>
+                <View style={styles.breakdownRow}>
+                  <Text style={styles.breakdownLabel}>Your Net Payout</Text>
+                  <Text style={styles.breakdownHighlight}>{formatPrice(feePreview.netSellerPayout)}</Text>
                 </View>
               </View>
+            )}
+
+            {feeConfigError && (
+              <Text style={styles.errorText}>{feeConfigError}</Text>
             )}
 
             <FintechButton
               title="Continue to Review"
               onPress={handleStep4Continue}
+              disabled={isLoadingFeeConfig || !feePreview}
               icon={<ArrowRight size={17} color={theme.colors.onPrimary} />}
             />
 
@@ -806,14 +883,22 @@ export default function MobileVerifyTicketScreen() {
                   {formatPrice(enteredPrice)}
                 </Text>
               </View>
-              <View style={styles.specRow}>
-                <Text style={styles.specLabel}>Buyer Escrow Fee (3%)</Text>
-                <Text style={styles.specValue}>{formatPrice(buyerFee)}</Text>
-              </View>
-              <View style={styles.specRow}>
-                <Text style={styles.specLabel}>Your Net Payout</Text>
-                <Text style={styles.breakdownHighlight}>{formatPrice(enteredPrice)}</Text>
-              </View>
+              {feePreview && (
+                <>
+                  <View style={styles.specRow}>
+                    <Text style={styles.specLabel}>Buyer Escrow Fee ({feePreview.buyerFeeLabel})</Text>
+                    <Text style={styles.specValue}>{formatPrice(feePreview.buyerFee)}</Text>
+                  </View>
+                  <View style={styles.specRow}>
+                    <Text style={styles.specLabel}>Seller Fee ({feePreview.sellerFeeLabel})</Text>
+                    <Text style={styles.specValue}>-{formatPrice(feePreview.sellerFee)}</Text>
+                  </View>
+                  <View style={styles.specRow}>
+                    <Text style={styles.specLabel}>Your Net Payout</Text>
+                    <Text style={styles.breakdownHighlight}>{formatPrice(feePreview.netSellerPayout)}</Text>
+                  </View>
+                </>
+              )}
               <View style={styles.specRow}>
                 <Text style={styles.specLabel}>Visibility</Text>
                 <Text
@@ -831,6 +916,7 @@ export default function MobileVerifyTicketScreen() {
               title={isPrivateListing ? 'Create Private Listing' : 'Publish to Marketplace'}
               onPress={handlePublish}
               loading={isSubmitting}
+              disabled={!feePreview || isLoadingFeeConfig}
               variant={isPrivateListing ? 'primary' : 'success'}
               icon={
                 isPrivateListing ? (

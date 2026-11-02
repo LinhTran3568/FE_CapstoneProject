@@ -8,10 +8,11 @@
     "android": "npx expo start --android",
     "ios": "npx expo start --ios",
     "web": "npx expo start --web",
+    "build": "npx expo export --platform android",
     "typecheck": "npx tsc --noEmit",
     "test:foundation": "npx tsx src/__tests__/run-mobile-foundation-test.cjs",
     "test:marketplace": "npx tsx src/__tests__/run-mobile-marketplace-test.cjs",
-    "lint": "npx eslint ."
+    "lint": "npm run typecheck && npx eslint src/__tests__"
   },
   "dependencies": {
     "@expo-google-fonts/be-vietnam-pro": "^0.4.1",

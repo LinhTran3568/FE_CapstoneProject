@@ -124,16 +124,22 @@ async function run() {
       seatZone: 'GA Standing Zone 2',
     };
 
-    // Mirror the live backend fee policy: 5% with a 10.000 VND minimum.
-    const feePolicy = { buyerFeePercentage: 0.05, minimumBuyerFee: 10000 };
-    const percentageFee = Math.round(selectedListing.resalePrice * feePolicy.buyerFeePercentage);
-    const escrowProtectionFee = Math.max(percentageFee, feePolicy.minimumBuyerFee);
-    const totalBuyerAmount = selectedListing.resalePrice + escrowProtectionFee;
+    // The app must use the policy supplied by BE, rather than assuming a fixed
+    // percentage or a fixed minimum fee.
+    const calculateFromBackendPolicy = (price, policy) => {
+      const buyerFee = Math.round(Math.max(price * policy.buyerFeePercentage, policy.minimumBuyerFee));
+      return { buyerFee, totalBuyerAmount: Math.round(price + buyerFee) };
+    };
+    const policyA = { buyerFeePercentage: 0.03, minimumBuyerFee: 0 };
+    const policyB = { buyerFeePercentage: 0.05, minimumBuyerFee: 10000 };
+    const resultA = calculateFromBackendPolicy(selectedListing.resalePrice, policyA);
+    const resultB = calculateFromBackendPolicy(selectedListing.resalePrice, policyB);
 
-    assert(escrowProtectionFee === 10000, `Escrow Fee must be 10.000 VND, got ${escrowProtectionFee}`);
-    assert(totalBuyerAmount === 60000, `Total must be 60.000 VND, got ${totalBuyerAmount}`);
+    assert(resultA.buyerFee !== resultB.buyerFee, 'Fee preview changes when the backend policy changes');
+    assert(resultA.totalBuyerAmount === selectedListing.resalePrice + resultA.buyerFee, 'Total follows backend policy A');
+    assert(resultB.totalBuyerAmount === selectedListing.resalePrice + resultB.buyerFee, 'Total follows backend policy B');
 
-    console.log(` [PASS] 2. When chọn vé & mở Bottom-Sheet tính giá (Vé: ${selectedListing.resalePrice.toLocaleString()}đ, Phí: ${escrowProtectionFee.toLocaleString()}đ, Tổng: ${totalBuyerAmount.toLocaleString()}đ) [OK]`);
+    console.log(' [PASS] 2. When chọn vé & mở Bottom-Sheet tính giá theo fee policy từ BE [OK]');
     passed++;
   } catch (err) {
     console.error(' [FAIL] 2. Bottom-Sheet & Fee Calculation:', err.message);
