@@ -6,6 +6,7 @@ import {
   ActivityIndicator,
   TextInput,
   ScrollView,
+  Modal,
 } from 'react-native';
 import { Text } from '../../src/components/AppText';
 import { useRouter, useFocusEffect } from 'expo-router';
@@ -84,6 +85,9 @@ export default function MobileOrdersScreen() {
   const [searchQuery, setSearchQuery] = useState('');
   const [isDisputeModalOpen, setIsDisputeModalOpen] = useState(false);
   const [selectedOrderTicket, setSelectedOrderTicket] = useState<PurchasedTicketDto | null>(null);
+  const [cancellingListingId, setCancellingListingId] = useState<string | null>(null);
+  const [listingToCancel, setListingToCancel] = useState<MobileEscrowOrder | null>(null);
+  const [cancelError, setCancelError] = useState<string | null>(null);
 
   const counts = useMemo(() => {
     const myListings = orders.filter((o) => o.type === 'SELL').length;
@@ -310,6 +314,27 @@ export default function MobileOrdersScreen() {
     setIsDisputeModalOpen(true);
   };
 
+  const handleCancelListing = (item: MobileEscrowOrder) => {
+    setCancelError(null);
+    setListingToCancel(item);
+  };
+
+  const confirmCancelListing = async () => {
+    if (!listingToCancel) return;
+
+    setCancellingListingId(listingToCancel.listingId);
+    setCancelError(null);
+    try {
+      await resaleListingsApi.cancelListing(listingToCancel.listingId);
+      await fetchOrders(true);
+      setListingToCancel(null);
+    } catch (err) {
+      setCancelError(err instanceof Error ? err.message : 'Unable to cancel listing.');
+    } finally {
+      setCancellingListingId(null);
+    }
+  };
+
   const renderOrder = ({ item }: { item: MobileEscrowOrder }) => (
     <View style={styles.orderCard}>
       <View style={styles.orderTopRow}>
@@ -355,14 +380,29 @@ export default function MobileOrdersScreen() {
 
       <View style={styles.orderActionsRow}>
         {item.type === 'SELL' ? (
-          <TouchableOpacity
-            style={styles.viewPassBtn}
-            onPress={() => router.push('/(tabs)/marketplace')}
-            activeOpacity={0.8}
-          >
-            <Text style={styles.viewPassBtnText}>View on Marketplace</Text>
-            <ArrowRight size={14} color={theme.colors.primary} />
-          </TouchableOpacity>
+          item.status === 'LISTING_ACTIVE' ? (
+            <>
+            <TouchableOpacity
+              style={styles.viewPassBtn}
+              onPress={() => router.push('/(tabs)/marketplace')}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.viewPassBtnText}>View on Marketplace</Text>
+              <ArrowRight size={14} color={theme.colors.primary} />
+            </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.reportOrderBtn}
+                onPress={() => handleCancelListing(item)}
+                disabled={cancellingListingId === item.listingId}
+                activeOpacity={0.8}
+              >
+                <XCircle size={14} color={theme.colors.danger} />
+                <Text style={styles.reportOrderBtnText}>
+                  {cancellingListingId === item.listingId ? 'Cancelling...' : 'Cancel Listing'}
+                </Text>
+              </TouchableOpacity>
+            </>
+          ) : null
         ) : (
           <TouchableOpacity
             style={styles.viewPassBtn}
@@ -565,6 +605,43 @@ export default function MobileOrdersScreen() {
           );
         }}
       />
+      <Modal
+        visible={Boolean(listingToCancel)}
+        transparent
+        animationType="fade"
+        onRequestClose={() => !cancellingListingId && setListingToCancel(null)}
+      >
+        <View style={styles.cancelModalOverlay}>
+          <View style={styles.cancelModalCard}>
+            <View style={styles.cancelModalIcon}>
+              <XCircle size={23} color={theme.colors.danger} />
+            </View>
+            <Text style={styles.cancelModalTitle}>Cancel listing?</Text>
+            <Text style={styles.cancelModalEvent} numberOfLines={1}>
+              {listingToCancel?.eventName}
+            </Text>
+            {cancelError && <Text style={styles.cancelModalError}>{cancelError}</Text>}
+            <View style={styles.cancelModalActions}>
+              <TouchableOpacity
+                style={styles.cancelModalKeepBtn}
+                onPress={() => setListingToCancel(null)}
+                disabled={Boolean(cancellingListingId)}
+              >
+                <Text style={styles.cancelModalKeepText}>Keep</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.cancelModalConfirmBtn}
+                onPress={confirmCancelListing}
+                disabled={Boolean(cancellingListingId)}
+              >
+                <Text style={styles.cancelModalConfirmText}>
+                  {cancellingListingId ? 'Cancelling...' : 'Cancel Listing'}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }

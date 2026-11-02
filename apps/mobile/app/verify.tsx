@@ -92,6 +92,7 @@ export default function MobileVerifyTicketScreen() {
   );
 
   const [myTickets, setMyTickets] = useState<PurchasedTicketDto[]>([]);
+  const [refundedTicketCodes, setRefundedTicketCodes] = useState<Set<string>>(new Set());
   const [isLoadingTickets, setIsLoadingTickets] = useState(false);
   const [isTicketPickerOpen, setIsTicketPickerOpen] = useState(false);
 
@@ -121,7 +122,15 @@ export default function MobileVerifyTicketScreen() {
           const status = (t.status || '').trim().toUpperCase();
           return code.length > 0 && (status === 'VALID' || status === 'IN_ESCROW' || status === '');
         });
-        setMyTickets(eligible.length > 0 ? eligible : list.filter((t) => (t.ticketPassCode || t.qrCodeData || '').trim().length > 0));
+        setRefundedTicketCodes(
+          new Set(
+            list
+              .filter((t) => (t.status || '').trim().toUpperCase() === 'REFUNDED')
+              .map((t) => (t.ticketPassCode || t.qrCodeData || '').trim().toUpperCase())
+              .filter(Boolean)
+          )
+        );
+        setMyTickets(eligible);
       })
       .catch(() => {})
       .finally(() => {
@@ -174,13 +183,16 @@ export default function MobileVerifyTicketScreen() {
   };
 
   const handleRequestOtp = async () => {
-    if (!(await requirePayoutAccount())) return;
-
     const code = ticketCode.trim();
     if (!code) {
       setErrorMessage('Please enter the ticket code to verify.');
       return;
     }
+    if (refundedTicketCodes.has(code.toUpperCase())) {
+      setErrorMessage('This ticket was refunded and cannot be listed.');
+      return;
+    }
+    if (!(await requirePayoutAccount())) return;
 
     setIsSubmitting(true);
     setErrorMessage(null);
@@ -293,8 +305,9 @@ export default function MobileVerifyTicketScreen() {
       setPublishedPrivateToken(result.privateAccessToken ?? null);
       setStep('published');
     } catch (err) {
-      const message =
-        err instanceof Error ? err.message : 'Unable to publish listing. Please try again.';
+      const message = err instanceof Error && err.message === 'TICKET_REFUNDED'
+        ? 'This ticket was refunded and cannot be listed.'
+        : err instanceof Error ? err.message : 'Unable to publish listing. Please try again.';
       setErrorMessage(message);
     } finally {
       setIsSubmitting(false);
