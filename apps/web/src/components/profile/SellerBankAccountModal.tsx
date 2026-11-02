@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { X, Building2, CreditCard, User, Check, RefreshCw, ChevronDown } from 'lucide-react';
-import { bankAccountsApi, VIETNAM_BANKS } from '@ticketshield/api-client';
+import { bankAccountsApi, type BankInfo } from '@ticketshield/api-client';
 import { UserBankAccountDto } from '@ticketshield/types';
 import { useUIStore } from '../../stores/uiStore';
 import { useAuthStore } from '../../stores/authStore';
@@ -20,7 +20,9 @@ export const SellerBankAccountModal: React.FC<SellerBankAccountModalProps> = ({
   const { user } = useAuthStore();
   const { showToast } = useUIStore();
 
-  const [bankCode, setBankCode] = useState('MB');
+  const [banks, setBanks] = useState<BankInfo[]>([]);
+  const [isLoadingBanks, setIsLoadingBanks] = useState(false);
+  const [bankCode, setBankCode] = useState('');
   const [accountNumber, setAccountNumber] = useState('');
   const [accountHolderName, setAccountHolderName] = useState('');
   const [isDefault, setIsDefault] = useState(true);
@@ -61,6 +63,23 @@ export const SellerBankAccountModal: React.FC<SellerBankAccountModalProps> = ({
   const [isVerifiedName, setIsVerifiedName] = useState(false);
   const [lookupFailed, setLookupFailed] = useState(false);
 
+  useEffect(() => {
+    if (!isOpen) return;
+    let active = true;
+    setIsLoadingBanks(true);
+    bankAccountsApi.getBanks()
+      .then((directory) => {
+        if (!active) return;
+        setBanks(directory);
+        setBankCode((current) => current || directory[0]?.code || '');
+      })
+      .catch(() => active && showToast('Không thể tải danh sách ngân hàng. Vui lòng thử lại.', 'error'))
+      .finally(() => active && setIsLoadingBanks(false));
+    return () => { active = false; };
+  }, [isOpen, showToast]);
+
+  const selectedBank = banks.find((bank) => bank.code === bankCode);
+
   // Effect to automatically lookup account name when bank or accountNumber changes
   useEffect(() => {
     if (!isOpen) return;
@@ -76,7 +95,7 @@ export const SellerBankAccountModal: React.FC<SellerBankAccountModalProps> = ({
       setLookupFailed(false);
       try {
         const res = await bankAccountsApi.lookupAccountHolderName(
-          bankCode,
+          selectedBank?.bin || '',
           cleanAcc,
         );
         if (res.success && res.accountName) {
@@ -97,14 +116,14 @@ export const SellerBankAccountModal: React.FC<SellerBankAccountModalProps> = ({
     }, 700);
 
     return () => clearTimeout(timer);
-  }, [bankCode, accountNumber, isOpen]);
+  }, [selectedBank?.bin, accountNumber, isOpen]);
 
   // Reset form state when modal is opened/closed
   useEffect(() => {
     if (!isOpen) {
       setAccountNumber('');
       setAccountHolderName('');
-      setBankCode('MB');
+      setBankCode('');
       setIsDefault(true);
       setIsVerifiedName(false);
       setLookupFailed(false);
@@ -119,6 +138,11 @@ export const SellerBankAccountModal: React.FC<SellerBankAccountModalProps> = ({
 
     if (!cleanAccountNumber || cleanAccountNumber.length < 6) {
       showToast('Số tài khoản không hợp lệ (tối thiểu 6 chữ số)!', 'warning');
+      return;
+    }
+
+    if (!selectedBank) {
+      showToast('Vui lòng chọn ngân hàng từ danh mục trước khi tiếp tục!', 'warning');
       return;
     }
 
@@ -155,8 +179,6 @@ export const SellerBankAccountModal: React.FC<SellerBankAccountModalProps> = ({
       setIsSubmitting(false);
     }
   };
-
-  const selectedBank = VIETNAM_BANKS.find((b) => b.code === bankCode) || VIETNAM_BANKS[0];
 
   // Guard: Không render nếu modal chưa mở
   if (!isOpen) return null;
@@ -213,7 +235,7 @@ export const SellerBankAccountModal: React.FC<SellerBankAccountModalProps> = ({
                   } text-xs sm:text-sm text-white flex items-center justify-between transition-all cursor-pointer text-left`}
                 >
                   <span className="truncate font-medium">
-                    {selectedBank.name} ({selectedBank.code})
+                    {isLoadingBanks ? 'Đang tải ngân hàng...' : selectedBank ? `${selectedBank.name} (${selectedBank.code})` : 'Chọn ngân hàng'}
                   </span>
                   <ChevronDown className={`w-4 h-4 text-[#8B929C] transition-transform duration-200 shrink-0 ${
                     isBankDropdownOpen ? 'rotate-180 text-[#FF5A36]' : ''
@@ -222,7 +244,7 @@ export const SellerBankAccountModal: React.FC<SellerBankAccountModalProps> = ({
 
                 {isBankDropdownOpen && (
                   <div className="absolute top-full left-0 right-0 mt-1.5 bg-[#0A0D12] border border-white/15 rounded-xl shadow-2xl p-1 z-50 animate-in fade-in zoom-in-95 max-h-52 overflow-y-auto space-y-0.5">
-                    {VIETNAM_BANKS.map((bank) => {
+                    {banks.map((bank) => {
                       const isSelected = bank.code === bankCode;
                       return (
                         <button
@@ -367,7 +389,9 @@ export const SellerBankAccountModal: React.FC<SellerBankAccountModalProps> = ({
                 <div className="space-y-2 text-xs">
                   <div>
                     <span className="text-[10px] text-[#8B929C] uppercase font-mono block">Ngân hàng</span>
-                    <span className="text-white font-bold">{selectedBank.name} ({selectedBank.code})</span>
+                    <span className="text-white font-bold">
+                      {selectedBank ? `${selectedBank.name} (${selectedBank.code})` : 'Chưa chọn ngân hàng'}
+                    </span>
                   </div>
 
                   <div>

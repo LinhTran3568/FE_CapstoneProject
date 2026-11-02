@@ -22,7 +22,7 @@ import {
   AlertTriangle,
 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
-import { authApi, bankAccountsApi, VIETNAM_BANKS } from '@ticketshield/api-client';
+import { authApi, bankAccountsApi, type BankInfo } from '@ticketshield/api-client';
 import type { UserBankAccountDto } from '@ticketshield/types';
 import { SellerBankAccountModal } from '../components/profile/SellerBankAccountModal';
 import { useMyListings } from '../hooks/useMyListings';
@@ -50,6 +50,7 @@ export const ProfilePage: React.FC = () => {
   const [isSaving, setIsSaving] = useState(false);
 
   const [bankAccounts, setBankAccounts] = useState<UserBankAccountDto[]>([]);
+  const [banks, setBanks] = useState<BankInfo[]>([]);
   const [isLoadingAccounts, setIsLoadingAccounts] = useState(false);
   const [isBankModalOpen, setIsBankModalOpen] = useState(false);
 
@@ -83,6 +84,14 @@ export const ProfilePage: React.FC = () => {
       fetchBankAccounts();
     }
   }, [user?.id, user?.fullName, user?.phoneNumber]);
+
+  useEffect(() => {
+    let active = true;
+    bankAccountsApi.getBanks()
+      .then((directory) => active && setBanks(directory))
+      .catch(() => active && setBanks([]));
+    return () => { active = false; };
+  }, []);
 
   const fetchBankAccounts = async () => {
     try {
@@ -124,7 +133,7 @@ export const ProfilePage: React.FC = () => {
   };
 
   const getBankName = (code: string) => {
-    const bank = VIETNAM_BANKS.find(b => b.code.toUpperCase() === code.toUpperCase());
+    const bank = banks.find(b => b.code.toUpperCase() === code.toUpperCase());
     return bank ? bank.shortName : code;
   };
 

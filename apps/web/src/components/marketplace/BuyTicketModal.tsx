@@ -716,7 +716,7 @@ export const BuyTicketModal: React.FC<BuyTicketModalProps> = ({
                   <div className="lg:col-span-6 h-full flex flex-col justify-between">
                     <BankTransferDetails
                       bankBin={holdData.bankBin}
-                      bankName={holdData.bankBin === '970422' ? 'MB Bank (Ngân hàng Quân Đội)' : holdData.bankBin}
+                      bankName={holdData.bankBin ? `Bank BIN ${holdData.bankBin}` : 'Bank information unavailable'}
                       accountNumber={holdData.accountNumber}
                       accountName={holdData.accountName}
                       amount={holdData.totalBuyerPaid}

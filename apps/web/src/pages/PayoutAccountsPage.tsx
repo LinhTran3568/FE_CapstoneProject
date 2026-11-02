@@ -14,7 +14,7 @@ import {
   Sparkles,
   CheckCircle2
 } from 'lucide-react';
-import { bankAccountsApi, VIETNAM_BANKS } from '@ticketshield/api-client';
+import { bankAccountsApi, type BankInfo } from '@ticketshield/api-client';
 import { UserBankAccountDto } from '@ticketshield/types';
 import { useUIStore } from '../stores/uiStore';
 import { useAuthStore } from '../stores/authStore';
@@ -33,7 +33,9 @@ export const PayoutAccountsPage: React.FC = () => {
 
   // Form State: step 1 = nhập liệu, step 2 = xác nhận lại
   const [formStep, setFormStep] = useState<'input' | 'confirm'>('input');
-  const [bankCode, setBankCode] = useState<string>('MB');
+  const [banks, setBanks] = useState<BankInfo[]>([]);
+  const [isLoadingBanks, setIsLoadingBanks] = useState(true);
+  const [bankCode, setBankCode] = useState<string>('');
   const [accountNumber, setAccountNumber] = useState<string>('');
   const [accountHolderName, setAccountHolderName] = useState<string>('');
   const [isDefault, setIsDefault] = useState<boolean>(true);
@@ -65,6 +67,19 @@ export const PayoutAccountsPage: React.FC = () => {
     fetchAccounts();
   }, [fetchAccounts]);
 
+  useEffect(() => {
+    let active = true;
+    bankAccountsApi.getBanks()
+      .then((directory) => {
+        if (!active) return;
+        setBanks(directory);
+        setBankCode((current) => current || directory[0]?.code || '');
+      })
+      .catch(() => active && showToast('Could not load the bank directory. Please try again.', 'error'))
+      .finally(() => active && setIsLoadingBanks(false));
+    return () => { active = false; };
+  }, [showToast]);
+
   // Đóng dropdown khi click ra ngoài
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -91,7 +106,8 @@ export const PayoutAccountsPage: React.FC = () => {
       setIsSearchingName(true);
       setLookupFailed(false);
       try {
-        const res = await bankAccountsApi.lookupAccountHolderName(bankCode, cleanAcc);
+        const bank = banks.find((item) => item.code === bankCode);
+        const res = await bankAccountsApi.lookupAccountHolderName(bank?.bin || '', cleanAcc);
         if (res.success && res.accountName) {
           setAccountHolderName(res.accountName);
           setIsVerifiedName(true);
@@ -109,12 +125,12 @@ export const PayoutAccountsPage: React.FC = () => {
     }, 700);
 
     return () => clearTimeout(timer);
-  }, [bankCode, accountNumber]);
+  }, [bankCode, accountNumber, banks]);
 
-  const selectedBank = VIETNAM_BANKS.find((b) => b.code === bankCode) || VIETNAM_BANKS[0];
+  const selectedBank = banks.find((bank) => bank.code === bankCode);
 
   const getBankNameByCode = (code: string) => {
-    const b = VIETNAM_BANKS.find((item) => item.code.toUpperCase() === code.toUpperCase());
+    const b = banks.find((item) => item.code.toUpperCase() === code.toUpperCase());
     return b ? b.name : code;
   };
 
@@ -126,6 +142,11 @@ export const PayoutAccountsPage: React.FC = () => {
 
     if (!cleanAcc || cleanAcc.length < 6) {
       showToast('Invalid account number (minimum 6 digits required)!', 'warning');
+      return;
+    }
+
+    if (!selectedBank) {
+      showToast('Please select a bank from the available directory.', 'warning');
       return;
     }
 
@@ -393,7 +414,7 @@ export const PayoutAccountsPage: React.FC = () => {
                       } text-sm text-white flex items-center justify-between transition-all cursor-pointer text-left`}
                     >
                       <span className="truncate font-medium">
-                        {selectedBank.name} ({selectedBank.code})
+                        {isLoadingBanks ? 'Loading banks...' : selectedBank ? `${selectedBank.name} (${selectedBank.code})` : 'Select a bank'}
                       </span>
                       <ChevronDown className={`w-4 h-4 text-[#8B929C] transition-transform duration-200 shrink-0 ${
                         isBankDropdownOpen ? 'rotate-180 text-[#FF5A36]' : ''
@@ -402,7 +423,7 @@ export const PayoutAccountsPage: React.FC = () => {
 
                     {isBankDropdownOpen && (
                       <div className="absolute top-full left-0 right-0 mt-1.5 bg-[#0A0D12] border border-white/15 rounded-xl shadow-2xl p-1 z-50 animate-in fade-in zoom-in-95 max-h-56 overflow-y-auto space-y-0.5 custom-scrollbar">
-                        {VIETNAM_BANKS.map((bank) => {
+                        {banks.map((bank) => {
                           const isSelected = bank.code === bankCode;
                           return (
                             <button
@@ -535,7 +556,7 @@ export const PayoutAccountsPage: React.FC = () => {
                       <div className="space-y-1">
                         <div className="text-[10px] uppercase font-mono text-[#8B929C]">Bank</div>
                         <div className="font-bold text-white text-sm">
-                          {selectedBank.name} ({selectedBank.code})
+                          {selectedBank ? `${selectedBank.name} (${selectedBank.code})` : 'No bank selected'}
                         </div>
                       </div>
 
