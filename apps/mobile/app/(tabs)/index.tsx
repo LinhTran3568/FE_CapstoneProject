@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import {
   View,
   ScrollView,
@@ -18,21 +18,15 @@ import {
   MapPin,
   AlertTriangle,
   Store,
-  Building2,
   ScanLine,
   Ticket,
 } from 'lucide-react-native';
-import { eventsApi, organizerStoreApi, TrendingEventDto } from '@ticketshield/api-client';
+import { eventsApi, TrendingEventDto } from '@ticketshield/api-client';
 import { theme } from '../../src/theme';
 import { useAuthStore } from '../../src/stores/authStore';
 import { GatewayStatusBadge } from '../../src/components/GatewayStatusBadge';
 import { EventPoster } from '../../src/components/EventPoster';
 import { initialsOf, formatEventDateTime } from '../../src/utils/format';
-import {
-  eventNamesMatch,
-  mapCatalogEventToTrending,
-  OrganizerCatalogEvent,
-} from '../../src/utils/organizerCatalog';
 import { FintechButton } from '../../src/components/FintechButton';
 import { styles } from '../../src/styles/home.styles';
 
@@ -42,7 +36,6 @@ export default function MobileHomeScreen() {
   const { width: windowWidth } = useWindowDimensions();
 
   const [trendingEvents, setTrendingEvents] = useState<TrendingEventDto[]>([]);
-  const [catalogEvents, setCatalogEvents] = useState<OrganizerCatalogEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -55,17 +48,13 @@ export default function MobileHomeScreen() {
     if (!silent) setLoading(true);
     setError(null);
     try {
-      const [eventsResult, catalogResult] = await Promise.all([
-        eventsApi.getTrendingEvents({ limit: 12 }).catch(() => null),
-        organizerStoreApi.getEventsCatalog().catch(() => null),
-      ]);
+      const eventsResult = await eventsApi.getTrendingEvents({ limit: 12 }).catch(() => null);
 
-      if (eventsResult === null && catalogResult === null) {
+      if (eventsResult === null) {
         throw new Error('Unable to connect to events service.');
       }
 
       setTrendingEvents(Array.isArray(eventsResult) ? eventsResult : []);
-      setCatalogEvents(Array.isArray(catalogResult) ? (catalogResult as OrganizerCatalogEvent[]) : []);
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Unable to connect to events service.';
       setError(msg);
@@ -84,37 +73,7 @@ export default function MobileHomeScreen() {
     setRefreshing(false);
   };
 
-  const homeEvents = useMemo<TrendingEventDto[]>(() => {
-    const officialEvents = catalogEvents
-      .filter((event) => Boolean(event.externalEventId))
-      .map((event) => {
-        const mapped = mapCatalogEventToTrending(event, event.externalEventId || '');
-        const coreEvent = trendingEvents.find((candidate) =>
-          eventNamesMatch(candidate.name, event.name)
-        );
-
-        if (!coreEvent) return mapped;
-
-        return {
-          ...coreEvent,
-          id: mapped.id,
-          eventId: mapped.eventId,
-          name: coreEvent.name || mapped.name,
-          originalPriceFrom: mapped.originalPriceFrom ?? coreEvent.originalPriceFrom,
-          totalAvailableListings: coreEvent.totalAvailableListings ?? 0,
-        };
-      });
-
-    if (officialEvents.length === 0) return trendingEvents;
-
-    const resaleOnlyEvents = trendingEvents.filter(
-      (event) =>
-        (event.totalAvailableListings || 0) > 0 &&
-        !officialEvents.some((officialEvent) => eventNamesMatch(officialEvent.name, event.name))
-    );
-
-    return [...officialEvents, ...resaleOnlyEvents];
-  }, [catalogEvents, trendingEvents]);
+  const homeEvents = trendingEvents;
 
   const handleScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
     const offsetX = event.nativeEvent.contentOffset.x;
@@ -219,7 +178,7 @@ export default function MobileHomeScreen() {
                         marginRight: isLast ? 0 : cardGap,
                       },
                     ]}
-                    onPress={() => router.push(`/event/${eventKey}?source=origin`)}
+                    onPress={() => router.push('/(tabs)/marketplace')}
                     activeOpacity={0.9}
                   >
                     <EventPoster seed={eventKey} height={190} />
@@ -246,7 +205,7 @@ export default function MobileHomeScreen() {
                           </Text>
                         </View>
                         <View style={styles.heroCta}>
-                          <Text style={styles.heroCtaText}>Get Tickets</Text>
+                          <Text style={styles.heroCtaText}>View listings</Text>
                           <ArrowRight size={14} color={theme.colors.onPrimary} />
                         </View>
                       </View>
@@ -283,18 +242,6 @@ export default function MobileHomeScreen() {
               </View>
               <Text style={styles.gridTitle}>Marketplace</Text>
               <Text style={styles.gridSubtitle}>Fan-to-fan resale</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.gridItem}
-              onPress={() => router.push('/origin')}
-              activeOpacity={0.85}
-            >
-              <View style={[styles.gridIcon, styles.gridIconOrigin]}>
-                <Building2 size={22} color="#38BDF8" />
-              </View>
-              <Text style={styles.gridTitle}>Origin Store</Text>
-              <Text style={styles.gridSubtitle}>Official event tickets</Text>
             </TouchableOpacity>
 
             <TouchableOpacity

@@ -274,9 +274,6 @@ export const styles = StyleSheet.create({
     justifyContent: 'center',
     marginBottom: 10,
   },
-  gridIconOrigin: {
-    backgroundColor: 'rgba(56, 189, 248, 0.12)',
-  },
   gridIconSell: {
     backgroundColor: theme.colors.successLight,
   },

@@ -13,7 +13,6 @@ import {
   Phone,
   Ticket,
   ReceiptText,
-  Building2,
   ScanLine,
   ChevronRight,
   CreditCard,
@@ -140,21 +139,6 @@ export default function MobileProfileScreen() {
           <View style={styles.menuTextSlot}>
             <Text style={styles.menuTitle}>Sell Ticket</Text>
             <Text style={styles.menuDesc}>Verify ticket code & list for resale</Text>
-          </View>
-          <ChevronRight size={18} color={theme.colors.textMuted} />
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.menuRow}
-          onPress={() => router.push('/origin')}
-          activeOpacity={0.7}
-        >
-          <View style={[styles.menuIconSlot, { backgroundColor: 'rgba(56, 189, 248, 0.12)' }]}>
-            <Building2 size={18} color="#38BDF8" />
-          </View>
-          <View style={styles.menuTextSlot}>
-            <Text style={styles.menuTitle}>Origin Store</Text>
-            <Text style={styles.menuDesc}>Official organizer box office</Text>
           </View>
           <ChevronRight size={18} color={theme.colors.textMuted} />
         </TouchableOpacity>
