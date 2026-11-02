@@ -39,13 +39,20 @@ import { DisputeTicketModal } from '../../src/components/DisputeTicketModal';
 
 const STATUS_LABELS: Record<string, string> = {
   VALID: 'Valid for Entry',
-  IN_ESCROW: 'Locked for Resale',
+  IN_ESCROW: 'Pass Issued · Escrow Active',
   USED: 'Checked In',
   EXPIRED: 'Expired',
   CANCELLED: 'Cancelled',
   TRANSFERRED: 'Transferred',
   PENDING_VERIFICATION: 'Pending Verification',
 };
+
+// A completed payment transfers the ticket and QR data to the buyer immediately.
+// `IN_ESCROW` only means the seller payout is still protected by escrow; it does
+// not mean the buyer's pass is unavailable.
+const canOpenPass = (ticket: PurchasedTicketDto) =>
+  (ticket.status === 'VALID' || ticket.status === 'IN_ESCROW') &&
+  Boolean(ticket.qrCodeData?.trim() || ticket.qrCodeImageUrl?.trim() || ticket.ticketPassCode?.trim());
 
 type TicketStatusFilter = 'ALL' | 'VALID' | 'USED' | 'EXPIRED';
 
@@ -79,7 +86,7 @@ export default function MobileTicketsScreen() {
   const [disputeModalTicket, setDisputeModalTicket] = useState<PurchasedTicketDto | null>(null);
 
   const counts = useMemo(() => {
-    const valid = tickets.filter((t) => t.status === 'VALID').length;
+    const valid = tickets.filter(canOpenPass).length;
     const used = tickets.filter((t) => t.status === 'USED').length;
     const expired = tickets.filter((t) => t.status !== 'VALID' && t.status !== 'USED').length;
     return {
@@ -92,9 +99,9 @@ export default function MobileTicketsScreen() {
 
   const filteredTickets = useMemo(() => {
     return tickets.filter((ticket) => {
-      if (selectedStatus === 'VALID' && ticket.status !== 'VALID') return false;
+      if (selectedStatus === 'VALID' && !canOpenPass(ticket)) return false;
       if (selectedStatus === 'USED' && ticket.status !== 'USED') return false;
-      if (selectedStatus === 'EXPIRED' && (ticket.status === 'VALID' || ticket.status === 'USED')) return false;
+      if (selectedStatus === 'EXPIRED' && (canOpenPass(ticket) || ticket.status === 'USED')) return false;
 
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase().trim();
@@ -188,7 +195,7 @@ export default function MobileTicketsScreen() {
         <View style={[styles.statusBadge, { backgroundColor: 'rgba(255, 152, 0, 0.15)', borderColor: 'rgba(255, 152, 0, 0.4)' }]}>
           <Lock size={12} color="#FF9800" />
           <Text style={[styles.statusText, { color: '#FF9800', fontFamily: fontFamilies.bold }]}>
-            Locked for Resale
+            Escrow Active
           </Text>
         </View>
       );
@@ -219,7 +226,7 @@ export default function MobileTicketsScreen() {
   };
 
   const renderTicket = ({ item }: { item: PurchasedTicketDto }) => {
-    const isValid = item.status === 'VALID';
+    const isValid = canOpenPass(item);
     return (
       <TouchableOpacity
         style={[styles.ticketCard, !isValid && { opacity: 0.75 }]}
@@ -241,7 +248,7 @@ export default function MobileTicketsScreen() {
                 <>
                   <Lock size={12} color={theme.colors.textMuted} />
                   <Text style={[styles.openQrPillText, styles.lockedQrPillText]}>
-                    {item.status === 'IN_ESCROW' ? 'Pass Locked' : item.status === 'USED' ? 'Checked In' : 'Invalid'}
+                    {item.status === 'USED' ? 'Checked In' : 'Invalid'}
                   </Text>
                 </>
               )}

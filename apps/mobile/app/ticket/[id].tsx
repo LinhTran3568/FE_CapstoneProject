@@ -155,7 +155,9 @@ export default function TicketDetailScreen() {
     );
   }
 
-  const isUsable = ticket.status === 'VALID';
+  // The buyer receives the digital pass as soon as payment succeeds. Escrow
+  // protects the seller payout only, so it must not hide an issued QR pass.
+  const isUsable = ticket.status === 'VALID' || ticket.status === 'IN_ESCROW';
 
   return (
     <>
