@@ -1,6 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  ActivityIndicator,
   Image,
   KeyboardAvoidingView,
   Linking,
@@ -30,7 +29,11 @@ import {
   User,
   X,
 } from 'lucide-react-native';
-import type { ResaleListingDetailDto, HoldListingForPurchaseResponse } from '@ticketshield/types';
+import type {
+  ResaleListingDetailDto,
+  HoldListingForPurchaseResponse,
+  ResaleFeeConfigDto,
+} from '@ticketshield/types';
 import { resaleListingsApi } from '@ticketshield/api-client';
 import { Text } from './AppText';
 import { EventPoster } from './EventPoster';
@@ -82,6 +85,9 @@ export const BuyTicketBottomSheet: React.FC<BuyTicketBottomSheetProps> = ({
   const [isHolding, setIsHolding] = useState(false);
   const [holdData, setHoldData] = useState<HoldListingForPurchaseResponse | null>(null);
   const [holdError, setHoldError] = useState<string | null>(null);
+  const [feeConfig, setFeeConfig] = useState<ResaleFeeConfigDto | null>(null);
+  const [isLoadingFeeConfig, setIsLoadingFeeConfig] = useState(false);
+  const [feeConfigError, setFeeConfigError] = useState<string | null>(null);
 
   // 5-minute countdown timer state
   const [secondsLeft, setSecondsLeft] = useState<number>(DEFAULT_HOLD_DURATION_SECONDS);
@@ -123,6 +129,35 @@ export const BuyTicketBottomSheet: React.FC<BuyTicketBottomSheetProps> = ({
       }
     }
   }, [visible, listing, user]);
+
+  // Preview the same dynamic fee policy used by the hold endpoint. The QR
+  // payment amount remains authoritative because it comes from the backend.
+  useEffect(() => {
+    if (!visible || !listing) return;
+
+    let isActive = true;
+    setIsLoadingFeeConfig(true);
+    setFeeConfigError(null);
+
+    resaleListingsApi
+      .getFeePolicy()
+      .then((config) => {
+        if (isActive) setFeeConfig(config);
+      })
+      .catch(() => {
+        if (isActive) {
+          setFeeConfig(null);
+          setFeeConfigError('Unable to load the current payment fee. Please try again.');
+        }
+      })
+      .finally(() => {
+        if (isActive) setIsLoadingFeeConfig(false);
+      });
+
+    return () => {
+      isActive = false;
+    };
+  }, [visible, listing]);
 
   // Setup 5-minute countdown timer when holdData is established
   useEffect(() => {
@@ -203,16 +238,21 @@ export const BuyTicketBottomSheet: React.FC<BuyTicketBottomSheetProps> = ({
     };
   }, [holdData, purchaseSuccess, secondsLeft, listing, recipientName, recipientEmail, recipientPhone, onSuccess]);
 
-  // Price calculations
-  const escrowFee = useMemo(() => {
-    if (!listing) return 0;
-    return Math.round(listing.resalePrice * 0.03);
-  }, [listing]);
+  // Mirrors DynamicResaleFeeCalculator on the backend for the review screen.
+  const feePreview = useMemo(() => {
+    if (!listing || !feeConfig) return null;
+    const percentageFee = Math.round(listing.resalePrice * feeConfig.buyerFeePercentage);
+    const isMinimumApplied =
+      feeConfig.minimumBuyerFee > 0 && percentageFee < feeConfig.minimumBuyerFee;
+    const buyerFee = isMinimumApplied ? feeConfig.minimumBuyerFee : percentageFee;
 
-  const totalAmount = useMemo(() => {
-    if (!listing) return 0;
-    return listing.resalePrice + escrowFee;
-  }, [listing, escrowFee]);
+    return {
+      buyerFee,
+      totalBuyerPaid: Math.round(listing.resalePrice + buyerFee),
+      isMinimumApplied,
+      percentageLabel: `${Number((feeConfig.buyerFeePercentage * 100).toFixed(2))}%`,
+    };
+  }, [listing, feeConfig]);
 
   const isOwner = Boolean(user?.id && listing && (listing.sellerId === user.id || (listing as any).userId === user.id));
 
@@ -562,19 +602,34 @@ export const BuyTicketBottomSheet: React.FC<BuyTicketBottomSheetProps> = ({
                           </Text>
                         </View>
                         <View style={styles.pricePanelRow}>
-                          <Text style={styles.pricePanelLabel}>Escrow Protection Fee (3%)</Text>
+                          <Text style={styles.pricePanelLabel}>
+                            {feePreview
+                              ? `Escrow Protection Fee ${
+                                  feePreview.isMinimumApplied
+                                    ? `(min. ${formatPrice(feeConfig!.minimumBuyerFee)})`
+                                    : `(${feePreview.percentageLabel})`
+                                }`
+                              : 'Escrow Protection Fee'}
+                          </Text>
                           <Text style={styles.pricePanelValue}>
-                            {formatPrice(escrowFee)}
+                            {feePreview ? formatPrice(feePreview.buyerFee) : '—'}
                           </Text>
                         </View>
                         <View style={styles.pricePanelDivider} />
                         <View style={styles.pricePanelRow}>
                           <Text style={styles.pricePanelTotal}>Total Amount</Text>
                           <Text style={styles.pricePanelTotalValue}>
-                            {formatPrice(totalAmount)}
+                            {feePreview ? formatPrice(feePreview.totalBuyerPaid) : '—'}
                           </Text>
                         </View>
                       </View>
+
+                      {feeConfigError && (
+                        <View style={styles.errorNote}>
+                          <AlertTriangle size={16} color={theme.colors.danger} />
+                          <Text style={styles.errorNoteText}>{feeConfigError}</Text>
+                        </View>
+                      )}
 
                       {holdError && (
                         <View style={styles.errorNote}>
@@ -584,8 +639,9 @@ export const BuyTicketBottomSheet: React.FC<BuyTicketBottomSheetProps> = ({
                       )}
 
                       <FintechButton
-                        title="Buy Ticket"
+                        title={isLoadingFeeConfig ? 'Loading payment fee...' : 'Buy Ticket'}
                         onPress={() => setCheckoutStep('RECIPIENT')}
+                        disabled={!feePreview}
                         icon={<ArrowRight size={16} color={theme.colors.onPrimary} />}
                       />
                     </>
@@ -603,7 +659,9 @@ export const BuyTicketBottomSheet: React.FC<BuyTicketBottomSheetProps> = ({
                         </View>
                         <View style={styles.compactSummaryTotalBlock}>
                           <Text style={styles.compactSummaryTotalLabel}>Total</Text>
-                          <Text style={styles.compactSummaryTotal}>{formatPrice(totalAmount)}</Text>
+                          <Text style={styles.compactSummaryTotal}>
+                            {formatPrice(feePreview?.totalBuyerPaid ?? listing.resalePrice)}
+                          </Text>
                         </View>
                       </View>
 
@@ -842,14 +900,6 @@ export const BuyTicketBottomSheet: React.FC<BuyTicketBottomSheetProps> = ({
                           </TouchableOpacity>
                         </View>
                       </View>
-                    </View>
-
-                    {/* Auto-listening status */}
-                    <View style={styles.autoPollingBox}>
-                      <ActivityIndicator size="small" color={theme.colors.success} />
-                      <Text style={styles.autoPollingText}>
-                        Listening for bank transfer. Your ticket will be automatically transferred to your wallet upon payment confirmation.
-                      </Text>
                     </View>
 
                     {secondsLeft === 0 && (

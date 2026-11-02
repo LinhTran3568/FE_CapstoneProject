@@ -483,12 +483,6 @@ export default function MobileVerifyTicketScreen() {
               </View>
             )}
 
-            <View style={styles.helperRow}>
-              <ShieldCheck size={15} color={theme.colors.success} />
-              <Text style={styles.helperText}>
-                Select an existing ticket from My Tickets or enter the code manually. A verification OTP will be sent to the registered owner.
-              </Text>
-            </View>
             <FintechButton
               title="Send Verification Request"
               onPress={handleRequestOtp}
@@ -873,12 +867,6 @@ export default function MobileVerifyTicketScreen() {
                 ? 'Private Listing Created Successfully!'
                 : 'Ticket Listed on Marketplace'}
             </Text>
-            <Text style={styles.publishedText}>
-              {isPrivateListing
-                ? 'Your listing is private and hidden from public search. Share the secret link below with your buyer to complete the purchase.'
-                : 'Your listing is now active on the Marketplace. Sale proceeds will be held in escrow and disbursed to you after the buyer is admitted.'}
-            </Text>
-
             {isPrivateListing && (
               <View style={styles.secretLinkCard}>
                 <View style={styles.secretLinkHeader}>

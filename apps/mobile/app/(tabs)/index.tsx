@@ -1,102 +1,33 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React from 'react';
 import {
   View,
   ScrollView,
   TouchableOpacity,
-  ActivityIndicator,
-  RefreshControl,
-  useWindowDimensions,
-  NativeSyntheticEvent,
-  NativeScrollEvent,
 } from 'react-native';
 import { Text } from '../../src/components/AppText';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import {
-  ArrowRight,
-  Calendar,
-  MapPin,
-  AlertTriangle,
   Store,
   ScanLine,
   Ticket,
 } from 'lucide-react-native';
-import { eventsApi, TrendingEventDto } from '@ticketshield/api-client';
 import { theme } from '../../src/theme';
 import { useAuthStore } from '../../src/stores/authStore';
 import { GatewayStatusBadge } from '../../src/components/GatewayStatusBadge';
-import { EventPoster } from '../../src/components/EventPoster';
-import { initialsOf, formatEventDateTime } from '../../src/utils/format';
-import { FintechButton } from '../../src/components/FintechButton';
+import { initialsOf } from '../../src/utils/format';
 import { styles } from '../../src/styles/home.styles';
 
 export default function MobileHomeScreen() {
   const router = useRouter();
   const user = useAuthStore((state) => state.user);
-  const { width: windowWidth } = useWindowDimensions();
-
-  const [trendingEvents, setTrendingEvents] = useState<TrendingEventDto[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [activeIndex, setActiveIndex] = useState(0);
-
-  const cardGap = 14;
-  const cardWidth = Math.min(Math.round(windowWidth * 0.86), 360);
-
-  const fetchHomeData = useCallback(async (silent = false) => {
-    if (!silent) setLoading(true);
-    setError(null);
-    try {
-      const eventsResult = await eventsApi.getTrendingEvents({ limit: 12 }).catch(() => null);
-
-      if (eventsResult === null) {
-        throw new Error('Unable to connect to events service.');
-      }
-
-      setTrendingEvents(Array.isArray(eventsResult) ? eventsResult : []);
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Unable to connect to events service.';
-      setError(msg);
-    } finally {
-      if (!silent) setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    fetchHomeData();
-  }, [fetchHomeData]);
-
-  const handleRefresh = async () => {
-    setRefreshing(true);
-    await fetchHomeData(true);
-    setRefreshing(false);
-  };
-
-  const homeEvents = trendingEvents;
-
-  const handleScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
-    const offsetX = event.nativeEvent.contentOffset.x;
-    const index = Math.round(offsetX / (cardWidth + cardGap));
-    if (index >= 0 && index < homeEvents.length && index !== activeIndex) {
-      setActiveIndex(index);
-    }
-  };
-
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <ScrollView
         style={styles.container}
         contentContainerStyle={styles.content}
-      showsVerticalScrollIndicator={false}
-      refreshControl={
-        <RefreshControl
-          refreshing={refreshing}
-          onRefresh={handleRefresh}
-          tintColor={theme.colors.primary}
-        />
-      }
-    >
+        showsVerticalScrollIndicator={false}
+      >
       {/* Top Header */}
       <View style={styles.header}>
         <View>
@@ -118,120 +49,7 @@ export default function MobileHomeScreen() {
         <GatewayStatusBadge />
       </View>
 
-      {/* Loading State */}
-      {loading ? (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={theme.colors.primary} />
-          <Text style={styles.loadingText}>Connecting to TicketShield Gateway...</Text>
-        </View>
-      ) : error ? (
-        <View style={styles.errorBox}>
-          <AlertTriangle size={24} color={theme.colors.danger} />
-          <Text style={styles.errorTitle}>Unable to load events</Text>
-          <Text style={styles.errorDesc}>{error}</Text>
-          <FintechButton
-            title="Try Again"
-            onPress={() => fetchHomeData()}
-            variant="secondary"
-            style={styles.retryBtn}
-          />
-        </View>
-      ) : homeEvents.length === 0 ? (
-        <View style={styles.emptyContainer}>
-          <Text style={styles.emptyTitle}>No events available</Text>
-          <Text style={styles.emptySubtitle}>Upcoming events will appear here soon.</Text>
-        </View>
-      ) : (
-        <>
-          {/* Horizontal Events Carousel */}
-          <View style={styles.carouselContainer}>
-            <View style={styles.carouselHeader}>
-              <Text style={styles.sectionHeading}>Upcoming Events</Text>
-              {homeEvents.length > 1 && (
-                <Text style={styles.carouselCounterText}>
-                  {activeIndex + 1} / {homeEvents.length}
-                </Text>
-              )}
-            </View>
-
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              snapToInterval={cardWidth + cardGap}
-              snapToAlignment="start"
-              decelerationRate="fast"
-              contentContainerStyle={styles.carouselScrollContent}
-              onScroll={handleScroll}
-              scrollEventThrottle={16}
-            >
-              {homeEvents.map((event, idx) => {
-                const eventKey = event.eventId || event.id || event.name;
-                const isLast = idx === homeEvents.length - 1;
-
-                return (
-                  <TouchableOpacity
-                    key={eventKey}
-                    style={[
-                      styles.carouselCard,
-                      {
-                        width: cardWidth,
-                        marginRight: isLast ? 0 : cardGap,
-                      },
-                    ]}
-                    onPress={() => router.push('/(tabs)/marketplace')}
-                    activeOpacity={0.9}
-                  >
-                    <EventPoster seed={eventKey} height={190} />
-                    <View style={styles.heroOverlay}>
-                      <View style={styles.heroBadge}>
-                        <Calendar size={12} color={theme.colors.text} />
-                        <Text style={styles.heroBadgeText}>
-                          {formatEventDateTime(event.eventStartAt)}
-                        </Text>
-                      </View>
-
-                      <Text style={styles.heroEyebrow}>
-                        {event.category || event.artist || 'FEATURED EVENT'}
-                      </Text>
-                      <Text style={styles.heroTitle} numberOfLines={2}>
-                        {event.name}
-                      </Text>
-
-                      <View style={styles.heroFooter}>
-                        <View style={styles.heroVenue}>
-                          <MapPin size={13} color={theme.colors.textSecondary} />
-                          <Text style={styles.heroVenueText} numberOfLines={1}>
-                            {event.venue}
-                          </Text>
-                        </View>
-                        <View style={styles.heroCta}>
-                          <Text style={styles.heroCtaText}>View listings</Text>
-                          <ArrowRight size={14} color={theme.colors.onPrimary} />
-                        </View>
-                      </View>
-                    </View>
-                  </TouchableOpacity>
-                );
-              })}
-            </ScrollView>
-
-            {homeEvents.length > 1 && (
-              <View style={styles.paginationDots}>
-                {homeEvents.map((_, i) => (
-                  <View
-                    key={i}
-                    style={[
-                      styles.paginationDot,
-                      i === activeIndex && styles.paginationDotActive,
-                    ]}
-                  />
-                ))}
-              </View>
-            )}
-          </View>
-
-          {/* Quick Navigation Grid */}
-          <View style={styles.quickGrid}>
+      <View style={styles.quickGrid}>
             <TouchableOpacity
               style={styles.gridItem}
               onPress={() => router.push('/(tabs)/marketplace')}
@@ -267,9 +85,7 @@ export default function MobileHomeScreen() {
               <Text style={styles.gridTitle}>My Tickets</Text>
               <Text style={styles.gridSubtitle}>Live digital passes</Text>
             </TouchableOpacity>
-          </View>
-        </>
-      )}
+      </View>
     </ScrollView>
   </SafeAreaView>
   );

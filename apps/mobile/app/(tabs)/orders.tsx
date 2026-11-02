@@ -367,20 +367,20 @@ export default function MobileOrdersScreen() {
         >
           {item.type === 'SELL' ? (
             item.status === 'COMPLETED'
-              ? 'Ticket sold! Escrow payout is released upon verified event check-in.'
+              ? 'Ticket sold. Awaiting check-in.'
               : item.status === 'ESCROW_HOLDING'
-                ? 'A buyer is currently in checkout. Payment is secured in Escrow.'
+                ? 'Buyer is checking out.'
                 : item.status === 'LISTING_ACTIVE'
-                  ? 'Your ticket is live on Marketplace. Original barcode is locked with organizer.'
-                  : 'Resale listing was cancelled and ticket barcode unlocked.'
+                  ? 'Listing is active.'
+                  : 'Listing cancelled.'
           ) : (
             item.status === 'DISPUTED'
-              ? 'Dispute opened. Payout is frozen in Escrow pending turnstile scan audit.'
+              ? 'Dispute opened. Funds are frozen.'
               : item.status === 'ESCROW_HOLDING'
-                ? 'Ticket barcode is locked for resale. Funds are held safely in Escrow.'
+                ? 'Payment is held in escrow.'
                 : item.status === 'COMPLETED'
-                  ? 'Admission verified. Escrow settlement successfully disbursed.'
-                  : 'Order was cancelled and any held deposit refunded.'
+                  ? 'Payment settled.'
+                  : 'Order cancelled.'
           )}
         </Text>
       </View>

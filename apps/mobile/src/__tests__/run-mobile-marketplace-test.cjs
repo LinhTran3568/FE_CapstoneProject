@@ -124,12 +124,14 @@ async function run() {
       seatZone: 'GA Standing Zone 2',
     };
 
-    // Escrow Protection Fee: 3%
-    const escrowProtectionFee = Math.round(selectedListing.resalePrice * 0.03);
+    // Mirror the live backend fee policy: 5% with a 10.000 VND minimum.
+    const feePolicy = { buyerFeePercentage: 0.05, minimumBuyerFee: 10000 };
+    const percentageFee = Math.round(selectedListing.resalePrice * feePolicy.buyerFeePercentage);
+    const escrowProtectionFee = Math.max(percentageFee, feePolicy.minimumBuyerFee);
     const totalBuyerAmount = selectedListing.resalePrice + escrowProtectionFee;
 
-    assert(escrowProtectionFee === 1500, `Escrow Fee must be 1.500 VND, got ${escrowProtectionFee}`);
-    assert(totalBuyerAmount === 51500, `Total must be 51.500 VND, got ${totalBuyerAmount}`);
+    assert(escrowProtectionFee === 10000, `Escrow Fee must be 10.000 VND, got ${escrowProtectionFee}`);
+    assert(totalBuyerAmount === 60000, `Total must be 60.000 VND, got ${totalBuyerAmount}`);
 
     console.log(` [PASS] 2. When chọn vé & mở Bottom-Sheet tính giá (Vé: ${selectedListing.resalePrice.toLocaleString()}đ, Phí: ${escrowProtectionFee.toLocaleString()}đ, Tổng: ${totalBuyerAmount.toLocaleString()}đ) [OK]`);
     passed++;
