@@ -15,15 +15,15 @@ export interface BankTransferDetailsProps {
 
 export const BankTransferDetails: React.FC<BankTransferDetailsProps> = ({
   bankBin = '970422',
-  bankName = 'MB Bank (Ngân hàng Quân Đội)',
+  bankName = 'MB Bank (Military Commercial Joint Stock Bank)',
   accountNumber,
   accountName,
   amount,
   paymentReference,
-  currency = 'VND',
+  currency = '₫',
   className = '',
 }) => {
-  const formattedAmount = amount ? amount.toLocaleString('vi-VN') : '0';
+  const formattedAmount = amount ? amount.toLocaleString('en-US') : '0';
 
   return (
     <div className={`flex flex-col gap-3 ${className}`}>

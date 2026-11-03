@@ -31,7 +31,7 @@ export const AdminProfilePage: React.FC = () => {
   const handleSubmitProfile = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!fullName.trim()) {
-      showToast('Họ và tên không được để trống.', 'warning');
+      showToast('Full name cannot be empty.', 'warning');
       return;
     }
 
@@ -48,9 +48,9 @@ export const AdminProfilePage: React.FC = () => {
         phoneNumber: updatedUser.phoneNumber || phoneNumber.trim(),
       });
 
-      showToast('Cập nhật thông tin hồ sơ thành công!', 'success');
+      showToast('Profile updated successfully!', 'success');
     } catch (err: any) {
-      showToast(err?.message || 'Không thể cập nhật hồ sơ.', 'error');
+      showToast(err?.message || 'Failed to update profile.', 'error');
     } finally {
       setIsSaving(false);
     }
@@ -58,14 +58,11 @@ export const AdminProfilePage: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      {/* Page Title */}
-      <div>
-        <h1 className="text-xl sm:text-2xl font-bold font-display text-[#101722] tracking-tight">
-          Hồ sơ Nhân sự & Quản trị
+      {/* Page Title: Clean, No Subtext */}
+      <div className="border-b border-[#E5EAF0] pb-4">
+        <h1 className="text-xl font-bold text-[#101722] tracking-tight">
+          Profile & Account
         </h1>
-        <p className="text-xs sm:text-sm text-[#667085] mt-1">
-          Quản lý thông tin định danh cá nhân, vai trò phân quyền và phiên làm việc bảo mật
-        </p>
       </div>
 
       {/* Profile Header Card */}
@@ -77,7 +74,7 @@ export const AdminProfilePage: React.FC = () => {
             </div>
             <div>
               <div className="flex items-center gap-2 flex-wrap">
-                <h2 className="text-lg font-bold text-[#101722]">{user?.fullName || 'Nhân sự TicketShield'}</h2>
+                <h2 className="text-lg font-bold text-[#101722]">{user?.fullName || 'Staff Member'}</h2>
                 <span
                   className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-mono font-bold ${
                     isAdmin
@@ -86,11 +83,11 @@ export const AdminProfilePage: React.FC = () => {
                   }`}
                 >
                   {isAdmin ? <ShieldCheck className="w-3.5 h-3.5" /> : <ShieldAlert className="w-3.5 h-3.5" />}
-                  {isAdmin ? 'Super Administrator' : 'Staff Moderator (CSKH)'}
+                  {isAdmin ? 'Super Administrator' : 'Staff Moderator'}
                 </span>
                 <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-mono bg-emerald-50 text-emerald-700 border border-emerald-200 font-semibold">
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                  Đang hoạt động
+                  Active
                 </span>
               </div>
               <p className="text-xs text-[#667085] font-mono mt-1">{user?.email}</p>
@@ -105,15 +102,15 @@ export const AdminProfilePage: React.FC = () => {
           <div className="bg-white rounded-2xl border border-[#E5EAF0] p-6 shadow-sm space-y-5">
             <div className="flex items-center gap-2 border-b border-slate-100 pb-3">
               <User className="w-4 h-4 text-[#F45135]" />
-              <h3 className="text-sm font-bold text-[#101722] uppercase tracking-wider font-display">
-                Thông tin cá nhân
-              </h3>
+              <h2 className="text-xs font-bold text-[#101722] uppercase tracking-wider font-mono">
+                Personal Details
+              </h2>
             </div>
 
             <form onSubmit={handleSubmitProfile} className="space-y-4">
               <div>
                 <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-                  Họ và tên hiển thị <span className="text-rose-500">*</span>
+                  Display Name <span className="text-rose-500">*</span>
                 </label>
                 <div className="relative">
                   <User className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
@@ -121,7 +118,7 @@ export const AdminProfilePage: React.FC = () => {
                     type="text"
                     value={fullName}
                     onChange={(e) => setFullName(e.target.value)}
-                    placeholder="Nhập họ và tên..."
+                    placeholder="Enter your full name..."
                     className="w-full bg-slate-50 border border-[#E5EAF0] rounded-xl pl-9 pr-4 py-2.5 text-xs sm:text-sm text-[#101722] placeholder-slate-400 focus:outline-none focus:border-[#F45135] focus:bg-white transition-all"
                   />
                 </div>
@@ -129,7 +126,7 @@ export const AdminProfilePage: React.FC = () => {
 
               <div>
                 <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-                  Địa chỉ Email tài khoản <span className="text-slate-400">(Không thể thay đổi)</span>
+                  Account Email <span className="text-slate-400">(Read-only)</span>
                 </label>
                 <div className="relative">
                   <Mail className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
@@ -141,13 +138,13 @@ export const AdminProfilePage: React.FC = () => {
                   />
                 </div>
                 <p className="text-[11px] text-slate-400 mt-1">
-                  Email dùng để nhận thông báo khẩn cấp và phân quyền tài khoản hệ thống.
+                  Used for critical system notifications and role-based access.
                 </p>
               </div>
 
               <div>
                 <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-                  Số điện thoại liên hệ
+                  Contact Phone Number
                 </label>
                 <div className="relative">
                   <Phone className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
@@ -155,7 +152,7 @@ export const AdminProfilePage: React.FC = () => {
                     type="tel"
                     value={phoneNumber}
                     onChange={(e) => setPhoneNumber(e.target.value)}
-                    placeholder="Ví dụ: 0908888888"
+                    placeholder="e.g. +84 908 888 888"
                     className="w-full bg-slate-50 border border-[#E5EAF0] rounded-xl pl-9 pr-4 py-2.5 text-xs sm:text-sm text-[#101722] placeholder-slate-400 focus:outline-none focus:border-[#F45135] focus:bg-white transition-all font-mono"
                   />
                 </div>
@@ -168,7 +165,7 @@ export const AdminProfilePage: React.FC = () => {
                   className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#F45135] hover:bg-[#e03d22] disabled:opacity-50 text-white text-xs font-bold rounded-xl transition-all shadow-md shadow-[#F45135]/20 cursor-pointer"
                 >
                   <Save className="w-4 h-4" />
-                  <span>{isSaving ? 'Đang lưu...' : 'Lưu thay đổi'}</span>
+                  <span>{isSaving ? 'Saving...' : 'Save Changes'}</span>
                 </button>
               </div>
             </form>
@@ -180,14 +177,14 @@ export const AdminProfilePage: React.FC = () => {
           <div className="bg-white rounded-2xl border border-[#E5EAF0] p-6 shadow-sm space-y-4">
             <div className="flex items-center gap-2 border-b border-slate-100 pb-3">
               <BadgeCheck className="w-4 h-4 text-emerald-500" />
-              <h3 className="text-sm font-bold text-[#101722] uppercase tracking-wider font-display">
-                Phân quyền & Tác vụ
-              </h3>
+              <h2 className="text-xs font-bold text-[#101722] uppercase tracking-wider font-mono">
+                Permissions & Roles
+              </h2>
             </div>
 
             <p className="text-xs text-[#667085] leading-relaxed">
-              Dưới đây là các đặc quyền nghiệp vụ được cấp phát cho vai trò{' '}
-              <strong>{isAdmin ? 'Super Admin' : 'Staff Moderator'}</strong> trên hệ thống:
+              Operational privileges granted to{' '}
+              <strong>{isAdmin ? 'Super Admin' : 'Staff Moderator'}</strong> on TicketShield:
             </p>
 
             <div className="space-y-2.5">
@@ -195,34 +192,34 @@ export const AdminProfilePage: React.FC = () => {
                 <>
                   <div className="flex items-start gap-2.5 p-2.5 rounded-xl bg-slate-50 border border-slate-100 text-xs">
                     <CheckCircle2 className="w-4 h-4 text-purple-600 shrink-0 mt-0.5" />
-                    <span className="text-slate-700">Toàn quyền cấu hình phí sàn, buffer & trần giá vé</span>
+                    <span className="text-slate-700">Full control over fee schedules, buffers & price ceilings</span>
                   </div>
                   <div className="flex items-start gap-2.5 p-2.5 rounded-xl bg-slate-50 border border-slate-100 text-xs">
                     <CheckCircle2 className="w-4 h-4 text-purple-600 shrink-0 mt-0.5" />
-                    <span className="text-slate-700">Quản lý danh sách người dùng, nhân sự & đối tác BTC</span>
+                    <span className="text-slate-700">User, staff, and organizer partner management</span>
                   </div>
                   <div className="flex items-start gap-2.5 p-2.5 rounded-xl bg-slate-50 border border-slate-100 text-xs">
                     <CheckCircle2 className="w-4 h-4 text-purple-600 shrink-0 mt-0.5" />
-                    <span className="text-slate-700">Giám sát tổng quan doanh thu & giao dịch ký quỹ</span>
+                    <span className="text-slate-700">Escrow settlement & platform revenue observability</span>
                   </div>
                   <div className="flex items-start gap-2.5 p-2.5 rounded-xl bg-slate-50 border border-slate-100 text-xs">
                     <CheckCircle2 className="w-4 h-4 text-purple-600 shrink-0 mt-0.5" />
-                    <span className="text-slate-700">Phân xử khiếu nại vé cấp cao (Dispute Resolution)</span>
+                    <span className="text-slate-700">Executive dispute adjudication authority</span>
                   </div>
                 </>
               ) : (
                 <>
                   <div className="flex items-start gap-2.5 p-2.5 rounded-xl bg-amber-50/60 border border-amber-100 text-xs">
                     <CheckCircle2 className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
-                    <span className="text-slate-700">Tiếp nhận và tra cứu hồ sơ khiếu nại vé từ Người mua</span>
+                    <span className="text-slate-700">Receive and investigate buyer dispute dossiers</span>
                   </div>
                   <div className="flex items-start gap-2.5 p-2.5 rounded-xl bg-amber-50/60 border border-amber-100 text-xs">
                     <CheckCircle2 className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
-                    <span className="text-slate-700">Đối chiếu dữ liệu quét cổng soát vé tự động từ Ban tổ chức</span>
+                    <span className="text-slate-700">Inspect organizer gate check-in telemetry</span>
                   </div>
                   <div className="flex items-start gap-2.5 p-2.5 rounded-xl bg-amber-50/60 border border-amber-100 text-xs">
                     <CheckCircle2 className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
-                    <span className="text-slate-700">Thực thi quyết định 1-Click: Hoàn tiền hoặc Giải ngân</span>
+                    <span className="text-slate-700">Execute 1-Click resolution: Refund or Release Escrow</span>
                   </div>
                 </>
               )}

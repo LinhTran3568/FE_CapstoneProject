@@ -2,7 +2,6 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   X,
-  ShieldCheck,
   Check,
   AlertTriangle,
   RotateCw,
@@ -271,7 +270,7 @@ export const BuyTicketModal: React.FC<BuyTicketModalProps> = ({
       return;
     }
     if (isOwner) {
-      showToast('Bạn không thể tự mua vé do chính mình đăng bán!', 'error');
+      showToast('You cannot purchase your own listing!', 'error');
       return;
     }
     if (!fullName || !phone || !email) {
@@ -607,22 +606,8 @@ export const BuyTicketModal: React.FC<BuyTicketModalProps> = ({
                       </div>
                     )}
 
-                    {/* Escrow Guarantee & Transparent Fee Notice */}
-                    <div className="pt-2">
-                      <div className="p-3 rounded-xl bg-gradient-to-r from-emerald-500/10 via-[#ff5722]/5 to-transparent border border-emerald-500/20 text-xs text-zinc-300 space-y-1">
-                        <div className="flex items-center gap-1.5 font-bold text-emerald-400">
-                          <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />
-                          <span>Bảo đảm an toàn giao dịch Cyber-Escrow</span>
-                        </div>
-                        <p className="text-[11px] text-zinc-400 leading-relaxed font-sans">
-                          {isMinBuyerFeeApplied
-                            ? `Áp dụng mức phí dịch vụ tối thiểu (${formatVND(minBuyerFee)}/vé) để xác thực vé chính chủ với Ban tổ chức và giữ tiền ký quỹ an toàn 24h.`
-                            : `Phí dịch vụ bảo chứng (${buyerFeePercent}%) được áp dụng tự động để xác thực vé chính chủ với Ban tổ chức và giữ tiền ký quỹ an toàn 24h.`}
-                        </p>
-                      </div>
-                    </div>
-                  </form>
-                </div>
+                    </form>
+                  </div>
 
                 {/* RIGHT COLUMN (~36%): COMPACT ORDER SUMMARY */}
                 <div className="lg:col-span-5 bg-[#0C101A] lg:border-l border-[#28354D] p-6 space-y-4 h-full">
@@ -641,9 +626,9 @@ export const BuyTicketModal: React.FC<BuyTicketModalProps> = ({
 
                     <div className="flex justify-between items-center text-zinc-400">
                       <span className="flex items-center gap-1">
-                        <span>Escrow & Service Fee</span>
+                        <span>Service Fee</span>
                         <span className="text-xs text-amber-400 font-mono">
-                          {isMinBuyerFeeApplied ? `(Tối thiểu)` : `(${buyerFeePercent}%)`}
+                          {isMinBuyerFeeApplied ? `(Min Fee)` : `(${buyerFeePercent}%)`}
                         </span>
                       </span>
                       <span className="font-medium text-amber-400 font-mono tabular-nums">
@@ -752,29 +737,28 @@ export const BuyTicketModal: React.FC<BuyTicketModalProps> = ({
                 <div className="p-4 rounded-xl bg-[#0C101A] border border-[#28354D] space-y-3">
                   <div className="flex items-center justify-between text-xs">
                     <div className="flex items-center gap-1.5 font-bold text-zinc-300 uppercase tracking-wider text-[11px]">
-                      <ShieldCheck className="w-4 h-4 text-emerald-400" />
-                      <span>Chi tiết thanh toán Escrow (Xác thực bởi Backend)</span>
+                      <span>Payment Breakdown</span>
                     </div>
                     <span className="text-[10px] text-emerald-400 bg-emerald-500/10 px-2.5 py-0.5 rounded-full border border-emerald-500/20 font-mono font-semibold">
-                      CHỐT BIỂU PHÍ
+                      LOCKED RATE
                     </span>
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 text-xs font-mono">
                     <div className="p-2.5 rounded-lg bg-white/[0.02] border border-white/5">
-                      <div className="text-zinc-500 text-[10px] uppercase">Giá vé gốc</div>
+                      <div className="text-zinc-500 text-[10px] uppercase">Ticket Subtotal</div>
                       <div className="text-white font-bold text-sm mt-0.5 tabular-nums">
                         {formatVND(holdData.resalePrice || baseTicketPrice)}
                       </div>
                     </div>
                     <div className="p-2.5 rounded-lg bg-amber-500/[0.05] border border-amber-500/20">
-                      <div className="text-amber-400/80 text-[10px] uppercase">Phí bảo chứng (Buyer Fee)</div>
+                      <div className="text-amber-400/80 text-[10px] uppercase">Buyer Protection Fee</div>
                       <div className="text-amber-300 font-bold text-sm mt-0.5 tabular-nums">
                         +{formatVND(holdData.buyerFee)}
                       </div>
                     </div>
                     <div className="p-2.5 rounded-lg bg-[#ff5722]/10 border border-[#ff5722]/30">
-                      <div className="text-[#ff8a65] text-[10px] uppercase font-bold">Tổng thanh toán (QR)</div>
+                      <div className="text-[#ff8a65] text-[10px] uppercase font-bold">Total Amount (QR)</div>
                       <div className="text-[#ff5722] font-extrabold text-sm mt-0.5 tabular-nums">
                         {formatVND(holdData.totalBuyerPaid)}
                       </div>
@@ -784,12 +768,12 @@ export const BuyTicketModal: React.FC<BuyTicketModalProps> = ({
                   {holdData.bundleItems && holdData.bundleItems.length > 1 && (
                     <div className="pt-2 border-t border-white/5 space-y-1 text-[11px] font-mono text-zinc-400">
                       <div className="text-[10px] text-zinc-500 uppercase font-semibold">
-                        Chi tiết từng vé trong gói combo ({holdData.bundleItems.length} vé):
+                        Itemized tickets in bundle ({holdData.bundleItems.length}):
                       </div>
                       {holdData.bundleItems.map((item, idx) => (
                         <div key={item.listingId} className="flex justify-between items-center text-zinc-300">
-                          <span>Vé #{idx + 1}: {formatVND(item.resalePrice)}</span>
-                          <span className="text-amber-400/80">+ Phí: {formatVND(item.buyerFee)}</span>
+                          <span>Ticket #{idx + 1}: {formatVND(item.resalePrice)}</span>
+                          <span className="text-amber-400/80">+ Fee: {formatVND(item.buyerFee)}</span>
                         </div>
                       ))}
                     </div>

@@ -89,18 +89,18 @@ export const Step1EnterTicketCode: React.FC<Step1EnterTicketCodeProps> = ({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Xử lý thêm mã vé trực tiếp từ thanh input
+  // Handle adding direct ticket code
   const handleAddDirectCode = () => {
     const clean = directInputCode.trim().toUpperCase();
     if (!clean) return;
 
     if (selectedCodes.includes(clean)) {
-      setMainError(`Mã vé ${clean} đã có trong gói bán.`);
+      setMainError(`Ticket ${clean} is already in the bundle.`);
       return;
     }
 
     if (selectedCodes.length >= MAX_BUNDLE_TICKETS) {
-      setMainError(`Tối đa ${MAX_BUNDLE_TICKETS} vé trong một lượt đăng bán.`);
+      setMainError(`Maximum of ${MAX_BUNDLE_TICKETS} tickets per listing.`);
       return;
     }
 
@@ -110,14 +110,14 @@ export const Step1EnterTicketCode: React.FC<Step1EnterTicketCodeProps> = ({
     setMainError('');
   };
 
-  // Bắt đầu sửa NGAY TẠI THẺ VÉ ĐÓ
+  // Start in-place edit
   const handleStartEdit = (code: string) => {
     setEditingCode(code);
     setEditInputText(code);
     setMainError('');
   };
 
-  // Lưu sửa đổi ngay tại vị trí thẻ vé đó
+  // Save in-place edit
   const handleSaveEdit = (oldCode: string) => {
     const clean = editInputText.trim().toUpperCase();
     if (!clean) {
@@ -128,7 +128,7 @@ export const Step1EnterTicketCode: React.FC<Step1EnterTicketCodeProps> = ({
     }
 
     if (clean !== oldCode && selectedCodes.includes(clean)) {
-      setMainError(`Mã vé ${clean} đã có trong gói bán.`);
+      setMainError(`Ticket ${clean} is already in the bundle.`);
       return;
     }
 
@@ -139,13 +139,13 @@ export const Step1EnterTicketCode: React.FC<Step1EnterTicketCodeProps> = ({
     setMainError('');
   };
 
-  // Hủy sửa tại chỗ
+  // Cancel edit
   const handleCancelEdit = () => {
     setEditingCode(null);
     setEditInputText('');
   };
 
-  // Xóa một vé khỏi gói
+  // Remove ticket
   const handleRemoveTicket = (codeToRemove: string) => {
     const nextCodes = selectedCodes.filter((c) => c !== codeToRemove);
     setTicketCode(nextCodes.join(', '));
@@ -154,13 +154,13 @@ export const Step1EnterTicketCode: React.FC<Step1EnterTicketCodeProps> = ({
     }
   };
 
-  // Xóa toàn bộ vé
+  // Clear all
   const handleClearAll = () => {
     setTicketCode('');
     handleCancelEdit();
   };
 
-  // Mở Modal "Vé của tôi" để thêm vé
+  // Open wallet modal to add
   const handleOpenWalletModalForAdd = () => {
     setWalletModalMode('add');
     setTargetReplaceCode(null);
@@ -170,7 +170,7 @@ export const Step1EnterTicketCode: React.FC<Step1EnterTicketCodeProps> = ({
     setIsWalletModalOpen(true);
   };
 
-  // Mở Modal "Vé của tôi" để thay thế cho 1 vé đang sửa tại chỗ
+  // Open wallet modal to replace
   const handleOpenWalletModalForReplace = (codeToReplace: string) => {
     setWalletModalMode('replace');
     setTargetReplaceCode(codeToReplace);
@@ -180,12 +180,11 @@ export const Step1EnterTicketCode: React.FC<Step1EnterTicketCodeProps> = ({
     setIsWalletModalOpen(true);
   };
 
-  // Toggle chọn vé trong Modal "Vé của tôi"
+  // Toggle ticket selection in wallet modal
   const handleToggleWalletTicket = (ticket: PurchasedTicketDto) => {
     const code = purchasedPassCode(ticket).toUpperCase();
     if (!code) return;
 
-    // Chế độ thay thế: click 1 phát đổi ngay và đóng Modal
     if (walletModalMode === 'replace') {
       if (!targetReplaceCode) return;
       if (code === targetReplaceCode) {
@@ -194,17 +193,16 @@ export const Step1EnterTicketCode: React.FC<Step1EnterTicketCodeProps> = ({
       }
       const otherCodes = selectedCodes.filter((c) => c !== targetReplaceCode);
       if (otherCodes.includes(code)) {
-        setModalNotice(`Vé ${code} đã có trong gói bán.`);
+        setModalNotice(`Ticket ${code} is already in the bundle.`);
         return;
       }
-      // Ràng buộc cùng sự kiện
       if (otherCodes.length > 0) {
         const refTicket = eligibleTickets.find((t) =>
           otherCodes.includes(purchasedPassCode(t).toUpperCase())
         );
         if (refTicket && refTicket.eventId && ticket.eventId && refTicket.eventId !== ticket.eventId) {
           setModalNotice(
-            `Vé này thuộc sự kiện (${ticket.eventName}), không cùng sự kiện với các vé còn lại.`
+            `This ticket is for ${ticket.eventName}, which does not match other tickets in the bundle.`
           );
           return;
         }
@@ -217,22 +215,20 @@ export const Step1EnterTicketCode: React.FC<Step1EnterTicketCodeProps> = ({
       return;
     }
 
-    // Chế độ thêm vé: Checkbox đa chọn
     if (tempSelectedWalletCodes.includes(code)) {
       setTempSelectedWalletCodes(tempSelectedWalletCodes.filter((c) => c !== code));
       setModalNotice('');
     } else {
       if (tempSelectedWalletCodes.length >= MAX_BUNDLE_TICKETS) {
-        setModalNotice(`Tối đa ${MAX_BUNDLE_TICKETS} vé trong một lượt đăng bán.`);
+        setModalNotice(`Maximum of ${MAX_BUNDLE_TICKETS} tickets per listing.`);
         return;
       }
-      // Ràng buộc cùng sự kiện
       if (tempSelectedWalletCodes.length > 0) {
         const refTicket = eligibleTickets.find((t) =>
           tempSelectedWalletCodes.includes(purchasedPassCode(t).toUpperCase())
         );
         if (refTicket && refTicket.eventId && ticket.eventId && refTicket.eventId !== ticket.eventId) {
-          setModalNotice(`Tất cả các vé trong gói phải thuộc cùng sự kiện (${refTicket.eventName}).`);
+          setModalNotice(`All tickets in a bundle must belong to the same event (${refTicket.eventName}).`);
           return;
         }
       }
@@ -246,7 +242,6 @@ export const Step1EnterTicketCode: React.FC<Step1EnterTicketCodeProps> = ({
     setIsWalletModalOpen(false);
   };
 
-  // Xác định sự kiện tham chiếu để disabled các vé khác sự kiện trong Modal
   const activeEventId = (() => {
     if (walletModalMode === 'replace' && targetReplaceCode) {
       const otherCodes = selectedCodes.filter((c) => c !== targetReplaceCode);
@@ -260,7 +255,6 @@ export const Step1EnterTicketCode: React.FC<Step1EnterTicketCodeProps> = ({
     return null;
   })();
 
-  // Form submit: nếu đang gõ mã mà chưa bấm Thêm -> gửi kèm để xác thực nhưng KHÔNG lưu trước vào bundle!
   const handleFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -274,7 +268,7 @@ export const Step1EnterTicketCode: React.FC<Step1EnterTicketCodeProps> = ({
     if (pendingCode) {
       if (!codesToVerify.includes(pendingCode)) {
         if (codesToVerify.length >= MAX_BUNDLE_TICKETS) {
-          setMainError(`Tối đa ${MAX_BUNDLE_TICKETS} vé trong một lượt đăng bán.`);
+          setMainError(`Maximum of ${MAX_BUNDLE_TICKETS} tickets per listing.`);
           return;
         }
         codesToVerify.push(pendingCode);
@@ -282,11 +276,10 @@ export const Step1EnterTicketCode: React.FC<Step1EnterTicketCodeProps> = ({
     }
 
     if (codesToVerify.length === 0) {
-      setMainError('Vui lòng nhập mã vé trước khi xác thực.');
+      setMainError('Please enter a ticket code before verifying.');
       return;
     }
 
-    // Gửi danh sách vé cần xác thực mà KHÔNG tự tiện ghi đè state ticketCode trước
     const success = await handleStartVerification(e, codesToVerify);
     if (success) {
       setDirectInputCode('');
@@ -304,9 +297,9 @@ export const Step1EnterTicketCode: React.FC<Step1EnterTicketCodeProps> = ({
               <Building2 className="w-5 h-5" />
             </div>
             <div className="space-y-0.5">
-              <h4 className="text-xs sm:text-sm font-semibold text-white">Tài khoản nhận tiền (Tùy chọn)</h4>
+              <h4 className="text-xs sm:text-sm font-semibold text-white">Payout Account (Optional)</h4>
               <p className="text-[11px] sm:text-xs text-[#A3A8B3] leading-relaxed">
-                Bạn có thể liên kết tài khoản ngân hàng ngay hoặc bổ sung sau khi bán thành công.
+                You can link a bank account now or add one after your ticket sells.
               </p>
             </div>
           </div>
@@ -315,7 +308,7 @@ export const Step1EnterTicketCode: React.FC<Step1EnterTicketCodeProps> = ({
             onClick={onAddBankAccount}
             className="self-start sm:self-auto px-3.5 py-2 bg-white/10 hover:bg-white/15 border border-white/20 text-white rounded-xl text-xs font-semibold transition-all shrink-0 cursor-pointer flex items-center gap-1.5"
           >
-            <span>Liên kết ngay</span>
+            <span>Link Now</span>
             <ArrowRight className="w-3.5 h-3.5" />
           </button>
         </div>
@@ -326,13 +319,13 @@ export const Step1EnterTicketCode: React.FC<Step1EnterTicketCodeProps> = ({
         onSubmit={handleFormSubmit}
         className="space-y-6 text-left bg-[#0A0D12]/90 backdrop-blur-md border border-white/10 p-6 sm:p-8 rounded-3xl shadow-2xl hover:border-white/20 transition-all duration-300"
       >
-        {/* 1. Nền tảng phát hành vé (Organizer) */}
+        {/* 1. Ticketing Platform (Organizer) */}
         <div className="space-y-2">
           <label
             htmlFor="sell-organizer-select"
             className="text-xs font-semibold uppercase tracking-wider text-[#A3A8B3] font-display block"
           >
-            Nền tảng phát hành vé
+            Ticketing Platform
           </label>
           <div className="relative" ref={organizerDropdownRef}>
             <button
@@ -349,8 +342,8 @@ export const Step1EnterTicketCode: React.FC<Step1EnterTicketCodeProps> = ({
                 <Building2 className="w-5 h-5 text-zinc-400 shrink-0" />
                 <span className="text-sm font-semibold text-white">
                   {selectedOrganizerId
-                    ? organizers.find((o) => o.id === selectedOrganizerId)?.name || 'Chọn nền tảng phát hành'
-                    : 'VieON Entertainment (Mặc định)'}
+                    ? organizers.find((o) => o.id === selectedOrganizerId)?.name || 'Select ticketing platform'
+                    : 'VieON Entertainment (Default)'}
                 </span>
               </div>
               <ChevronDown
@@ -376,7 +369,7 @@ export const Step1EnterTicketCode: React.FC<Step1EnterTicketCodeProps> = ({
                 >
                   <div>
                     <div className="font-semibold text-white">VieON Entertainment</div>
-                    <div className="text-[11px] text-[#8B929C]">Mặc định · VieON Ticketing Platform</div>
+                    <div className="text-[11px] text-[#8B929C]">Default · VieON Ticketing Platform</div>
                   </div>
                   {!selectedOrganizerId && <Check className="w-4 h-4 text-[#FF5A36] shrink-0" />}
                 </button>
@@ -410,20 +403,20 @@ export const Step1EnterTicketCode: React.FC<Step1EnterTicketCodeProps> = ({
           </div>
         </div>
 
-        {/* 2. Danh sách vé đăng bán (Single Source of Truth) */}
+        {/* 2. Tickets for Sale */}
         <div className="space-y-3">
           <div className="flex items-center justify-between">
             <div>
               <label className="text-xs font-semibold uppercase tracking-wider text-[#A3A8B3] font-display block">
-                Vé đăng bán
+                Tickets for Sale
               </label>
               <span className="text-[11px] text-zinc-400 mt-0.5 block">
-                Bạn có thể đăng bán tối đa 3 vé trong 1 tin combo
+                You can list up to 3 tickets together in a bundle
               </span>
             </div>
             <div className="flex items-center gap-2">
               <span className="text-xs font-mono text-zinc-300 bg-white/5 border border-white/10 px-2.5 py-1 rounded-lg">
-                Đã chọn: <span className="text-[#FF5A36] font-bold">{selectedCodes.length}</span>/{MAX_BUNDLE_TICKETS} vé
+                Selected: <span className="text-[#FF5A36] font-bold">{selectedCodes.length}</span>/{MAX_BUNDLE_TICKETS} tickets
               </span>
             </div>
           </div>
@@ -441,7 +434,7 @@ export const Step1EnterTicketCode: React.FC<Step1EnterTicketCodeProps> = ({
             </div>
           )}
 
-          {/* Danh sách các thẻ vé đã chọn — Hỗ trợ Sửa ngay tại chỗ (In-Place Edit) */}
+          {/* Selected ticket cards — In-place edit supported */}
           {selectedCodes.length > 0 && (
             <div className="space-y-2">
               {selectedCodes.map((code, index) => {
@@ -450,21 +443,19 @@ export const Step1EnterTicketCode: React.FC<Step1EnterTicketCodeProps> = ({
                   (t) => purchasedPassCode(t).toUpperCase() === code
                 );
 
-                // =========================================================
-                // CHẾ ĐỘ SỬA TRỰC TIẾP TÁI SỬ DỤNG HOÀN TOÀN THANH INPUT CHÍNH (HÌNH 1)
-                // =========================================================
+                // In-place edit mode
                 if (isEditingThis) {
                   return (
                     <div
                       key={code}
                       className="flex items-center bg-[#05070A] border border-[#FF5A36] ring-2 ring-[#FF5A36]/20 rounded-2xl h-14 pl-3.5 pr-2 gap-2 transition-colors shadow-inner"
                     >
-                      {/* Badge số thứ tự vé */}
+                      {/* Ticket index badge */}
                       <div className="w-7 h-7 rounded-lg bg-[#FF5A36]/15 border border-[#FF5A36]/30 text-[#FF5A36] flex items-center justify-center shrink-0 font-mono font-bold text-xs">
                         #{index + 1}
                       </div>
 
-                      {/* Input trong suốt không viền con */}
+                      {/* Transparent input */}
                       <input
                         type="text"
                         value={editInputText}
@@ -479,43 +470,42 @@ export const Step1EnterTicketCode: React.FC<Step1EnterTicketCodeProps> = ({
                           }
                         }}
                         autoFocus
-                        placeholder="Nhập mã vé..."
+                        placeholder="Enter ticket code..."
                         className="flex-1 bg-transparent border-0 outline-none text-sm sm:text-base font-mono font-bold text-white placeholder-zinc-500 tracking-wider min-w-0"
                       />
 
-                      {/* Cụm nút Lưu & Hủy */}
+                      {/* Save & Cancel */}
                       <div className="flex items-center gap-1.5 shrink-0">
                         <button
                           type="button"
                           onClick={() => handleSaveEdit(code)}
                           className="h-9 px-3.5 bg-[#FF5A36] hover:bg-[#FF7252] text-white text-xs font-bold rounded-xl transition-all shadow-sm shadow-[#FF5A36]/30 cursor-pointer flex items-center gap-1 active:scale-95"
-                          title="Lưu (Enter)"
+                          title="Save (Enter)"
                         >
                           <Check className="w-3.5 h-3.5 stroke-[3]" />
-                          <span>Lưu</span>
+                          <span>Save</span>
                         </button>
                         <button
                           type="button"
                           onClick={handleCancelEdit}
                           className="h-9 px-3 bg-white/10 hover:bg-white/15 text-zinc-300 hover:text-white text-xs font-semibold rounded-xl transition-all cursor-pointer flex items-center justify-center"
-                          title="Hủy (Esc)"
+                          title="Cancel (Esc)"
                         >
-                          Hủy
+                          Cancel
                         </button>
                       </div>
 
-                      {/* Vạch phân cách */}
                       <div className="h-6 w-px bg-white/10 shrink-0" />
 
-                      {/* Nút "Vé của tôi" (LUÔN LUÔN HIỆN DIỆN ĐỂ CHỌN THAY THẾ) */}
+                      {/* Wallet button */}
                       <button
                         type="button"
                         onClick={() => handleOpenWalletModalForReplace(code)}
                         className="h-9 px-3 rounded-xl flex items-center gap-1.5 text-xs font-semibold shrink-0 transition-all cursor-pointer bg-[#151921] hover:bg-[#1C222C] text-zinc-200 hover:text-white border border-white/10"
-                        title="Chọn vé từ ví tài khoản để thay thế mã này"
+                        title="Select ticket from wallet to replace this code"
                       >
                         <span className="whitespace-nowrap">
-                          Vé của tôi {eligibleTickets.length > 0 ? `(${eligibleTickets.length})` : '(0)'}
+                          My Tickets {eligibleTickets.length > 0 ? `(${eligibleTickets.length})` : '(0)'}
                         </span>
                         <ChevronDown className="w-3.5 h-3.5 text-zinc-400" />
                       </button>
@@ -523,15 +513,13 @@ export const Step1EnterTicketCode: React.FC<Step1EnterTicketCodeProps> = ({
                   );
                 }
 
-                // =========================================================
-                // CHẾ ĐỘ HIỂN THỊ THẺ VÉ BÌNH THƯỜNG (CỐ ĐỊNH H-14 ĐỒNG NHẤT)
-                // =========================================================
+                // Normal card display
                 return (
                   <div
                     key={code}
                     onClick={() => handleStartEdit(code)}
                     className="flex items-center justify-between bg-[#0D121B] border border-white/10 hover:border-white/25 hover:bg-[#121824] rounded-2xl h-14 pl-3.5 pr-2 gap-2 transition-colors shadow-md cursor-pointer group"
-                    title="Bấm vào để chỉnh sửa mã vé này"
+                    title="Click to edit this ticket code"
                   >
                     <div className="flex items-center gap-2.5 min-w-0 flex-1">
                       <div className="w-7 h-7 rounded-lg bg-[#FF5A36]/10 border border-[#FF5A36]/25 group-hover:border-[#FF5A36]/50 text-[#FF5A36] flex items-center justify-center shrink-0 font-mono font-bold text-xs transition-colors">
@@ -545,7 +533,7 @@ export const Step1EnterTicketCode: React.FC<Step1EnterTicketCodeProps> = ({
                           {matched ? (
                             <div className="flex items-center gap-1.5 min-w-0 truncate">
                               <span className="text-[10px] bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 px-1.5 py-0.2 rounded font-medium shrink-0">
-                                Vé ví
+                                Wallet
                               </span>
                               <span className="text-xs text-zinc-400 truncate hidden sm:inline">
                                 · {matched.eventName} ({matched.tierName})
@@ -562,7 +550,7 @@ export const Step1EnterTicketCode: React.FC<Step1EnterTicketCodeProps> = ({
                             </div>
                           ) : (
                             <span className="text-xs text-zinc-500 truncate hidden sm:inline">
-                              · Mã vé nhập thủ công
+                              · Manually entered
                             </span>
                           )}
                         </div>
@@ -574,10 +562,10 @@ export const Step1EnterTicketCode: React.FC<Step1EnterTicketCodeProps> = ({
                         type="button"
                         onClick={() => handleStartEdit(code)}
                         className="h-9 px-3 bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-semibold text-zinc-300 hover:text-white rounded-xl transition-all cursor-pointer flex items-center gap-1"
-                        title="Sửa mã vé này"
+                        title="Edit this ticket"
                       >
                         <Pencil className="w-3.5 h-3.5 text-zinc-400" />
-                        <span className="hidden sm:inline">Sửa</span>
+                        <span className="hidden sm:inline">Edit</span>
                       </button>
                       <button
                         type="button"
@@ -586,7 +574,7 @@ export const Step1EnterTicketCode: React.FC<Step1EnterTicketCodeProps> = ({
                           handleRemoveTicket(code);
                         }}
                         className="h-9 w-9 bg-white/5 hover:bg-rose-500/15 border border-white/10 hover:border-rose-500/30 text-zinc-400 hover:text-rose-400 rounded-xl transition-all cursor-pointer flex items-center justify-center"
-                        title="Xóa vé này khỏi gói"
+                        title="Remove ticket"
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>
@@ -595,7 +583,7 @@ export const Step1EnterTicketCode: React.FC<Step1EnterTicketCodeProps> = ({
                 );
               })}
 
-              {/* Tùy chọn xóa tất cả nếu có nhiều vé */}
+              {/* Clear all tickets */}
               {selectedCodes.length > 1 && !editingCode && (
                 <div className="flex justify-end pt-0.5">
                   <button
@@ -603,16 +591,14 @@ export const Step1EnterTicketCode: React.FC<Step1EnterTicketCodeProps> = ({
                     onClick={handleClearAll}
                     className="text-[11px] text-zinc-500 hover:text-rose-400 transition-colors cursor-pointer"
                   >
-                    Xóa tất cả {selectedCodes.length} vé
+                    Remove all {selectedCodes.length} tickets
                   </button>
                 </div>
               )}
             </div>
           )}
 
-          {/* ========================================================================= */}
-          {/* THANH NHẬP MÃ VÉ CHÍNH + NÚT "VÉ CỦA TÔI" (GIỮ NGUYÊN VÀ VÔ HIỆU HÓA KHI SỬA) */}
-          {/* ========================================================================= */}
+          {/* Direct Input Bar */}
           {selectedCodes.length < MAX_BUNDLE_TICKETS && (
             <div className={`pt-1 space-y-1.5 transition-opacity ${editingCode ? 'opacity-35 pointer-events-none select-none' : ''}`}>
               <div
@@ -640,29 +626,28 @@ export const Step1EnterTicketCode: React.FC<Step1EnterTicketCodeProps> = ({
                   }}
                   placeholder={
                     editingCode
-                      ? 'Đang chỉnh sửa vé ở trên...'
+                      ? 'Editing ticket above...'
                       : selectedCodes.length === 0
-                        ? 'Nhập mã vé (VD: ATSH-VIP-888)...'
-                        : `Nhập thêm mã vé thứ ${selectedCodes.length + 1}...`
+                        ? 'Enter ticket code (e.g. ATSH-VIP-888)...'
+                        : `Enter code for ticket #${selectedCodes.length + 1}...`
                   }
                   className="flex-1 bg-transparent border-0 outline-none text-sm sm:text-base font-mono font-bold text-white placeholder-zinc-500 tracking-wider min-w-0 disabled:cursor-not-allowed"
                 />
 
-                {/* Nút Thêm vé khi đang gõ */}
+                {/* Add button */}
                 {directInputCode.trim() && !editingCode && (
                   <button
                     type="button"
                     onClick={handleAddDirectCode}
                     className="h-9 px-3.5 bg-[#FF5A36] hover:bg-[#FF7252] text-white text-xs font-bold rounded-xl transition-all shadow-sm shadow-[#FF5A36]/30 cursor-pointer shrink-0 active:scale-95 flex items-center justify-center"
                   >
-                    + Thêm
+                    + Add
                   </button>
                 )}
 
-                {/* Phân cách nhẹ */}
                 <div className="h-6 w-px bg-white/10 shrink-0" />
 
-                {/* Nút "Vé của tôi" (LUÔN LUÔN HIỆN DIỆN ĐỂ MỞ VÍ VÉ) */}
+                {/* Wallet Button */}
                 <button
                   type="button"
                   disabled={Boolean(editingCode)}
@@ -670,7 +655,7 @@ export const Step1EnterTicketCode: React.FC<Step1EnterTicketCodeProps> = ({
                   className="h-9 px-3 rounded-xl flex items-center gap-1.5 text-xs font-semibold shrink-0 transition-all cursor-pointer bg-[#151921] hover:bg-[#1C222C] text-zinc-200 hover:text-white border border-white/10 disabled:cursor-not-allowed"
                 >
                   <span className="whitespace-nowrap">
-                    Vé của tôi {eligibleTickets.length > 0 ? `(${eligibleTickets.length})` : '(0)'}
+                    My Tickets {eligibleTickets.length > 0 ? `(${eligibleTickets.length})` : '(0)'}
                   </span>
                   <ChevronDown className="w-3.5 h-3.5 text-zinc-400" />
                 </button>
@@ -679,7 +664,7 @@ export const Step1EnterTicketCode: React.FC<Step1EnterTicketCodeProps> = ({
           )}
         </div>
 
-        {/* 3. Nút Submit bắt đầu xác thực */}
+        {/* 3. Submit Button */}
         <button
           type="submit"
           disabled={isRequestingOtp || (selectedCodes.length === 0 && !directInputCode.trim())}
@@ -692,27 +677,25 @@ export const Step1EnterTicketCode: React.FC<Step1EnterTicketCodeProps> = ({
           {isRequestingOtp ? (
             <>
               <Loader2 className="w-5 h-5 animate-spin" />
-              <span>Đang gửi mã OTP xác thực...</span>
+              <span>Sending verification OTP...</span>
             </>
           ) : (
             <span>
               {(() => {
                 const pending = directInputCode.trim().toUpperCase();
                 const total = selectedCodes.length + (pending && !selectedCodes.includes(pending) ? 1 : 0);
-                return total > 1 ? `Xác thực ${total} vé` : 'Bắt đầu xác thực vé';
+                return total > 1 ? `Verify ${total} Tickets` : 'Verify Tickets';
               })()}
             </span>
           )}
         </button>
       </form>
 
-      {/* ========================================================================= */}
-      {/* MODAL "VÉ CỦA TÔI" (DÙNG ĐỂ CHỌN VÉ CÓ SẴN TRONG TÀI KHOẢN)                */}
-      {/* ========================================================================= */}
+      {/* Wallet Modal */}
       {isWalletModalOpen && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in">
           <div className="w-full max-w-lg bg-[#0A0D12] border border-white/15 rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[85vh] animate-in zoom-in-95">
-            {/* Header Dialog */}
+            {/* Dialog Header */}
             <div className="p-4 sm:p-5 border-b border-white/10 flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-xl bg-[#FF5A36]/10 border border-[#FF5A36]/20 text-[#FF5A36] flex items-center justify-center">
@@ -720,12 +703,12 @@ export const Step1EnterTicketCode: React.FC<Step1EnterTicketCodeProps> = ({
                 </div>
                 <div>
                   <h3 className="text-sm sm:text-base font-bold text-white">
-                    {walletModalMode === 'add' ? 'Vé trong tài khoản của bạn' : `Đổi vé ${targetReplaceCode}`}
+                    {walletModalMode === 'add' ? 'Tickets in Your Account' : `Replace Ticket ${targetReplaceCode}`}
                   </h3>
                   <p className="text-xs text-zinc-400">
                     {walletModalMode === 'add'
-                      ? `Chọn tối đa ${MAX_BUNDLE_TICKETS} vé để đăng bán combo`
-                      : 'Chọn 1 vé từ ví để thay thế'}
+                      ? `Select up to ${MAX_BUNDLE_TICKETS} tickets for a bundle listing`
+                      : 'Select a ticket to replace'}
                   </p>
                 </div>
               </div>
@@ -759,9 +742,9 @@ export const Step1EnterTicketCode: React.FC<Step1EnterTicketCodeProps> = ({
                     <Ticket className="w-6 h-6" />
                   </div>
                   <div>
-                    <h4 className="text-sm font-bold text-white">Chưa có vé nào trong ví</h4>
+                    <h4 className="text-sm font-bold text-white">No tickets in wallet</h4>
                     <p className="text-xs text-zinc-400 mt-1 max-w-sm mx-auto leading-relaxed">
-                      Tài khoản của bạn hiện chưa sở hữu vé sự kiện nào trên TicketShield. Bạn có thể nhập mã vé Ban tổ chức cấp ở ô bên ngoài.
+                      You currently have no event tickets in your TicketShield wallet. You can manually enter ticket codes in the input field.
                     </p>
                   </div>
                   <button
@@ -769,7 +752,7 @@ export const Step1EnterTicketCode: React.FC<Step1EnterTicketCodeProps> = ({
                     onClick={() => setIsWalletModalOpen(false)}
                     className="px-4 py-2 bg-white/10 hover:bg-white/15 text-white text-xs font-semibold rounded-xl transition-all cursor-pointer"
                   >
-                    Đã hiểu, quay lại
+                    Got it, go back
                   </button>
                 </div>
               ) : (
@@ -781,7 +764,7 @@ export const Step1EnterTicketCode: React.FC<Step1EnterTicketCodeProps> = ({
                       type="text"
                       value={ticketSearch}
                       onChange={(e) => setTicketSearch(e.target.value)}
-                      placeholder="Tìm kiếm theo mã vé, tên sự kiện..."
+                      placeholder="Search by ticket code, event name..."
                       className="flex-1 bg-transparent border-0 outline-none text-xs text-white placeholder-zinc-500"
                     />
                     {ticketSearch && (
@@ -795,7 +778,7 @@ export const Step1EnterTicketCode: React.FC<Step1EnterTicketCodeProps> = ({
                     )}
                   </div>
 
-                  {/* Danh sách vé */}
+                  {/* Ticket List */}
                   <div className="space-y-2 pt-1">
                     {(() => {
                       const filtered = eligibleTickets.filter((t) => {
@@ -811,7 +794,7 @@ export const Step1EnterTicketCode: React.FC<Step1EnterTicketCodeProps> = ({
                       if (filtered.length === 0) {
                         return (
                           <div className="py-8 text-center text-xs text-zinc-500">
-                            Không tìm thấy vé phù hợp với từ khóa.
+                            No tickets match your search.
                           </div>
                         );
                       }
@@ -823,7 +806,6 @@ export const Step1EnterTicketCode: React.FC<Step1EnterTicketCodeProps> = ({
                           walletModalMode === 'replace' && selectedCodes.includes(code) && code !== targetReplaceCode;
                         const isCheckedInAdd = walletModalMode === 'add' && tempSelectedWalletCodes.includes(code);
 
-                        // Ràng buộc cùng sự kiện
                         const isDiffEvent = Boolean(activeEventId && t.eventId && t.eventId !== activeEventId);
                         const isDisabled = isOtherSelectedInMain || isDiffEvent;
 
@@ -863,12 +845,12 @@ export const Step1EnterTicketCode: React.FC<Step1EnterTicketCodeProps> = ({
                                   <span className="font-mono font-bold text-xs text-[#FF5A36]">{code}</span>
                                   {isDiffEvent && (
                                     <span className="text-[10px] text-amber-400 bg-amber-400/10 px-1.5 py-0.2 rounded font-sans">
-                                      Khác sự kiện
+                                      Different Event
                                     </span>
                                   )}
                                   {isOtherSelectedInMain && (
                                     <span className="text-[10px] text-zinc-400 bg-white/10 px-1.5 py-0.2 rounded font-sans">
-                                      Đã trong gói
+                                      In Bundle
                                     </span>
                                   )}
                                 </div>
@@ -889,20 +871,20 @@ export const Step1EnterTicketCode: React.FC<Step1EnterTicketCodeProps> = ({
                             <div className="shrink-0 text-right">
                               {walletModalMode === 'replace' ? (
                                 isCurrentTarget ? (
-                                  <span className="text-[11px] font-mono text-[#FF5A36] font-bold">Vé đang sửa</span>
+                                  <span className="text-[11px] font-mono text-[#FF5A36] font-bold">Current</span>
                                 ) : isOtherSelectedInMain ? (
-                                  <span className="text-[11px] font-mono text-zinc-500">Đã chọn</span>
+                                  <span className="text-[11px] font-mono text-zinc-500">Selected</span>
                                 ) : isDiffEvent ? (
-                                  <span className="text-[11px] font-mono text-zinc-500">Không khớp</span>
+                                  <span className="text-[11px] font-mono text-zinc-500">Mismatch</span>
                                 ) : (
                                   <span className="text-[11px] bg-[#FF5A36] hover:bg-[#FF7252] text-white px-2.5 py-1 rounded-lg font-bold shadow-sm shadow-[#FF5A36]/30 inline-flex items-center gap-1 transition-all">
-                                    <span>Đổi vé này</span>
+                                    <span>Replace with this</span>
                                     <ArrowRight className="w-3 h-3" />
                                   </span>
                                 )
                               ) : (
                                 <span className="text-[11px] font-mono text-zinc-400">
-                                  {isCheckedInAdd ? 'Đã tick' : 'Chọn'}
+                                  {isCheckedInAdd ? 'Selected' : 'Select'}
                                 </span>
                               )}
                             </div>
@@ -915,12 +897,12 @@ export const Step1EnterTicketCode: React.FC<Step1EnterTicketCodeProps> = ({
               )}
             </div>
 
-            {/* Modal Footer (Chỉ cho chế độ Add khi có vé) */}
+            {/* Modal Footer */}
             {eligibleTickets.length > 0 && walletModalMode === 'add' && (
               <div className="p-4 bg-[#05070A] border-t border-white/10 flex items-center justify-between gap-3">
                 <div className="text-xs text-zinc-400">
-                  Đã chọn: <span className="text-[#FF5A36] font-bold font-mono">{tempSelectedWalletCodes.length}</span>/
-                  {MAX_BUNDLE_TICKETS} vé
+                  Selected: <span className="text-[#FF5A36] font-bold font-mono">{tempSelectedWalletCodes.length}</span>/
+                  {MAX_BUNDLE_TICKETS} tickets
                 </div>
                 <div className="flex items-center gap-2">
                   <button
@@ -928,14 +910,14 @@ export const Step1EnterTicketCode: React.FC<Step1EnterTicketCodeProps> = ({
                     onClick={() => setIsWalletModalOpen(false)}
                     className="px-3.5 py-2 bg-white/10 hover:bg-white/15 text-white rounded-xl text-xs font-semibold transition-all cursor-pointer"
                   >
-                    Hủy
+                    Cancel
                   </button>
                   <button
                     type="button"
                     onClick={handleConfirmWalletSelection}
                     className="px-4 py-2 bg-[#FF5A36] hover:bg-[#FF7252] text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-[#FF5A36]/20 cursor-pointer"
                   >
-                    Xác nhận chọn ({tempSelectedWalletCodes.length})
+                    Confirm Selection ({tempSelectedWalletCodes.length})
                   </button>
                 </div>
               </div>

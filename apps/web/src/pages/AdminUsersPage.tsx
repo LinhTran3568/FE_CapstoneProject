@@ -57,22 +57,22 @@ export const AdminUsersPage: React.FC = () => {
   const [selectedUser, setSelectedUser] = useState<DisplayUserRecord | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
-  // Ánh xạ role từ backend sang định dạng hiển thị
+  // Role mapping from backend to display format
   const mapRole = (roleStr: string): { role: DisplayUserRecord['role']; roleLabel: string } => {
     const upper = (roleStr || '').toUpperCase();
     if (upper === 'ADMIN' || upper === '3') {
       return { role: 'ADMIN', roleLabel: 'Super Admin' };
     }
     if (upper === 'MODERATOR' || upper === 'CSKH' || upper === '4') {
-      return { role: 'MODERATOR', roleLabel: 'Kiểm Duyệt Viên / CSKH' };
+      return { role: 'MODERATOR', roleLabel: 'Support / Moderator' };
     }
     if (upper === 'ORGANIZER' || upper === '2') {
-      return { role: 'ORGANIZER', roleLabel: 'Ban Tổ Chức (Organizer)' };
+      return { role: 'ORGANIZER', roleLabel: 'Event Organizer' };
     }
-    return { role: 'USER', roleLabel: 'Người Dùng (Trader)' };
+    return { role: 'USER', roleLabel: 'Trader' };
   };
 
-  // Tải danh sách người dùng từ API Backend
+  // Fetch users from Backend API
   const fetchUsers = useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -83,7 +83,7 @@ export const AdminUsersPage: React.FC = () => {
           const { role, roleLabel } = mapRole(dto.role);
           return {
             id: dto.id,
-            fullName: dto.fullName || 'Người dùng hệ thống',
+            fullName: dto.fullName || 'System User',
             email: dto.email,
             phoneNumber: dto.phoneNumber,
             role,
@@ -102,7 +102,7 @@ export const AdminUsersPage: React.FC = () => {
           };
         });
 
-        // Đảm bảo phiên đăng nhập hiện tại luôn có mặt nếu chưa có
+        // Ensure current active user session is present
         if (currentAuthUser?.id && !mappedList.some((u) => u.id === currentAuthUser.id)) {
           mappedList.unshift({
             id: currentAuthUser.id,
@@ -123,8 +123,8 @@ export const AdminUsersPage: React.FC = () => {
         setUsers([]);
       }
     } catch (err: any) {
-      console.warn('Lỗi tải danh sách người dùng từ BE:', err);
-      setError(err?.message || 'Không thể đồng bộ danh sách tài khoản từ máy chủ.');
+      console.warn('Failed to fetch user directory from BE:', err);
+      setError(err?.message || 'Unable to sync user accounts from the server.');
     } finally {
       setLoading(false);
     }
@@ -138,19 +138,19 @@ export const AdminUsersPage: React.FC = () => {
     e.stopPropagation();
     navigator.clipboard.writeText(id);
     setCopiedId(id);
-    showToast('Đã sao chép UUID tài khoản', 'success');
+    showToast('Copied user UUID to clipboard', 'success');
     setTimeout(() => setCopiedId(null), 2000);
   };
 
   const handleSuspend = async (targetId: string, e: React.MouseEvent) => {
     e.stopPropagation();
     if (targetId === currentAuthUser?.id) {
-      showToast('Không thể khóa tài khoản đang trong phiên làm việc hiện tại!', 'error');
+      showToast('Cannot suspend currently active user session!', 'error');
       return;
     }
 
     const confirmed = window.confirm(
-      'CẢNH BÁO (SCRUM-220): Bạn có chắc chắn muốn khóa vĩnh viễn tài khoản người dùng này không?\n\nHành động này sẽ hạ điểm uy tín TrustScore về 0 và lập tức thu hồi toàn bộ phiên đăng nhập.'
+      'WARNING: Are you sure you want to permanently suspend this user account?\n\nThis action will set TrustScore to 0 and immediately revoke all active sessions.'
     );
     if (!confirmed) return;
 
@@ -163,9 +163,9 @@ export const AdminUsersPage: React.FC = () => {
       if (selectedUser?.id === targetId) {
         setSelectedUser((prev) => (prev ? { ...prev, isActive: false, trustScore: 0 } : null));
       }
-      showToast('Đã khóa vĩnh viễn tài khoản người dùng thành công (SCRUM-220)!', 'success');
+      showToast('User account has been permanently suspended.', 'success');
     } catch (err: any) {
-      showToast(err?.message || 'Không thể khóa tài khoản người dùng.', 'error');
+      showToast(err?.message || 'Failed to suspend user account.', 'error');
     } finally {
       setActionLoadingId(null);
     }
@@ -219,14 +219,14 @@ export const AdminUsersPage: React.FC = () => {
         return (
           <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-amber-100 text-amber-800 border border-amber-200">
             <ShieldCheck className="w-3 h-3 text-amber-600" />
-            CSKH / MODERATOR
+            SUPPORT / MODERATOR
           </span>
         );
       case 'ORGANIZER':
         return (
           <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-blue-100 text-blue-800 border border-blue-200">
             <Building2 className="w-3 h-3 text-blue-600" />
-            BAN TỔ CHỨC
+            ORGANIZER
           </span>
         );
       case 'USER':
@@ -234,7 +234,7 @@ export const AdminUsersPage: React.FC = () => {
         return (
           <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-mono font-semibold bg-slate-100 text-slate-700 border border-slate-200">
             <Users className="w-3 h-3 text-slate-500" />
-            NGƯỜI DÙNG
+            TRADER
           </span>
         );
     }
@@ -246,14 +246,11 @@ export const AdminUsersPage: React.FC = () => {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#E5EAF0] pb-4">
         <div>
           <h1 className="text-xl font-bold text-[#101722] tracking-tight flex items-center gap-2">
-            <span>Danh Sách Tài Khoản Người Dùng</span>
+            <span>User Directory</span>
             <span className="text-[11px] font-mono font-bold px-2 py-0.5 rounded bg-slate-100 text-slate-700 border border-slate-200">
-              {filteredUsers.length} tài khoản
+              {filteredUsers.length} accounts
             </span>
           </h1>
-          <p className="text-xs text-[#667085] mt-0.5">
-            Dữ liệu tài khoản thời gian thực từ cơ sở dữ liệu TicketShield Identity
-          </p>
         </div>
 
         <div className="flex items-center gap-2">
@@ -264,7 +261,7 @@ export const AdminUsersPage: React.FC = () => {
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-white border border-[#E5EAF0] text-[#101722] hover:bg-slate-50 transition-colors shadow-2xs disabled:opacity-50"
           >
             <RefreshCw className={`w-3.5 h-3.5 text-[#667085] ${loading ? 'animate-spin text-[#F45135]' : ''}`} />
-            <span>Làm Mới</span>
+            <span>Refresh</span>
           </button>
         </div>
       </div>
@@ -273,42 +270,42 @@ export const AdminUsersPage: React.FC = () => {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5">
         <div className="bg-white border border-[#E5EAF0] rounded-xl p-3.5 shadow-2xs">
           <div className="text-[10px] font-bold text-[#667085] uppercase tracking-wider font-mono">
-            Tổng Tài Khoản
+            Total Accounts
           </div>
           <div className="text-2xl font-black text-[#101722] mt-1 font-mono tracking-tight">
             {stats.total}
           </div>
-          <div className="text-[11px] text-[#667085] mt-1">Hồ sơ người dùng thực tế</div>
+          <div className="text-[11px] text-[#667085] mt-1">Active identity profiles</div>
         </div>
 
         <div className="bg-white border border-[#E5EAF0] rounded-xl p-3.5 shadow-2xs">
           <div className="text-[10px] font-bold text-[#667085] uppercase tracking-wider font-mono">
-            Quản Trị & Nhân Sự
+            Operations & Staff
           </div>
           <div className="text-2xl font-black text-[#F45135] mt-1 font-mono tracking-tight">
             {stats.admins}
           </div>
-          <div className="text-[11px] text-[#667085] mt-1">Super Admin & CSKH</div>
+          <div className="text-[11px] text-[#667085] mt-1">Super Admin & Support</div>
         </div>
 
         <div className="bg-white border border-[#E5EAF0] rounded-xl p-3.5 shadow-2xs">
           <div className="text-[10px] font-bold text-[#667085] uppercase tracking-wider font-mono">
-            Đối Tác Ban Tổ Chức
+            Event Organizers
           </div>
           <div className="text-2xl font-black text-blue-600 mt-1 font-mono tracking-tight">
             {stats.organizers}
           </div>
-          <div className="text-[11px] text-[#667085] mt-1">Doanh nghiệp soát vé</div>
+          <div className="text-[11px] text-[#667085] mt-1">Ticketing partners</div>
         </div>
 
         <div className="bg-white border border-[#E5EAF0] rounded-xl p-3.5 shadow-2xs">
           <div className="text-[10px] font-bold text-[#667085] uppercase tracking-wider font-mono">
-            Người Dùng Giao Dịch
+            Traders & Users
           </div>
           <div className="text-2xl font-black text-emerald-600 mt-1 font-mono tracking-tight">
             {stats.users}
           </div>
-          <div className="text-[11px] text-[#667085] mt-1">Người mua & người bán</div>
+          <div className="text-[11px] text-[#667085] mt-1">Buyers & sellers</div>
         </div>
       </div>
 
@@ -321,7 +318,7 @@ export const AdminUsersPage: React.FC = () => {
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Tìm theo tên, email, số điện thoại hoặc mã UUID..."
+            placeholder="Search by name, email, phone number, or UUID..."
             className="w-full pl-9 pr-4 py-1.5 text-xs bg-slate-50 border border-[#E5EAF0] rounded-lg focus:outline-none focus:ring-1 focus:ring-[#F45135] focus:bg-white text-[#101722] placeholder:text-[#667085]"
           />
           {searchQuery && (
@@ -339,18 +336,18 @@ export const AdminUsersPage: React.FC = () => {
         <div className="flex items-center gap-2 flex-wrap">
           <div className="flex items-center gap-1.5 text-xs text-[#667085]">
             <Filter className="w-3.5 h-3.5" />
-            <span className="font-semibold text-[11px]">Vai trò:</span>
+            <span className="font-semibold text-[11px]">Role:</span>
           </div>
           <select
             value={roleFilter}
             onChange={(e) => setRoleFilter(e.target.value)}
             className="text-xs bg-slate-50 border border-[#E5EAF0] rounded-lg px-2.5 py-1.5 text-[#101722] focus:outline-none focus:ring-1 focus:ring-[#F45135] cursor-pointer"
           >
-            <option value="ALL">Tất cả vai trò</option>
+            <option value="ALL">All Roles</option>
             <option value="ADMIN">Super Admin</option>
-            <option value="MODERATOR">CSKH / Moderator</option>
-            <option value="ORGANIZER">Ban Tổ Chức</option>
-            <option value="USER">Người Dùng (Trader)</option>
+            <option value="MODERATOR">Support / Moderator</option>
+            <option value="ORGANIZER">Event Organizer</option>
+            <option value="USER">Trader</option>
           </select>
 
           <select
@@ -358,11 +355,11 @@ export const AdminUsersPage: React.FC = () => {
             onChange={(e) => setStatusFilter(e.target.value)}
             className="text-xs bg-slate-50 border border-[#E5EAF0] rounded-lg px-2.5 py-1.5 text-[#101722] focus:outline-none focus:ring-1 focus:ring-[#F45135] cursor-pointer"
           >
-            <option value="ALL">Tất cả trạng thái</option>
-            <option value="ACTIVE">Đang hoạt động</option>
-            <option value="INACTIVE">Đã khóa vĩnh viễn (SCRUM-220)</option>
-            <option value="VERIFIED">Đã xác thực KYC (CCCD)</option>
-            <option value="UNVERIFIED">Chưa xác thực KYC</option>
+            <option value="ALL">All Statuses</option>
+            <option value="ACTIVE">Active</option>
+            <option value="INACTIVE">Permanently Suspended</option>
+            <option value="VERIFIED">KYC Verified</option>
+            <option value="UNVERIFIED">Unverified</option>
           </select>
         </div>
       </div>
@@ -379,7 +376,7 @@ export const AdminUsersPage: React.FC = () => {
             onClick={fetchUsers}
             className="px-2.5 py-1 rounded bg-amber-200 hover:bg-amber-300 font-bold text-amber-900 transition-colors"
           >
-            Thử lại
+            Retry
           </button>
         </div>
       )}
@@ -390,12 +387,12 @@ export const AdminUsersPage: React.FC = () => {
           <table className="w-full text-left text-xs">
             <thead className="bg-[#F4F6F9] text-[#667085] border-b border-[#E5EAF0] text-[10px] font-mono font-bold uppercase tracking-wider">
               <tr>
-                <th className="py-3 px-4 min-w-[240px]">Họ Tên & Email</th>
-                <th className="py-3 px-4 min-w-[140px]">Vai Trò Phân Hệ</th>
-                <th className="py-3 px-4 min-w-[150px]">Số Điện Thoại / UUID</th>
-                <th className="py-3 px-4 min-w-[170px]">Tài Khoản Ngân Hàng</th>
-                <th className="py-3 px-4 text-center min-w-[110px]">Trạng Thái</th>
-                <th className="py-3 px-4 text-right min-w-[110px]">Hành Động</th>
+                <th className="py-3 px-4 min-w-[240px]">Name & Email</th>
+                <th className="py-3 px-4 min-w-[140px]">Role</th>
+                <th className="py-3 px-4 min-w-[150px]">Phone / UUID</th>
+                <th className="py-3 px-4 min-w-[170px]">Payout Account</th>
+                <th className="py-3 px-4 text-center min-w-[110px]">Status</th>
+                <th className="py-3 px-4 text-right min-w-[110px]">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[#E5EAF0]">
@@ -403,15 +400,15 @@ export const AdminUsersPage: React.FC = () => {
                 <tr>
                   <td colSpan={6} className="py-16 text-center text-[#667085]">
                     <Loader2 className="w-7 h-7 text-[#F45135] animate-spin mx-auto mb-2" />
-                    <span className="text-xs font-mono">Đang tải danh sách tài khoản từ máy chủ...</span>
+                    <span className="text-xs font-mono">Loading user directory...</span>
                   </td>
                 </tr>
               ) : filteredUsers.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="py-12 text-center text-[#667085]">
                     <Users className="w-8 h-8 text-slate-300 mx-auto mb-2" />
-                    <p className="text-sm font-semibold text-[#101722]">Không tìm thấy tài khoản phù hợp</p>
-                    <p className="text-xs text-[#667085] mt-0.5">Vui lòng thử điều chỉnh bộ lọc hoặc từ khóa tìm kiếm</p>
+                    <p className="text-sm font-semibold text-[#101722]">No matching accounts found</p>
+                    <p className="text-xs text-[#667085] mt-0.5">Try adjusting filters or search query</p>
                   </td>
                 </tr>
               ) : (
@@ -437,7 +434,7 @@ export const AdminUsersPage: React.FC = () => {
                               {userItem.isVerified && (
                                 <span
                                   className="inline-flex items-center gap-0.5 px-1.5 py-0.2 rounded text-[9px] font-mono font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200"
-                                  title="Đã xác thực định danh KYC / CCCD"
+                                  title="KYC Verified"
                                 >
                                   <ShieldCheck className="w-2.5 h-2.5 text-emerald-600" />
                                   KYC
@@ -445,7 +442,7 @@ export const AdminUsersPage: React.FC = () => {
                               )}
                               {isCurrentAuth && (
                                 <span className="px-1.5 py-0.2 rounded text-[9px] font-mono font-bold bg-[#F45135]/10 text-[#F45135] border border-[#F45135]/20">
-                                  Bạn
+                                  You
                                 </span>
                               )}
                             </div>
@@ -479,7 +476,7 @@ export const AdminUsersPage: React.FC = () => {
                             <button
                               type="button"
                               onClick={(e) => handleCopyId(userItem.id, e)}
-                              title="Sao chép UUID"
+                              title="Copy UUID"
                               className="text-slate-400 hover:text-slate-700"
                             >
                               {copiedId === userItem.id ? (
@@ -507,7 +504,7 @@ export const AdminUsersPage: React.FC = () => {
                             </div>
                           </div>
                         ) : (
-                          <span className="text-[11px] text-slate-400 italic">Chưa thiết lập ví</span>
+                          <span className="text-[11px] text-slate-400 italic">No payout account</span>
                         )}
                       </td>
 
@@ -516,12 +513,12 @@ export const AdminUsersPage: React.FC = () => {
                         {userItem.isActive ? (
                           <span className="inline-flex items-center gap-1 text-[11px] font-medium text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
                             <CheckCircle2 className="w-3 h-3 text-emerald-600" />
-                            Hoạt động
+                            Active
                           </span>
                         ) : (
                           <span className="inline-flex items-center gap-1 text-[11px] font-medium text-rose-700 bg-rose-50 px-2 py-0.5 rounded-full border border-rose-200">
                             <UserX className="w-3 h-3 text-rose-600" />
-                            Đã khóa vĩnh viễn
+                            Suspended
                           </span>
                         )}
                       </td>
@@ -533,7 +530,7 @@ export const AdminUsersPage: React.FC = () => {
                             type="button"
                             onClick={() => setSelectedUser(userItem)}
                             className="p-1.5 rounded-lg text-[#667085] hover:text-[#101722] hover:bg-slate-100 transition-colors"
-                            title="Xem chi tiết tài khoản"
+                            title="View account details"
                           >
                             <Eye className="w-3.5 h-3.5" />
                           </button>
@@ -547,7 +544,7 @@ export const AdminUsersPage: React.FC = () => {
                                   ? 'opacity-30 cursor-not-allowed text-slate-400'
                                   : 'text-rose-600 hover:bg-rose-50'
                               }`}
-                              title={isCurrentAuth ? 'Tài khoản của bạn' : 'Khóa vĩnh viễn tài khoản (SCRUM-220)'}
+                              title={isCurrentAuth ? 'Your account' : 'Suspend account'}
                             >
                               {isUpdatingThis ? (
                                 <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -558,7 +555,7 @@ export const AdminUsersPage: React.FC = () => {
                           ) : (
                             <span
                               className="p-1.5 rounded-lg text-rose-300 cursor-not-allowed inline-flex"
-                              title="Tài khoản đã bị khóa vĩnh viễn (SCRUM-220)"
+                              title="Account suspended"
                             >
                               <UserX className="w-3.5 h-3.5" />
                             </span>
@@ -603,11 +600,11 @@ export const AdminUsersPage: React.FC = () => {
               {/* Role & Verification Badge */}
               <div className="flex items-center justify-between pb-3 border-b border-[#E5EAF0]">
                 <div>
-                  <div className="text-[10px] text-[#667085] uppercase font-mono font-bold">Vai Trò Hệ Thống</div>
+                  <div className="text-[10px] text-[#667085] uppercase font-mono font-bold">System Role</div>
                   <div className="mt-1">{getRoleBadge(selectedUser.role)}</div>
                 </div>
                 <div className="text-right">
-                  <div className="text-[10px] text-[#667085] uppercase font-mono font-bold">Điểm Uy Tín TrustScore</div>
+                  <div className="text-[10px] text-[#667085] uppercase font-mono font-bold">TrustScore</div>
                   <div className="mt-1">
                     <span className={`font-mono font-bold text-xs ${selectedUser.trustScore >= 80 ? 'text-emerald-600' : 'text-rose-600'}`}>
                       {selectedUser.trustScore} / 100
@@ -619,29 +616,29 @@ export const AdminUsersPage: React.FC = () => {
               {/* Detail Grid */}
               <div className="grid grid-cols-2 gap-3 text-xs">
                 <div className="p-2.5 bg-slate-50 rounded-lg border border-[#E5EAF0]">
-                  <div className="text-[10px] text-[#667085] font-mono font-semibold">Số điện thoại</div>
+                  <div className="text-[10px] text-[#667085] font-mono font-semibold">Phone Number</div>
                   <div className="font-mono font-bold text-[#101722] mt-0.5">
                     {selectedUser.phoneNumber || '—'}
                   </div>
                 </div>
                 <div className="p-2.5 bg-slate-50 rounded-lg border border-[#E5EAF0]">
-                  <div className="text-[10px] text-[#667085] font-mono font-semibold">Trạng thái KYC (CCCD)</div>
+                  <div className="text-[10px] text-[#667085] font-mono font-semibold">KYC Status</div>
                   <div className="mt-0.5">
                     {selectedUser.isVerified ? (
                       <span className="inline-flex items-center gap-1 text-emerald-700 font-semibold">
-                        <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" /> Đã xác thực CCCD
+                        <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" /> Verified
                       </span>
                     ) : (
-                      <span className="text-slate-400 italic">Chưa xác thực</span>
+                      <span className="text-slate-400 italic">Unverified</span>
                     )}
                   </div>
                 </div>
                 <div className="p-2.5 bg-slate-50 rounded-lg border border-[#E5EAF0] col-span-2">
-                  <div className="text-[10px] text-[#667085] font-mono font-semibold">Ngày đăng ký tài khoản</div>
+                  <div className="text-[10px] text-[#667085] font-mono font-semibold">Registration Date</div>
                   <div className="font-mono text-[#101722] mt-0.5 font-medium">
-                    {new Date(selectedUser.createdAt).toLocaleDateString('vi-VN', {
-                      day: '2-digit',
-                      month: '2-digit',
+                    {new Date(selectedUser.createdAt).toLocaleDateString('en-US', {
+                      month: 'short',
+                      day: 'numeric',
                       year: 'numeric',
                       hour: '2-digit',
                       minute: '2-digit',
@@ -654,26 +651,26 @@ export const AdminUsersPage: React.FC = () => {
               <div className="p-3 bg-slate-50 rounded-xl border border-[#E5EAF0] space-y-2">
                 <div className="text-[10px] font-mono font-bold text-[#101722] uppercase tracking-wider flex items-center gap-1.5">
                   <CreditCard className="w-3.5 h-3.5 text-[#F45135]" />
-                  <span>Tài Khoản Thụ Hưởng Giải Ngân Escrow</span>
+                  <span>Escrow Payout Account</span>
                 </div>
                 {selectedUser.bankInfo ? (
                   <div className="space-y-1 text-xs">
                     <div className="flex justify-between">
-                      <span className="text-[#667085]">Ngân hàng:</span>
+                      <span className="text-[#667085]">Bank:</span>
                       <strong className="font-mono text-[#101722]">{selectedUser.bankInfo.bankCode}</strong>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-[#667085]">Số tài khoản:</span>
+                      <span className="text-[#667085]">Account Number:</span>
                       <strong className="font-mono text-[#101722]">{selectedUser.bankInfo.accountNumber}</strong>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-[#667085]">Chủ tài khoản:</span>
+                      <span className="text-[#667085]">Account Holder:</span>
                       <strong className="text-[#101722]">{selectedUser.bankInfo.accountName}</strong>
                     </div>
                   </div>
                 ) : (
                   <div className="text-slate-400 italic text-[11px]">
-                    Người dùng chưa liên kết số tài khoản ngân hàng nhận tiền thanh toán.
+                    No payout account linked for this user.
                   </div>
                 )}
               </div>
@@ -705,7 +702,7 @@ export const AdminUsersPage: React.FC = () => {
               <div>
                 {!selectedUser.isActive && (
                   <span className="text-[11px] text-rose-600 font-medium flex items-center gap-1">
-                    <UserX className="w-3.5 h-3.5" /> Đã khóa vĩnh viễn (SCRUM-220)
+                    <UserX className="w-3.5 h-3.5" /> Permanently Suspended
                   </span>
                 )}
               </div>
@@ -722,7 +719,7 @@ export const AdminUsersPage: React.FC = () => {
                     ) : (
                       <UserX className="w-3.5 h-3.5" />
                     )}
-                    Khóa vĩnh viễn (SCRUM-220)
+                    Suspend Account
                   </button>
                 )}
                 <button
@@ -730,7 +727,7 @@ export const AdminUsersPage: React.FC = () => {
                   onClick={() => setSelectedUser(null)}
                   className="px-4 py-1.5 rounded-lg text-xs font-semibold bg-white border border-[#E5EAF0] text-[#101722] hover:bg-slate-50 transition-colors shadow-2xs"
                 >
-                  Đóng
+                  Close
                 </button>
               </div>
             </div>

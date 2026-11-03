@@ -120,14 +120,14 @@ export const StorefrontTicketSelectPage: React.FC = () => {
             <div className="flex flex-col min-w-0">
               <div className="flex items-center gap-1.5 text-xs text-[#aa8984] truncate">
                 <Link to="/storefront" className="hover:text-white transition-colors">
-                  Khám phá
+                  Explore
                 </Link>
                 <span className="material-symbols-outlined text-[12px]">chevron_right</span>
                 <Link to={`/storefront/event/${event.id}`} className="text-[#e3beb8] hover:text-white truncate">
                   {event.title}
                 </Link>
                 <span className="material-symbols-outlined text-[12px]">chevron_right</span>
-                <span className="text-[#ffb4a8] font-bold">Chọn hạng vé</span>
+                <span className="text-[#ffb4a8] font-bold">Select Ticket Tier</span>
               </div>
               <div className="flex items-center gap-2 mt-0.5">
                 <h1 className="font-display font-bold text-base sm:text-lg text-white truncate tracking-tight">
@@ -154,7 +154,7 @@ export const StorefrontTicketSelectPage: React.FC = () => {
               <span className="material-symbols-outlined text-[16px] animate-pulse">timer</span>
               <div className="flex flex-col text-left">
                 <span className="text-[9px] uppercase tracking-widest text-[#aa8984] font-bold">
-                  Thời gian giữ vé
+                  Hold Timer
                 </span>
                 <span className="font-display text-sm font-bold text-[#4cd7f6] leading-none font-mono">
                   {formatTimer(totalSeconds)}
@@ -181,9 +181,9 @@ export const StorefrontTicketSelectPage: React.FC = () => {
                 <span className="material-symbols-outlined text-[20px]">info</span>
               </div>
               <div className="flex flex-col gap-0.5">
-                <h4 className="font-bold text-white text-xs">Lưu ý phân khu & Độ tuổi</h4>
+                <h4 className="font-bold text-white text-xs">Zone Advisory &amp; Age Policy</h4>
                 <p className="text-xs text-[#aa8984] leading-relaxed">
-                  Khu vực GA Standing không dành cho trẻ em dưới 12 tuổi. Hạng vé Diamond Lounge VIP có lối check-in Priority riêng tại Cổng số 2 từ 16:30 để tham dự Soundcheck độc quyền cùng nghệ sĩ.
+                  GA Standing area is not permitted for children under 12. Diamond Lounge VIP ticket holders have a dedicated Priority lane at Gate 2 from 16:30 for exclusive soundcheck access.
                 </p>
               </div>
             </div>
@@ -196,10 +196,10 @@ export const StorefrontTicketSelectPage: React.FC = () => {
                 <span className="material-symbols-outlined text-[#ff5945] text-[20px]">
                   confirmation_number
                 </span>
-                <h2 className="font-display font-bold text-lg text-white">Danh sách hạng vé</h2>
+                <h2 className="font-display font-bold text-lg text-white">Ticket Tiers</h2>
               </div>
               <span className="text-[11px] font-mono text-[#aa8984] uppercase tracking-wider">
-                Đơn vị: VNĐ
+                Currency: VND
               </span>
             </div>
 
@@ -220,39 +220,39 @@ export const StorefrontTicketSelectPage: React.FC = () => {
                     <span>Diamond Lounge VIP</span>
                   </div>
                   <span className="text-[11px] text-[#4cd7f6] bg-[#1d1f28] px-2.5 py-0.5 rounded font-mono font-bold">
-                    Chỉ còn 18 vé
+                    Only 18 left
                   </span>
                 </div>
 
                 <div className="flex items-baseline justify-between">
                   <h3 className="font-display font-extrabold text-2xl text-white tracking-tight">
-                    4.500.000 <span className="text-xs text-[#aa8984] font-normal">đ / vé</span>
+                    4,500,000 <span className="text-xs text-[#aa8984] font-normal">₫ / ticket</span>
                   </h3>
-                  <span className="text-xs text-[#aa8984]">Khu Sát Sân Khấu</span>
+                  <span className="text-xs text-[#aa8984]">Stage-Front Section</span>
                 </div>
 
                 <ul className="flex flex-col gap-1 text-xs text-[#e3beb8]">
                   <li className="flex items-center gap-2">
                     <span className="material-symbols-outlined text-[16px] text-[#4cd7f6]">check_circle</span>
-                    <span>Lối đi riêng VIP, check-in đặc quyền từ 16:30</span>
+                    <span>Dedicated VIP entrance, priority check-in from 16:30</span>
                   </li>
                   <li className="flex items-center gap-2">
                     <span className="material-symbols-outlined text-[16px] text-[#4cd7f6]">check_circle</span>
-                    <span>F&B Lounge cao cấp, Soundcheck Pass độc quyền</span>
+                    <span>Premium F&amp;B Lounge, exclusive Soundcheck Pass</span>
                   </li>
                   <li className="flex items-center gap-2">
                     <span className="material-symbols-outlined text-[16px] text-[#4cd7f6]">check_circle</span>
-                    <span>Bộ quà tặng Limited Merch Box + Lightstick 2025</span>
+                    <span>Limited Merch Box gift set + 2025 Lightstick</span>
                   </li>
                 </ul>
 
                 <div className="pt-3 flex items-center justify-between border-t border-white/10">
                   <div className="flex flex-col">
-                    <span className="text-[10px] text-[#aa8984] uppercase font-bold">Số lượng vé</span>
+                    <span className="text-[10px] text-[#aa8984] uppercase font-bold">Ticket Quantity</span>
                     <span className="text-xs text-[#ff5945] font-bold">
                       {ticketQuantities.diamond > 0
-                        ? `${(ticketQuantities.diamond * tierPrices.diamond).toLocaleString('vi-VN')} đ (${ticketQuantities.diamond} vé)`
-                        : 'Chưa chọn'}
+                        ? `${(ticketQuantities.diamond * tierPrices.diamond).toLocaleString('en-US')} ₫ (${ticketQuantities.diamond} tickets)`
+                        : 'Not selected'}
                     </span>
                   </div>
 
@@ -292,35 +292,35 @@ export const StorefrontTicketSelectPage: React.FC = () => {
                     <span>VIP Zone A (Seated)</span>
                   </div>
                   <span className="text-[11px] text-[#aa8984] bg-[#1d1f28] px-2 py-0.5 rounded font-mono">
-                    Còn 45 vé
+                    45 tickets left
                   </span>
                 </div>
 
                 <div className="flex items-baseline justify-between">
                   <h3 className="font-display font-extrabold text-2xl text-white tracking-tight">
-                    2.800.000 <span className="text-xs text-[#aa8984] font-normal">đ / vé</span>
+                    {(2800000).toLocaleString('en-US')} <span className="text-xs text-[#aa8984] font-normal">₫ / ticket</span>
                   </h3>
-                  <span className="text-xs text-[#aa8984]">Ghế ngồi cố định</span>
+                  <span className="text-xs text-[#aa8984]">Numbered Reserved Seating</span>
                 </div>
 
                 <ul className="flex flex-col gap-1 text-xs text-[#e3beb8]">
                   <li className="flex items-center gap-2">
                     <span className="material-symbols-outlined text-[16px] text-[#4cd7f6]">check_circle</span>
-                    <span>Ghế ngồi trực diện tầm nhìn sân khấu hoàn hảo</span>
+                    <span>Direct stage center view with unobstructed acoustics</span>
                   </li>
                   <li className="flex items-center gap-2">
                     <span className="material-symbols-outlined text-[16px] text-[#4cd7f6]">check_circle</span>
-                    <span>Bộ quà tặng Banner cổ vũ & Glowstick chính thức</span>
+                    <span>Official tour lightstick & commemorative cheer banner</span>
                   </li>
                 </ul>
 
                 <div className="pt-3 flex items-center justify-between border-t border-white/10">
                   <div className="flex flex-col">
-                    <span className="text-[10px] text-[#aa8984] uppercase font-bold">Số lượng vé</span>
+                    <span className="text-[10px] text-[#aa8984] uppercase font-bold">Ticket Quantity</span>
                     <span className="text-xs text-[#ff5945] font-bold">
                       {ticketQuantities.vipa > 0
-                        ? `${(ticketQuantities.vipa * tierPrices.vipa).toLocaleString('vi-VN')} đ (${ticketQuantities.vipa} vé)`
-                        : 'Chưa chọn'}
+                        ? `${(ticketQuantities.vipa * tierPrices.vipa).toLocaleString('en-US')} ₫ (${ticketQuantities.vipa} ${ticketQuantities.vipa === 1 ? 'ticket' : 'tickets'})`
+                        : 'None selected'}
                     </span>
                   </div>
 
@@ -360,35 +360,35 @@ export const StorefrontTicketSelectPage: React.FC = () => {
                     <span>GA Standing Zone</span>
                   </div>
                   <span className="text-[11px] text-[#aa8984] bg-[#1d1f28] px-2 py-0.5 rounded font-mono">
-                    Còn 120 vé
+                    120 tickets left
                   </span>
                 </div>
 
                 <div className="flex items-baseline justify-between">
                   <h3 className="font-display font-extrabold text-2xl text-white tracking-tight">
-                    1.200.000 <span className="text-xs text-[#aa8984] font-normal">đ / vé</span>
+                    {(1200000).toLocaleString('en-US')} <span className="text-xs text-[#aa8984] font-normal">₫ / ticket</span>
                   </h3>
-                  <span className="text-xs text-[#aa8984]">Khu đứng tự do</span>
+                  <span className="text-xs text-[#aa8984]">Free Standing Area</span>
                 </div>
 
                 <ul className="flex flex-col gap-1 text-xs text-[#e3beb8]">
                   <li className="flex items-center gap-2">
                     <span className="material-symbols-outlined text-[16px] text-[#4cd7f6]">check_circle</span>
-                    <span>Khu vực đứng fanzone nhiệt huyết, âm thanh bao trùm</span>
+                    <span>High-energy central fanzone with immersive surround sound</span>
                   </li>
                   <li className="flex items-center gap-2">
                     <span className="material-symbols-outlined text-[16px] text-[#4cd7f6]">check_circle</span>
-                    <span>Wristband vải phát sáng lưu niệm</span>
+                    <span>Commemorative LED wristband included</span>
                   </li>
                 </ul>
 
                 <div className="pt-3 flex items-center justify-between border-t border-white/10">
                   <div className="flex flex-col">
-                    <span className="text-[10px] text-[#aa8984] uppercase font-bold">Số lượng vé</span>
+                    <span className="text-[10px] text-[#aa8984] uppercase font-bold">Ticket Quantity</span>
                     <span className="text-xs text-[#ff5945] font-bold">
                       {ticketQuantities.ga > 0
-                        ? `${(ticketQuantities.ga * tierPrices.ga).toLocaleString('vi-VN')} đ (${ticketQuantities.ga} vé)`
-                        : 'Chưa chọn'}
+                        ? `${(ticketQuantities.ga * tierPrices.ga).toLocaleString('en-US')} ₫ (${ticketQuantities.ga} ${ticketQuantities.ga === 1 ? 'ticket' : 'tickets'})`
+                        : 'None selected'}
                     </span>
                   </div>
 
@@ -421,27 +421,27 @@ export const StorefrontTicketSelectPage: React.FC = () => {
                     <span>Tribune Upper CAT 3</span>
                   </div>
                   <span className="text-[11px] font-bold text-[#ffb4ab] bg-[#93000a]/40 px-2 py-0.5 rounded">
-                    HẾT VÉ
+                    SOLD OUT
                   </span>
                 </div>
 
                 <div className="flex items-baseline justify-between">
                   <h3 className="font-display font-extrabold text-2xl text-[#aa8984] line-through tracking-tight">
-                    800.000 <span className="text-xs font-normal">đ</span>
+                    {(800000).toLocaleString('en-US')} <span className="text-xs font-normal">₫</span>
                   </h3>
-                  <span className="text-xs text-[#aa8984]">Tầng 2 Khán đài</span>
+                  <span className="text-xs text-[#aa8984]">Upper Grandstand Tier 2</span>
                 </div>
                 <p className="text-xs text-[#aa8984]">
-                  Khu vực khán đài trên cao có ghế ngồi định danh. Toàn bộ vé đợt mở bán chính thức đã hết.
+                  Elevated grandstand reserved seating. All official allocation sold out.
                 </p>
                 <div className="pt-2 flex items-center justify-between border-t border-white/5">
-                  <span className="text-[11px] text-[#aa8984]">Đã bán hết 1.500 vé</span>
+                  <span className="text-[11px] text-[#aa8984]">1,500 tickets sold out</span>
                   <button
                     type="button"
                     disabled
                     className="px-3 py-1 rounded-lg bg-[#282a32] text-[#aa8984] text-xs cursor-not-allowed"
                   >
-                    Đăng ký vé Resale
+                    Join Resale Waitlist
                   </button>
                 </div>
               </div>
@@ -458,19 +458,19 @@ export const StorefrontTicketSelectPage: React.FC = () => {
             <div className="flex flex-col">
               <div className="flex items-center gap-2">
                 <span className="text-[11px] text-[#4cd7f6] font-bold uppercase tracking-wider">
-                  Đơn hàng hiện tại
+                  Current Selection
                 </span>
                 <span className="text-[#aa8984]">•</span>
                 <span className="text-xs text-white font-semibold font-mono">
-                  {totalQty > 0 ? `${totalQty} vé` : '0 vé'}
+                  {totalQty > 0 ? `${totalQty} ${totalQty === 1 ? 'ticket' : 'tickets'}` : '0 tickets'}
                 </span>
               </div>
               <div className="flex items-center gap-2 mt-0.5">
                 <span className="font-display font-bold text-sm sm:text-base text-white truncate max-w-[240px] sm:max-w-xs">
-                  {activeNames.length > 0 ? activeNames.join(', ') : 'Chưa có vé nào được chọn'}
+                  {activeNames.length > 0 ? activeNames.join(', ') : 'No tickets selected'}
                 </span>
                 <span className="px-2 py-0.5 rounded bg-[#282a32] text-[#aa8984] text-[10px] font-mono">
-                  Khu A-1 Sát Stage
+                  Stage Front Zone A-1
                 </span>
               </div>
             </div>
@@ -478,15 +478,15 @@ export const StorefrontTicketSelectPage: React.FC = () => {
             {/* Subtotal & Fee Details */}
             <div className="hidden lg:flex flex-col text-right pl-6 border-l border-[#33343d]/30 text-xs">
               <div className="flex items-center justify-between gap-4 text-[#aa8984]">
-                <span>Tạm tính:</span>
-                <span className="text-white font-medium">{rawSubtotal.toLocaleString('vi-VN')} đ</span>
+                <span>Subtotal:</span>
+                <span className="text-white font-medium">{rawSubtotal.toLocaleString('en-US')} ₫</span>
               </div>
               <div className="flex items-center justify-between gap-4 text-[#aa8984]">
                 <span className="flex items-center gap-1">
-                  Phí dịch vụ & xuất vé:
+                  Processing & Issuance:
                   <span className="material-symbols-outlined text-[13px] text-emerald-400">verified</span>
                 </span>
-                <span className="text-emerald-400 font-medium">0 đ (Miễn phí)</span>
+                <span className="text-emerald-400 font-medium">0 ₫ (Complimentary)</span>
               </div>
             </div>
           </div>
@@ -494,12 +494,12 @@ export const StorefrontTicketSelectPage: React.FC = () => {
           {/* Right: Total Amount & Checkout Button */}
           <div className="flex items-center justify-between md:justify-end gap-6 w-full md:w-auto shrink-0">
             <div className="flex flex-col text-left md:text-right">
-              <span className="text-[10px] text-[#aa8984] uppercase font-bold">Tổng thanh toán</span>
+              <span className="text-[10px] text-[#aa8984] uppercase font-bold">Total Due</span>
               <div className="flex items-baseline gap-1 font-display">
                 <span className="text-2xl font-extrabold text-[#ffb4a8] tracking-tight">
-                  {grandTotal.toLocaleString('vi-VN')}
+                  {grandTotal.toLocaleString('en-US')}
                 </span>
-                <span className="text-sm font-semibold text-[#ffb4a8]">VNĐ</span>
+                <span className="text-sm font-semibold text-[#ffb4a8]">₫</span>
               </div>
             </div>
 
@@ -509,7 +509,7 @@ export const StorefrontTicketSelectPage: React.FC = () => {
               onClick={handleProceed}
               className="h-12 px-8 rounded-xl bg-[#ff5945] hover:bg-[#ff7252] disabled:bg-[#282a32] disabled:text-[#aa8984] disabled:cursor-not-allowed transition-all shadow-[0_0_24px_rgba(255,89,69,0.45)] flex items-center justify-center gap-2 text-sm font-bold text-white shrink-0 active:scale-95"
             >
-              <span>TIẾP TỤC THANH TOÁN</span>
+              <span>CONTINUE TO CHECKOUT</span>
               <span className="material-symbols-outlined text-[18px]">arrow_forward</span>
             </button>
           </div>
@@ -518,10 +518,10 @@ export const StorefrontTicketSelectPage: React.FC = () => {
         <div className="max-w-7xl mx-auto mt-2 hidden md:flex items-center justify-between text-[#aa8984] text-[11px]">
           <span className="flex items-center gap-1.5">
             <span className="material-symbols-outlined text-[#4cd7f6] text-[14px]">lock</span>
-            Vé được giữ chỗ trong <strong className="text-white font-semibold">10:00 phút</strong> sau khi bấm thanh toán.
+            Seats reserved for <strong className="text-white font-semibold">10:00 minutes</strong> once checkout starts.
           </span>
           <span className="text-[#e3beb8] font-medium">
-            Phương thức: VietQR tức thì • Thẻ Quốc Tế / Nội Địa • Ví Napas
+            Payment: Instant VietQR • Visa / Mastercard • Domestic ATM Cards
           </span>
         </div>
       </aside>

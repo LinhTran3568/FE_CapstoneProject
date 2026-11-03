@@ -42,8 +42,8 @@ export const SettlementBufferControlPanel: React.FC = () => {
         setCutoffSeconds(data.cutoffSeconds);
       }
     } catch (err: any) {
-      console.error('Lỗi khi tải cấu hình đệm ký quỹ:', err);
-      setErrorMessage(err.response?.data?.message || err.message || 'Không thể tải cấu hình đệm ký quỹ từ máy chủ.');
+      console.error('Error fetching escrow buffer config:', err);
+      setErrorMessage(err.response?.data?.message || err.message || 'Failed to load escrow buffer configuration from server.');
     } finally {
       setLoading(false);
     }
@@ -63,11 +63,11 @@ export const SettlementBufferControlPanel: React.FC = () => {
     setErrorMessage(null);
 
     if (bufferSeconds < 1 || bufferSeconds > 2592000) {
-      setErrorMessage('Thời gian đệm ký quỹ phải từ 1 đến 2.592.000 giây (tối đa 30 ngày).');
+      setErrorMessage('Escrow buffer duration must be between 1 and 2,592,000 seconds (maximum 30 days).');
       return;
     }
     if (cutoffSeconds < 1 || cutoffSeconds > 2592000) {
-      setErrorMessage('Thời gian cutoff trước sự kiện tối thiểu là 1 giây (tối đa 2.592.000 giây).');
+      setErrorMessage('Resale cutoff threshold must be at least 1 second (maximum 2,592,000 seconds).');
       return;
     }
 
@@ -89,41 +89,41 @@ export const SettlementBufferControlPanel: React.FC = () => {
         setBufferSeconds(result.bufferSeconds);
         setCutoffSeconds(result.cutoffSeconds);
       }
-      setSuccessMessage('Đã cập nhật cấu hình đệm ký quỹ an toàn và ranh giới cutoff thành công!');
+      setSuccessMessage('Escrow buffer and cutoff thresholds successfully updated!');
       setTimeout(() => setSuccessMessage(null), 4000);
     } catch (err: any) {
-      setErrorMessage(err.response?.data?.message || err.message || 'Lỗi khi lưu thời gian đệm ký quỹ.');
+      setErrorMessage(err.response?.data?.message || err.message || 'Failed to update escrow buffer configuration.');
     } finally {
       setSaving(false);
     }
   };
 
   const formatDuration = (sec: number): string => {
-    if (sec < 60) return `${sec} giây`;
-    if (sec < 3600) return `${Math.floor(sec / 60)} phút`;
+    if (sec < 60) return `${sec}s`;
+    if (sec < 3600) return `${Math.floor(sec / 60)} min`;
     if (sec < 86400) {
       const hours = (sec / 3600).toFixed(1);
-      return `${hours.endsWith('.0') ? hours.slice(0, -2) : hours} giờ`;
+      return `${hours.endsWith('.0') ? hours.slice(0, -2) : hours} hrs`;
     }
     const days = (sec / 86400).toFixed(1);
-    return `${days.endsWith('.0') ? days.slice(0, -2) : days} ngày`;
+    return `${days.endsWith('.0') ? days.slice(0, -2) : days} days`;
   };
 
   // Quick preset chips
   const bufferPresets = [
     { label: '30s (Dev)', value: 30 },
-    { label: '1 giờ', value: 3600 },
-    { label: '6 giờ', value: 21600 },
-    { label: '12 giờ', value: 43200 },
-    { label: '24 giờ', value: 86400 },
+    { label: '1 hr', value: 3600 },
+    { label: '6 hrs', value: 21600 },
+    { label: '12 hrs', value: 43200 },
+    { label: '24 hrs', value: 86400 },
   ];
 
   const cutoffPresets = [
-    { label: '15 phút', value: 900 },
-    { label: '1 giờ', value: 3600 },
-    { label: '2 giờ', value: 7200 },
-    { label: '6 giờ', value: 21600 },
-    { label: '12 giờ', value: 43200 },
+    { label: '15 min', value: 900 },
+    { label: '1 hr', value: 3600 },
+    { label: '2 hrs', value: 7200 },
+    { label: '6 hrs', value: 21600 },
+    { label: '12 hrs', value: 43200 },
   ];
 
   return (
@@ -172,17 +172,17 @@ export const SettlementBufferControlPanel: React.FC = () => {
             <div>
               <h3 className="text-sm font-bold text-[#101722] flex items-center gap-2">
                 <Clock className="w-4 h-4 text-[#F45135]" />
-                <span>Cấu Hình Tham Số Ký Quỹ</span>
+                <span>Escrow Buffer Parameters</span>
               </h3>
               <p className="text-xs text-[#667085] mt-0.5">
-                Quy định thời gian giữ tiền an toàn và thời điểm khóa bán lại vé
+                Configure escrow holding window and pre-event resale cutoff
               </p>
             </div>
             <button
               type="button"
               onClick={fetchBufferConfig}
               className="p-1.5 rounded-lg border border-[#E5EAF0] text-[#667085] hover:text-[#101722] hover:bg-slate-50 transition-colors"
-              title="Làm mới từ máy chủ"
+              title="Refresh from server"
             >
               <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin text-[#F45135]' : ''}`} />
             </button>
@@ -192,10 +192,10 @@ export const SettlementBufferControlPanel: React.FC = () => {
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <label className="text-xs font-semibold text-[#101722]">
-                1. Thời gian giữ tiền ký quỹ (Escrow Buffer)
+                1. Escrow Holding Buffer
               </label>
               <span className="text-xs font-mono font-medium text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
-                Quy đổi: {formatDuration(bufferSeconds)}
+                Equivalent: {formatDuration(bufferSeconds)}
               </span>
             </div>
 
@@ -207,14 +207,14 @@ export const SettlementBufferControlPanel: React.FC = () => {
                 step="1"
                 value={bufferSeconds}
                 onChange={(e) => setBufferSeconds(parseInt(e.target.value, 10) || 0)}
-                className="w-full bg-[#F4F6F9] border border-[#E5EAF0] rounded-lg px-3 py-2 text-xs font-mono font-bold text-[#101722] focus:outline-none focus:border-[#F45135] focus:bg-white pr-14"
+                className="w-full bg-[#F4F6F9] border border-[#E5EAF0] rounded-lg px-3 py-2 text-xs font-mono font-bold text-[#101722] focus:outline-none focus:border-[#F45135] focus:bg-white pr-16"
               />
-              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-mono text-[#667085]">giây</span>
+              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-mono text-[#667085]">seconds</span>
             </div>
 
             {/* Quick Presets Chips */}
             <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
-              <span className="text-[11px] text-[#667085]">Chọn nhanh:</span>
+              <span className="text-[11px] text-[#667085]">Quick select:</span>
               {bufferPresets.map((p) => (
                 <button
                   key={p.value}
@@ -233,7 +233,7 @@ export const SettlementBufferControlPanel: React.FC = () => {
 
             {savedConfig && (
               <p className="text-[11px] text-[#667085]">
-                Đang áp dụng: <strong className="text-[#101722] font-mono">{savedConfig.bufferSeconds.toLocaleString()}s</strong> ({formatDuration(savedConfig.bufferSeconds)})
+                Currently active: <strong className="text-[#101722] font-mono">{savedConfig.bufferSeconds.toLocaleString()}s</strong> ({formatDuration(savedConfig.bufferSeconds)})
               </p>
             )}
           </div>
@@ -242,10 +242,10 @@ export const SettlementBufferControlPanel: React.FC = () => {
             {/* Section 2: Resale Cutoff Threshold */}
             <div className="flex items-center justify-between">
               <label className="text-xs font-semibold text-[#101722]">
-                2. Ranh giới đóng bán lại trước giờ G (Cutoff Threshold)
+                2. Pre-Event Resale Cutoff Threshold
               </label>
               <span className="text-xs font-mono font-medium text-amber-700 bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
-                Quy đổi: {formatDuration(cutoffSeconds)}
+                Equivalent: {formatDuration(cutoffSeconds)}
               </span>
             </div>
 
@@ -257,14 +257,14 @@ export const SettlementBufferControlPanel: React.FC = () => {
                 step="1"
                 value={cutoffSeconds}
                 onChange={(e) => setCutoffSeconds(parseInt(e.target.value, 10) || 0)}
-                className="w-full bg-[#F4F6F9] border border-[#E5EAF0] rounded-lg px-3 py-2 text-xs font-mono font-bold text-[#101722] focus:outline-none focus:border-[#F45135] focus:bg-white pr-14"
+                className="w-full bg-[#F4F6F9] border border-[#E5EAF0] rounded-lg px-3 py-2 text-xs font-mono font-bold text-[#101722] focus:outline-none focus:border-[#F45135] focus:bg-white pr-16"
               />
-              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-mono text-[#667085]">giây</span>
+              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-mono text-[#667085]">seconds</span>
             </div>
 
             {/* Quick Presets Chips */}
             <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
-              <span className="text-[11px] text-[#667085]">Chọn nhanh:</span>
+              <span className="text-[11px] text-[#667085]">Quick select:</span>
               {cutoffPresets.map((p) => (
                 <button
                   key={p.value}
@@ -283,7 +283,7 @@ export const SettlementBufferControlPanel: React.FC = () => {
 
             {savedConfig && (
               <p className="text-[11px] text-[#667085]">
-                Đang áp dụng: <strong className="text-[#101722] font-mono">{savedConfig.cutoffSeconds.toLocaleString()}s</strong> ({formatDuration(savedConfig.cutoffSeconds)})
+                Currently active: <strong className="text-[#101722] font-mono">{savedConfig.cutoffSeconds.toLocaleString()}s</strong> ({formatDuration(savedConfig.cutoffSeconds)})
               </p>
             )}
           </div>
@@ -292,9 +292,9 @@ export const SettlementBufferControlPanel: React.FC = () => {
           <div className="pt-3 border-t border-[#E5EAF0] flex items-center justify-between">
             <span className="text-[11px] font-mono text-[#667085]">
               {isDirty ? (
-                <span className="text-amber-600 font-medium">● Có thay đổi chưa lưu</span>
+                <span className="text-amber-600 font-medium">● Unsaved changes</span>
               ) : (
-                <span>Không có thay đổi</span>
+                <span>No changes</span>
               )}
             </span>
 
@@ -310,12 +310,12 @@ export const SettlementBufferControlPanel: React.FC = () => {
               {saving ? (
                 <>
                   <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                  <span>Đang lưu...</span>
+                  <span>Saving...</span>
                 </>
               ) : (
                 <>
                   <Save className="w-3.5 h-3.5" />
-                  <span>Lưu Cấu Hình</span>
+                  <span>Save Configuration</span>
                 </>
               )}
             </button>
@@ -327,10 +327,10 @@ export const SettlementBufferControlPanel: React.FC = () => {
           <div className="border-b border-[#E5EAF0] pb-3">
             <h4 className="text-sm font-bold text-[#101722] flex items-center gap-2">
               <ShieldCheck className="w-4 h-4 text-emerald-600" />
-              <span>Vòng Đời Ký Quỹ Escrow (Lifecycle)</span>
+              <span>Escrow Settlement Lifecycle</span>
             </h4>
             <p className="text-xs text-[#667085] mt-0.5">
-              Trình tự chuyển trạng thái từ khi thanh toán đến lúc giải ngân
+              State transitions from buyer payment to seller disbursement
             </p>
           </div>
 
@@ -341,9 +341,9 @@ export const SettlementBufferControlPanel: React.FC = () => {
               <div className="absolute -left-6 top-0.5 w-4 h-4 rounded-full bg-[#101722] text-white flex items-center justify-center text-[9px] font-bold">
                 1
               </div>
-              <h5 className="text-xs font-bold text-[#101722]">Xác nhận thanh toán (Buyer Paid)</h5>
+              <h5 className="text-xs font-bold text-[#101722]">Payment Authorization (Buyer Paid)</h5>
               <p className="text-[11px] text-[#667085] mt-0.5">
-                Người mua thanh toán thành công qua SePay. Tiền được khóa lập tức vào tài khoản ký quỹ Escrow an toàn.
+                Buyer completes payment. Funds are immediately locked in the secure escrow ledger.
               </p>
             </div>
 
@@ -353,10 +353,10 @@ export const SettlementBufferControlPanel: React.FC = () => {
                 2
               </div>
               <h5 className="text-xs font-bold text-[#101722]">
-                Thời gian đệm an toàn ({formatDuration(bufferSeconds)})
+                Holding Buffer Window ({formatDuration(bufferSeconds)})
               </h5>
               <p className="text-[11px] text-[#667085] mt-0.5">
-                Két Escrow đóng băng tiền trong suốt khoảng thời gian đệm đã cấu hình, tạo cửa sổ an toàn để Buyer xác minh vé.
+                Escrow locks funds throughout the configured buffer window, allowing the buyer time to verify ticket validity.
               </p>
             </div>
 
@@ -366,10 +366,10 @@ export const SettlementBufferControlPanel: React.FC = () => {
                 3
               </div>
               <h5 className="text-xs font-bold text-[#101722]">
-                Khóa bán lại trước giờ G ({formatDuration(cutoffSeconds)})
+                Pre-Event Resale Cutoff ({formatDuration(cutoffSeconds)})
               </h5>
               <p className="text-[11px] text-[#667085] mt-0.5">
-                Vé của sự kiện ngừng cho phép đăng bán lại trước giờ mở màn theo đúng ranh giới Cutoff để bảo đảm an ninh check-in.
+                Resale listings are closed before event opening according to the cutoff threshold to maintain check-in security.
               </p>
             </div>
 
@@ -378,9 +378,9 @@ export const SettlementBufferControlPanel: React.FC = () => {
               <div className="absolute -left-6 top-0.5 w-4 h-4 rounded-full bg-blue-600 text-white flex items-center justify-center text-[9px] font-bold">
                 4
               </div>
-              <h5 className="text-xs font-bold text-[#101722]">Giải ngân tiền cho người bán (Payout)</h5>
+              <h5 className="text-xs font-bold text-[#101722]">Seller Payout Disbursement</h5>
               <p className="text-[11px] text-[#667085] mt-0.5">
-                Hệ thống tự động giải phóng tiền ký quỹ về tài khoản ngân hàng của Seller sau khi hết đệm, <strong>với điều kiện không có tranh chấp hoặc khiếu nại đang mở</strong>.
+                System automatically releases funds to the seller's verified payout account upon buffer expiry, <strong>provided no active disputes exist</strong>.
               </p>
             </div>
           </div>
@@ -389,7 +389,7 @@ export const SettlementBufferControlPanel: React.FC = () => {
           <div className="p-3 rounded-lg bg-[#F4F6F9] border border-[#E5EAF0] text-[11px] text-[#667085] flex items-start gap-2">
             <Info className="w-4 h-4 text-[#F45135] shrink-0 mt-0.5" />
             <span>
-              <strong>Lưu ý nghiệp vụ:</strong> Nếu có khiếu nại phát sinh từ người mua trong thời gian đệm, tiền ký quỹ sẽ bị đóng băng cho đến khi Quản trị viên/Moderator ra phán quyết tại Dispute Console.
+              <strong>Operational Guard:</strong> If a buyer raises a dispute during the buffer window, escrow release is halted until an administrator issues a verdict in the Dispute Console.
             </span>
           </div>
         </div>
@@ -404,24 +404,24 @@ export const SettlementBufferControlPanel: React.FC = () => {
                 <AlertTriangle className="w-5 h-5 text-amber-600" />
               </div>
               <div>
-                <h4 className="text-sm font-bold text-[#101722]">Xác Nhận Thay Đổi Tham Số Ký Quỹ</h4>
-                <p className="text-xs text-[#667085]">Chính sách này ảnh hưởng trực tiếp đến chu kỳ giữ tiền</p>
+                <h4 className="text-sm font-bold text-[#101722]">Confirm Escrow Buffer Changes</h4>
+                <p className="text-xs text-[#667085]">This policy directly impacts settlement and payout timing</p>
               </div>
             </div>
 
             <div className="bg-[#F4F6F9] border border-[#E5EAF0] rounded-lg p-3 space-y-1.5 text-xs font-mono">
               <div className="flex justify-between">
-                <span className="text-[#667085]">Đệm giữ Escrow mới:</span>
+                <span className="text-[#667085]">New Escrow Buffer:</span>
                 <strong className="text-emerald-700">{formatDuration(bufferSeconds)} ({bufferSeconds.toLocaleString()}s)</strong>
               </div>
               <div className="flex justify-between">
-                <span className="text-[#667085]">Ranh giới Cutoff mới:</span>
+                <span className="text-[#667085]">New Cutoff Threshold:</span>
                 <strong className="text-amber-700">{formatDuration(cutoffSeconds)} ({cutoffSeconds.toLocaleString()}s)</strong>
               </div>
             </div>
 
             <p className="text-[11px] text-[#667085]">
-              Thời gian đệm mới sẽ áp dụng ngay lập tức cho các giao dịch ký quỹ phát sinh từ thời điểm này trở đi. Bạn có chắc chắn muốn lưu?
+              The updated buffer durations will immediately apply to all new transactions from this point forward. Are you sure you want to proceed?
             </p>
 
             <div className="flex items-center justify-end gap-2.5 pt-2 border-t border-[#E5EAF0]">
@@ -430,14 +430,14 @@ export const SettlementBufferControlPanel: React.FC = () => {
                 onClick={() => setShowConfirmModal(false)}
                 className="px-3 py-1.5 rounded-lg border border-[#E5EAF0] text-[#667085] hover:text-[#101722] hover:bg-slate-50 text-xs font-medium"
               >
-                Hủy Bỏ
+                Cancel
               </button>
               <button
                 type="button"
                 onClick={handleConfirmSave}
                 className="px-4 py-1.5 rounded-lg bg-[#F45135] hover:bg-[#e0452a] text-white text-xs font-semibold shadow-2xs"
               >
-                Xác Nhận Lưu
+                Confirm & Save
               </button>
             </div>
           </div>

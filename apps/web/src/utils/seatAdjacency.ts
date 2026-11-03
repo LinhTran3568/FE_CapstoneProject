@@ -245,16 +245,16 @@ export function detectSeatAdjacency(
       return {
         isAdjacent: true,
         status: 'SINGLE_SEAT',
-        badgeText: '1 Vé',
-        badgeSubtext: 'Vé đơn lẻ',
+        badgeText: '1 Ticket',
+        badgeSubtext: 'Single Ticket',
         badgeTone: 'neutral',
         commonZone: null,
         commonRow: null,
         seatNumbers: [],
         parsedSeats: validSeats,
-        reason: 'Vé đơn lẻ',
+        reason: 'Single ticket',
         liquidityScore: 'MEDIUM',
-        liquidityNote: 'Vé đơn lẻ tiêu chuẩn.',
+        liquidityNote: 'Standard single ticket.',
       };
     }
 
@@ -276,9 +276,9 @@ export function detectSeatAdjacency(
       commonRow: single.row || null,
       seatNumbers: single.seatNumber !== null ? [single.seatNumber] : [],
       parsedSeats: validSeats,
-      reason: 'Vé đơn lẻ',
+      reason: 'Single ticket',
       liquidityScore: 'MEDIUM',
-      liquidityNote: 'Vé đơn lẻ có thanh khoản ổn định.',
+      liquidityNote: 'Standard single ticket with stable demand.',
     };
   }
 
@@ -289,36 +289,36 @@ export function detectSeatAdjacency(
     const sameZone = validSeats.every((s) => normalizeZone(s.zone) === firstZone);
 
     if (sameZone) {
-      const zoneDisplay = validSeats[0].zone || 'Khu đứng GA';
+      const zoneDisplay = validSeats[0].zone || 'GA Standing Zone';
       return {
         isAdjacent: true,
         status: 'GENERAL_ADMISSION',
-        badgeText: 'Vé tự do (Cùng khu)',
+        badgeText: 'General Admission (Same Zone)',
         badgeSubtext: zoneDisplay,
         badgeTone: 'info',
         commonZone: validSeats[0].zone || null,
         commonRow: null,
         seatNumbers: [],
         parsedSeats: validSeats,
-        reason: 'Tất cả vé thuộc cùng khu vực đứng / tự do',
+        reason: 'All tickets belong to the same General Admission / Standing area',
         liquidityScore: 'HIGH',
-        liquidityNote: 'Vé tự do cùng khu có thể vào sân và đứng cùng nhau không giới hạn số ghế.',
+        liquidityNote: 'General Admission tickets in the same zone allow entering and standing together.',
       };
     } else {
-      const zoneNames = Array.from(new Set(validSeats.map((s) => s.zone || 'Khu khác'))).join(' & ');
+      const zoneNames = Array.from(new Set(validSeats.map((s) => s.zone || 'Different Zone'))).join(' & ');
       return {
         isAdjacent: false,
         status: 'DIFFERENT_LOCATIONS',
-        badgeText: 'Khu vực khác nhau',
+        badgeText: 'Different Zones',
         badgeSubtext: zoneNames,
         badgeTone: 'warning',
         commonZone: null,
         commonRow: null,
         seatNumbers: [],
         parsedSeats: validSeats,
-        reason: `Các vé nằm ở các khu vực đứng khác nhau (${zoneNames})`,
+        reason: `Tickets are in different standing areas (${zoneNames})`,
         liquidityScore: 'LOW',
-        liquidityNote: 'Vé thuộc các khu vực khác nhau, người mua không thể đứng cạnh nhau.',
+        liquidityNote: 'Tickets are in different sections, holders will not be in the same area.',
       };
     }
   }
@@ -333,16 +333,16 @@ export function detectSeatAdjacency(
     return {
       isAdjacent: false,
       status: 'DIFFERENT_LOCATIONS',
-      badgeText: 'Vị trí khác nhau',
-      badgeSubtext: `${validSeats.length} vị trí khác nhau (${diffZoneText})`,
+      badgeText: 'Different Locations',
+      badgeSubtext: `${validSeats.length} different locations (${diffZoneText})`,
       badgeTone: 'warning',
       commonZone: null,
       commonRow: null,
       seatNumbers: validSeats.map((s) => s.seatNumber).filter((n): n is number => n !== null),
       parsedSeats: validSeats,
-      reason: `Các vé thuộc các khán đài/khu vực khác nhau (${diffZoneText})`,
+      reason: `Tickets belong to different sections/zones (${diffZoneText})`,
       liquidityScore: 'LOW',
-      liquidityNote: 'Vé khác khu vực khán đài, người mua sẽ ngồi xa nhau.',
+      liquidityNote: 'Tickets are in different sections and not located together.',
     };
   }
 
@@ -357,16 +357,16 @@ export function detectSeatAdjacency(
     return {
       isAdjacent: false,
       status: 'DIFFERENT_LOCATIONS',
-      badgeText: 'Vị trí khác nhau',
-      badgeSubtext: `Khác hàng ghế (Hàng ${diffRowText})`,
+      badgeText: 'Different Locations',
+      badgeSubtext: `Different rows (Rows ${diffRowText})`,
       badgeTone: 'warning',
       commonZone: commonZone,
       commonRow: null,
       seatNumbers: validSeats.map((s) => s.seatNumber).filter((n): n is number => n !== null),
       parsedSeats: validSeats,
-      reason: `Các vé không cùng hàng ghế (Hàng ${diffRowText})`,
+      reason: `Tickets are on different rows (Rows ${diffRowText})`,
       liquidityScore: 'LOW',
-      liquidityNote: 'Các vé nằm ở các hàng khác nhau, người mua không ngồi cạnh nhau.',
+      liquidityNote: 'Tickets are on different rows and not seated together.',
     };
   }
 
@@ -380,16 +380,16 @@ export function detectSeatAdjacency(
     return {
       isAdjacent: false,
       status: 'UNKNOWN',
-      badgeText: 'Chưa rõ số ghế',
-      badgeSubtext: commonRow ? `Cùng hàng ${commonRow}` : commonZone || undefined,
+      badgeText: 'Unassigned Seat Numbers',
+      badgeSubtext: commonRow ? `Same Row ${commonRow}` : commonZone || undefined,
       badgeTone: 'neutral',
       commonZone: commonZone,
       commonRow: commonRow,
       seatNumbers: seatsWithNumbers.map((s) => s.seatNumber as number),
       parsedSeats: validSeats,
-      reason: 'Thiếu thông tin số ghế cụ thể để xác định tính liền kề',
+      reason: 'Seat numbers missing to determine adjacent seating',
       liquidityScore: 'MEDIUM',
-      liquidityNote: 'Vui lòng kiểm tra mã vé để đảm bảo vị trí ghế ngồi.',
+      liquidityNote: 'Please check ticket details for specific seating positions.',
     };
   }
 
@@ -403,16 +403,16 @@ export function detectSeatAdjacency(
     return {
       isAdjacent: false,
       status: 'DIFFERENT_LOCATIONS',
-      badgeText: 'Trùng mã ghế',
-      badgeSubtext: `Phát hiện ghế trùng lặp (${sorted.join(', ')})`,
+      badgeText: 'Duplicate Seat Numbers',
+      badgeSubtext: `Duplicate seat numbers detected (${sorted.join(', ')})`,
       badgeTone: 'warning',
       commonZone: commonZone,
       commonRow: commonRow,
       seatNumbers: sorted,
       parsedSeats: validSeats,
-      reason: 'Danh sách có ghế bị trùng lặp số',
+      reason: 'Seat list contains duplicate seat numbers',
       liquidityScore: 'LOW',
-      liquidityNote: 'Cảnh báo: Danh sách chứa số ghế trùng lặp.',
+      liquidityNote: 'Warning: Ticket list contains duplicate seat numbers.',
     };
   }
 
@@ -440,22 +440,22 @@ export function detectSeatAdjacency(
   }
 
   if (isStep1 || isTheatreParity) {
-    const rowSuffix = commonRow ? `Cùng hàng ${commonRow}` : `Ghế ${sorted.join(', ')}`;
+    const rowSuffix = commonRow ? `Row ${commonRow}` : `Seats ${sorted.join(', ')}`;
     const formattedNumbers = sorted.join(' & ');
 
     return {
       isAdjacent: true,
       status: 'ADJACENT',
-      badgeText: 'Ghế liền kề',
-      badgeSubtext: `${rowSuffix} (Ghế ${formattedNumbers})`,
+      badgeText: 'Adjacent Seats',
+      badgeSubtext: `${rowSuffix} (Seats ${formattedNumbers})`,
       badgeTone: 'success',
       commonZone: commonZone,
       commonRow: commonRow,
       seatNumbers: sorted,
       parsedSeats: validSeats,
-      reason: `Các ghế ngồi liền kề nhau trong cùng hàng ${commonRow || ''} (Ghế ${formattedNumbers})`,
+      reason: `Seats are directly adjacent in Row ${commonRow || ''} (Seats ${formattedNumbers})`,
       liquidityScore: 'HIGH',
-      liquidityNote: 'Ghế liền kề tăng +80% tốc độ bán lại và được người mua ưu tiên săn đón.',
+      liquidityNote: 'Adjacent seats sell significantly faster and are preferred by buyers.',
     };
   }
 
@@ -464,21 +464,21 @@ export function detectSeatAdjacency(
   return {
     isAdjacent: false,
     status: 'DIFFERENT_LOCATIONS',
-    badgeText: 'Vị trí khác nhau',
-    badgeSubtext: commonRow ? `Cùng hàng ${commonRow}, cách ghế (${numbersText})` : `Cách ghế (${numbersText})`,
+    badgeText: 'Different Locations',
+    badgeSubtext: commonRow ? `Row ${commonRow}, non-adjacent (${numbersText})` : `Non-adjacent (${numbersText})`,
     badgeTone: 'warning',
     commonZone: commonZone,
     commonRow: commonRow,
     seatNumbers: sorted,
     parsedSeats: validSeats,
-    reason: `Các ghế cùng hàng ${commonRow || ''} nhưng cách quãng, không nằm sát nhau (Ghế ${numbersText})`,
+    reason: `Seats are on Row ${commonRow || ''} but not adjacent (Seats ${numbersText})`,
     liquidityScore: 'MEDIUM',
-    liquidityNote: 'Các ghế không liền kề trực tiếp, người mua vui lòng kiểm tra trước khi đặt vé.',
+    liquidityNote: 'Seats are not directly adjacent. Please review seating before purchasing.',
   };
 }
 
 /**
- * Formats a clean seat list label for UI presentation (e.g. "Zone A • Hàng G (Ghế 12 & 14)").
+ * Formats a clean seat list label for UI presentation (e.g. "Zone A • Row G (Seats 12 & 14)").
  */
 export function formatSeatListSummary(
   inputs: Array<string | SeatInfoInput | null | undefined> | string
@@ -491,14 +491,14 @@ export function formatSeatListSummary(
   }
 
   if (result.commonRow) {
-    parts.push(`Hàng ${result.commonRow}`);
+    parts.push(`Row ${result.commonRow}`);
   }
 
   if (result.seatNumbers.length > 0) {
-    parts.push(`Ghế ${result.seatNumbers.join(', ')}`);
+    parts.push(`Seats ${result.seatNumbers.join(', ')}`);
   } else if (result.status === 'GENERAL_ADMISSION') {
-    parts.push('Khu tự do');
+    parts.push('General Admission');
   }
 
-  return parts.length > 0 ? parts.join(' • ') : 'Vị trí vé';
+  return parts.length > 0 ? parts.join(' • ') : 'Ticket Location';
 }

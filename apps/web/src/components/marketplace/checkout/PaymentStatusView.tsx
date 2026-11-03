@@ -1,5 +1,5 @@
 import React from 'react';
-import { CheckCircle2, Clock, AlertTriangle, ArrowRight, RotateCw, ExternalLink, ShieldCheck } from 'lucide-react';
+import { CheckCircle2, Clock, AlertTriangle, ArrowRight, RotateCw, ExternalLink } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 export interface PaymentStatusViewProps {
@@ -26,13 +26,10 @@ export const PaymentStatusView: React.FC<PaymentStatusViewProps> = ({
           <div className="w-20 h-20 rounded-full bg-[#ff5722]/20 border-2 border-[#ff5722] flex items-center justify-center shadow-lg shadow-[#ff5722]/30">
             <CheckCircle2 className="w-10 h-10 text-[#ff5722]" />
           </div>
-          <div className="absolute -bottom-1 -right-1 p-1 rounded-full bg-[#121824] border border-[#ff5722]/40">
-            <ShieldCheck className="w-4 h-4 text-[#ff5722]" />
-          </div>
         </div>
 
         <span className="px-3 py-1 rounded-full bg-[#ff5722]/15 border border-[#ff5722]/30 text-[#ff5722] text-xs font-bold uppercase tracking-wider mb-2">
-          Payment Verified & Escrow Released
+          Payment Confirmed
         </span>
 
         <h3 className="text-xl sm:text-2xl font-bold text-white mb-2">
@@ -40,7 +37,7 @@ export const PaymentStatusView: React.FC<PaymentStatusViewProps> = ({
         </h3>
 
         <p className="text-sm text-zinc-400 max-w-md mb-6 leading-relaxed">
-          Your escrow transaction has been verified successfully. Your new digital ticket with secure QR code has been issued directly to your wallet.
+          Your transaction has been confirmed. Your new digital ticket with dynamic QR code is ready in your wallet.
         </p>
 
         {(ticketTitle || orderNumber) && (

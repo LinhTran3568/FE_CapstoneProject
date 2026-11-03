@@ -49,14 +49,11 @@ export const HorizontalEventCarousel: React.FC = () => {
           <div className="flex flex-col gap-1">
             <div className="flex items-center gap-2 text-[#4cd7f6]">
               <span className="material-symbols-outlined text-[20px]">alarm_on</span>
-              <span className="text-xs uppercase tracking-widest font-bold">Lên lịch gấp</span>
+              <span className="text-xs uppercase tracking-widest font-bold">Upcoming</span>
             </div>
             <h2 className="font-display font-bold text-2xl sm:text-3xl text-[#e1e1ed] tracking-tight">
-              Sắp diễn ra trong 7 ngày tới
+              Happening in the Next 7 Days
             </h2>
-            <p className="text-xs text-[#aa8984]">
-              Những đêm nhạc cận kề giờ G. Hệ thống tự động lướt hoặc bấm nút điều hướng để xem các sự kiện tiếp theo.
-            </p>
           </div>
 
           {/* Navigation Controls: Only show scroll controls if more than 3 items */}
@@ -72,7 +69,7 @@ export const HorizontalEventCarousel: React.FC = () => {
                     className={`h-1.5 rounded-full transition-all duration-300 ${
                       slideIndex === idx ? 'w-6 bg-[#ff5945]' : 'w-1.5 bg-[#33343d] hover:bg-[#aa8984]'
                     }`}
-                    aria-label={`Chuyển đến sự kiện ${idx + 1}`}
+                    aria-label={`Go to event ${idx + 1}`}
                   />
                 ))}
               </div>
@@ -81,7 +78,7 @@ export const HorizontalEventCarousel: React.FC = () => {
                 type="button"
                 onClick={scrollLeft}
                 className="w-10 h-10 rounded-xl bg-[#1d1f28] hover:bg-[#ff5945] hover:text-white text-[#e1e1ed] flex items-center justify-center transition-all shadow-md active:scale-95 border border-[#33343d]/50"
-                aria-label="Cuộn sang trái"
+                aria-label="Scroll left"
               >
                 <span className="material-symbols-outlined text-[22px]">chevron_left</span>
               </button>
@@ -89,7 +86,7 @@ export const HorizontalEventCarousel: React.FC = () => {
                 type="button"
                 onClick={scrollRight}
                 className="w-10 h-10 rounded-xl bg-[#1d1f28] hover:bg-[#ff5945] hover:text-white text-[#e1e1ed] flex items-center justify-center transition-all shadow-md active:scale-95 border border-[#33343d]/50"
-                aria-label="Cuộn sang phải"
+                aria-label="Scroll right"
               >
                 <span className="material-symbols-outlined text-[22px]">chevron_right</span>
               </button>
@@ -97,7 +94,7 @@ export const HorizontalEventCarousel: React.FC = () => {
           ) : (
             <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-[#1d1f28] border border-[#33343d]/50 text-xs text-[#aa8984]">
               <span className="w-2 h-2 rounded-full bg-[#4cd7f6] animate-pulse" />
-              <span>{UPCOMING_CONCERTS.length} đêm nhạc chính thức từ BTC</span>
+              <span>{UPCOMING_CONCERTS.length} Official Concerts</span>
             </div>
           )}
         </div>
@@ -141,14 +138,14 @@ export const HorizontalEventCarousel: React.FC = () => {
 
                   <div className="flex items-center justify-between pt-3 border-t border-[#33343d]/40">
                     <div>
-                      <span className="text-[11px] text-[#aa8984] block">Giá vé từ</span>
+                      <span className="text-[11px] text-[#aa8984] block">From</span>
                       <span className="font-display font-extrabold text-lg text-[#e1e1ed]">{item.priceText}</span>
                     </div>
                     <Link
                       to={`/storefront/event/${item.eventId}`}
                       className="px-4 py-2 rounded-xl bg-[#ff5945] hover:bg-[#ff7252] text-white text-xs font-bold transition-all shadow-md shadow-[#ff5945]/20 hover:shadow-[#ff5945]/40 active:scale-95 flex items-center gap-1"
                     >
-                      <span>Xem chỗ ngồi</span>
+                      <span>View Seats</span>
                       <span className="material-symbols-outlined text-[16px]">arrow_forward</span>
                     </Link>
                   </div>
@@ -205,14 +202,14 @@ export const HorizontalEventCarousel: React.FC = () => {
 
                     <div className="flex items-center justify-between pt-3 border-t border-[#33343d]/40">
                       <div>
-                        <span className="text-[11px] text-[#aa8984] block">Giá vé từ</span>
+                        <span className="text-[11px] text-[#aa8984] block">From</span>
                         <span className="font-display font-extrabold text-lg text-[#e1e1ed]">{item.priceText}</span>
                       </div>
                       <Link
                         to={`/storefront/event/${item.eventId}`}
                         className="px-4 py-2 rounded-xl bg-[#ff5945] hover:bg-[#ff7252] text-white text-xs font-bold transition-all shadow-md shadow-[#ff5945]/20 hover:shadow-[#ff5945]/40 active:scale-95 flex items-center gap-1"
                       >
-                        <span>Xem chỗ ngồi</span>
+                        <span>View Seats</span>
                         <span className="material-symbols-outlined text-[16px]">arrow_forward</span>
                       </Link>
                     </div>

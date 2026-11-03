@@ -88,12 +88,12 @@ export const SideBySideDossierView: React.FC<SideBySideDossierViewProps> = ({ do
     let defaultReason = '';
     if (decision === 'Approve') {
       defaultReason = dossier.recommendation === 'RECOMMEND_REFUND'
-        ? 'Duyệt hoàn tiền: Hệ thống đối soát xác nhận vé gặp sự cố trước thời điểm sang tên / quét vé thất bại.'
-        : 'Duyệt hoàn tiền 100% Escrow cho Người mua sau khi kiểm tra bằng chứng.';
+        ? 'Refund Approved: Automated venue checks confirmed ticket issue prior to transfer or gate scan failure.'
+        : '100% Escrow refund approved for buyer upon evidence review.';
     } else {
       defaultReason = dossier.recommendation === 'RECOMMEND_REJECT_FRAUD'
-        ? 'Bác bỏ khiếu nại: Nhật ký tự động cổng BTC xác nhận vé đã quét vào cổng thành công sau thời điểm sang tên.'
-        : 'Bác bỏ khiếu nại và giải ngân Escrow cho Người bán do không đủ căn cứ sự cố.';
+        ? 'Dispute Rejected: Venue access logs confirm ticket was successfully scanned at gates after transfer timestamp.'
+        : 'Dispute rejected and Escrow released to seller due to lack of issue evidence.';
     }
     setAdminReason(defaultReason);
     setVerdictModal({ open: true, decision });
@@ -102,7 +102,7 @@ export const SideBySideDossierView: React.FC<SideBySideDossierViewProps> = ({ do
   const handleSubmitVerdict = async () => {
     if (!verdictModal) return;
     if (!adminReason.trim()) {
-      setVerdictError('Vui lòng nhập lý do phán quyết.');
+      setVerdictError('Please provide an adjudication reason.');
       return;
     }
 
@@ -121,7 +121,7 @@ export const SideBySideDossierView: React.FC<SideBySideDossierViewProps> = ({ do
         onResolved();
       }
     } catch (err: any) {
-      setVerdictError(err.response?.data?.message || err.message || 'Lỗi khi gửi phán quyết.');
+      setVerdictError(err.response?.data?.message || err.message || 'Error submitting verdict.');
     } finally {
       setIsSubmittingVerdict(false);
     }
@@ -131,13 +131,13 @@ export const SideBySideDossierView: React.FC<SideBySideDossierViewProps> = ({ do
   const getReasonLabel = (code: DisputeReasonCode | number) => {
     switch (Number(code)) {
       case DisputeReasonCode.TicketInvalid:
-        return 'Mã vé không hợp lệ / không nhận được vé';
+        return 'Invalid ticket code / ticket not received';
       case DisputeReasonCode.DuplicateEntry:
-        return 'Trùng lặp mã vé / bị dùng trước';
+        return 'Duplicate ticket code / already redeemed';
       case DisputeReasonCode.FakeTicket:
-        return 'Vé giả mạo / sai thông tin niêm yết';
+        return 'Counterfeit ticket / incorrect listing details';
       default:
-        return 'Khiếu nại sự cố';
+        return 'Issue claim';
     }
   };
 
@@ -161,13 +161,13 @@ export const SideBySideDossierView: React.FC<SideBySideDossierViewProps> = ({ do
                   ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30'
                   : 'bg-rose-500/10 text-rose-400 border border-rose-500/30'
               }`}>
-                {dossier.status.toUpperCase() === 'OPEN' ? 'ĐANG CHỜ PHÁN QUYẾT' : dossier.status.toUpperCase() === 'RESOLVED' ? 'ĐÃ HOÀN TIỀN (REFUNDED)' : 'ĐÃ BÁC BỎ (REJECTED)'}
+                {dossier.status.toUpperCase() === 'OPEN' ? 'PENDING ADJUDICATION' : dossier.status.toUpperCase() === 'RESOLVED' ? 'REFUNDED' : 'REJECTED'}
               </span>
             </div>
             <p className="text-xs text-slate-400 mt-0.5 flex items-center gap-2 font-sans">
-              <span>Sự kiện: <strong className="text-slate-200">{dossier.eventTitle}</strong></span>
+              <span>Event: <strong className="text-slate-200">{dossier.eventTitle}</strong></span>
               <span>•</span>
-              <span>Mã vé: <code className="text-[#FF5A36] bg-[#FF5A36]/10 px-1.5 py-0.5 rounded font-mono text-[11px]">{dossier.ticketCode}</code></span>
+              <span>Ticket Code: <code className="text-[#FF5A36] bg-[#FF5A36]/10 px-1.5 py-0.5 rounded font-mono text-[11px]">{dossier.ticketCode}</code></span>
             </p>
           </div>
         </div>
@@ -180,20 +180,20 @@ export const SideBySideDossierView: React.FC<SideBySideDossierViewProps> = ({ do
               className="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs sm:text-sm font-semibold flex items-center gap-1.5 transition-all shadow-lg shadow-emerald-950/40 border border-emerald-400/30 active:scale-95"
             >
               <ShieldCheck className="w-4 h-4 text-emerald-200" />
-              <span>1-Click: Duyệt Hoàn Tiền</span>
+              <span>1-Click: Approve Refund</span>
             </button>
             <button
               onClick={() => handleOpenVerdictModal('Reject')}
               className="px-4 py-2 rounded-lg bg-rose-600 hover:bg-rose-500 text-white text-xs sm:text-sm font-semibold flex items-center gap-1.5 transition-all shadow-lg shadow-rose-950/40 border border-rose-400/30 active:scale-95"
             >
               <ShieldAlert className="w-4 h-4 text-rose-200" />
-              <span>1-Click: Bác Bỏ</span>
+              <span>1-Click: Reject Dispute</span>
             </button>
           </div>
         ) : (
           <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-800/80 border border-slate-700 text-xs text-slate-300">
             <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-            <span>Phán quyết đã hoàn tất ({dossier.resolvedAt ? new Date(dossier.resolvedAt).toLocaleString('vi-VN') : 'Đã ghi nhận'})</span>
+            <span>Adjudication finalized ({dossier.resolvedAt ? new Date(dossier.resolvedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'Recorded'})</span>
           </div>
         )}
       </div>
@@ -212,10 +212,10 @@ export const SideBySideDossierView: React.FC<SideBySideDossierViewProps> = ({ do
           )}
           <div>
             <div className="font-semibold text-sm">
-              {dossier.status.toUpperCase() === 'RESOLVED' ? 'KẾT QUẢ: ĐÃ PHÁN QUYẾT HOÀN TIỀN CHO BUYER' : 'KẾT QUẢ: ĐÃ PHÁN QUYẾT BÁC BỎ KHANH NẠI & GIẢI NGÂN SELLER'}
+              {dossier.status.toUpperCase() === 'RESOLVED' ? 'OUTCOME: REFUND GRANTED TO BUYER' : 'OUTCOME: DISPUTE REJECTED & ESCROW RELEASED TO SELLER'}
             </div>
             {dossier.adminNotes && (
-              <p className="mt-1 opacity-90 italic">Ghi chú quản trị: "{dossier.adminNotes}"</p>
+              <p className="mt-1 opacity-90 italic">Adjudication note: "{dossier.adminNotes}"</p>
             )}
           </div>
         </div>
@@ -229,17 +229,17 @@ export const SideBySideDossierView: React.FC<SideBySideDossierViewProps> = ({ do
           <div className="flex items-center justify-between border-b border-slate-800/80 pb-3">
             <div className="flex items-center gap-2">
               <FileText className="w-4 h-4 text-[#FF5A36]" />
-              <h3 className="text-sm font-semibold uppercase tracking-wider text-slate-200">1. Hồ Sơ Bằng Chứng Buyer Gửi</h3>
+              <h3 className="text-sm font-semibold uppercase tracking-wider text-slate-200">1. Buyer Evidence Dossier</h3>
             </div>
             <span className="text-xs text-slate-400 font-mono">
-              Ngày gửi: {new Date(dossier.createdAt).toLocaleString('vi-VN')}
+              Filed: {new Date(dossier.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
             </span>
           </div>
 
           {/* Buyer & Transaction Metadata */}
           <div className="grid grid-cols-2 gap-3 bg-slate-900/60 p-3.5 rounded-lg border border-slate-800/60 text-xs">
             <div>
-              <span className="text-slate-400 block mb-0.5">Người mua (Buyer):</span>
+              <span className="text-slate-400 block mb-0.5">Buyer:</span>
               <div className="font-medium text-slate-200 flex items-center gap-1.5">
                 <User className="w-3.5 h-3.5 text-slate-400" />
                 <span>{dossier.buyerName}</span>
@@ -247,10 +247,10 @@ export const SideBySideDossierView: React.FC<SideBySideDossierViewProps> = ({ do
               <span className="text-[11px] text-slate-400 font-mono block mt-0.5">{dossier.buyerEmail}</span>
             </div>
             <div>
-              <span className="text-slate-400 block mb-0.5">Giá trị Escrow đóng băng:</span>
+              <span className="text-slate-400 block mb-0.5">Frozen Escrow Value:</span>
               <div className="font-mono font-bold text-emerald-400 text-sm flex items-center gap-1">
                 <DollarSign className="w-3.5 h-3.5 text-emerald-400" />
-                <span>{dossier.totalBuyerPaid ? dossier.totalBuyerPaid.toLocaleString('vi-VN') : '0'} ₫</span>
+                <span>{dossier.totalBuyerPaid ? dossier.totalBuyerPaid.toLocaleString('en-US') : '0'} ₫</span>
               </div>
               <span className="text-[11px] text-slate-400 block mt-0.5">Seller: {dossier.sellerName}</span>
             </div>
@@ -259,26 +259,26 @@ export const SideBySideDossierView: React.FC<SideBySideDossierViewProps> = ({ do
           {/* Reason & Buyer Statement */}
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Lý do khiếu nại:</span>
+              <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Dispute Reason:</span>
               <span className="px-2 py-0.5 rounded bg-slate-800 text-[#FF5A36] text-xs font-medium border border-slate-700">
                 {getReasonLabel(dossier.reasonCode)}
               </span>
             </div>
             <div className="p-3.5 rounded-lg bg-slate-900/80 border border-slate-800 text-xs text-slate-300 leading-relaxed font-sans">
-              {dossier.description || 'Không có mô tả chi tiết từ người mua.'}
+              {dossier.description || 'No detailed statement provided by buyer.'}
             </div>
           </div>
 
           {/* Evidence Image Gallery */}
           <div className="space-y-2.5">
             <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider block">
-              Ảnh bằng chứng đính kèm ({dossier.evidences?.length || 0}):
+              Attached Evidence ({dossier.evidences?.length || 0}):
             </span>
 
             {loadingEvidences ? (
               <div className="p-6 rounded-lg bg-slate-900/40 border border-slate-800 flex items-center justify-center gap-2 text-xs text-slate-400">
                 <Loader2 className="w-4 h-4 animate-spin text-[#FF5A36]" />
-                <span>Đang tải ảnh bằng chứng...</span>
+                <span>Loading evidence images...</span>
               </div>
             ) : dossier.evidences && dossier.evidences.length > 0 ? (
               <div className="grid grid-cols-2 gap-3">
@@ -300,7 +300,7 @@ export const SideBySideDossierView: React.FC<SideBySideDossierViewProps> = ({ do
                       />
                       <div className="absolute inset-0 bg-slate-950/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1.5 text-white text-xs font-semibold">
                         <Maximize2 className="w-4 h-4 text-[#FF5A36]" />
-                        <span>Xem ảnh</span>
+                        <span>View</span>
                       </div>
                     </div>
                   );
@@ -308,7 +308,7 @@ export const SideBySideDossierView: React.FC<SideBySideDossierViewProps> = ({ do
               </div>
             ) : (
               <div className="p-4 rounded-lg bg-slate-900/40 border border-slate-800/80 text-center text-xs text-slate-500 italic">
-                Người mua không đính kèm ảnh hình ảnh nào.
+                No evidence images attached by buyer.
               </div>
             )}
           </div>
@@ -319,26 +319,26 @@ export const SideBySideDossierView: React.FC<SideBySideDossierViewProps> = ({ do
           <div className="flex items-center justify-between border-b border-slate-800/80 pb-3">
             <div className="flex items-center gap-2">
               <ScanLine className="w-4 h-4 text-emerald-400" />
-              <h3 className="text-sm font-semibold uppercase tracking-wider text-slate-200">2. Log Cổng BTC Tự Động & Đội Soát</h3>
+              <h3 className="text-sm font-semibold uppercase tracking-wider text-slate-200">2. Venue Access Logs & Reconciliation</h3>
             </div>
             <span className="text-xs text-slate-400 font-mono">
-              Sang tên: {dossier.transferredAt ? new Date(dossier.transferredAt).toLocaleString('vi-VN') : 'N/A'}
+              Transferred: {dossier.transferredAt ? new Date(dossier.transferredAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'N/A'}
             </span>
           </div>
 
           {/* System Recommendation Banner */}
           <div className="space-y-1">
-            <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Nhãn Khuyến Nghị Hệ Thống (Auto AI Analysis):</span>
+            <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">System Recommendation (Automated Analysis):</span>
             
             {dossier.recommendation === 'RECOMMEND_REFUND' ? (
               <div className="p-3.5 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 flex items-start gap-3 text-xs">
                 <ShieldCheck className="w-5 h-5 text-emerald-400 shrink-0 mt-0.5" />
                 <div>
                   <div className="font-bold text-sm text-emerald-400 flex items-center gap-2">
-                    <span>KHUYẾN NGHỊ: NÊN DUYỆT HOÀN TIỀN (RECOMMEND REFUND)</span>
+                    <span>RECOMMENDATION: APPROVE REFUND</span>
                   </div>
                   <p className="mt-1 text-[11px] text-emerald-200/90 leading-relaxed">
-                    Hệ thống tự động phát hiện mã vé có lỗi hủy/thu hồi từ BTC hoặc không ghi nhận lượt qua cổng thành công sau thời điểm chuyển nhượng.
+                    Automated checks detected ticket cancellation/revocation from organizer or no successful gate entry after transfer timestamp.
                   </p>
                 </div>
               </div>
@@ -347,10 +347,10 @@ export const SideBySideDossierView: React.FC<SideBySideDossierViewProps> = ({ do
                 <ShieldAlert className="w-5 h-5 text-rose-400 shrink-0 mt-0.5" />
                 <div>
                   <div className="font-bold text-sm text-rose-400 flex items-center gap-2">
-                    <span>KHUYẾN NGHỊ: BÁC BỎ KHANH NẠI - CẢNH BÁO GIAN LẬN (RECOMMEND REJECT FRAUD)</span>
+                    <span>RECOMMENDATION: REJECT DISPUTE (POTENTIAL FRAUD)</span>
                   </div>
                   <p className="mt-1 text-[11px] text-rose-200/90 leading-relaxed">
-                    Log tự động từ máy quét cổng BTC ghi nhận người giữ vé đã quét vào cổng thành công sau thời gian nhận vé. Khiếu nại có dấu hiệu báo khống.
+                    Automated venue access logs confirm ticket was successfully scanned at entry gates after transfer timestamp. Claim indicates potential fraud.
                   </p>
                 </div>
               </div>
@@ -358,9 +358,9 @@ export const SideBySideDossierView: React.FC<SideBySideDossierViewProps> = ({ do
               <div className="p-3.5 rounded-lg bg-slate-900 border border-slate-800 text-slate-300 flex items-start gap-3 text-xs">
                 <AlertTriangle className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
                 <div>
-                  <div className="font-bold text-sm text-amber-400">ĐỐI SOÁT THỦ CÔNG (MANUAL REVIEW REQUIRED)</div>
+                  <div className="font-bold text-sm text-amber-400">MANUAL REVIEW REQUIRED</div>
                   <p className="mt-1 text-[11px] text-slate-400 leading-relaxed">
-                    Chưa đủ dữ liệu đối soát tự động từ cổng BTC hoặc sự kiện chưa diễn ra. Moderator cần kiểm tra kỹ ảnh chụp bằng chứng từ người mua.
+                    Insufficient automated access logs from venue or event has not yet taken place. Review buyer evidence manually.
                   </p>
                 </div>
               </div>
@@ -370,7 +370,7 @@ export const SideBySideDossierView: React.FC<SideBySideDossierViewProps> = ({ do
           {/* Automated BTC Gate Scan Logs Feed */}
           <div className="flex-1 flex flex-col gap-2.5">
             <div className="flex items-center justify-between text-xs font-semibold text-slate-400 uppercase tracking-wider">
-              <span>Nhật ký lượt quét cổng ({dossier.scans?.length || 0}):</span>
+              <span>Gate Access Logs ({dossier.scans?.length || 0}):</span>
               <span className="text-[11px] text-slate-500 font-mono">GATE LOGS</span>
             </div>
 
@@ -396,7 +396,7 @@ export const SideBySideDossierView: React.FC<SideBySideDossierViewProps> = ({ do
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
                           <span className={`w-2 h-2 rounded-full ${isSuccess ? 'bg-emerald-400' : 'bg-rose-400'}`} />
-                          <span className="font-bold text-slate-200">{scan.gateName || 'Cổng kiểm soát BTC'}</span>
+                          <span className="font-bold text-slate-200">{scan.gateName || 'Venue Entry Gate'}</span>
                         </div>
                         <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
                           isSuccess
@@ -408,20 +408,20 @@ export const SideBySideDossierView: React.FC<SideBySideDossierViewProps> = ({ do
                       </div>
 
                       <div className="flex items-center justify-between text-[11px] text-slate-400">
-                        <span>Quét lúc: {scanTime.toLocaleString('vi-VN')}</span>
+                        <span>Scanned: {scanTime.toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
                         {transferTime && (
                           <span className={`text-[10px] px-1.5 py-0.5 rounded ${
                             isAfterTransfer ? 'bg-rose-500/10 text-rose-400 font-semibold' : 'bg-slate-800 text-slate-400'
                           }`}>
-                            {isAfterTransfer ? 'Sau khi sang tên' : 'Trước khi sang tên'}
+                            {isAfterTransfer ? 'After transfer' : 'Before transfer'}
                           </span>
                         )}
                       </div>
 
                       <div className="flex items-center justify-between text-[10px] text-slate-400 bg-black/40 p-1.5 rounded font-mono">
-                        <span>Mã vé: <code className="text-slate-300">{scan.ticketCode || dossier.ticketCode}</code></span>
+                        <span>Ticket: <code className="text-slate-300">{scan.ticketCode || dossier.ticketCode}</code></span>
                         {scan.scannerDeviceId && (
-                          <span>Thiết bị: <code className="text-slate-300">{scan.scannerDeviceId}</code></span>
+                          <span>Device: <code className="text-slate-300">{scan.scannerDeviceId}</code></span>
                         )}
                       </div>
                     </div>
@@ -430,9 +430,9 @@ export const SideBySideDossierView: React.FC<SideBySideDossierViewProps> = ({ do
               ) : (
                 <div className="h-full flex flex-col items-center justify-center p-6 text-center text-slate-500 text-xs">
                   <Clock className="w-6 h-6 mb-2 opacity-40 text-slate-400" />
-                  <p>Chưa ghi nhận nhật ký lượt quét tự động từ cổng BTC.</p>
+                  <p>No automated gate access logs recorded from organizer.</p>
                   <p className="text-[11px] text-slate-400 mt-1">
-                    (Vui lòng kiểm tra chứng từ biên bản hoặc ảnh máy quét của Buyer)
+                    (Please inspect buyer evidence documents or gate scanner photos)
                   </p>
                 </div>
               )}
@@ -471,7 +471,7 @@ export const SideBySideDossierView: React.FC<SideBySideDossierViewProps> = ({ do
                   <ShieldAlert className="w-5 h-5 text-rose-400" />
                 )}
                 <h3 className="font-bold text-base text-white">
-                  Xác nhận phán quyết: {verdictModal.decision === 'Approve' ? 'Duyệt Hoàn Tiền 100%' : 'Bác Bỏ Khiếu Nại'}
+                  Confirm Verdict: {verdictModal.decision === 'Approve' ? 'Approve 100% Refund' : 'Reject Dispute'}
                 </h3>
               </div>
               <button
@@ -484,27 +484,27 @@ export const SideBySideDossierView: React.FC<SideBySideDossierViewProps> = ({ do
 
             <div className="space-y-3 text-xs text-slate-300">
               <p>
-                Mã tranh chấp: <strong className="text-white font-mono">{dossier.disputeCode}</strong>
+                Dispute Code: <strong className="text-white font-mono">{dossier.disputeCode}</strong>
               </p>
               
               {verdictModal.decision === 'Approve' ? (
                 <div className="p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-emerald-300">
-                  ⚠️ Lệnh này sẽ hoàn trả <strong>{dossier.totalBuyerPaid ? dossier.totalBuyerPaid.toLocaleString('vi-VN') : '0'} ₫</strong> từ Escrow về tài khoản Buyer và hủy giao dịch này.
+                  This command will refund <strong>{dossier.totalBuyerPaid ? dossier.totalBuyerPaid.toLocaleString('en-US') : '0'} ₫</strong> from Escrow back to the buyer and cancel this transaction.
                 </div>
               ) : (
                 <div className="p-3 rounded-lg bg-rose-500/10 border border-rose-500/30 text-rose-300">
-                  ⚠️ Lệnh này sẽ bác bỏ khiếu nại của Buyer và kích hoạt tiến trình Payout giải ngân tiền Escrow cho Seller.
+                  This command will reject the buyer claim and trigger Escrow payout release to the seller.
                 </div>
               )}
 
               <div>
-                <label className="block text-slate-400 mb-1 font-semibold">Ghi chú phán quyết của Admin / Moderator:</label>
+                <label className="block text-slate-400 mb-1 font-semibold">Admin / Moderator Adjudication Notes:</label>
                 <textarea
                   value={adminReason}
                   onChange={(e) => setAdminReason(e.target.value)}
                   rows={3}
                   className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-xs text-slate-100 focus:outline-none focus:border-[#FF5A36]"
-                  placeholder="Nhập lý do phán quyết..."
+                  placeholder="Enter adjudication reason..."
                 />
               </div>
 
@@ -521,7 +521,7 @@ export const SideBySideDossierView: React.FC<SideBySideDossierViewProps> = ({ do
                 onClick={() => setVerdictModal(null)}
                 className="px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-medium"
               >
-                Hủy bỏ
+                Cancel
               </button>
               <button
                 disabled={isSubmittingVerdict}
@@ -533,7 +533,7 @@ export const SideBySideDossierView: React.FC<SideBySideDossierViewProps> = ({ do
                 }`}
               >
                 {isSubmittingVerdict && <Loader2 className="w-4 h-4 animate-spin" />}
-                <span>Xác nhận phán quyết</span>
+                <span>Confirm Verdict</span>
               </button>
             </div>
           </div>

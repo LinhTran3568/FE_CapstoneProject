@@ -8,7 +8,7 @@ const listing = (
   partial: Pick<SellerListingDto, 'listingId' | 'eventName' | 'originalTicketCode' | 'netSellerPayout' | 'unlockAt'>
 ): SellerListingDto => ({
   eventId: 'preview-event',
-  eventVenue: 'Nhà hát Hòa Bình, TP.HCM',
+  eventVenue: 'Hoa Binh Theater, HCMC',
   eventStartAt: hours(72),
   tierId: 'vip',
   tierName: 'VIP',
@@ -46,7 +46,7 @@ const payout = (partial: Partial<MyPayoutDto> & Pick<MyPayoutDto, 'payoutId' | '
 const sampleListings: SellerListingDto[] = [
   listing({
     listingId: 'hold-1',
-    eventName: 'Hoàng Dũng Live at The Factory',
+    eventName: 'Hoang Dung Live at The Factory',
     originalTicketCode: 'TS-88421',
     netSellerPayout: 1_250_000,
     unlockAt: hours(18.4),
@@ -60,7 +60,7 @@ const sampleListings: SellerListingDto[] = [
   }),
   listing({
     listingId: 'hold-3',
-    eventName: 'Concert Đêm nhạc Trịnh',
+    eventName: 'Trinh Cong Son Tribute Concert',
     originalTicketCode: 'TS-11008',
     netSellerPayout: 420_000,
     unlockAt: hours(-0.2),
@@ -70,7 +70,7 @@ const sampleListings: SellerListingDto[] = [
 const samplePayouts: MyPayoutDto[] = [
   payout({
     payoutId: 'p-1',
-    eventName: 'Anh Trai Vượt Ngàn Chông Gai',
+    eventName: 'Call Me by Fire Concert',
     originalTicketCode: 'TS-55102',
     amount: 2_400_000,
     status: 'Success',
@@ -91,7 +91,7 @@ const samplePayouts: MyPayoutDto[] = [
   }),
   payout({
     payoutId: 'p-3',
-    eventName: 'Concert Đêm nhạc Trịnh',
+    eventName: 'Trinh Cong Son Tribute Concert',
     originalTicketCode: 'TS-11002',
     amount: 510_000,
     status: 'Failed',

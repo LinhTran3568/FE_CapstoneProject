@@ -25,7 +25,7 @@ const EVENT_POSTERS = [
   },
   {
     id: 'ev-4',
-    name: 'Bảo Tàng Của Nuối Tiếc - Vũ.',
+    name: 'Museum of Regrets - Vu',
     slug: 'vu-bao-tang-nuoi-tiec',
     url: '/images/landing/concert.jpg',
   },
@@ -37,13 +37,13 @@ const EVENT_POSTERS = [
   },
   {
     id: 'ev-6',
-    name: 'Những Thành Phố Mơ Màng',
+    name: 'Dreaming Cities Festival',
     slug: 'nhung-thanh-pho-mo-mang',
     url: '/images/landing/featured-2.jpg',
   },
   {
     id: 'ev-7',
-    name: 'Chân Trời Rực Rỡ - Hà Anh Tuấn',
+    name: 'Bright Horizon - Ha Anh Tuan',
     slug: 'ha-anh-tuan-chan-troi-ruc-ro',
     url: '/images/landing/artist-1.jpg',
   },

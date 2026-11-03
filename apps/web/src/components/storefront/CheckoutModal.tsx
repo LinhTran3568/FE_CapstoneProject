@@ -21,7 +21,7 @@ export interface CheckoutModalProps {
   event: StorefrontEvent;
   selectedItems: SelectedTierItem[];
   grandTotal: number;
-  /** Session token theo tierId, lấy khi mở trang chọn vé (US-8.1). */
+  /** Session token per tierId, obtained upon opening ticket selection (US-8.1). */
   sessionTokens: Record<string, SessionTokenResponse>;
 }
 
@@ -81,7 +81,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
       organizerStoreApi
         .createSession(selectedItems[0].tier.id)
         .then((res) => setSessionToken(res.sessionToken))
-        .catch((err) => console.warn('Không thể khởi tạo Anti-Bot session:', err));
+        .catch((err) => console.warn('Could not initialize Anti-Bot session:', err));
     }
   }, [isOpen, selectedItems]);
 
@@ -92,35 +92,35 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
     const errs: typeof errors = {};
 
     if (!buyerName.trim()) {
-      errs.name = 'Vui lòng nhập họ và tên người nhận vé';
+      errs.name = 'Please enter the ticket recipient full name';
     } else if (buyerName.trim().length < 2) {
-      errs.name = 'Họ và tên tối thiểu 2 ký tự';
+      errs.name = 'Full name must be at least 2 characters';
     }
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!buyerEmail.trim()) {
-      errs.email = 'Vui lòng nhập email nhận vé điện tử';
+      errs.email = 'Please enter your email to receive e-tickets';
     } else if (!emailRegex.test(buyerEmail.trim())) {
-      errs.email = 'Địa chỉ email không đúng định dạng (vd: user@example.com)';
+      errs.email = 'Please enter a valid email address (e.g., user@example.com)';
     }
 
     const phoneDigits = buyerPhone.replace(/[\s.-]/g, '');
     const phoneRegex = /(84|0[3|5|7|8|9])+([0-9]{8})\b/;
     if (!buyerPhone.trim()) {
-      errs.phone = 'Vui lòng nhập số điện thoại nhận vé';
+      errs.phone = 'Please enter your contact phone number';
     } else if (!phoneRegex.test(phoneDigits)) {
-      errs.phone = 'Số điện thoại không hợp lệ (cần 10 chữ số, ví dụ 0912345678)';
+      errs.phone = 'Please enter a valid 10-digit phone number (e.g., 0912345678)';
     }
 
     if (!agreedTerms) {
-      errs.terms = 'Bạn phải đồng ý với điều khoản phát hành vé và nhận diện';
+      errs.terms = 'You must agree to the ticket issuance terms and policies';
     }
 
     setErrors(errs);
     return Object.keys(errs).length === 0;
   };
 
-  // Handle Checkout & Claim Existing Tickets from Ban Tổ Chức
+  // Handle Checkout & Claim Existing Tickets from Event Organizer
   const performCheckout = async (challengeToken?: string, challengeProvider?: 'turnstile' | 'recaptcha' | 'sequential') => {
     setApiError(null);
     setIsSubmitting(true);
@@ -133,10 +133,9 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
     let backendOrderId: string | null = null;
     const issuedTickets: MockTicketDto[] = [];
 
-    // 1. Mua vé sơ cấp: Gọi checkout kèm thông tin người mua, Anti-Bot telemetry và session token
+    // 1. Primary ticket purchase: Checkout call with buyer details, anti-bot telemetry, and session token
     for (const item of selectedItems) {
       try {
-        // Lấy session token chuẩn cho đúng tierId hoặc fetch trực tiếp nếu thiếu để tránh TIER_MISMATCH
         let effectiveToken = sessionTokens?.[item.tier.id]?.sessionToken;
         if (!effectiveToken) {
           try {
@@ -144,11 +143,11 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
             effectiveToken = sessionRes.sessionToken;
             antiBotSdk.setServerClock(sessionRes.issuedAtUtc);
           } catch (e) {
-            console.warn(`Không lấy được session token cho tier ${item.tier.id}:`, e);
+            console.warn(`Could not fetch session token for tier ${item.tier.id}:`, e);
           }
         }
 
-        // US-8.1: mỗi hạng vé một request, mỗi request một nonce mới và telemetry chuẩn
+        // US-8.1: each tier request has its own nonce and telemetry
         const telemetry = await antiBotSdk.collect();
 
         const checkoutRes = await organizerStoreApi.checkout({
@@ -167,7 +166,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
           backendOrderId = checkoutRes.orderId;
         }
 
-        // Nhận danh sách vé chính thức do Backend cấp phát trực tiếp trong transaction
+        // Receive tickets issued directly by Backend inside transaction
         if (checkoutRes.tickets && checkoutRes.tickets.length > 0) {
           for (const t of checkoutRes.tickets) {
             issuedTickets.push({
@@ -188,7 +187,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
       } catch (err: unknown) {
         setIsSubmitting(false);
 
-        // Tier 2: Challenge Required -> Mở popup Google reCAPTCHA / Cloudflare Turnstile
+        // Tier 2: Challenge Required -> Open Google reCAPTCHA / Cloudflare Turnstile modal
         if (
           err &&
           typeof err === 'object' &&
@@ -200,7 +199,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
           return;
         }
 
-        const errMsg = err instanceof Error ? err.message : `Lỗi hệ thống khi thanh toán hạng vé ${item.tier.tierName}`;
+        const errMsg = err instanceof Error ? err.message : `System error during checkout for ${item.tier.tierName}`;
         setApiError(errMsg);
         return;
       }
@@ -208,11 +207,11 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
 
     if (!backendOrderId || issuedTickets.length === 0) {
       setIsSubmitting(false);
-      setApiError('Không nhận được vé chính thức từ hệ thống Ban Tổ Chức. Vui lòng thử lại sau.');
+      setApiError('Could not retrieve official tickets from the organizer system. Please try again.');
       return;
     }
 
-    // 2. Hiển thị màn hình xác nhận với danh sách vé chính thức đã nhận từ Backend
+    // 2. Display confirmation screen with official tickets received from Backend
     setIsSubmitting(false);
     setOrderResult({
       orderId: backendOrderId,
@@ -261,7 +260,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
           <div className="flex items-center gap-2">
             <span className="w-2.5 h-2.5 rounded-full bg-[#ff5945] animate-pulse" />
             <h3 className="font-display font-bold text-base text-white">
-              {orderResult ? 'Xác nhận phát hành vé thành công' : 'Thông tin người nhận vé (Bắt buộc)'}
+              {orderResult ? 'Ticket Issuance Confirmed' : 'Recipient Information (Required)'}
             </h3>
           </div>
           <button
@@ -283,7 +282,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                 <div className="flex items-center justify-between text-xs text-[#aa8984]">
                   <span className="font-semibold text-white">{event.title}</span>
                   <span className="text-[#ffb4a8] font-bold">
-                    {selectedItems.reduce((sum, i) => sum + i.quantity, 0)} vé
+                    {selectedItems.reduce((sum, i) => sum + i.quantity, 0)} {selectedItems.reduce((sum, i) => sum + i.quantity, 0) === 1 ? 'ticket' : 'tickets'}
                   </span>
                 </div>
                 <div className="space-y-1 pt-1 border-t border-white/5">
@@ -293,24 +292,24 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                         {item.quantity}x {item.tier.tierName}
                       </span>
                       <span className="font-mono font-bold text-white">
-                        {item.subtotal.toLocaleString('vi-VN')} ₫
+                        {item.subtotal.toLocaleString('en-US')} ₫
                       </span>
                     </div>
                   ))}
                 </div>
                 <div className="pt-2 border-t border-white/10 flex justify-between items-baseline">
-                  <span className="text-xs font-bold text-[#aa8984] uppercase">Tổng tiền:</span>
+                  <span className="text-xs font-bold text-[#aa8984] uppercase">Total Due:</span>
                   <span className="font-display font-extrabold text-xl text-[#ffb4a8]">
-                    {grandTotal.toLocaleString('vi-VN')} ₫
+                    {grandTotal.toLocaleString('en-US')} ₫
                   </span>
                 </div>
               </div>
 
-              {/* Input: Họ và tên */}
+              {/* Input: Full Name */}
               <div className="space-y-1">
                 <label className="text-xs font-semibold text-[#aa8984] flex items-center justify-between">
                   <span>
-                    Họ và tên người nhận vé <span className="text-[#ff5945]">*</span>
+                    Recipient Full Name <span className="text-[#ff5945]">*</span>
                   </span>
                   {errors.name && <span className="text-[11px] text-[#ff5945] font-bold">{errors.name}</span>}
                 </label>
@@ -322,7 +321,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                     setBuyerName(e.target.value);
                     if (errors.name) setErrors((prev) => ({ ...prev, name: undefined }));
                   }}
-                  placeholder="Nhập họ và tên đầy đủ (vd: Nguyễn Văn A)"
+                  placeholder="Enter full name (e.g., John Doe)"
                   className={`w-full px-4 py-2.5 rounded-xl bg-[#0e1017] border text-white text-sm placeholder:text-[#64748b] transition-all focus:outline-none ${
                     errors.name
                       ? 'border-[#ff5945] ring-1 ring-[#ff5945]'
@@ -336,7 +335,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
               <div className="space-y-1">
                 <label className="text-xs font-semibold text-[#aa8984] flex items-center justify-between">
                   <span>
-                    Email nhận mã vé điện tử <span className="text-[#ff5945]">*</span>
+                    Email Address for E-Tickets <span className="text-[#ff5945]">*</span>
                   </span>
                   {errors.email && <span className="text-[11px] text-[#ff5945] font-bold">{errors.email}</span>}
                 </label>
@@ -348,7 +347,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                     setBuyerEmail(e.target.value);
                     if (errors.email) setErrors((prev) => ({ ...prev, email: undefined }));
                   }}
-                  placeholder="Địa chỉ email hợp lệ (vd: nguyen.a@gmail.com)"
+                  placeholder="Valid email address (e.g., alex@example.com)"
                   className={`w-full px-4 py-2.5 rounded-xl bg-[#0e1017] border text-white text-sm placeholder:text-[#64748b] transition-all focus:outline-none ${
                     errors.email
                       ? 'border-[#ff5945] ring-1 ring-[#ff5945]'
@@ -356,15 +355,15 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                   }`}
                 />
                 <p className="text-[11px] text-[#64748b]">
-                  Mã vé gốc và mã QR vào cổng sẽ được gửi trực tiếp đến địa chỉ email này.
+                  Official tickets and entrance QR codes will be delivered to this email.
                 </p>
               </div>
 
-              {/* Input: Số điện thoại */}
+              {/* Input: Phone Number */}
               <div className="space-y-1">
                 <label className="text-xs font-semibold text-[#aa8984] flex items-center justify-between">
                   <span>
-                    Số điện thoại nhận vé <span className="text-[#ff5945]">*</span>
+                    Contact Phone Number <span className="text-[#ff5945]">*</span>
                   </span>
                   {errors.phone && <span className="text-[11px] text-[#ff5945] font-bold">{errors.phone}</span>}
                 </label>
@@ -376,7 +375,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                     setBuyerPhone(e.target.value);
                     if (errors.phone) setErrors((prev) => ({ ...prev, phone: undefined }));
                   }}
-                  placeholder="Số điện thoại di động (vd: 0912345678)"
+                  placeholder="Mobile phone number (e.g., 0912345678)"
                   className={`w-full px-4 py-2.5 rounded-xl bg-[#0e1017] border text-white text-sm placeholder:text-[#64748b] transition-all focus:outline-none ${
                     errors.phone
                       ? 'border-[#ff5945] ring-1 ring-[#ff5945]'
@@ -385,7 +384,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                 />
               </div>
 
-              {/* Checkbox: Đồng ý điều khoản */}
+              {/* Checkbox: Agreed terms */}
               <div className="pt-1">
                 <label className="flex items-start gap-2.5 cursor-pointer select-none">
                   <input
@@ -399,7 +398,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                     className="mt-0.5 w-4 h-4 rounded bg-[#0e1017] border border-white/20 text-[#ff5945] focus:ring-0 cursor-pointer"
                   />
                   <span className="text-xs text-[#aa8984] leading-relaxed">
-                    Tôi xác nhận thông tin trên là chính xác và đồng ý với điều khoản phát hành vé điện tử chính hãng từ Ban Tổ Chức.
+                    I confirm the above details are accurate and agree to the official ticket issuance terms and conditions.
                   </span>
                 </label>
                 {errors.terms && <p className="text-[11px] text-[#ff5945] mt-1 font-bold pl-6">{errors.terms}</p>}
@@ -410,7 +409,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                 <div className="p-3.5 rounded-xl bg-red-500/15 border border-red-500/40 text-red-200 text-xs flex items-start gap-2.5 animate-in fade-in duration-200">
                   <span className="material-symbols-outlined text-red-400 text-lg shrink-0">error</span>
                   <div className="flex-1">
-                    <p className="font-semibold text-white">Không thể hoàn tất đặt vé</p>
+                    <p className="font-semibold text-white">Unable to complete checkout</p>
                     <p className="mt-0.5 text-red-200 leading-relaxed">{apiError}</p>
                   </div>
                 </div>
@@ -423,7 +422,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                   onClick={onClose}
                   className="w-full sm:w-1/3 py-3 rounded-xl bg-[#282a32] hover:bg-[#33343d] text-white text-xs font-semibold transition-all text-center cursor-pointer"
                 >
-                  Quay lại
+                  Back
                 </button>
                 <button
                   type="submit"
@@ -434,12 +433,12 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                   {isSubmitting ? (
                     <>
                       <span className="material-symbols-outlined text-[18px] animate-spin">refresh</span>
-                      <span>Đang xử lý đặt vé & phát hành...</span>
+                      <span>Processing order & issuing tickets...</span>
                     </>
                   ) : (
                     <>
                       <span className="material-symbols-outlined text-[18px]">bolt</span>
-                      <span>Xác nhận & Mua vé</span>
+                      <span>Confirm & Complete Order</span>
                     </>
                   )}
                 </button>
@@ -454,20 +453,20 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                   <span className="material-symbols-outlined text-[28px]">check_circle</span>
                 </div>
                 <h4 className="font-display font-bold text-xl text-white">
-                  Đặt vé thành công!
+                  Order Completed Successfully!
                 </h4>
                 <p className="text-xs text-[#CBD5E1] max-w-md mx-auto">
-                  Đơn hàng <span className="font-mono font-bold text-white">{orderResult.orderId}</span> đã được ghi nhận. Mã vé điện tử chính thức đã được gửi tới hòm thư <span className="font-bold text-emerald-300">{orderResult.buyerEmail}</span>.
+                  Order <span className="font-mono font-bold text-white">{orderResult.orderId}</span> has been confirmed. Official e-tickets have been dispatched to <span className="font-bold text-emerald-300">{orderResult.buyerEmail}</span>.
                 </p>
                 <div className="flex flex-wrap justify-center gap-2 text-[11px] pt-1">
                   <span className="px-2.5 py-1 rounded-lg bg-[#0c0e16] text-[#CBD5E1] border border-white/5">
-                    Người nhận: <strong className="text-white">{orderResult.buyerName}</strong>
+                    Recipient: <strong className="text-white">{orderResult.buyerName}</strong>
                   </span>
                   <span className="px-2.5 py-1 rounded-lg bg-[#0c0e16] text-[#CBD5E1] border border-white/5">
-                    SĐT: <strong className="text-white">{orderResult.buyerPhone}</strong>
+                    Phone: <strong className="text-white">{orderResult.buyerPhone}</strong>
                   </span>
                   <span className="px-2.5 py-1 rounded-lg bg-[#0c0e16] text-[#CBD5E1] border border-white/5">
-                    Tổng tiền: <strong className="text-white">{orderResult.totalAmount.toLocaleString('vi-VN')} ₫</strong>
+                    Total: <strong className="text-white">{orderResult.totalAmount.toLocaleString('en-US')} ₫</strong>
                   </span>
                 </div>
               </div>
@@ -475,9 +474,9 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
               {/* Official Issued Tickets List with QR */}
               <div className="space-y-3">
                 <h5 className="font-display font-bold text-sm text-white flex items-center justify-between">
-                  <span>Mã vé gốc & QR vào cổng ({orderResult.tickets.length} vé)</span>
+                  <span>Official Ticket Codes & Entry QR ({orderResult.tickets.length} {orderResult.tickets.length === 1 ? 'ticket' : 'tickets'})</span>
                   <span className="text-[10px] font-mono text-emerald-400 bg-emerald-950/60 px-2 py-0.5 rounded border border-emerald-500/30">
-                    VÉ CHÍNH THỨC
+                    OFFICIAL PASS
                   </span>
                 </h5>
 
@@ -501,7 +500,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                         <div className="space-y-1.5 flex-1 min-w-0 text-left w-full sm:w-auto">
                           <div className="flex items-center gap-2">
                             <span className="text-[10px] font-mono font-bold text-[#ff5945] bg-[#ff5945]/10 px-2 py-0.5 rounded uppercase">
-                              Vé #{index + 1}
+                              Ticket #{index + 1}
                             </span>
                             <span className="text-xs font-bold text-white truncate">{ticket.seatZone}</span>
                           </div>
@@ -516,7 +515,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                               className="px-2.5 py-1 rounded bg-[#282a32] hover:bg-[#33343d] text-[11px] font-mono text-[#CBD5E1] hover:text-white transition-colors flex items-center gap-1 cursor-pointer shrink-0"
                             >
                               <span className="material-symbols-outlined text-[14px]">content_copy</span>
-                              <span>{isCopied ? 'Đã sao chép!' : 'Sao chép'}</span>
+                              <span>{isCopied ? 'Copied!' : 'Copy'}</span>
                             </button>
                           </div>
                         </div>
@@ -525,7 +524,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                         <div className="p-2 bg-white rounded-lg shadow-md shrink-0 flex flex-col items-center">
                           <QRCodeCanvas value={qrData} size={84} level="H" marginSize={1} />
                           <span className="text-[8px] font-bold text-gray-800 tracking-wider mt-0.5">
-                            QUÉT VÀO CỔNG
+                            SCAN AT GATE
                           </span>
                         </div>
                       </div>
@@ -534,7 +533,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                 </div>
               </div>
 
-              {/* Nút chuyển sang sàn TicketShield */}
+              {/* Explore Marketplace Link */}
               <div className="p-3.5 rounded-xl bg-[#161822] border border-white/5">
                 <Link
                   to="/"
@@ -547,13 +546,13 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                     </div>
                     <div className="text-left">
                       <div className="text-xs font-bold text-white group-hover:text-[#4cd7f6] transition-colors flex items-center gap-1.5">
-                        <span>Chuyển sang sàn đối tác TicketShield</span>
+                        <span>Explore TicketShield Secondary Market</span>
                         <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-[#4cd7f6]/15 text-[#4cd7f6] border border-[#4cd7f6]/30 uppercase font-bold">
                           Marketplace
                         </span>
                       </div>
                       <div className="text-[11px] text-[#aa8984] mt-0.5">
-                        Khám phá các sự kiện âm nhạc & mua bán lại vé được bảo hộ Escrow
+                        Explore upcoming concerts and discover peer-to-peer resale options
                       </div>
                     </div>
                   </div>
@@ -569,7 +568,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                 onClick={handleReset}
                 className="w-full py-3 rounded-xl bg-[#282a32] hover:bg-[#33343d] text-white text-xs font-bold transition-all text-center cursor-pointer"
               >
-                Đóng và hoàn tất
+                Close and Complete
               </button>
             </div>
           )}

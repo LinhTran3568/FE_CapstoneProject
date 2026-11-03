@@ -79,12 +79,12 @@ const payoutMark = (status: string) => {
 const formatWhen = (iso: string) => {
   const date = new Date(iso);
   if (Number.isNaN(date.getTime())) return '—';
-  const datePart = new Intl.DateTimeFormat('vi-VN', {
+  const datePart = new Intl.DateTimeFormat('en-US', {
     day: '2-digit',
-    month: '2-digit',
+    month: 'short',
     year: 'numeric',
   }).format(date);
-  const timePart = new Intl.DateTimeFormat('vi-VN', {
+  const timePart = new Intl.DateTimeFormat('en-US', {
     hour: '2-digit',
     minute: '2-digit',
   }).format(date);
@@ -230,7 +230,7 @@ const HoldingTicket: React.FC<{ listing: SellerListingDto; now: number }> = ({ l
             </span>
             {Boolean(listing.bundleId || (listing.bundleTotalTickets && listing.bundleTotalTickets >= 2)) && (
               <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold uppercase tracking-wider bg-purple-500/15 border border-purple-500/40 text-purple-300">
-                <span>COMBO ({listing.bundleTotalTickets || 2} VÉ)</span>
+                <span>COMBO ({listing.bundleTotalTickets || 2} TICKETS)</span>
               </span>
             )}
             <span className="pl-1 font-mono text-[11px] text-[#8B929C]/70">ID · {listing.originalTicketCode}</span>

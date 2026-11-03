@@ -66,18 +66,18 @@ export const Step6ListingSuccess: React.FC<Step6ListingSuccessProps> = ({
   );
   const resolvedEventName = matchedListing?.eventName || 'Your listing';
   const resolvedEventDate = matchedListing?.eventStartAt
-    ? new Date(matchedListing.eventStartAt).toLocaleString('vi-VN', {
+    ? new Date(matchedListing.eventStartAt).toLocaleString('en-US', {
         hour: '2-digit',
         minute: '2-digit',
         day: '2-digit',
-        month: '2-digit',
+        month: 'short',
         year: 'numeric',
       })
     : '—';
   const resolvedVenue = matchedListing?.eventVenue || '—';
   const resolvedTier =
     matchedListing?.tierName ||
-    (isCombo ? `Combo ${ticketCodes.length} vé` : '—');
+    (isCombo ? `Combo (${ticketCodes.length} tickets)` : '—');
   const resolvedPoster = '/images/landing/featured-1.jpg';
 
   return (
@@ -100,11 +100,11 @@ export const Step6ListingSuccess: React.FC<Step6ListingSuccessProps> = ({
         <p className="text-xs sm:text-sm text-[#A3A8B3] max-w-lg mx-auto">
           {isCombo
             ? saleType === 'individual'
-              ? `${ticketCodes.length} vé bán lẻ riêng biệt: Người mua có thể chọn mua lẻ từng vé theo nhu cầu.`
-              : `${ticketCodes.length} vé trong combo: Bán trọn gói (Buộc mua cả cặp). Người mua thanh toán toàn bộ gói.`
+              ? `${ticketCodes.length} individual tickets: Buyers may purchase single tickets according to their preference.`
+              : `${ticketCodes.length} tickets in bundle: Sold as a package (all-or-nothing). Buyer purchases the full bundle.`
             : isPrivateListing
-              ? 'Your ticket is protected with our 100% 24-Hour Funds Protection guarantee. Share your secret private link or QR code with your buyer.'
-              : 'Your ticket is now listed publicly on TicketShield Marketplace under 100% 24-Hour Protection.'}
+              ? 'Your private ticket listing is created. Share your private link or QR code with your buyer.'
+              : 'Your ticket is now listed publicly on TicketShield Marketplace.'}
         </p>
       </div>
 
@@ -181,12 +181,12 @@ export const Step6ListingSuccess: React.FC<Step6ListingSuccessProps> = ({
                 {isCombo && (
                   <div className="space-y-0.5">
                     <span className="text-[9px] text-[#8F96A3] font-mono font-bold uppercase tracking-wider block">
-                      HÌNH THỨC BÁN
+                      SALE FORMAT
                     </span>
                     <p className="font-mono font-bold text-xs text-white">
                       {saleType === 'individual'
-                        ? `${ticketCodes.length} vé bán lẻ riêng biệt`
-                        : `${ticketCodes.length} vé trong combo: Trọn gói (Buộc mua cả cặp)`}
+                        ? `${ticketCodes.length} tickets sold separately`
+                        : `${ticketCodes.length} tickets in bundle: Full bundle (all-or-nothing)`}
                     </p>
                   </div>
                 )}
@@ -222,7 +222,7 @@ export const Step6ListingSuccess: React.FC<Step6ListingSuccessProps> = ({
                     ORIGINAL PRICE
                   </span>
                   <span className="text-xs sm:text-sm text-[#A3A8B3] line-through font-mono">
-                    {faceValue.toLocaleString('vi-VN')} VND
+                    {faceValue.toLocaleString('en-US')} ₫
                   </span>
                 </div>
                 <div className="text-right">
@@ -230,11 +230,11 @@ export const Step6ListingSuccess: React.FC<Step6ListingSuccessProps> = ({
                     {isCombo ? 'RESALE PRICE (PER TICKET)' : 'RESALE PRICE'}
                   </span>
                   <span className="text-lg sm:text-xl font-extrabold font-display text-emerald-400">
-                    {resalePrice.toLocaleString('vi-VN')} VND
+                    {resalePrice.toLocaleString('en-US')} ₫
                   </span>
                   {isCombo && (
                     <span className="block text-[10px] font-mono text-[#8F96A3] mt-0.5">
-                      Total {totalResalePrice.toLocaleString('vi-VN')} VND
+                      Total {totalResalePrice.toLocaleString('en-US')} ₫
                     </span>
                   )}
                 </div>

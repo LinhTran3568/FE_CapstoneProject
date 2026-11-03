@@ -8,12 +8,12 @@ export interface CategoryOption {
 }
 
 export const CATEGORY_OPTIONS: CategoryOption[] = [
-  { id: 'ALL', label: 'Tất cả', icon: LayoutGrid },
-  { id: 'CONCERT', label: 'Ca nhạc', icon: Music },
-  { id: 'FESTIVAL', label: 'Festival & EDM', icon: Zap },
-  { id: 'SPORTS', label: 'Thể thao', icon: Trophy },
-  { id: 'THEATER', label: 'Sân khấu', icon: Theater },
-  { id: 'WORKSHOP', label: 'Hội thảo', icon: GraduationCap },
+  { id: 'ALL', label: 'All', icon: LayoutGrid },
+  { id: 'CONCERT', label: 'Concerts', icon: Music },
+  { id: 'FESTIVAL', label: 'Festivals & EDM', icon: Zap },
+  { id: 'SPORTS', label: 'Sports', icon: Trophy },
+  { id: 'THEATER', label: 'Theater & Arts', icon: Theater },
+  { id: 'WORKSHOP', label: 'Workshops', icon: GraduationCap },
 ];
 
 interface CategoryFilterBarProps {

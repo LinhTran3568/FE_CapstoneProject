@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ShieldCheck, ArrowRight, ArrowLeft, XCircle, Minus, Plus, AlertTriangle } from 'lucide-react';
+import { Wallet, ArrowRight, ArrowLeft, XCircle, Minus, Plus, AlertTriangle } from 'lucide-react';
 import { useResaleFeeConfig } from '../../hooks/useResaleFeeConfig';
 
 export interface TicketPriceItem {
@@ -59,17 +59,17 @@ export const Step4SetPrice: React.FC<Step4SetPriceProps> = ({
   } = currentTicket;
 
   const [priceInputText, setPriceInputText] = useState<string>(
-    resalePrice > 0 ? resalePrice.toLocaleString('vi-VN') : ''
+    resalePrice > 0 ? resalePrice.toLocaleString('en-US') : ''
   );
 
   useEffect(() => {
-    setPriceInputText(resalePrice > 0 ? resalePrice.toLocaleString('vi-VN') : '');
+    setPriceInputText(resalePrice > 0 ? resalePrice.toLocaleString('en-US') : '');
   }, [code, resalePrice]);
 
   const updateCurrentPrice = (val: number) => {
     const raw = Math.max(0, val);
     onUpdateTicketPrice(code, raw);
-    setPriceInputText(raw > 0 ? raw.toLocaleString('vi-VN') : '');
+    setPriceInputText(raw > 0 ? raw.toLocaleString('en-US') : '');
   };
 
   const handlePriceInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -90,7 +90,7 @@ export const Step4SetPrice: React.FC<Step4SetPriceProps> = ({
 
     const parsed = parseInt(raw, 10);
     if (!isNaN(parsed)) {
-      const formatted = parsed.toLocaleString('vi-VN');
+      const formatted = parsed.toLocaleString('en-US');
       onUpdateTicketPrice(code, parsed);
       setPriceInputText(formatted);
 
@@ -162,12 +162,12 @@ export const Step4SetPrice: React.FC<Step4SetPriceProps> = ({
     <div key="step-4-pricing" className="animate-fade-in-up max-w-xl mx-auto space-y-4 pt-1">
       <div className="space-y-1 text-center">
         <h2 className="text-2xl sm:text-3xl font-bold font-display text-white tracking-tight">
-          Thiết lập giá bán
+          Set Resale Price
         </h2>
         <p className="text-xs text-[#A3A8B3]">
           {isCombo
-            ? `Đặt giá bán cho từng vé trong combo (${tickets.length} vé). Giá mỗi vé không vượt trần quy định.`
-            : `Nhập giá bán bạn mong muốn (tối đa ${priceCeiling.toLocaleString('vi-VN')} VND).`}
+            ? `Set the resale price for each ticket in the combo (${tickets.length} tickets). Prices cannot exceed the organizer price cap.`
+            : `Enter your desired resale price (maximum ${priceCeiling.toLocaleString('en-US')} ₫).`}
         </p>
       </div>
 
@@ -191,9 +191,9 @@ export const Step4SetPrice: React.FC<Step4SetPriceProps> = ({
                 }`}
               >
                 <div className="flex items-center justify-between text-[11px] font-mono">
-                  <span className="font-bold text-white">Vé #{idx + 1}</span>
+                  <span className="font-bold text-white">Ticket #{idx + 1}</span>
                   <span className={`text-[10px] font-bold ${isExceeded ? 'text-rose-400' : hasPrice ? 'text-[#FF5A36]' : 'text-zinc-500'}`}>
-                    {isExceeded ? 'Vượt trần' : hasPrice ? `${(t.resalePrice / 1000).toLocaleString('vi-VN')}k` : 'Chưa đặt'}
+                    {isExceeded ? 'Exceeds cap' : hasPrice ? `${(t.resalePrice / 1000).toLocaleString('en-US')}k` : 'Not set'}
                   </span>
                 </div>
                 <div className="text-[10px] text-zinc-500 font-mono truncate">{t.code}</div>
@@ -214,13 +214,13 @@ export const Step4SetPrice: React.FC<Step4SetPriceProps> = ({
         <div className="flex items-center justify-between border-b border-white/10 pb-2.5">
           <div className="text-left space-y-0.5">
             <span className="text-xs text-white font-medium block">
-              {seatZone ? `Đặt giá cho vé ${seatZone} · ${code}` : `Đặt giá cho vé ${code}`}
+              {seatZone ? `Set price for ${seatZone} · ${code}` : `Set price for ${code}`}
             </span>
           </div>
           <div className="text-right">
-            <span className="text-[10px] text-[#8F96A3] font-mono block">Giá gốc từ ban tổ chức</span>
+            <span className="text-[10px] text-[#8F96A3] font-mono block">Organizer Face Value</span>
             <span className="text-xs font-mono font-bold text-zinc-300">
-              {faceValue.toLocaleString('vi-VN')} VND
+              {faceValue.toLocaleString('en-US')} ₫
             </span>
           </div>
         </div>
@@ -233,9 +233,9 @@ export const Step4SetPrice: React.FC<Step4SetPriceProps> = ({
               type="button"
               onClick={() => handleStepPrice(-10000)}
               disabled={resalePrice <= 1000}
-              aria-label="Giảm 10.000 VND"
+              aria-label="Decrease 10,000 ₫"
               className="w-9 h-9 sm:w-10 sm:h-10 rounded-full border border-white/15 bg-white/5 hover:bg-white/10 hover:border-white/30 text-white/80 hover:text-white flex items-center justify-center transition-all active:scale-95 disabled:opacity-20 disabled:cursor-not-allowed shrink-0 cursor-pointer shadow-sm"
-              title="Giảm 10.000 VND"
+              title="Decrease 10,000 ₫"
             >
               <Minus className="w-4 h-4 stroke-[2.5]" />
             </button>
@@ -271,7 +271,7 @@ export const Step4SetPrice: React.FC<Step4SetPriceProps> = ({
                 autoComplete="off"
               />
               <span className="text-sm sm:text-lg font-normal font-mono text-zinc-500 ml-2 select-none shrink-0">
-                VND
+                ₫
               </span>
             </div>
 
@@ -280,9 +280,9 @@ export const Step4SetPrice: React.FC<Step4SetPriceProps> = ({
               type="button"
               onClick={() => handleStepPrice(10000)}
               disabled={resalePrice >= priceCeiling}
-              aria-label="Tăng 10.000 VND"
+              aria-label="Increase 10,000 ₫"
               className="w-9 h-9 sm:w-10 sm:h-10 rounded-full border border-white/15 bg-white/5 hover:bg-white/10 hover:border-white/30 text-white/80 hover:text-white flex items-center justify-center transition-all active:scale-95 disabled:opacity-20 disabled:cursor-not-allowed shrink-0 cursor-pointer shadow-sm"
-              title={resalePrice >= priceCeiling ? 'Đã đạt giá tối đa' : 'Tăng 10.000 VND'}
+              title={resalePrice >= priceCeiling ? 'Maximum cap reached' : 'Increase 10,000 ₫'}
             >
               <Plus className="w-4 h-4 stroke-[2.5]" />
             </button>
@@ -292,23 +292,23 @@ export const Step4SetPrice: React.FC<Step4SetPriceProps> = ({
           <div className="mt-2 min-h-[20px] flex flex-col items-center justify-center text-xs font-mono gap-1">
             {resalePrice > priceCeiling ? (
               <span className="text-rose-400 font-semibold">
-                Vượt quá giá tối đa ({priceCeiling.toLocaleString('vi-VN')} VND)
+                Exceeds maximum price cap ({priceCeiling.toLocaleString('en-US')} ₫)
               </span>
             ) : resalePrice < faceValue && resalePrice > 0 ? (
               <span className="text-emerald-400 font-medium">
-                Rẻ hơn giá gốc {currentDiff.toLocaleString('vi-VN')}đ (khoảng {currentDiscountPercent}%)
+                {currentDiscountPercent}% below face value (-{currentDiff.toLocaleString('en-US')} ₫)
               </span>
             ) : resalePrice === faceValue ? (
               <span className="text-zinc-400">
-                Bằng đúng giá gốc từ ban tổ chức ({faceValue.toLocaleString('vi-VN')}đ)
+                Equal to organizer face value ({faceValue.toLocaleString('en-US')} ₫)
               </span>
             ) : resalePrice > faceValue && resalePrice <= priceCeiling ? (
               <span className="text-zinc-400">
-                Cao hơn giá gốc {(resalePrice - faceValue).toLocaleString('vi-VN')}đ (trong mức tối đa cho phép)
+                +{(resalePrice - faceValue).toLocaleString('en-US')} ₫ above face value (within allowed cap)
               </span>
             ) : (
               <span className="text-zinc-500">
-                Tối đa: {priceCeiling.toLocaleString('vi-VN')} VND
+                Max cap: {priceCeiling.toLocaleString('en-US')} ₫
               </span>
             )}
 
@@ -323,7 +323,7 @@ export const Step4SetPrice: React.FC<Step4SetPriceProps> = ({
                   className="px-2.5 py-1 bg-amber-500/10 border border-amber-500/25 rounded-lg text-amber-300 text-[11px] font-mono inline-flex items-center gap-1.5 mt-0.5"
                 >
                   <AlertTriangle className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-                  <span>Giá thấp hơn giá gốc {currentDiscountPercent}%, bạn có chắc chắn không?</span>
+                  <span>Price is {currentDiscountPercent}% below face value. Are you sure?</span>
                 </motion.div>
               )}
             </AnimatePresence>
@@ -342,7 +342,7 @@ export const Step4SetPrice: React.FC<Step4SetPriceProps> = ({
                   : 'bg-[#05070A] border-white/10 text-zinc-400 hover:text-white hover:border-white/25'
               }`}
             >
-              Giảm 5%
+              5% Off
             </button>
 
             <button
@@ -354,7 +354,7 @@ export const Step4SetPrice: React.FC<Step4SetPriceProps> = ({
                   : 'bg-[#05070A] border-white/10 text-zinc-400 hover:text-white hover:border-white/25'
               }`}
             >
-              Giảm 10%
+              10% Off
             </button>
 
             <button
@@ -366,7 +366,7 @@ export const Step4SetPrice: React.FC<Step4SetPriceProps> = ({
                   : 'bg-[#05070A] border-white/10 text-zinc-400 hover:text-white hover:border-white/25'
               }`}
             >
-              Giảm 15%
+              15% Off
             </button>
 
             <button
@@ -378,7 +378,7 @@ export const Step4SetPrice: React.FC<Step4SetPriceProps> = ({
                   : 'bg-[#05070A] border-white/10 text-zinc-400 hover:text-white hover:border-white/25'
               }`}
             >
-              Giá gốc
+              Face Value
             </button>
 
             {priceCeiling > faceValue && (
@@ -391,7 +391,7 @@ export const Step4SetPrice: React.FC<Step4SetPriceProps> = ({
                     : 'bg-[#05070A] border-white/10 text-zinc-400 hover:text-white hover:border-white/25'
                 }`}
               >
-                Giá tối đa
+                Max Cap
               </button>
             )}
           </div>
@@ -402,32 +402,32 @@ export const Step4SetPrice: React.FC<Step4SetPriceProps> = ({
           <div className="p-3.5 sm:p-4 bg-[#080B11]/90 backdrop-blur-sm border border-emerald-500/20 rounded-xl space-y-2 text-left relative">
             <div className="flex items-center justify-between pb-2 border-b border-white/10">
               <div className="flex items-center gap-1.5 text-xs font-semibold text-zinc-200">
-                <ShieldCheck className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                <span>Bạn sẽ nhận được</span>
+                <Wallet className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                <span>You'll Receive</span>
               </div>
               <span className="text-[10px] font-mono text-emerald-300 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
-                {isMinFeeApplied ? `Phí tối thiểu (${minSellerFee.toLocaleString('vi-VN')}đ)` : `${sellerFeePercent}% phí dịch vụ`}
+                {isMinFeeApplied ? `Min platform fee (${minSellerFee.toLocaleString('en-US')} ₫)` : `${sellerFeePercent}% seller fee`}
               </span>
             </div>
 
             <div className="space-y-1.5 text-xs font-mono">
               <div className="flex justify-between items-center text-zinc-400">
-                <span>Giá bán:</span>
+                <span>Listing Price:</span>
                 <div>
                   <span className="font-bold text-white tabular-nums">
-                    + {resalePrice.toLocaleString('vi-VN')}
+                    + {resalePrice.toLocaleString('en-US')}
                   </span>
-                  <span className="text-[10px] text-zinc-500 ml-1">VND</span>
+                  <span className="text-[10px] text-zinc-500 ml-1">₫</span>
                 </div>
               </div>
               <div className="flex justify-between items-center text-zinc-400 relative">
                 <div className="flex items-center gap-1.5">
-                  <span>Phí nền tảng {isMinFeeApplied ? '(Tối thiểu)' : `(${sellerFeePercent}%)`}:</span>
+                  <span>Platform fee {isMinFeeApplied ? '(Minimum)' : `(${sellerFeePercent}%)`}:</span>
                   <button
                     type="button"
                     onClick={() => setShowFeeTooltip(!showFeeTooltip)}
                     className="w-4 h-4 rounded-full bg-white/10 hover:bg-white/20 text-zinc-300 hover:text-white text-[10px] font-bold flex items-center justify-center transition-colors cursor-pointer"
-                    title="Thông tin phí nền tảng"
+                    title="Platform fee details"
                   >
                     ?
                   </button>
@@ -442,7 +442,7 @@ export const Step4SetPrice: React.FC<Step4SetPriceProps> = ({
                         className="absolute left-0 top-full mt-1.5 w-72 p-3 bg-[#0E131F] border border-white/20 rounded-xl shadow-2xl text-[11px] text-zinc-200 z-50 space-y-1.5"
                       >
                         <div className="flex items-center justify-between font-bold text-white pb-1 border-b border-white/10">
-                          <span>Phí nền tảng người bán ({sellerFeePercent}%)</span>
+                          <span>Seller Platform Fee ({sellerFeePercent}%)</span>
                           <button
                             type="button"
                             onClick={() => setShowFeeTooltip(false)}
@@ -452,7 +452,7 @@ export const Step4SetPrice: React.FC<Step4SetPriceProps> = ({
                           </button>
                         </div>
                         <p className="text-zinc-300 leading-relaxed font-sans">
-                          Phí nền tảng {sellerFeePercent}% được khấu trừ tự động khi vé bán thành công, dùng để duy trì hệ thống bảo vệ giao dịch và đối soát vé với Ban tổ chức (tối thiểu {minSellerFee.toLocaleString('vi-VN')}đ/vé).
+                          A {sellerFeePercent}% platform fee is automatically deducted upon successful sale to support secure transfers and organizer reconciliation (minimum {minSellerFee.toLocaleString('en-US')} ₫/ticket).
                         </p>
                       </motion.div>
                     )}
@@ -460,22 +460,22 @@ export const Step4SetPrice: React.FC<Step4SetPriceProps> = ({
                 </div>
                 <div>
                   <span className="text-amber-400 tabular-nums">
-                    - {totalSellerFee.toLocaleString('vi-VN')}
+                    - {totalSellerFee.toLocaleString('en-US')}
                   </span>
-                  <span className="text-[10px] text-zinc-500 ml-1">VND</span>
+                  <span className="text-[10px] text-zinc-500 ml-1">₫</span>
                 </div>
               </div>
             </div>
 
             <div className="flex justify-between items-baseline pt-2 border-t border-white/10">
               <span className="text-xs font-bold text-emerald-400 font-mono">
-                Bạn nhận về:
+                Net Payout:
               </span>
               <div className="text-right">
                 <span className="text-base sm:text-lg font-extrabold text-emerald-400 font-display tabular-nums tracking-tight">
-                  {totalYouReceive.toLocaleString('vi-VN')}
+                  {totalYouReceive.toLocaleString('en-US')}
                 </span>
-                <span className="ml-1 text-xs font-normal text-zinc-500 font-mono">VND</span>
+                <span className="ml-1 text-xs font-normal text-zinc-500 font-mono">₫</span>
               </div>
             </div>
           </div>
@@ -493,7 +493,7 @@ export const Step4SetPrice: React.FC<Step4SetPriceProps> = ({
                     className="px-4 py-4 rounded-xl bg-white/5 hover:bg-white/10 text-white border border-white/10 transition-all flex items-center gap-1.5 cursor-pointer font-mono text-xs"
                   >
                     <ArrowLeft className="w-4 h-4" />
-                    <span>Vé #{activeTicketIndex}</span>
+                    <span>Ticket #{activeTicketIndex}</span>
                   </button>
                 )}
 
@@ -507,7 +507,7 @@ export const Step4SetPrice: React.FC<Step4SetPriceProps> = ({
                       : 'bg-[#FF5A36] hover:bg-[#FF7252] text-white shadow-lg shadow-[#FF5A36]/30 hover:shadow-xl hover:shadow-[#FF5A36]/50 cursor-pointer'
                   }`}
                 >
-                  <span>Tiếp tục, đặt giá vé {activeTicketIndex + 2}/{tickets.length}</span>
+                  <span>Next: Set price for Ticket {activeTicketIndex + 2}/{tickets.length}</span>
                   <ArrowRight className="w-4 h-4" />
                 </button>
               </div>
@@ -520,7 +520,7 @@ export const Step4SetPrice: React.FC<Step4SetPriceProps> = ({
                     className="px-4 py-4 rounded-xl bg-white/5 hover:bg-white/10 text-white border border-white/10 transition-all flex items-center gap-1.5 cursor-pointer font-mono text-xs"
                   >
                     <ArrowLeft className="w-4 h-4" />
-                    <span>Vé #{activeTicketIndex}</span>
+                    <span>Ticket #{activeTicketIndex}</span>
                   </button>
                 )}
 
@@ -534,7 +534,7 @@ export const Step4SetPrice: React.FC<Step4SetPriceProps> = ({
                       : 'bg-[#FF5A36] hover:bg-[#FF7252] text-white shadow-lg shadow-[#FF5A36]/30 hover:shadow-xl hover:shadow-[#FF5A36]/50 hover:-translate-y-0.5 active:translate-y-0 cursor-pointer'
                   }`}
                 >
-                  <span>Tiếp tục: Xem lại &amp; Xuất bản tin</span>
+                  <span>Continue: Review &amp; Publish</span>
                   <ArrowRight className="w-4 h-4" />
                 </button>
               </div>
@@ -550,7 +550,7 @@ export const Step4SetPrice: React.FC<Step4SetPriceProps> = ({
                   : 'bg-[#FF5A36] hover:bg-[#FF7252] text-white shadow-lg shadow-[#FF5A36]/30 hover:shadow-xl hover:shadow-[#FF5A36]/50 hover:-translate-y-0.5 active:translate-y-0 cursor-pointer'
               }`}
             >
-              <span>Tiếp tục: Xem lại &amp; Xuất bản tin</span>
+              <span>Continue: Review &amp; Publish</span>
               <ArrowRight className="w-4 h-4" />
             </button>
           )}
@@ -565,7 +565,7 @@ export const Step4SetPrice: React.FC<Step4SetPriceProps> = ({
                 className="text-xs sm:text-sm font-medium text-white/50 hover:text-rose-400 transition-colors inline-flex items-center gap-2 cursor-pointer disabled:opacity-30 py-1.5 px-3 rounded-lg hover:bg-rose-500/10 hover:border hover:border-rose-500/20"
               >
                 <XCircle className="w-4 h-4" />
-                <span>{isCancelling ? 'Đang hủy...' : 'Không bán nữa'}</span>
+                <span>{isCancelling ? 'Cancelling...' : 'Cancel Listing'}</span>
               </button>
             </div>
           )}

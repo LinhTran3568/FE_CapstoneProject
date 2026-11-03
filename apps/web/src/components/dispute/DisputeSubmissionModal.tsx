@@ -80,7 +80,7 @@ export const DisputeSubmissionModal: React.FC<DisputeSubmissionModalProps> = ({
 
   // Auto-dismiss bank account error when an account is linked
   useEffect(() => {
-    if (hasBankAccount && errorMsg?.toLowerCase().includes('ngân hàng')) {
+    if (hasBankAccount && errorMsg?.toLowerCase().includes('bank')) {
       setErrorMsg(null);
     }
   }, [hasBankAccount, errorMsg]);
@@ -103,12 +103,12 @@ export const DisputeSubmissionModal: React.FC<DisputeSubmissionModalProps> = ({
     selected.forEach((file) => {
       // Validate format (BE allows JPEG, PNG, WebP)
       if (!ALLOWED_IMAGE_TYPES.has(file.type.toLowerCase())) {
-        showToast(`File ${file.name} không được hỗ trợ. Chỉ nhận ảnh JPEG, PNG hoặc WebP.`, 'error');
+        showToast(`File ${file.name} is not supported. Only JPEG, PNG, or WebP images are accepted.`, 'error');
         return;
       }
       // Validate size (max 5MB)
       if (file.size > 5 * 1024 * 1024) {
-        showToast(`Ảnh ${file.name} vượt quá dung lượng tối đa 5MB.`, 'error');
+        showToast(`Image ${file.name} exceeds max size of 5MB.`, 'error');
         return;
       }
 
@@ -146,23 +146,23 @@ export const DisputeSubmissionModal: React.FC<DisputeSubmissionModalProps> = ({
     setErrorMsg(null);
 
     if (!ticket.escrowId) {
-      setErrorMsg('Không tìm thấy thông tin giao dịch Escrow để khiếu nại.');
+      setErrorMsg('No escrow transaction found for dispute submission.');
       return;
     }
 
     if (!hasBankAccount) {
-      setErrorMsg('Bạn cần liên kết tài khoản ngân hàng trước khi gửi báo cáo sự cố để có thể nhận tiền hoàn.');
+      setErrorMsg('Please link a bank account before submitting a dispute to receive refunds.');
       setIsBankModalOpen(true);
       return;
     }
 
     if (!description.trim()) {
-      setErrorMsg('Vui lòng nhập mô tả chi tiết sự cố bạn gặp phải.');
+      setErrorMsg('Please enter a detailed description of the issue.');
       return;
     }
 
     if (description.trim().length < 10) {
-      setErrorMsg('Mô tả sự cố phải có ít nhất 10 ký tự.');
+      setErrorMsg('Issue description must be at least 10 characters.');
       return;
     }
 
@@ -197,7 +197,7 @@ export const DisputeSubmissionModal: React.FC<DisputeSubmissionModalProps> = ({
         uploadedEvidenceIdsRef.current.add(item.id);
       }
 
-      showToast(`Khiếu nại ${disputeCode || ''} đã được gửi thành công!`, 'success');
+      showToast(`Dispute ${disputeCode || ''} submitted successfully!`, 'success');
 
       if (onSuccess) onSuccess();
       onClose();
@@ -207,10 +207,10 @@ export const DisputeSubmissionModal: React.FC<DisputeSubmissionModalProps> = ({
         // Dispute was created but an evidence upload failed: keep the modal open
         // so the buyer can retry only the images without hitting a duplicate-dispute 422.
         setErrorMsg(
-          `Khiếu nại ${disputeCode || ''} đã được ghi nhận nhưng ảnh bằng chứng tải lên thất bại. Nhấn "Gửi lại ảnh" để thử lại.`
+          `Dispute ${disputeCode || ''} recorded, but evidence upload failed. Click "Re-upload Evidence" to retry.`
         );
       } else {
-        setErrorMsg(err.message || 'Gửi khiếu nại thất bại. Vui lòng thử lại.');
+        setErrorMsg(err.message || 'Failed to submit dispute. Please try again.');
       }
     } finally {
       setIsSubmitting(false);
@@ -240,7 +240,7 @@ export const DisputeSubmissionModal: React.FC<DisputeSubmissionModalProps> = ({
           type="button"
           onClick={onClose}
           disabled={isSubmitting}
-          aria-label="Đóng modal khiếu nại"
+          aria-label="Close dispute modal"
           className="absolute top-3.5 right-3.5 p-1.5 rounded-lg text-[#94A3B8] hover:text-white hover:bg-white/10 transition-colors cursor-pointer disabled:opacity-50"
         >
           <X className="w-4 h-4" />
@@ -251,13 +251,10 @@ export const DisputeSubmissionModal: React.FC<DisputeSubmissionModalProps> = ({
           <div className="w-9 h-9 rounded-xl bg-rose-500/15 border border-rose-500/30 text-rose-400 flex items-center justify-center shrink-0 shadow-md shadow-rose-500/10">
             <ShieldAlert className="w-5 h-5" />
           </div>
-          <div className="space-y-0.5">
+          <div>
             <h2 id={modalTitleId} className="text-base font-bold font-display text-white tracking-tight leading-snug">
-              Gửi Khiếu Nại Sự Cố Vé
+              Submit Ticket Dispute
             </h2>
-            <p className="text-[11px] text-[#94A3B8] leading-tight">
-              Tiền sẽ được lưu giữ an toàn trong ví Escrow để xác minh.
-            </p>
           </div>
         </div>
 
@@ -266,8 +263,8 @@ export const DisputeSubmissionModal: React.FC<DisputeSubmissionModalProps> = ({
           <div className="space-y-0.5 min-w-0">
             <div className="font-bold text-white text-xs truncate">{ticket.eventName}</div>
             <div className="text-[#94A3B8] font-mono text-[10.5px] truncate">
-              Khu vực: <span className="text-amber-400 font-semibold">{ticket.tierName || ticket.seatZone || 'Standard'}</span>
-              {ticket.ticketPassCode && ` • Mã: ${ticket.ticketPassCode}`}
+              Zone: <span className="text-amber-400 font-semibold">{ticket.tierName || ticket.seatZone || 'Standard'}</span>
+              {ticket.ticketPassCode && ` • Code: ${ticket.ticketPassCode}`}
             </div>
           </div>
           <div className="px-2 py-0.5 rounded-full bg-rose-500/10 border border-rose-500/30 text-rose-300 text-[9.5px] font-mono font-bold uppercase shrink-0">
@@ -279,16 +276,16 @@ export const DisputeSubmissionModal: React.FC<DisputeSubmissionModalProps> = ({
         {isLoadingBankAccounts ? (
           <div className="p-2.5 rounded-xl bg-[#080A10] border border-white/10 flex items-center gap-2 text-xs text-[#94A3B8]">
             <Loader2 className="w-3.5 h-3.5 animate-spin text-amber-400" />
-            <span>Đang kiểm tra tài khoản nhận hoàn tiền...</span>
+            <span>Checking refund bank account...</span>
           </div>
         ) : !hasBankAccount ? (
           <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-200 text-xs space-y-2">
             <div className="flex items-start gap-2">
               <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
               <div className="space-y-0.5">
-                <div className="font-semibold text-white">Chưa liên kết tài khoản ngân hàng nhận tiền hoàn</div>
+                <div className="font-semibold text-white">No linked refund bank account</div>
                 <p className="text-[11px] text-amber-200/90 leading-relaxed">
-                  Để đảm bảo bạn nhận được tiền hoàn khi sự cố được giải quyết, hệ thống yêu cầu liên kết tài khoản ngân hàng trước khi gửi khiếu nại.
+                  A verified bank account is required to process your refund if the dispute is accepted.
                 </p>
               </div>
             </div>
@@ -298,7 +295,7 @@ export const DisputeSubmissionModal: React.FC<DisputeSubmissionModalProps> = ({
               className="w-full py-2 px-3 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-amber-100 text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
             >
               <PlusCircle className="w-3.5 h-3.5 text-amber-400" />
-              <span>Liên kết tài khoản ngân hàng ngay</span>
+              <span>Link Bank Account Now</span>
             </button>
           </div>
         ) : (
@@ -309,7 +306,7 @@ export const DisputeSubmissionModal: React.FC<DisputeSubmissionModalProps> = ({
               </div>
               <div className="min-w-0">
                 <div className="text-[10px] text-[#94A3B8] flex items-center gap-1">
-                  <span>Tài khoản nhận hoàn tiền</span>
+                  <span>Refund Account</span>
                   <CheckCircle className="w-3 h-3 text-emerald-400 inline" />
                 </div>
                 <div className="font-bold text-white text-xs truncate">
@@ -323,7 +320,7 @@ export const DisputeSubmissionModal: React.FC<DisputeSubmissionModalProps> = ({
               onClick={() => setIsBankModalOpen(true)}
               className="text-[10.5px] text-[#94A3B8] hover:text-white underline cursor-pointer shrink-0"
             >
-              Thay đổi
+              Change
             </button>
           </div>
         )}
@@ -333,7 +330,7 @@ export const DisputeSubmissionModal: React.FC<DisputeSubmissionModalProps> = ({
           {/* Reason Selection */}
           <div className="space-y-1.5">
             <label className="block text-[11px] font-semibold text-white uppercase tracking-wider">
-              Lý do khiếu nại <span className="text-rose-400">*</span>
+              Dispute Reason <span className="text-rose-400">*</span>
             </label>
             <div className={`grid grid-cols-1 gap-1.5 ${createdDispute ? 'pointer-events-none opacity-60' : ''}`}>
               {DISPUTE_REASONS.map((item) => (
@@ -366,16 +363,16 @@ export const DisputeSubmissionModal: React.FC<DisputeSubmissionModalProps> = ({
           <div className="space-y-1">
             <div className="flex items-center justify-between">
               <label className="block text-[11px] font-semibold text-white uppercase tracking-wider">
-                Mô tả chi tiết sự cố <span className="text-rose-400">*</span>
+                Detailed Description <span className="text-rose-400">*</span>
               </label>
-              <span className="text-[9.5px] text-[#64748B]">Tối thiểu 10 ký tự</span>
+              <span className="text-[9.5px] text-[#64748B]">Min 10 characters</span>
             </div>
             <textarea
               rows={2}
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               disabled={isSubmitting || Boolean(createdDispute)}
-              placeholder="Mô tả diễn biến sự cố tại cổng soát vé..."
+              placeholder="Describe the issue encountered at the venue gate or ticket check..."
               className="w-full bg-[#0B0E17] border border-white/10 rounded-lg p-2 px-2.5 text-xs font-sans text-white placeholder-[#64748B] focus:border-rose-500 focus:outline-none transition-colors resize-none leading-relaxed disabled:opacity-60"
             />
           </div>
@@ -384,9 +381,9 @@ export const DisputeSubmissionModal: React.FC<DisputeSubmissionModalProps> = ({
           <div className="space-y-1.5">
             <div className="flex items-center justify-between">
               <label className="block text-[11px] font-semibold text-white uppercase tracking-wider">
-                Ảnh bằng chứng (Tùy chọn)
+                Evidence Photos (Optional)
               </label>
-              <span className="text-[9.5px] text-[#94A3B8]">Tối đa 3 ảnh (&le; 5MB/ảnh)</span>
+              <span className="text-[9.5px] text-[#94A3B8]">Up to 3 images (&le; 5MB/image)</span>
             </div>
 
             {/* Thumbnail Previews */}
@@ -394,12 +391,12 @@ export const DisputeSubmissionModal: React.FC<DisputeSubmissionModalProps> = ({
               <div className="grid grid-cols-3 gap-2 my-1">
                 {evidenceFiles.map((item) => (
                   <div key={item.id} className="relative group rounded-lg overflow-hidden border border-white/20 aspect-square bg-black">
-                    <img src={item.previewUrl} alt="Bằng chứng" className="w-full h-full object-cover" />
+                    <img src={item.previewUrl} alt="Evidence preview" className="w-full h-full object-cover" />
                     <button
                       type="button"
                       onClick={() => handleRemoveFile(item.id)}
                       className="absolute top-1 right-1 p-0.5 bg-black/70 text-rose-400 hover:text-rose-200 rounded backdrop-blur-md transition-colors"
-                      title="Xóa ảnh"
+                      title="Remove image"
                     >
                       <Trash2 className="w-3 h-3" />
                     </button>
@@ -420,7 +417,7 @@ export const DisputeSubmissionModal: React.FC<DisputeSubmissionModalProps> = ({
                 />
                 <div className="flex items-center gap-1.5 text-[11px] text-[#94A3B8] group-hover:text-white transition-colors font-medium">
                   <Upload className="w-3.5 h-3.5 text-rose-400 group-hover:scale-110 transition-transform shrink-0" />
-                  <span>Tải ảnh bằng chứng (màn hình báo lỗi, biên bản...)</span>
+                  <span>Upload evidence photos (gate error screens, incident receipts...)</span>
                 </div>
               </label>
             )}
@@ -442,24 +439,24 @@ export const DisputeSubmissionModal: React.FC<DisputeSubmissionModalProps> = ({
               disabled={isSubmitting}
               className="flex-1 py-2 px-3 min-h-9 bg-white/5 hover:bg-white/10 text-[#CBD5E1] hover:text-white font-medium text-xs rounded-xl transition-colors cursor-pointer disabled:opacity-50"
             >
-              Hủy bỏ
+              Cancel
             </button>
 
             <button
               type="submit"
               disabled={isSubmitting || !hasBankAccount || isLoadingBankAccounts}
-              title={!hasBankAccount ? 'Cần liên kết tài khoản ngân hàng trước khi gửi khiếu nại' : undefined}
+              title={!hasBankAccount ? 'A bank account must be linked before submitting a dispute' : undefined}
               className="flex-1 py-2 px-3 min-h-9 bg-rose-600 hover:bg-rose-500 text-white font-bold font-display text-xs uppercase tracking-wider rounded-xl shadow-md shadow-rose-600/30 flex items-center justify-center gap-1.5 transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isSubmitting ? (
                 <>
                   <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                  <span>Đang xử lý...</span>
+                  <span>Processing...</span>
                 </>
               ) : (
                 <>
                   <ShieldAlert className="w-3.5 h-3.5" />
-                  <span>{createdDispute ? 'Gửi lại ảnh' : 'Gửi Khiếu Nại'}</span>
+                  <span>{createdDispute ? 'Re-upload Evidence' : 'Submit Dispute'}</span>
                 </>
               )}
             </button>
@@ -475,7 +472,7 @@ export const DisputeSubmissionModal: React.FC<DisputeSubmissionModalProps> = ({
           await refetchBankAccounts();
           setIsBankModalOpen(false);
           setErrorMsg(null);
-          showToast('Liên kết tài khoản ngân hàng thành công!', 'success');
+          showToast('Bank account linked successfully!', 'success');
         }}
       />
     </div>

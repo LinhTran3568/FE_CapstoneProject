@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Sparkles, ChevronRight, ArrowRight, ShieldCheck, Lock, UserCheck } from 'lucide-react';
+import { Sparkles, ChevronRight, ArrowRight } from 'lucide-react';
 import { useTrendingEvents } from '../hooks/useTrendingEvents';
 import { useMarketplaceListings } from '../hooks/useMarketplaceListings';
 import { TrendingBannerSlider } from '../components/marketplace/TrendingBannerSlider';
@@ -28,8 +28,8 @@ export const HomePage: React.FC = () => {
         name: 'Anh Trai Say Hi Live Concert 2026',
         artist: 'HIEUTHUHAI, Anh Tú, Isaac, Rhyder',
         category: 'CONCERT',
-        venue: 'Sân vận động Quốc gia Mỹ Đình',
-        city: 'Hà Nội',
+        venue: 'My Dinh National Stadium',
+        city: 'Hanoi',
         bannerUrl: '/images/landing/hero-concert.jpg',
         eventStartAt: '2026-10-24T19:00:00Z',
         minResalePrice: 1200000,
@@ -37,11 +37,11 @@ export const HomePage: React.FC = () => {
       },
       {
         eventId: 'fb-2',
-        name: 'Mỹ Tâm Live Concert - Tri Âm Tour',
-        artist: 'Mỹ Tâm',
+        name: 'My Tam Live Concert - Tri Am Tour',
+        artist: 'My Tam',
         category: 'CONCERT',
-        venue: 'Sân vận động Quân khu 7',
-        city: 'TP. Hồ Chí Minh',
+        venue: 'Military Zone 7 Stadium',
+        city: 'Ho Chi Minh City',
         bannerUrl: '/images/landing/featured-1.jpg',
         eventStartAt: '2026-11-15T19:30:00Z',
         minResalePrice: 850000,
@@ -52,8 +52,8 @@ export const HomePage: React.FC = () => {
         name: 'Ravolution Music Festival 2026',
         artist: 'Armin van Buuren, KSHMR, Suboi',
         category: 'FESTIVAL',
-        venue: 'Khu Đô Thị Sala, TP. Thủ Đức',
-        city: 'TP. Hồ Chí Minh',
+        venue: 'Sala Urban Area, Thu Duc City',
+        city: 'Ho Chi Minh City',
         bannerUrl: '/images/landing/festival.jpg',
         eventStartAt: '2026-12-05T15:00:00Z',
         minResalePrice: 650000,
@@ -61,11 +61,11 @@ export const HomePage: React.FC = () => {
       },
       {
         eventId: 'fb-4',
-        name: 'Trận Derby: CLB Hà Nội vs CLB Viettel',
+        name: 'Derby Match: Hanoi FC vs Viettel FC',
         artist: 'V-League 2026',
         category: 'SPORTS',
-        venue: 'Sân vận động Hàng Đẫy',
-        city: 'Hà Nội',
+        venue: 'Hang Day Stadium',
+        city: 'Hanoi',
         bannerUrl: '/images/landing/sports.jpg',
         eventStartAt: '2026-09-22T19:00:00Z',
         minResalePrice: 200000,
@@ -73,11 +73,11 @@ export const HomePage: React.FC = () => {
       },
       {
         eventId: 'fb-5',
-        name: 'Ngày Xửa Ngày Xưa 35: Cuộc Phiêu Lưu Kỳ Thú',
-        artist: 'NSƯT Thành Lộc, Hữu Châu',
+        name: 'Once Upon a Time 35: The Great Adventure',
+        artist: 'Thanh Loc, Huu Chau',
         category: 'THEATER',
-        venue: 'Nhà hát Bến Thành',
-        city: 'TP. Hồ Chí Minh',
+        venue: 'Ben Thanh Theater',
+        city: 'Ho Chi Minh City',
         bannerUrl: '/images/landing/theater.jpg',
         eventStartAt: '2026-09-20T19:00:00Z',
         minResalePrice: 450000,
@@ -169,9 +169,6 @@ export const HomePage: React.FC = () => {
             <h2 className="text-2xl sm:text-3xl md:text-4xl font-black font-display text-white tracking-tight">
               Find Your Favorite Event Tickets Today
             </h2>
-            <p className="text-sm text-[#94A3B8]">
-              Every transaction is fully protected: brand-new official ticket re-issued directly by the organizer, backed by 24-hour funds protection.
-            </p>
             <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-4">
               <button
                 type="button"

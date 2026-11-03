@@ -14,7 +14,7 @@ const eventList: EventItem[] = [
     img: "https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=300&auto=format&fit=crop&q=75"
   },
   {
-    title: "Vượt Ngàn Chông Gai",
+    title: "Call Me by Fire",
     img: "https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=300&auto=format&fit=crop&q=75"
   },
   {
@@ -22,11 +22,11 @@ const eventList: EventItem[] = [
     img: "https://images.unsplash.com/photo-1501281668745-f7f57925c3b4?w=300&auto=format&fit=crop&q=75"
   },
   {
-    title: "Hà Anh Tuấn — Storii",
+    title: "Ha Anh Tuan — Storii",
     img: "https://images.unsplash.com/photo-1459749411175-04bf5292ceea?w=300&auto=format&fit=crop&q=75"
   },
   {
-    title: "Vũ. — Nuối Tiếc Tour",
+    title: "Vu. — Regret Tour",
     img: "https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=300&auto=format&fit=crop&q=75"
   },
   {
@@ -38,7 +38,7 @@ const eventList: EventItem[] = [
     img: "https://images.unsplash.com/photo-1465847899084-d164df4dedc6?w=300&auto=format&fit=crop&q=75"
   },
   {
-    title: "Thành Phố Mơ Màng",
+    title: "Dreaming Cities Festival",
     img: "https://images.unsplash.com/photo-1506157786151-b8491531f063?w=300&auto=format&fit=crop&q=75"
   },
   {

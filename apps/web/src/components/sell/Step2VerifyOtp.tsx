@@ -194,13 +194,13 @@ export const Step2VerifyOtp: React.FC<Step2VerifyOtpProps> = ({
     const ticketDigits = digits[t.code] ?? emptyDigits();
     const otpStr = ticketDigits.join('');
     if (otpStr.length < OTP_LENGTH) {
-      setErrors((prev) => ({ ...prev, [t.code]: `Vui lòng nhập đủ 6 chữ số mã OTP cho vé ${t.code}.` }));
+      setErrors((prev) => ({ ...prev, [t.code]: `Please enter all 6 digits of the OTP for ticket ${t.code}.` }));
       return;
     }
 
     const tLeft = secondsLeft[t.code] ?? 0;
     if (tLeft <= 0) {
-      setErrors((prev) => ({ ...prev, [t.code]: `Mã OTP của vé ${t.code} đã hết hạn. Vui lòng bấm Gửi lại OTP.` }));
+      setErrors((prev) => ({ ...prev, [t.code]: `OTP for ticket ${t.code} has expired. Please resend OTP.` }));
       return;
     }
 
@@ -211,7 +211,7 @@ export const Step2VerifyOtp: React.FC<Step2VerifyOtpProps> = ({
       const ok = await onVerifyTicket({ code: t.code, otp: otpStr });
       if (!ok) return;
 
-      // Nếu còn vé chưa xác thực, tự động chuyển sang vé kế tiếp
+      // Auto-advance to next unlocked ticket if any
       const nextUnlockedIdx = tickets.findIndex((item, i) => i !== safePage && !item.locked);
       if (nextUnlockedIdx !== -1) {
         setPage(nextUnlockedIdx);
@@ -219,7 +219,7 @@ export const Step2VerifyOtp: React.FC<Step2VerifyOtpProps> = ({
     } catch (err: any) {
       setErrors((prev) => ({
         ...prev,
-        [t.code]: err?.message || 'Mã OTP không chính xác. Vui lòng thử lại!',
+        [t.code]: err?.message || 'Invalid OTP code. Please try again!',
       }));
       setDigits((prev) => ({ ...prev, [t.code]: emptyDigits() }));
       setTimeout(() => focusSlot(t.code, 0), 120);
@@ -232,17 +232,14 @@ export const Step2VerifyOtp: React.FC<Step2VerifyOtpProps> = ({
 
   return (
     <div className="max-w-[500px] mx-auto space-y-4 pt-1 font-sans text-center">
-      {/* Tiêu đề trang */}
-      <div className="space-y-1">
+      {/* Title */}
+      <div>
         <h2 className="text-2xl sm:text-3xl font-bold text-white tracking-tight">
-          Xác thực vé
+          Verify Tickets
         </h2>
-        <p className="text-xs sm:text-sm text-[#8A909B] max-w-sm mx-auto leading-relaxed">
-          Nhập mã OTP 6 số để xác thực quyền sở hữu vé chính chủ từ Ban tổ chức.
-        </p>
       </div>
 
-      {/* Thẻ OTP dạng So Le (Staggered Tabs) */}
+      {/* OTP Staggered Tabs */}
       <div className="pt-1">
         <CardStack
           items={tickets.map((t) => ({ id: t.code, ...t }))}
@@ -301,7 +298,7 @@ export const Step2VerifyOtp: React.FC<Step2VerifyOtpProps> = ({
                         isTop ? 'text-white/70' : 'text-white/40'
                       }`}
                     >
-                      Vé {originalIndex + 1}:
+                      Ticket {originalIndex + 1}:
                     </span>
                     <span
                       className={`text-sm tracking-wide ${
@@ -312,7 +309,7 @@ export const Step2VerifyOtp: React.FC<Step2VerifyOtpProps> = ({
                     </span>
                   </div>
 
-                  {/* Cột phải: Thông tin trạng thái + Nút gỡ riêng vé này */}
+                  {/* Right: Status badge & remove button */}
                   <div className="flex items-center gap-2">
                     {t.locked ? (
                       <span
@@ -320,7 +317,7 @@ export const Step2VerifyOtp: React.FC<Step2VerifyOtpProps> = ({
                           isTop ? 'text-emerald-400' : 'text-emerald-500/60'
                         }`}
                       >
-                        Đã xác thực
+                        Verified
                       </span>
                     ) : (
                       <span
@@ -334,11 +331,11 @@ export const Step2VerifyOtp: React.FC<Step2VerifyOtpProps> = ({
                             : 'text-white/40'
                         }`}
                       >
-                        {isExpired ? 'Hết hạn' : formatTimer(tLeft)}
+                        {isExpired ? 'Expired' : formatTimer(tLeft)}
                       </span>
                     )}
 
-                    {/* Nút gỡ vé này (chỉ hiện khi có từ 2 vé trở lên) */}
+                    {/* Remove button (when multiple tickets exist) */}
                     {tickets.length > 1 && onRemoveTicket && (
                       <button
                         type="button"
@@ -354,7 +351,7 @@ export const Step2VerifyOtp: React.FC<Step2VerifyOtpProps> = ({
                         }}
                         disabled={removingCode === t.code || isCancelling}
                         className="p-1 text-white/30 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition-colors cursor-pointer disabled:opacity-40"
-                        title={`Gỡ vé ${t.code} khỏi danh sách bán`}
+                        title={`Remove ticket ${t.code}`}
                       >
                         {removingCode === t.code ? (
                           <Loader2 className="w-3.5 h-3.5 animate-spin text-rose-400" />
@@ -366,13 +363,13 @@ export const Step2VerifyOtp: React.FC<Step2VerifyOtpProps> = ({
                   </div>
                 </div>
 
-                {/* Thân thẻ vé */}
+                {/* Card Body */}
                 <div
                   className={`p-4 sm:p-5 space-y-3 bg-[#0A0D14] ${
                     !isTop ? 'pointer-events-none opacity-0 select-none h-0 p-0 overflow-hidden' : ''
                   }`}
                 >
-                  {/* 6 ô nhập OTP */}
+                  {/* 6 OTP Inputs */}
                   <div className="space-y-2">
                     <div className="flex items-center justify-center gap-2">
                       {ticketDigits.map((digit, slot) => (
@@ -404,11 +401,11 @@ export const Step2VerifyOtp: React.FC<Step2VerifyOtpProps> = ({
                       ))}
                     </div>
 
-                    {/* Dòng gửi lại OTP (chỉ hiện khi vé CHƯA xác thực, bỏ hoàn toàn text thuyết minh rác) */}
+                    {/* Resend OTP */}
                     {!t.locked && (
                       <div className="flex items-center justify-between text-xs px-1 text-[#8A909B]">
                         <span>
-                          {isExpired ? 'Mã đã hết hạn' : `Hết hạn sau ${formatTimer(tLeft)}`}
+                          {isExpired ? 'Code expired' : `Expires in ${formatTimer(tLeft)}`}
                         </span>
 
                         <button
@@ -424,24 +421,24 @@ export const Step2VerifyOtp: React.FC<Step2VerifyOtpProps> = ({
                         >
                           {resendingCode === t.code ? (
                             <span className="inline-flex items-center gap-1">
-                              <Loader2 className="w-3 h-3 animate-spin" /> Đang gửi lại...
+                              <Loader2 className="w-3 h-3 animate-spin" /> Resending...
                             </span>
                           ) : (
-                            'Gửi lại OTP'
+                            'Resend OTP'
                           )}
                         </button>
                       </div>
                     )}
                   </div>
 
-                  {/* Thông báo lỗi nếu có */}
+                  {/* Error Message */}
                   {errorMsg && (
                     <div className="p-2 bg-rose-500/10 border border-rose-500/20 rounded-xl text-xs text-rose-300 text-center">
                       {errorMsg}
                     </div>
                   )}
 
-                  {/* Nút hành động */}
+                  {/* Actions */}
                   <div>
                     {t.locked ? (
                       allLocked ? (
@@ -450,7 +447,7 @@ export const Step2VerifyOtp: React.FC<Step2VerifyOtpProps> = ({
                           onClick={onComplete}
                           className="w-full h-11 rounded-xl text-xs font-bold uppercase tracking-wider text-white bg-[#FF5A36] hover:bg-[#FF7252] shadow-lg shadow-[#FF5A36]/30 transition-all cursor-pointer active:scale-[0.99]"
                         >
-                          Tiếp tục bước tiếp theo →
+                          Continue to Next Step →
                         </button>
                       ) : (
                         <button
@@ -461,7 +458,7 @@ export const Step2VerifyOtp: React.FC<Step2VerifyOtpProps> = ({
                           }}
                           className="w-full h-10 rounded-xl text-xs font-semibold text-white/80 hover:text-white bg-white/[0.05] hover:bg-white/10 border border-white/10 transition-all cursor-pointer"
                         >
-                          Chuyển sang vé chưa xác thực →
+                          Switch to Unverified Ticket →
                         </button>
                       )
                     ) : (
@@ -480,10 +477,10 @@ export const Step2VerifyOtp: React.FC<Step2VerifyOtpProps> = ({
                         {isCurrentVerifying ? (
                           <>
                             <Loader2 className="w-4 h-4 animate-spin" />
-                            <span>Đang xác thực...</span>
+                            <span>Verifying...</span>
                           </>
                         ) : (
-                          <span>Xác thực vé {t.code} →</span>
+                          <span>Verify Ticket {t.code} →</span>
                         )}
                       </button>
                     )}
@@ -495,24 +492,22 @@ export const Step2VerifyOtp: React.FC<Step2VerifyOtpProps> = ({
         />
       </div>
 
-      {/* Dấu mũi tên & Paging trực quan rõ ràng, có khoảng đệm thoải mái */}
+      {/* Pagination Controls */}
       {tickets.length > 1 && (
         <div className="flex items-center justify-center gap-3 mt-5">
-          {/* Mũi tên lùi vé trước */}
           <button
             type="button"
             onClick={() => setPage((prev) => Math.max(0, prev - 1))}
             disabled={safePage === 0}
-            aria-label="Vé trước"
+            aria-label="Previous ticket"
             className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl border border-white/15 bg-[#0A0D14] hover:bg-white/[0.08] hover:border-white/25 text-white/80 hover:text-white flex items-center justify-center disabled:opacity-20 disabled:cursor-not-allowed transition-all cursor-pointer shadow-sm active:scale-95"
           >
             <ChevronLeft className="w-4 h-4 sm:w-5 sm:h-5" />
           </button>
 
-          {/* Cụm Paging: Vé X/Y + Dots rõ ràng, to và dễ nhìn */}
           <div className="flex items-center gap-3 px-4 py-2 rounded-full bg-[#0A0D14] border border-white/15 text-sm font-semibold text-white/90 shadow-sm">
             <span className="tracking-wide">
-              Vé {safePage + 1}/{tickets.length}
+              Ticket {safePage + 1}/{tickets.length}
             </span>
             <div className="flex items-center gap-2 pl-1">
               {tickets.map((t, idx) => {
@@ -531,19 +526,18 @@ export const Step2VerifyOtp: React.FC<Step2VerifyOtpProps> = ({
                         ? 'w-2 h-2 rounded-full bg-emerald-400 shadow-sm shadow-emerald-400/40'
                         : 'w-2 h-2 rounded-full bg-white/30 hover:bg-white/50'
                     }`}
-                    title={`Vé ${idx + 1}: ${t.code}`}
+                    title={`Ticket ${idx + 1}: ${t.code}`}
                   />
                 );
               })}
             </div>
           </div>
 
-          {/* Mũi tên tiến vé kế tiếp */}
           <button
             type="button"
             onClick={() => setPage((prev) => Math.min(tickets.length - 1, prev + 1))}
             disabled={safePage === tickets.length - 1}
-            aria-label="Vé kế tiếp"
+            aria-label="Next ticket"
             className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl border border-white/15 bg-[#0A0D14] hover:bg-white/[0.08] hover:border-white/25 text-white/80 hover:text-white flex items-center justify-center disabled:opacity-20 disabled:cursor-not-allowed transition-all cursor-pointer shadow-sm active:scale-95"
           >
             <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5" />
@@ -551,7 +545,7 @@ export const Step2VerifyOtp: React.FC<Step2VerifyOtpProps> = ({
         </div>
       )}
 
-      {/* Nút hủy phiên: Đặt thoáng đãng, to rõ ràng hơn */}
+      {/* Cancel Session */}
       <div className="mt-4">
         <button
           type="button"
@@ -560,7 +554,7 @@ export const Step2VerifyOtp: React.FC<Step2VerifyOtpProps> = ({
           className="text-sm font-medium text-white/50 hover:text-rose-400 transition-colors inline-flex items-center gap-2 cursor-pointer disabled:opacity-30 py-1.5 px-3 rounded-lg hover:bg-rose-500/10 hover:border hover:border-rose-500/20"
         >
           <XCircle className="w-4 h-4" />
-          <span>{isCancelling ? 'Đang hủy...' : 'Hủy phiên xác thực'}</span>
+          <span>{isCancelling ? 'Cancelling...' : 'Cancel Verification'}</span>
         </button>
       </div>
     </div>

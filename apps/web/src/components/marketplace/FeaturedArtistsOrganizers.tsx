@@ -19,7 +19,7 @@ const FEATURED_ARTISTS: ArtistItem[] = [
   },
   {
     id: 'art-2',
-    name: 'Mỹ Tâm',
+    name: 'My Tam',
     genre: 'Pop / Ballad',
     avatarUrl: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=400&q=80',
     activeEventsCount: 2,
@@ -40,7 +40,7 @@ const FEATURED_ARTISTS: ArtistItem[] = [
   },
   {
     id: 'art-5',
-    name: 'Thành Lộc & Ngày Xửa Ngày Xưa',
+    name: 'Thanh Loc & Classic Fairy Tales',
     genre: 'Theater / Family',
     avatarUrl: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=400&q=80',
     activeEventsCount: 5,
@@ -63,7 +63,6 @@ export const FeaturedArtistsOrganizers: React.FC<FeaturedArtistsOrganizersProps>
         </div>
         <div>
           <h3 className="text-lg sm:text-xl font-bold font-display text-white">Popular Artists</h3>
-          <p className="text-xs text-[#8B929C]">Discover upcoming shows and concerts by top performers</p>
         </div>
       </div>
 

@@ -45,7 +45,7 @@ export const StorefrontLayout: React.FC<StorefrontLayoutProps> = ({
                   : 'text-[#aa8984] hover:text-white'
               }`}
             >
-              Khám phá
+              Discover
             </Link>
             <Link
               to="/storefront/events"
@@ -55,7 +55,7 @@ export const StorefrontLayout: React.FC<StorefrontLayoutProps> = ({
                   : 'text-[#aa8984] hover:text-white'
               }`}
             >
-              Tất cả sự kiện
+              All Events
             </Link>
             <Link
               to="/storefront#featured-events"
@@ -67,7 +67,7 @@ export const StorefrontLayout: React.FC<StorefrontLayoutProps> = ({
               }}
               className="text-sm font-semibold text-[#aa8984] hover:text-white transition-colors py-1 cursor-pointer"
             >
-              Concert nổi bật
+              Featured Concerts
             </Link>
             <Link
               to="/storefront#upcoming-events"
@@ -79,14 +79,14 @@ export const StorefrontLayout: React.FC<StorefrontLayoutProps> = ({
               }}
               className="text-sm font-semibold text-[#aa8984] hover:text-white transition-colors py-1 cursor-pointer"
             >
-              Lịch diễn sắp tới
+              Upcoming Tours
             </Link>
             <Link
               to="/"
               id="nav-link-home-marketplace"
               className="text-sm font-semibold text-[#aa8984] hover:text-white transition-colors py-1"
             >
-              Sàn bán lại vé
+              Secondary Market
             </Link>
           </nav>
 
@@ -102,10 +102,10 @@ export const StorefrontLayout: React.FC<StorefrontLayoutProps> = ({
                 </div>
                 <div className="hidden lg:flex flex-col text-left">
                   <span className="text-xs font-semibold text-[#e1e1ed] group-hover:text-[#ffb4a8] transition-colors leading-tight truncate max-w-[120px]">
-                    {user.fullName || user.email?.split('@')[0] || 'Khách hàng'}
+                    {user.fullName || user.email?.split('@')[0] || 'Guest'}
                   </span>
                   <span className="text-[10px] text-[#ffb4a8] font-bold uppercase tracking-wider">
-                    {user.role || 'THÀNH VIÊN'}
+                    {user.role || 'MEMBER'}
                   </span>
                 </div>
               </Link>
@@ -131,47 +131,47 @@ export const StorefrontLayout: React.FC<StorefrontLayoutProps> = ({
                 </span>
               </div>
               <p className="text-sm text-[#aa8984] max-w-sm leading-relaxed">
-                Cổng phát hành vé concert và sự kiện âm nhạc chính thức từ Ban Tổ Chức, mang lại trải nghiệm check-in an toàn và minh bạch 100%.
+                Official concert pass issuance platform directly from event organizers with real-time verification and dynamic QR entry.
               </p>
             </div>
 
             <div className="flex flex-col gap-2 text-sm">
-              <span className="font-semibold text-[#e1e1ed] mb-1">Khám phá</span>
+              <span className="font-semibold text-[#e1e1ed] mb-1">Discover</span>
               <Link to="/storefront/events" className="text-[#aa8984] hover:text-[#e1e1ed] transition-colors">
-                Tất cả sự kiện
+                All Events
               </Link>
               <Link to="/storefront#featured-events" className="text-[#aa8984] hover:text-[#e1e1ed] transition-colors">
-                Concert nổi bật
+                Featured Concerts
               </Link>
               <Link to="/" className="text-[#4cd7f6] hover:text-white transition-colors flex items-center gap-1 font-medium">
-                <span>Sàn bán lại vé P2P</span>
+                <span>Secondary Market</span>
                 <span className="material-symbols-outlined text-[14px]">arrow_outward</span>
               </Link>
-              <span className="text-[#aa8984]">Sân vận động & Hội trường</span>
-              <span className="text-[#aa8984]">Nghệ sĩ & Tour diễn</span>
+              <span className="text-[#aa8984]">Stadiums & Arenas</span>
+              <span className="text-[#aa8984]">Artists & World Tours</span>
             </div>
 
             <div className="flex flex-col gap-2 text-sm">
-              <span className="font-semibold text-[#e1e1ed] mb-1">Hỗ trợ & Pháp lý</span>
+              <span className="font-semibold text-[#e1e1ed] mb-1">Support & Legal</span>
               <span className="text-[#aa8984] hover:text-[#e1e1ed] transition-colors cursor-pointer">
-                Quy chuẩn vé chính gốc
+                Original Ticket Standards
               </span>
               <span className="text-[#aa8984] hover:text-[#e1e1ed] transition-colors cursor-pointer">
-                Xác thực mã Dynamic QR
+                Dynamic QR Verification
               </span>
               <span className="text-[#aa8984] hover:text-[#e1e1ed] transition-colors cursor-pointer">
-                Điều khoản dịch vụ
+                Terms of Service
               </span>
               <span className="text-[#aa8984] hover:text-[#e1e1ed] transition-colors cursor-pointer">
-                Chính sách hoàn tiền
+                Refund Policy
               </span>
             </div>
           </div>
 
           <div className="mt-10 pt-6 border-t border-[#33343d]/20 flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-[#aa8984]">
-            <span>© 2026 TicketShield Ecosystem. Tất cả quyền được bảo lưu.</span>
+            <span>© 2026 TicketShield Ecosystem. All rights reserved.</span>
             <div className="flex items-center gap-3">
-              <span className="uppercase tracking-wider text-[11px]">Cổng thanh toán bảo mật:</span>
+              <span className="uppercase tracking-wider text-[11px]">Supported Payment Methods:</span>
               <div className="flex items-center gap-2 font-mono font-bold text-[#e3beb8]">
                 <span className="px-2 py-0.5 rounded bg-[#1d1f28] border border-[#33343d]/40 text-[11px]">VietQR</span>
                 <span className="px-2 py-0.5 rounded bg-[#1d1f28] border border-[#33343d]/40 text-[11px]">Napas247</span>

@@ -22,7 +22,7 @@ export const StorefrontEventListPage: React.FC = () => {
 
   // Genre definitions
   const genres = [
-    { id: 'all', label: 'Tất cả thể loại', icon: 'apps' },
+    { id: 'all', label: 'All Genres', icon: 'apps' },
     { id: 'pop', label: 'Pop & Ballad', icon: 'mic' },
     { id: 'rap', label: 'Rap / Hip-Hop', icon: 'graphic_eq' },
     { id: 'edm', label: 'EDM & Festival', icon: 'speaker' },
@@ -33,7 +33,7 @@ export const StorefrontEventListPage: React.FC = () => {
   // Distinct organizers
   const organizers = useMemo(() => {
     const orgs = Array.from(new Set(STOREFRONT_EVENTS.map((e) => e.organizerName)));
-    return [{ id: 'all', label: 'Tất cả ban tổ chức' }, ...orgs.map((o) => ({ id: o, label: o }))];
+    return [{ id: 'all', label: 'All Organizers' }, ...orgs.map((o) => ({ id: o, label: o }))];
   }, []);
 
   // Filter & Sort
@@ -78,7 +78,7 @@ export const StorefrontEventListPage: React.FC = () => {
     result = [...result].sort((a, b) => {
       if (sortBy === 'price-asc') return a.minPrice - b.minPrice;
       if (sortBy === 'price-desc') return b.minPrice - a.minPrice;
-      if (sortBy === 'name') return a.title.localeCompare(b.title, 'vi');
+      if (sortBy === 'name') return a.title.localeCompare(b.title, 'en');
       // Default: featured first
       return (b.isFeatured ? 1 : 0) - (a.isFeatured ? 1 : 0);
     });
@@ -115,40 +115,31 @@ export const StorefrontEventListPage: React.FC = () => {
             <div className="flex items-center gap-2 text-xs text-[#aa8984]">
               <Link to="/storefront" className="hover:text-white transition-colors flex items-center gap-1">
                 <span className="material-symbols-outlined text-[16px]">home</span>
-                <span>Trang chủ Storefront</span>
+                <span>Storefront Home</span>
               </Link>
               <span>/</span>
-              <span className="text-[#ffb4a8] font-semibold">Tất cả sự kiện & Đại nhạc hội</span>
+              <span className="text-[#ffb4a8] font-semibold">All Events &amp; Concerts</span>
             </div>
 
             {/* Title & Subtitle */}
             <div className="space-y-3 max-w-3xl">
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#ff5945]/15 border border-[#ff5945]/30 text-[#ffb4a8] text-xs font-bold uppercase tracking-wider">
-                <span className="w-2 h-2 rounded-full bg-[#ff5945] animate-pulse" />
-                Cổng phát hành vé chính thức từ Ban Tổ Chức
-              </div>
               <h1 className="font-display font-black text-3xl sm:text-4xl lg:text-5xl text-white tracking-tight leading-tight">
-                Tất cả sự kiện & Đại nhạc hội
+                All Events &amp; Concerts
               </h1>
               <p className="text-sm sm:text-base text-[#aa8984] leading-relaxed">
-                Khám phá và đặt vé trực tiếp cho toàn bộ live concert, festival âm nhạc và tour diễn đỉnh cao toàn quốc.
-                Bảo chứng 100% vé gốc phát hành với công nghệ chống vé giả Cyber-Escrow.
+                Discover and book official tickets directly for live concerts, music festivals, and national tours.
               </p>
             </div>
 
-            {/* Feature Highlights Pills */}
-            <div className="flex flex-wrap items-center gap-4 pt-2 text-xs text-[#e1e1ed]">
+            {/* Feature Highlights */}
+            <div className="flex flex-wrap items-center gap-3 pt-2 text-xs text-[#e1e1ed]">
               <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-[#191b23] border border-[#33343d]/60">
                 <span className="material-symbols-outlined text-[#4cd7f6] text-[18px]">verified</span>
-                <span>100% Vé gốc từ BTC</span>
+                <span>Official Organizer Tickets</span>
               </div>
               <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-[#191b23] border border-[#33343d]/60">
                 <span className="material-symbols-outlined text-[#ff5945] text-[18px]">qr_code_2</span>
-                <span>Mã QR vé Dynamic chống chụp màn hình</span>
-              </div>
-              <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-[#191b23] border border-[#33343d]/60">
-                <span className="material-symbols-outlined text-[#d0bcff] text-[18px]">shield</span>
-                <span>Cyber-Escrow bảo vệ giao dịch</span>
+                <span>Dynamic QR Code</span>
               </div>
             </div>
           </div>
@@ -167,7 +158,7 @@ export const StorefrontEventListPage: React.FC = () => {
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Tìm theo tên concert, ca sĩ, ban nhạc, địa điểm..."
+                  placeholder="Search by concert, artist, band, venue..."
                   className="w-full pl-10 pr-10 py-2.5 rounded-xl bg-[#191b23] border border-[#33343d]/60 text-white placeholder-[#aa8984] text-xs sm:text-sm focus:outline-none focus:border-[#ff5945] focus:ring-1 focus:ring-[#ff5945] transition-colors"
                 />
                 {searchQuery && (
@@ -189,10 +180,10 @@ export const StorefrontEventListPage: React.FC = () => {
                   onChange={(e) => setSelectedCity(e.target.value)}
                   className="px-3 py-2.5 rounded-xl bg-[#191b23] border border-[#33343d]/60 text-white text-xs font-semibold focus:outline-none focus:border-[#ff5945] cursor-pointer"
                 >
-                  <option value="all">Tất cả thành phố</option>
-                  <option value="hcm">TP. Hồ Chí Minh</option>
-                  <option value="hanoi">Hà Nội</option>
-                  <option value="danang">Đà Nẵng</option>
+                  <option value="all">All Cities</option>
+                  <option value="hcm">Ho Chi Minh City</option>
+                  <option value="hanoi">Hanoi</option>
+                  <option value="danang">Da Nang</option>
                 </select>
 
                 {/* Organizer select */}
@@ -214,10 +205,10 @@ export const StorefrontEventListPage: React.FC = () => {
                   onChange={(e) => setSortBy(e.target.value as any)}
                   className="px-3 py-2.5 rounded-xl bg-[#191b23] border border-[#33343d]/60 text-white text-xs font-semibold focus:outline-none focus:border-[#ff5945] cursor-pointer"
                 >
-                  <option value="featured">Nổi bật nhất</option>
-                  <option value="price-asc">Giá: Thấp đến cao</option>
-                  <option value="price-desc">Giá: Cao đến thấp</option>
-                  <option value="name">Tên sự kiện (A-Z)</option>
+                  <option value="featured">Featured</option>
+                  <option value="price-asc">Price: Low to High</option>
+                  <option value="price-desc">Price: High to Low</option>
+                  <option value="name">Event Name (A-Z)</option>
                 </select>
               </div>
             </div>
@@ -253,8 +244,8 @@ export const StorefrontEventListPage: React.FC = () => {
             <div className="flex items-center gap-2 text-xs text-[#e1e1ed]">
               <span className="material-symbols-outlined text-[#ff5945] text-[18px]">event</span>
               <span>
-                Hiển thị <strong className="text-white font-bold">{filteredEvents.length}</strong> sự kiện / đại nhạc hội
-                {isFiltering && <span className="text-[#aa8984]"> (đang áp dụng bộ lọc)</span>}
+                Showing <strong className="text-white font-bold">{filteredEvents.length}</strong> events / concerts
+                {isFiltering && <span className="text-[#aa8984]"> (filters applied)</span>}
               </span>
             </div>
 
@@ -265,7 +256,7 @@ export const StorefrontEventListPage: React.FC = () => {
                 className="text-xs text-[#ffb4a8] hover:text-white font-semibold flex items-center gap-1 underline transition-colors"
               >
                 <span className="material-symbols-outlined text-[16px]">restart_alt</span>
-                Đặt lại tất cả bộ lọc
+                Reset all filters
               </button>
             )}
           </div>
@@ -277,9 +268,9 @@ export const StorefrontEventListPage: React.FC = () => {
                 <span className="material-symbols-outlined text-[36px]">search_off</span>
               </div>
               <div className="space-y-1">
-                <h3 className="font-display font-bold text-xl text-white">Không tìm thấy sự kiện nào</h3>
+                <h3 className="font-display font-bold text-xl text-white">No events found</h3>
                 <p className="text-sm text-[#aa8984] max-w-md mx-auto">
-                  Không có sự kiện nào khớp với tiêu chí tìm kiếm hiện tại. Hãy thử từ khóa khác hoặc xóa các bộ lọc đang chọn.
+                  No events matched your current search criteria. Try a different keyword or reset filters.
                 </p>
               </div>
               <button
@@ -287,7 +278,7 @@ export const StorefrontEventListPage: React.FC = () => {
                 onClick={handleResetFilters}
                 className="px-6 py-2.5 rounded-xl bg-[#ff5945] text-white text-xs font-bold hover:shadow-[0_0_20px_rgba(255,89,69,0.5)] transition-all"
               >
-                Đặt lại tất cả bộ lọc
+                Reset all filters
               </button>
             </div>
           ) : (
@@ -311,7 +302,7 @@ export const StorefrontEventListPage: React.FC = () => {
                     <div className="absolute top-3 left-3 right-3 flex items-center justify-between pointer-events-none">
                       <span className="px-2.5 py-1 rounded-md bg-[#ff5945]/30 text-[#ffb4a8] text-[10px] uppercase font-bold tracking-wide backdrop-blur-md border border-[#ff5945]/40 flex items-center gap-1 shadow-md">
                         <span className="w-1.5 h-1.5 rounded-full bg-[#ff5945] animate-ping" />
-                        {event.tagBadge || 'Còn vé'}
+                        {event.tagBadge || 'Available'}
                       </span>
                       <span className="px-2 py-0.5 rounded text-[10px] font-mono font-semibold bg-black/60 text-white backdrop-blur-md border border-white/10">
                         {event.organizerName}
@@ -320,9 +311,9 @@ export const StorefrontEventListPage: React.FC = () => {
 
                     {/* Price Tag Sticker */}
                     <div className="absolute bottom-3 right-3 px-2.5 py-1 rounded-lg bg-[#0c0e16]/90 backdrop-blur-md border border-white/10 shadow-lg">
-                      <span className="text-[10px] text-[#aa8984]">Từ</span>
+                      <span className="text-[10px] text-[#aa8984]">From</span>
                       <span className="text-xs sm:text-sm text-[#ffb4a8] font-bold ml-1">
-                        {event.minPrice.toLocaleString('vi-VN')}₫
+                        {event.minPrice.toLocaleString('en-US')} ₫
                       </span>
                     </div>
                   </div>
@@ -354,13 +345,13 @@ export const StorefrontEventListPage: React.FC = () => {
                     <div className="pt-3 flex items-center justify-between border-t border-[#33343d]/40">
                       <div className="flex items-center gap-1 text-[#d0bcff] text-xs font-semibold">
                         <span className="material-symbols-outlined text-[16px] text-[#4cd7f6]">verified_user</span>
-                        <span>Vé chính hãng</span>
+                        <span>Official Ticket</span>
                       </div>
                       <Link
                         to={`/storefront/event/${event.id}`}
                         className="px-3.5 py-2 rounded-xl bg-[#282a32] group-hover:bg-[#ff5945] text-white text-xs font-bold transition-all shadow-md active:scale-95 flex items-center gap-1"
                       >
-                        <span>Đặt vé</span>
+                        <span>Book Tickets</span>
                         <span className="material-symbols-outlined text-[16px]">arrow_forward</span>
                       </Link>
                     </div>
@@ -376,21 +367,20 @@ export const StorefrontEventListPage: React.FC = () => {
           <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-[#191b23] via-[#22242e] to-[#191b23] border border-[#33343d]/60 p-8 sm:p-10 flex flex-col md:flex-row items-center justify-between gap-6">
             <div className="space-y-2 max-w-xl">
               <span className="text-xs uppercase tracking-widest text-[#ff5945] font-bold">
-                Dành cho Đơn vị Tổ Chức & Nghệ sĩ
+                For Organizers &amp; Artists
               </span>
               <h2 className="font-display font-bold text-2xl text-white">
-                Muốn phát hành vé concert trên TicketShield?
+                Want to issue concert tickets on TicketShield?
               </h2>
               <p className="text-xs sm:text-sm text-[#aa8984] leading-relaxed">
-                Tích hợp giải pháp bán vé gốc trực tiếp, kiểm soát phe vé 100% bằng cơ chế mã hóa Dynamic QR,
-                phí sàn minh bạch và đối soát doanh thu tự động.
+                Integrate direct primary ticketing, manage distribution with dynamic encrypted QR codes, transparent platform fees, and automated revenue reconciliation.
               </p>
             </div>
             <Link
               to="/organizer"
               className="shrink-0 px-6 py-3 rounded-xl bg-[#ff5945] hover:bg-[#e04330] text-white font-bold text-sm transition-all shadow-[0_0_24px_rgba(255,89,69,0.35)] active:scale-95 flex items-center gap-2"
             >
-              <span>Mở cổng bán vé ngay</span>
+              <span>Open Organizer Portal</span>
               <span className="material-symbols-outlined text-[18px]">launch</span>
             </Link>
           </div>

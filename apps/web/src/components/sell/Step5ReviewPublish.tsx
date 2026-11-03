@@ -52,8 +52,8 @@ export const Step5ReviewPublish: React.FC<Step5ReviewPublishProps> = ({
   activeFeeTooltip,
   setActiveFeeTooltip,
   onManageBankAccounts,
-  eventName = 'Anh Trai Say Hi - Concert 2024',
-  eventVenue = 'Sân vận động Quốc gia Mỹ Đình, Hà Nội',
+  eventName = 'Live Concert Event',
+  eventVenue = 'National Stadium',
   saleType = 'combo',
   setSaleType,
   onEditTicketPrice,
@@ -164,9 +164,9 @@ export const Step5ReviewPublish: React.FC<Step5ReviewPublishProps> = ({
                 </div>
                 <div>
                   <span className="font-bold text-white text-sm sm:text-base tabular-nums">
-                    {totalResalePrice.toLocaleString('vi-VN')}
+                    {totalResalePrice.toLocaleString('en-US')}
                   </span>
-                  <span className="text-[10px] text-zinc-500 ml-1">VND</span>
+                  <span className="text-[10px] text-zinc-500 ml-1">₫</span>
                 </div>
               </div>
 
@@ -232,9 +232,9 @@ export const Step5ReviewPublish: React.FC<Step5ReviewPublishProps> = ({
                                 <div className="flex items-center gap-2.5 shrink-0">
                                   <div className="text-right">
                                     <span className="font-bold text-zinc-100 tabular-nums">
-                                      {t.resalePrice.toLocaleString('vi-VN')}
+                                      {t.resalePrice.toLocaleString('en-US')}
                                     </span>
-                                    <span className="text-[9px] text-zinc-500 ml-1">VND</span>
+                                    <span className="text-[9px] text-zinc-500 ml-1">₫</span>
                                   </div>
                                   {onEditTicketPrice && (
                                     <button
@@ -272,7 +272,7 @@ export const Step5ReviewPublish: React.FC<Step5ReviewPublishProps> = ({
                 onClick={() => tickets && tickets.length > 1 && setExpandFeeDetails(!expandFeeDetails)}
                 className={`relative flex justify-between items-center text-gray-300 select-none py-0.5 rounded transition-colors ${tickets && tickets.length > 1 ? 'cursor-pointer hover:text-white' : ''
                   }`}
-                title={tickets && tickets.length > 1 ? (expandFeeDetails ? 'Thu gọn phí từng vé' : 'Bung xem phí từng vé') : undefined}
+                title={tickets && tickets.length > 1 ? (expandFeeDetails ? 'Collapse fee details' : 'Expand fee breakdown') : undefined}
               >
                 <div className="flex items-center gap-1.5">
                   <span>Seller Fee · {sellerFeePercent}%</span>
@@ -283,7 +283,7 @@ export const Step5ReviewPublish: React.FC<Step5ReviewPublishProps> = ({
                       setActiveFeeTooltip(activeFeeTooltip === 'seller' ? null : 'seller');
                     }}
                     className="w-4 h-4 rounded-full bg-gray-800 hover:bg-gray-700 text-gray-400 hover:text-white text-[10px] font-bold flex items-center justify-center transition-colors cursor-pointer shrink-0"
-                    title="Thông tin phí nền tảng"
+                    title="Platform fee details"
                   >
                     ?
                   </button>
@@ -298,9 +298,9 @@ export const Step5ReviewPublish: React.FC<Step5ReviewPublishProps> = ({
                         onClick={(e) => e.stopPropagation()}
                         className="absolute left-0 top-full mt-1.5 w-72 p-3 bg-[#131822] border border-gray-700 rounded-xl shadow-2xl text-[11px] text-gray-200 z-30"
                       >
-                        <div className="font-semibold text-white mb-1 font-sans">Phí nền tảng người bán ({sellerFeePercent}%)</div>
+                        <div className="font-semibold text-white mb-1 font-sans">Seller Platform Fee ({sellerFeePercent}%)</div>
                         <div className="leading-relaxed font-sans text-zinc-300">
-                          TicketShield khấu trừ tự động {sellerFeePercent}% từ tổng giá bán khi giao dịch thành công để duy trì dịch vụ bảo đảm an toàn vé và đối soát Ban tổ chức (tối thiểu {minSellerFee.toLocaleString('vi-VN')}đ/vé).
+                          A {sellerFeePercent}% platform fee is automatically deducted upon successful sale to support secure transfers and organizer reconciliation (minimum {minSellerFee.toLocaleString('en-US')} ₫/ticket).
                         </div>
                       </motion.div>
                     )}
@@ -313,7 +313,7 @@ export const Step5ReviewPublish: React.FC<Step5ReviewPublishProps> = ({
                         setExpandFeeDetails(!expandFeeDetails);
                       }}
                       className="p-0.5 rounded hover:bg-white/10 text-zinc-400 hover:text-white transition-colors cursor-pointer"
-                      title={expandFeeDetails ? 'Thu gọn' : 'Bung xem phí từng vé'}
+                      title={expandFeeDetails ? 'Collapse' : 'Expand fee breakdown'}
                     >
                       <ChevronDown
                         className={`w-3.5 h-3.5 transition-transform duration-300 ease-out ${
@@ -325,9 +325,9 @@ export const Step5ReviewPublish: React.FC<Step5ReviewPublishProps> = ({
                 </div>
                 <div>
                   <span className="text-amber-400 font-medium tabular-nums">
-                    -{totalSellerFee.toLocaleString('vi-VN')}
+                    -{totalSellerFee.toLocaleString('en-US')}
                   </span>
-                  <span className="text-[10px] text-zinc-500 ml-1">VND</span>
+                  <span className="text-[10px] text-zinc-500 ml-1">₫</span>
                 </div>
               </div>
 
@@ -351,9 +351,9 @@ export const Step5ReviewPublish: React.FC<Step5ReviewPublishProps> = ({
                           const ticketFee = calcSellerFee(t.resalePrice || 0).sellerFee;
                           return (
                             <div key={t.code} className="flex justify-between items-center text-amber-300/80">
-                              <span>- Phí Vé #{idx + 1} ({t.code}):</span>
+                              <span>- Fee for Ticket #{idx + 1} ({t.code}):</span>
                               <span className="text-amber-400 tabular-nums">
-                                -{ticketFee.toLocaleString('vi-VN')} <span className="text-[9px] text-zinc-500">VND</span>
+                                -{ticketFee.toLocaleString('en-US')} <span className="text-[9px] text-zinc-500">₫</span>
                               </span>
                             </div>
                           );
@@ -370,9 +370,9 @@ export const Step5ReviewPublish: React.FC<Step5ReviewPublishProps> = ({
               <span className="text-white">You'll receive</span>
               <div className="text-right">
                 <span className="text-base sm:text-lg font-extrabold text-emerald-400 font-display tabular-nums tracking-tight">
-                  {totalYouReceive.toLocaleString('vi-VN')}
+                  {totalYouReceive.toLocaleString('en-US')}
                 </span>
-                <span className="text-[10px] font-normal text-zinc-500 ml-1 font-mono">VND</span>
+                <span className="text-[10px] font-normal text-zinc-500 ml-1 font-mono">₫</span>
               </div>
             </div>
           </div>
@@ -631,7 +631,7 @@ export const Step5ReviewPublish: React.FC<Step5ReviewPublishProps> = ({
                             )}
                           </div>
                           <div className="font-bold text-zinc-200 tabular-nums shrink-0 text-xs">
-                            {t.resalePrice.toLocaleString('vi-VN')} <span className="text-[9px] text-zinc-500 font-normal">VND</span>
+                            {t.resalePrice.toLocaleString('en-US')} <span className="text-[9px] text-zinc-500 font-normal">₫</span>
                           </div>
                         </div>
                       ))
@@ -655,14 +655,14 @@ export const Step5ReviewPublish: React.FC<Step5ReviewPublishProps> = ({
                   <div className="flex justify-between items-center">
                     <span className="text-zinc-400">Listing price:</span>
                     <span className="text-[#FF5A36] font-bold text-sm tabular-nums">
-                      {totalResalePrice.toLocaleString('vi-VN')} VND
+                      {totalResalePrice.toLocaleString('en-US')} ₫
                     </span>
                   </div>
 
                   <div className="flex justify-between items-center">
                     <span className="text-zinc-400">You'll receive (after {sellerFeePercent}% fee):</span>
                     <span className="text-emerald-400 font-bold text-sm tabular-nums">
-                      {totalYouReceive.toLocaleString('vi-VN')} VND
+                      {totalYouReceive.toLocaleString('en-US')} ₫
                     </span>
                   </div>
                 </div>

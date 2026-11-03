@@ -104,7 +104,7 @@ export const AdminLayout: React.FC = () => {
     {
       to: '/admin/profile',
       aliases: ['/admin/profile', '/profile'],
-      label: 'Hồ sơ cá nhân',
+      label: 'My Profile',
       icon: User,
       badge: null,
       adminOnly: false,
@@ -121,7 +121,7 @@ export const AdminLayout: React.FC = () => {
     {
       to: '/admin/organizers',
       aliases: ['/admin/organizers'],
-      label: 'Đối tác & Kết nối',
+      label: 'Partners & Organizers',
       icon: Building2,
       badge: null,
       adminOnly: true,
@@ -129,7 +129,7 @@ export const AdminLayout: React.FC = () => {
     {
       to: '/admin/config',
       aliases: ['/admin/config', '/admin/fee-settings', '/admin/fees'],
-      label: 'Cấu hình hệ thống',
+      label: 'System Configuration',
       icon: Sliders,
       badge: null,
       adminOnly: true,
@@ -151,7 +151,7 @@ export const AdminLayout: React.FC = () => {
     if (p.startsWith('/admin/organizers')) {
       return [
         { label: portalPrefix, to: portalHome },
-        { label: 'Đối tác & Kết nối', to: '/admin/organizers' }
+        { label: 'Partners & Organizers', to: '/admin/organizers' }
       ];
     }
     if (p.startsWith('/admin/config') || p.startsWith('/admin/fee-settings') || p.startsWith('/admin/fees')) {
@@ -169,7 +169,7 @@ export const AdminLayout: React.FC = () => {
     if (p.startsWith('/admin/profile') || p.startsWith('/profile')) {
       return [
         { label: portalPrefix, to: portalHome },
-        { label: 'Hồ sơ cá nhân', to: '/admin/profile' }
+        { label: 'My Profile', to: '/admin/profile' }
       ];
     }
     if (p.startsWith('/admin/users')) {
@@ -221,8 +221,8 @@ export const AdminLayout: React.FC = () => {
           type="button"
           onClick={() => setIsCollapsed(!isCollapsed)}
           className="hidden lg:flex absolute -right-3.5 top-1/2 -translate-y-1/2 z-50 w-7 h-7 rounded-full bg-[#101722] border border-slate-700/90 text-slate-300 hover:text-white hover:border-[#F45135] hover:scale-110 shadow-lg items-center justify-center transition-all focus:outline-none cursor-pointer"
-          title={isCollapsed ? "Mở rộng sidebar" : "Thu gọn sidebar"}
-          aria-label={isCollapsed ? "Mở rộng sidebar" : "Thu gọn sidebar"}
+          title={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+          aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
         >
           {isCollapsed ? (
             <ChevronRight className="w-4 h-4 text-[#F45135]" />
@@ -269,7 +269,7 @@ export const AdminLayout: React.FC = () => {
         <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-1 scrollbar-thin">
           {!isCollapsed && (
             <div className="px-3 pb-2 text-[10px] font-mono font-bold uppercase tracking-wider text-slate-500">
-              {isAdmin ? 'Quản Trị Hệ Thống' : 'Phân Hệ Vận Hành'}
+              {isAdmin ? 'Administration' : 'Operations'}
             </div>
           )}
 
@@ -336,7 +336,7 @@ export const AdminLayout: React.FC = () => {
               <button
                 type="button"
                 onClick={handleLogout}
-                title="Đăng xuất"
+                title="Sign Out"
                 className="p-1.5 rounded-lg text-slate-400 hover:text-red-400 hover:bg-red-500/10 transition-colors shrink-0"
               >
                 <LogOut className="w-4 h-4" />
@@ -360,7 +360,7 @@ export const AdminLayout: React.FC = () => {
               type="button"
               onClick={() => setMobileDrawerOpen(true)}
               className="lg:hidden p-2 rounded-lg text-slate-600 hover:bg-slate-100 transition-colors"
-              aria-label="Mở menu"
+              aria-label="Open menu"
             >
               <Menu className="w-5 h-5" />
             </button>
@@ -388,7 +388,7 @@ export const AdminLayout: React.FC = () => {
             <Link
               to="/admin/disputes"
               className="relative p-2 rounded-xl text-[#667085] hover:text-[#101722] hover:bg-slate-100 transition-colors"
-              title={openDisputesCount > 0 ? `${openDisputesCount} khiếu nại đang chờ xử lý` : 'Không có khiếu nại'}
+              title={openDisputesCount > 0 ? `${openDisputesCount} pending disputes` : 'No pending disputes'}
             >
               <Bell className="w-4 h-4" />
               {openDisputesCount > 0 && (
@@ -412,7 +412,7 @@ export const AdminLayout: React.FC = () => {
                     {user?.fullName || 'Admin'}
                   </span>
                   <span className="text-[10px] text-[#667085] leading-tight font-mono">
-                    {isAdmin ? 'Quản trị viên' : 'Kiểm duyệt viên (CSKH)'}
+                    {isAdmin ? 'Administrator' : 'Staff Moderator'}
                   </span>
                 </div>
                 <ChevronDown className={`w-3.5 h-3.5 text-slate-400 transition-transform ${profileDropdownOpen ? 'rotate-180' : ''}`} />
@@ -430,7 +430,7 @@ export const AdminLayout: React.FC = () => {
                     className="flex items-center gap-2 px-3.5 py-2 text-[#101722] hover:bg-slate-50 transition-colors"
                   >
                     <User className="w-3.5 h-3.5 text-blue-500" />
-                    <span>Hồ sơ cá nhân</span>
+                    <span>My Profile</span>
                   </Link>
                   {isAdmin && (
                     <Link
@@ -439,7 +439,7 @@ export const AdminLayout: React.FC = () => {
                       className="flex items-center gap-2 px-3.5 py-2 text-[#101722] hover:bg-slate-50 transition-colors"
                     >
                       <Sliders className="w-3.5 h-3.5 text-[#F45135]" />
-                      <span>Cấu hình hệ thống</span>
+                      <span>System Configuration</span>
                     </Link>
                   )}
                   <Link
@@ -448,7 +448,7 @@ export const AdminLayout: React.FC = () => {
                     className="flex items-center gap-2 px-3.5 py-2 text-[#101722] hover:bg-slate-50 transition-colors"
                   >
                     <ShieldAlert className="w-3.5 h-3.5 text-amber-500" />
-                    <span>Xử lý khiếu nại</span>
+                    <span>Dispute Resolution</span>
                   </Link>
                   <div className="border-t border-slate-100 mt-1 pt-1">
                     <button
@@ -457,7 +457,7 @@ export const AdminLayout: React.FC = () => {
                       className="w-full flex items-center gap-2 px-3.5 py-2 text-rose-600 hover:bg-rose-50 transition-colors text-left"
                     >
                       <LogOut className="w-3.5 h-3.5" />
-                      <span>Đăng xuất</span>
+                      <span>Sign Out</span>
                     </button>
                   </div>
                 </div>
