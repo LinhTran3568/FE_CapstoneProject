@@ -1,16 +1,17 @@
 import type { MockTicketDto, MockTicketsListResponse } from '@ticketshield/types';
 
 const ORGANIZER_DOWN_MESSAGE =
-  'MockOrganizer chưa chạy (:5001). Không tải được vé đã mua.';
+  'MockOrganizer service is unreachable (:5001). Unable to load purchased tickets.';
 
 const getOrganizerBaseUrl = (): string => {
-  if (typeof window !== 'undefined') {
-    const envUrl =
-      import.meta.env.VITE_ORGANIZER_API_BASE_URL ||
-      (window as { __ENV__?: { VITE_ORGANIZER_API_BASE_URL?: string } }).__ENV__
-        ?.VITE_ORGANIZER_API_BASE_URL;
+  try {
+    const globalObj = typeof globalThis !== 'undefined' ? (globalThis as any) : {};
+    const win = typeof window !== 'undefined' ? (window as any) : {};
+    const env = globalObj?.process?.env || win?.__ENV__ || {};
+    const envUrl = env.VITE_ORGANIZER_API_BASE_URL;
     if (envUrl) return String(envUrl).replace(/\/$/, '');
-  }
+  } catch {}
+
   return 'http://localhost:5001/api/v1';
 };
 

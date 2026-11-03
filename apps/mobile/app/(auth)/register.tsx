@@ -1,0 +1,212 @@
+import React, { useState } from 'react';
+import {
+  View,
+  ScrollView,
+  KeyboardAvoidingView,
+  Platform,
+  TouchableOpacity,
+  Alert,
+} from 'react-native';
+import { Text } from '../../src/components/AppText';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { useRouter } from 'expo-router';
+import { Mail, Lock, User as UserIcon, Phone, ShieldCheck, ArrowLeft } from 'lucide-react-native';
+import { theme } from '../../src/theme';
+import { useAuthStore } from '../../src/stores/authStore';
+import { FintechShieldLogo } from '../../src/components/FintechShieldLogo';
+import { FintechInput } from '../../src/components/FintechInput';
+import { FintechButton } from '../../src/components/FintechButton';
+import { styles } from '../../src/styles/register.styles';
+
+export default function RegisterScreen() {
+  const router = useRouter();
+  const { register, isLoading, error, clearError } = useAuthStore();
+
+  const [fullName, setFullName] = useState('');
+  const [email, setEmail] = useState('');
+  const [phoneNumber, setPhoneNumber] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const role = 'BUYER';
+  const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
+
+  const validate = (): boolean => {
+    const errors: Record<string, string> = {};
+
+    if (!fullName.trim() || fullName.trim().length < 2) {
+      errors.fullName = 'Full name must be at least 2 characters';
+    }
+
+    if (!email.trim()) {
+      errors.email = 'Please enter your email address';
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+      errors.email = 'Please enter a valid email address';
+    }
+
+    if (!phoneNumber.trim()) {
+      errors.phoneNumber = 'Please enter your phone number';
+    }
+
+    if (!password) {
+      errors.password = 'Please enter a password';
+    } else if (password.length < 8) {
+      errors.password = 'Password must be at least 8 characters';
+    }
+
+    if (password !== confirmPassword) {
+      errors.confirmPassword = 'Passwords do not match';
+    }
+
+    setValidationErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
+  const handleRegister = async () => {
+    clearError();
+    if (!validate()) return;
+
+    const success = await register({
+      fullName: fullName.trim(),
+      email: email.trim(),
+      phoneNumber: phoneNumber.trim(),
+      password,
+      confirmPassword,
+      role,
+      acceptTerms: true,
+    });
+
+    if (success) {
+      Alert.alert(
+        'Account Created',
+        'Your TicketShield account is ready. Welcome to verified escrow ticketing.',
+        [
+          {
+            text: 'Get Started',
+            onPress: () => router.replace('/(tabs)'),
+          },
+        ]
+      );
+    }
+  };
+
+  return (
+    <SafeAreaView style={styles.safeArea}>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        style={styles.keyboardView}
+      >
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          <TouchableOpacity
+            style={styles.backRow}
+            onPress={() => router.back()}
+            activeOpacity={0.7}
+          >
+            <ArrowLeft size={18} color={theme.colors.textSecondary} />
+            <Text style={styles.backRowText}>Back to Sign In</Text>
+          </TouchableOpacity>
+
+          <FintechShieldLogo size={48} showSubtitle={false} />
+
+          <View style={styles.card}>
+            <Text style={styles.cardTitle}>Create Account</Text>
+            <Text style={styles.cardSubtitle}>
+              Join TicketShield for verified, escrow-backed ticket exchange
+            </Text>
+
+            {error && (
+              <View style={styles.errorBox}>
+                <Text style={styles.errorBoxText}>{error}</Text>
+              </View>
+            )}
+
+            <FintechInput
+              label="Full Name"
+              placeholder="e.g. Alex Morgan"
+              value={fullName}
+              onChangeText={(text) => {
+                setFullName(text);
+                if (validationErrors.fullName) setValidationErrors((prev) => ({ ...prev, fullName: '' }));
+              }}
+              icon={<UserIcon size={18} color={theme.colors.textSecondary} />}
+              error={validationErrors.fullName}
+            />
+
+            <FintechInput
+              label="Email Address"
+              placeholder="name@example.com"
+              value={email}
+              onChangeText={(text) => {
+                setEmail(text);
+                if (validationErrors.email) setValidationErrors((prev) => ({ ...prev, email: '' }));
+              }}
+              keyboardType="email-address"
+              autoComplete="email"
+              icon={<Mail size={18} color={theme.colors.textSecondary} />}
+              error={validationErrors.email}
+            />
+
+            <FintechInput
+              label="Phone Number"
+              placeholder="0912 345 678"
+              value={phoneNumber}
+              onChangeText={(text) => {
+                setPhoneNumber(text);
+                if (validationErrors.phoneNumber) setValidationErrors((prev) => ({ ...prev, phoneNumber: '' }));
+              }}
+              keyboardType="phone-pad"
+              icon={<Phone size={18} color={theme.colors.textSecondary} />}
+              error={validationErrors.phoneNumber}
+            />
+
+
+
+            <FintechInput
+              label="Password"
+              placeholder="At least 8 characters"
+              value={password}
+              onChangeText={(text) => {
+                setPassword(text);
+                if (validationErrors.password) setValidationErrors((prev) => ({ ...prev, password: '' }));
+              }}
+              isPassword
+              icon={<Lock size={18} color={theme.colors.textSecondary} />}
+              error={validationErrors.password}
+            />
+
+            <FintechInput
+              label="Confirm Password"
+              placeholder="Re-enter password"
+              value={confirmPassword}
+              onChangeText={(text) => {
+                setConfirmPassword(text);
+                if (validationErrors.confirmPassword) setValidationErrors((prev) => ({ ...prev, confirmPassword: '' }));
+              }}
+              isPassword
+              icon={<Lock size={18} color={theme.colors.textSecondary} />}
+              error={validationErrors.confirmPassword}
+            />
+
+            <FintechButton
+              title="Create Account"
+              onPress={handleRegister}
+              loading={isLoading}
+              icon={<ShieldCheck size={18} color={theme.colors.onPrimary} />}
+              style={styles.submitBtn}
+            />
+
+            <View style={styles.loginRow}>
+              <Text style={styles.loginText}>Already have an account?</Text>
+              <TouchableOpacity onPress={() => router.push('/(auth)/login')} activeOpacity={0.7}>
+                <Text style={styles.loginHighlight}>Sign In</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
+  );
+}

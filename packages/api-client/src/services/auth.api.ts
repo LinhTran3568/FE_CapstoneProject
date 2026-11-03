@@ -1,6 +1,6 @@
 import { User } from '@ticketshield/types';
 import { LoginFormData, RegisterFormData } from '@ticketshield/validation';
-import { httpClient, TOKEN_STORAGE_KEY, REFRESH_TOKEN_STORAGE_KEY } from './client';
+import { httpClient, TOKEN_STORAGE_KEY, REFRESH_TOKEN_STORAGE_KEY, getTokenAdapter } from './client';
 
 export interface BackendAuthResult {
   userId?: string;
@@ -66,15 +66,8 @@ const mapBackendUserToFE = (dto: BackendAuthResult | BackendUserProfile): User =
   };
 };
 
-const storeTokens = (accessToken?: string, refreshToken?: string) => {
-  if (typeof window !== 'undefined') {
-    if (accessToken) {
-      localStorage.setItem(TOKEN_STORAGE_KEY, accessToken);
-    }
-    if (refreshToken) {
-      localStorage.setItem(REFRESH_TOKEN_STORAGE_KEY, refreshToken);
-    }
-  }
+const storeTokens = async (accessToken?: string, refreshToken?: string) => {
+  await getTokenAdapter().setTokens(accessToken, refreshToken);
 };
 
 export const authApi = {
@@ -90,7 +83,7 @@ export const authApi = {
     const accessToken = result.accessToken || result.token || '';
     const refreshToken = result.refreshToken || '';
 
-    storeTokens(accessToken, refreshToken);
+    await storeTokens(accessToken, refreshToken);
 
     return {
       user: mapBackendUserToFE(result),
@@ -113,7 +106,7 @@ export const authApi = {
     const accessToken = result.accessToken || result.token || '';
     const refreshToken = result.refreshToken || '';
 
-    storeTokens(accessToken, refreshToken);
+    await storeTokens(accessToken, refreshToken);
 
     return {
       user: mapBackendUserToFE(result),
@@ -138,7 +131,7 @@ export const authApi = {
     const accessToken = result.accessToken || result.token || '';
     const refreshToken = result.refreshToken || '';
 
-    storeTokens(accessToken, refreshToken);
+    await storeTokens(accessToken, refreshToken);
 
     return {
       user: mapBackendUserToFE(result),
@@ -156,7 +149,7 @@ export const authApi = {
     const accessToken = result.accessToken || result.token || '';
     const newRefreshToken = result.refreshToken || refreshToken;
 
-    storeTokens(accessToken, newRefreshToken);
+    await storeTokens(accessToken, newRefreshToken);
 
     return {
       user: mapBackendUserToFE(result),
@@ -192,9 +185,6 @@ export const authApi = {
   },
 
   logout: async (): Promise<void> => {
-    if (typeof window !== 'undefined') {
-      localStorage.removeItem(TOKEN_STORAGE_KEY);
-      localStorage.removeItem(REFRESH_TOKEN_STORAGE_KEY);
-    }
+    await getTokenAdapter().clearTokens();
   },
 };

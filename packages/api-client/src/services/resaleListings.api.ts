@@ -128,6 +128,17 @@ export const resaleListingsApi = {
   },
 
   /**
+   * DEV ONLY: Simulate payment success for held listing
+   * POST /resale-listings/{id}/simulate-payment
+   */
+  simulatePaymentSuccess: async (listingId: string): Promise<any> => {
+    return httpClient<any>(
+      `/resale-listings/${encodeURIComponent(listingId)}/simulate-payment`,
+      { method: 'POST' }
+    );
+  },
+
+  /**
    * Demo Helper: Simulate SePay Webhook payment for fast testing/demoing.
    * POST /webhooks/sepay
    */
@@ -175,4 +186,3 @@ export const resaleListingsApi = {
     });
   },
 };
-

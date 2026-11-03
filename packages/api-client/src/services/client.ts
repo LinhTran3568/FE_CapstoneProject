@@ -8,23 +8,126 @@ export interface ApiResponse<T> {
   errors?: string[];
 }
 
-const getBaseUrl = (): string => {
-  if (typeof window !== 'undefined') {
-    const envUrl = import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL || (window as any)?.__ENV__?.VITE_API_BASE_URL;
+let customBaseUrl: string | null = null;
+
+export const setApiBaseUrl = (url: string): void => {
+  customBaseUrl = url;
+  axiosClient.defaults.baseURL = url;
+};
+
+export const getApiBaseUrl = (): string => {
+  if (customBaseUrl) return customBaseUrl;
+  try {
+    const globalObj = typeof globalThis !== 'undefined' ? (globalThis as any) : {};
+    const win = typeof window !== 'undefined' ? (window as any) : {};
+    const env = globalObj?.process?.env || win?.__ENV__ || {};
+    const envUrl = env.VITE_API_BASE_URL || env.VITE_API_URL || env.EXPO_PUBLIC_API_BASE_URL;
     if (envUrl) return envUrl;
+  } catch {
+    // Ignore env error
   }
+
   return 'http://localhost:5000/api/v1';
 };
 
 export const API_CONFIG = {
   get baseURL(): string {
-    return getBaseUrl();
+    return getApiBaseUrl();
+  },
+  set baseURL(url: string) {
+    setApiBaseUrl(url);
   },
 };
 
 export const TOKEN_STORAGE_KEY = 'ticketshield_token';
 export const REFRESH_TOKEN_STORAGE_KEY = 'ticketshield_refresh_token';
 export const UNAUTHORIZED_EVENT = 'ticketshield:unauthorized';
+
+export interface TokenStorageAdapter {
+  getToken: () => Promise<string | null> | string | null;
+  getRefreshToken: () => Promise<string | null> | string | null;
+  setTokens: (accessToken?: string, refreshToken?: string) => Promise<void> | void;
+  clearTokens: () => Promise<void> | void;
+}
+
+export const defaultWebTokenAdapter: TokenStorageAdapter = {
+  getToken: () => {
+    try {
+      return typeof window !== 'undefined' && window.localStorage
+        ? localStorage.getItem(TOKEN_STORAGE_KEY)
+        : null;
+    } catch {
+      return null;
+    }
+  },
+  getRefreshToken: () => {
+    try {
+      return typeof window !== 'undefined' && window.localStorage
+        ? localStorage.getItem(REFRESH_TOKEN_STORAGE_KEY)
+        : null;
+    } catch {
+      return null;
+    }
+  },
+  setTokens: (accessToken, refreshToken) => {
+    try {
+      if (typeof window !== 'undefined' && window.localStorage) {
+        if (accessToken) localStorage.setItem(TOKEN_STORAGE_KEY, accessToken);
+        if (refreshToken) localStorage.setItem(REFRESH_TOKEN_STORAGE_KEY, refreshToken);
+      }
+    } catch {
+      // Ignore storage error
+    }
+  },
+  clearTokens: () => {
+    try {
+      if (typeof window !== 'undefined' && window.localStorage) {
+        localStorage.removeItem(TOKEN_STORAGE_KEY);
+        localStorage.removeItem(REFRESH_TOKEN_STORAGE_KEY);
+      }
+    } catch {
+      // Ignore storage error
+    }
+  },
+};
+
+let currentTokenAdapter: TokenStorageAdapter = defaultWebTokenAdapter;
+
+export const setTokenAdapter = (adapter: TokenStorageAdapter): void => {
+  currentTokenAdapter = adapter;
+};
+
+export const getTokenAdapter = (): TokenStorageAdapter => {
+  return currentTokenAdapter;
+};
+
+type UnauthorizedListener = () => void;
+const unauthorizedListeners = new Set<UnauthorizedListener>();
+
+export const onUnauthorized = (listener: UnauthorizedListener): (() => void) => {
+  unauthorizedListeners.add(listener);
+  return () => {
+    unauthorizedListeners.delete(listener);
+  };
+};
+
+export const notifyUnauthorized = (): void => {
+  unauthorizedListeners.forEach((listener) => {
+    try {
+      listener();
+    } catch (err) {
+      console.error('Error in onUnauthorized listener:', err);
+    }
+  });
+
+  if (typeof window !== 'undefined' && typeof window.dispatchEvent === 'function') {
+    try {
+      window.dispatchEvent(new CustomEvent(UNAUTHORIZED_EVENT));
+    } catch {
+      // Ignore
+    }
+  }
+};
 
 // Create central Axios client
 export const axiosClient = axios.create({
@@ -35,11 +138,11 @@ export const axiosClient = axios.create({
 
 // Request Interceptor: Inject Bearer Token
 axiosClient.interceptors.request.use(
-  (config: InternalAxiosRequestConfig) => {
+  async (config: InternalAxiosRequestConfig) => {
     if (!config.baseURL) {
       config.baseURL = API_CONFIG.baseURL;
     }
-    const token = typeof window !== 'undefined' ? localStorage.getItem(TOKEN_STORAGE_KEY) : null;
+    const token = await currentTokenAdapter.getToken();
     if (token && (!config.headers.Authorization || config.headers.Authorization === 'Bearer null')) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -101,16 +204,12 @@ axiosClient.interceptors.response.use(
       originalRequest._retry = true;
       isRefreshingToken = true;
 
-      const refreshToken =
-        typeof window !== 'undefined' ? localStorage.getItem(REFRESH_TOKEN_STORAGE_KEY) : null;
+      const refreshToken = await currentTokenAdapter.getRefreshToken();
 
       if (!refreshToken) {
         isRefreshingToken = false;
-        if (typeof window !== 'undefined') {
-          localStorage.removeItem(TOKEN_STORAGE_KEY);
-          localStorage.removeItem(REFRESH_TOKEN_STORAGE_KEY);
-          window.dispatchEvent(new CustomEvent(UNAUTHORIZED_EVENT));
-        }
+        await currentTokenAdapter.clearTokens();
+        notifyUnauthorized();
         return Promise.reject(error);
       }
 
@@ -127,10 +226,7 @@ axiosClient.interceptors.response.use(
           const newAccessToken = resData.data.accessToken || resData.data.token;
           const newRefreshToken = resData.data.refreshToken;
 
-          if (typeof window !== 'undefined') {
-            if (newAccessToken) localStorage.setItem(TOKEN_STORAGE_KEY, newAccessToken);
-            if (newRefreshToken) localStorage.setItem(REFRESH_TOKEN_STORAGE_KEY, newRefreshToken);
-          }
+          await currentTokenAdapter.setTokens(newAccessToken, newRefreshToken);
 
           if (newAccessToken) {
             axiosClient.defaults.headers.common['Authorization'] = `Bearer ${newAccessToken}`;
@@ -141,15 +237,12 @@ axiosClient.interceptors.response.use(
           }
         }
 
-        throw new Error('Mã refresh-token không hợp lệ hoặc đã hết hạn');
+        throw new Error('Refresh token is invalid or has expired');
       } catch (refreshError) {
         processQueue(refreshError, null);
         isRefreshingToken = false;
-        if (typeof window !== 'undefined') {
-          localStorage.removeItem(TOKEN_STORAGE_KEY);
-          localStorage.removeItem(REFRESH_TOKEN_STORAGE_KEY);
-          window.dispatchEvent(new CustomEvent(UNAUTHORIZED_EVENT));
-        }
+        await currentTokenAdapter.clearTokens();
+        notifyUnauthorized();
         return Promise.reject(refreshError);
       }
     }
@@ -158,21 +251,52 @@ axiosClient.interceptors.response.use(
   }
 );
 
+export const VIETNAMESE_TO_ENGLISH_ERRORS: Record<string, string> = {
+  'Email hoặc mật khẩu không chính xác.': 'Invalid email address or password.',
+  'Email hoặc mật khẩu không chính xác': 'Invalid email address or password.',
+  'Tài khoản của bạn đã bị khóa. Vui lòng liên hệ quản trị viên.': 'Your account has been suspended. Please contact administrator.',
+  'Tài khoản của bạn đã bị khóa': 'Your account has been suspended.',
+  'Tài khoản của bạn đã bị vô hiệu hóa.': 'Your account has been deactivated.',
+  'Mã xác thực Google IdToken không hợp lệ hoặc đã hết hạn.': 'Google authentication token is invalid or has expired.',
+  'Email này đã được sử dụng. Vui lòng chọn một email khác.': 'This email is already in use. Please use a different email address.',
+  'Email này đã được đăng ký tài khoản.': 'This email is already registered.',
+  'Mã refresh-token không hợp lệ hoặc đã hết hạn': 'Refresh token is invalid or has expired.',
+  'Mật khẩu cũ không chính xác.': 'Current password is incorrect.',
+  'Phiên làm việc không hợp lệ hoặc bạn chưa đăng nhập.': 'Session is invalid or you are not signed in.',
+  'Bạn phải đăng nhập để thực hiện thao tác này.': 'You must be signed in to perform this action.',
+  'Không tìm thấy người dùng.': 'User not found.',
+  'Đã xảy ra lỗi không xác định.': 'An unexpected error occurred.',
+};
+
+export const normalizeErrorMessage = (msg?: string, defaultMessage = 'An unexpected error occurred.'): string => {
+  if (!msg) return defaultMessage;
+  const trimmed = msg.trim();
+  if (VIETNAMESE_TO_ENGLISH_ERRORS[trimmed]) {
+    return VIETNAMESE_TO_ENGLISH_ERRORS[trimmed];
+  }
+  for (const [vi, en] of Object.entries(VIETNAMESE_TO_ENGLISH_ERRORS)) {
+    if (trimmed.includes(vi)) {
+      return trimmed.replace(vi, en);
+    }
+  }
+  return trimmed;
+};
+
 const parseApiResponseErrorMessage = (data: ApiResponse<any>, defaultMessage?: string): string => {
   const rawData = data as any;
   const errors = data?.errors || rawData?.Errors;
   const message = data?.message || rawData?.Message;
 
+  let result = message || defaultMessage || 'An unexpected error occurred.';
   if (errors) {
     if (Array.isArray(errors) && errors.length > 0) {
-      return errors.join(', ');
-    }
-    if (typeof errors === 'object' && errors !== null) {
+      result = errors.join(', ');
+    } else if (typeof errors === 'object' && errors !== null) {
       const messages = Object.values(errors).flat().filter(Boolean);
-      if (messages.length > 0) return messages.join(', ');
+      if (messages.length > 0) result = messages.join(', ');
     }
   }
-  return message || defaultMessage || 'Đã xảy ra lỗi không xác định.';
+  return normalizeErrorMessage(result, defaultMessage);
 };
 
 export async function httpClient<T>(
@@ -223,4 +347,3 @@ export async function httpClient<T>(
     throw err;
   }
 }
-

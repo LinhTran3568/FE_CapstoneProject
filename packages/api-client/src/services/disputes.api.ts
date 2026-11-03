@@ -152,7 +152,7 @@ export const disputesApi = {
     );
 
     if (!response.data.success) {
-      throw new Error(response.data.message || 'Lỗi khi tải ảnh bằng chứng');
+      throw new Error(response.data.message || 'Failed to upload evidence image');
     }
     return response.data.data;
   },
