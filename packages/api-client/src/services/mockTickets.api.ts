@@ -1,18 +1,17 @@
 import type { MockTicketDto, MockTicketsListResponse } from '@ticketshield/types';
+import { getMockOrganizerBaseUrl } from './organizerStore.api';
 
 const ORGANIZER_DOWN_MESSAGE =
-  'MockOrganizer service is unreachable (:5001). Unable to load purchased tickets.';
+  'MockOrganizer service is unreachable. Unable to load purchased tickets.';
 
-const getOrganizerBaseUrl = (): string => {
-  try {
-    const globalObj = typeof globalThis !== 'undefined' ? (globalThis as any) : {};
-    const win = typeof window !== 'undefined' ? (window as any) : {};
-    const env = globalObj?.process?.env || win?.__ENV__ || {};
-    const envUrl = env.VITE_ORGANIZER_API_BASE_URL;
-    if (envUrl) return String(envUrl).replace(/\/$/, '');
-  } catch {}
-
-  return 'http://localhost:5001/api/v1';
+/**
+ * Mock tickets are exposed by MockOrganizer's REST API, not by the AntiBot
+ * organizer endpoint. Reuse the shared resolver so Web, Mobile, and the
+ * organizer store honor VITE/EXPO_PUBLIC_MOCK_ORGANIZER_API_BASE_URL alike.
+ */
+const getMockTicketsApiBase = (): string => {
+  const base = getMockOrganizerBaseUrl().replace(/\/$/, '');
+  return base.endsWith('/api/v1') ? base : `${base}/api/v1`;
 };
 
 const isValidEntryPass = (ticket: MockTicketDto) =>
@@ -34,7 +33,7 @@ export const mockTicketsApi = {
       email: trimmed,
       status: 'VALID',
     });
-    const url = `${getOrganizerBaseUrl()}/mock-tickets/my-tickets?${params.toString()}`;
+    const url = `${getMockTicketsApiBase()}/mock-tickets/my-tickets?${params.toString()}`;
 
     let response: Response;
     try {

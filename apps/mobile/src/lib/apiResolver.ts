@@ -19,6 +19,25 @@ export interface GatewayInfo {
 const DEFAULT_BACKEND_PORT = 5000;
 const API_PATH = '/api/v1';
 
+function getGatewayHostAndPort(url: string): Pick<GatewayInfo, 'host' | 'port'> {
+  try {
+    const parsed = new URL(url);
+    return {
+      host: parsed.hostname,
+      port: parsed.port
+        ? Number(parsed.port)
+        : parsed.protocol === 'https:'
+          ? 443
+          : 80,
+    };
+  } catch {
+    return {
+      host: url.replace(/^https?:\/\//, '').split(/[/:]/)[0],
+      port: DEFAULT_BACKEND_PORT,
+    };
+  }
+}
+
 /**
  * Extracts host IP from Expo Constants / debugger runtime
  */
@@ -67,16 +86,31 @@ export async function resolveApiGatewayUrl(): Promise<GatewayInfo> {
   const customOverride = await secureStorage.getCustomGateway();
   if (customOverride && customOverride.trim().length > 0) {
     const cleanUrl = customOverride.trim().replace(/\/+$/, '');
+    const targetUrl = cleanUrl.endsWith(API_PATH) ? cleanUrl : `${cleanUrl}${API_PATH}`;
     return {
-      url: cleanUrl.endsWith(API_PATH) ? cleanUrl : `${cleanUrl}${API_PATH}`,
-      host: cleanUrl.replace(/^https?:\/\//, '').split(':')[0],
-      port: Number(cleanUrl.split(':').pop()?.split('/')[0]) || DEFAULT_BACKEND_PORT,
+      url: targetUrl,
+      ...getGatewayHostAndPort(targetUrl),
       source: 'custom_override',
       isLan: false,
     };
   }
 
-  // 2. Check if LAN IP is auto-detected via Expo Metro host
+  // 2. Honor an explicit environment target before inferring a LAN server.
+  // This makes staging/production configuration deterministic when Metro is
+  // also reachable through a local network address.
+  const envUrl = process.env.EXPO_PUBLIC_API_BASE_URL;
+  if (envUrl && envUrl.trim().length > 0) {
+    const cleanUrl = envUrl.trim().replace(/\/+$/, '');
+    const url = cleanUrl.endsWith(API_PATH) ? cleanUrl : `${cleanUrl}${API_PATH}`;
+    return {
+      url,
+      ...getGatewayHostAndPort(url),
+      source: 'env_config',
+      isLan: false,
+    };
+  }
+
+  // 3. Check if LAN IP is auto-detected via Expo Metro host
   const lanIp = extractMetroHostIp();
   if (lanIp) {
     return {
@@ -88,25 +122,13 @@ export async function resolveApiGatewayUrl(): Promise<GatewayInfo> {
     };
   }
 
-  // 3. Android Emulator specific localhost bridge (10.0.2.2)
+  // 4. Android Emulator specific localhost bridge (10.0.2.2)
   if (Platform.OS === 'android') {
     return {
       url: `http://10.0.2.2:${DEFAULT_BACKEND_PORT}${API_PATH}`,
       host: '10.0.2.2',
       port: DEFAULT_BACKEND_PORT,
       source: 'emulator_alias',
-      isLan: false,
-    };
-  }
-
-  // 4. Check EXPO_PUBLIC_API_BASE_URL from .env
-  const envUrl = process.env.EXPO_PUBLIC_API_BASE_URL;
-  if (envUrl && !envUrl.includes('localhost') && !envUrl.includes('127.0.0.1')) {
-    return {
-      url: envUrl.replace(/\/+$/, ''),
-      host: envUrl.replace(/^https?:\/\//, '').split(':')[0],
-      port: Number(envUrl.split(':').pop()?.split('/')[0]) || DEFAULT_BACKEND_PORT,
-      source: 'env_config',
       isLan: false,
     };
   }
@@ -128,8 +150,9 @@ export async function checkGatewayHealth(
   targetUrl?: string
 ): Promise<{ ok: boolean; status?: number; latencyMs: number; error?: string }> {
   const urlToPing = targetUrl || (await resolveApiGatewayUrl()).url;
-  // Use gateway ping endpoint or root
-  const healthEndpoint = urlToPing.replace(/\/api\/v1\/?$/, '') + '/health';
+  // TicketShield Core Gateway exposes its health response at its root path.
+  // `/health` belongs to the separate AntiBot gateway and returns 404 on :5000.
+  const healthEndpoint = urlToPing.replace(/\/api\/v1\/?$/, '') + '/';
   const startTime = Date.now();
 
   try {

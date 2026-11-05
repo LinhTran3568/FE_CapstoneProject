@@ -15,14 +15,14 @@ export const buyerFor = (tool) => ({
 
 export const SELECTORS = {
   increaseButton: 'button[id^="increase-"]:not([disabled])',
-  nameInput: 'input[placeholder^="Nhập họ và tên"]',
-  emailInput: 'input[placeholder^="Địa chỉ email"]',
-  phoneInput: 'input[placeholder^="Số điện thoại"]',
-  termsCheckbox: 'input[type="checkbox"]',
+  proceedButton: '#btn-proceed-checkout',
+  nameInput: '#buyer-name-input',
+  emailInput: '#buyer-email-input',
+  phoneInput: '#buyer-phone-input',
+  termsCheckbox: '#buyer-terms-checkbox',
+  confirmButton: '#btn-confirm-checkout',
 };
 
-export const PROCEED_TEXT = 'Tiếp tục đặt vé';
-export const CONFIRM_TEXT = 'Xác nhận & Mua vé';
 
 /**
  * Bọc window.fetch trong trang để giữ lại body và response của request checkout.

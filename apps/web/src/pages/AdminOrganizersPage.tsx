@@ -38,8 +38,6 @@ interface PresetProfile {
   taxCode: string;
   contactPerson: string;
   contactPhone: string;
-  apiBaseUrl: string;
-  grpcEndpoint: string;
   description: string;
 }
 
@@ -51,8 +49,6 @@ const PRESET_PROFILES: PresetProfile[] = [
     taxCode: '0312345678',
     contactPerson: 'Authorized Representative',
     contactPhone: '19001234',
-    apiBaseUrl: 'http://localhost:5001',
-    grpcEndpoint: 'http://localhost:5004',
     description: 'Exclusive ticketing partner for Anh Trai Say Hi Concert 2026',
   },
   {
@@ -62,8 +58,6 @@ const PRESET_PROFILES: PresetProfile[] = [
     taxCode: '0398765432',
     contactPerson: 'Lead Producer',
     contactPhone: '0901234567',
-    apiBaseUrl: 'http://localhost:5001',
-    grpcEndpoint: 'http://localhost:5004',
     description: 'Organizer of Hip-hop Mixtape Hanoi 2026 series',
   },
   {
@@ -73,8 +67,6 @@ const PRESET_PROFILES: PresetProfile[] = [
     taxCode: '0387654321',
     contactPerson: 'David Miller',
     contactPhone: '0988776655',
-    apiBaseUrl: 'http://localhost:5001',
-    grpcEndpoint: 'http://localhost:5004',
     description: 'Ticketing representative for The Wild Dreams Tour - Westlife Vietnam 2026',
   },
 ];
@@ -164,9 +156,11 @@ export const AdminOrganizersPage: React.FC = () => {
       taxCode: preset.taxCode,
       contactPerson: preset.contactPerson,
       contactPhone: preset.contactPhone,
-      apiBaseUrl: preset.apiBaseUrl,
-      grpcEndpoint: preset.grpcEndpoint,
-      webhookUrl: `${preset.apiBaseUrl}/api/v1/webhook`,
+      // Connection URLs are environment-specific. A profile must not silently
+      // overwrite them with local development endpoints.
+      apiBaseUrl: createForm.apiBaseUrl,
+      grpcEndpoint: createForm.grpcEndpoint,
+      webhookUrl: createForm.webhookUrl,
       webhookSecretKey: `whsec_${preset.id}_${Date.now().toString().slice(-6)}`,
     });
     showToast(`Applied preset configuration: ${preset.name}`, 'info');
@@ -1251,7 +1245,7 @@ export const AdminOrganizersPage: React.FC = () => {
                       type="text"
                       value={createForm.grpcEndpoint || ''}
                       onChange={(e) => setCreateForm({ ...createForm, grpcEndpoint: e.target.value })}
-                      placeholder="http://localhost:5004"
+                      placeholder="https://gateway.organizer.example.com"
                       className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-[#F45135] focus:bg-white font-mono text-[11px] text-slate-800"
                     />
                   </div>
@@ -1261,7 +1255,7 @@ export const AdminOrganizersPage: React.FC = () => {
                       type="text"
                       value={createForm.apiBaseUrl || ''}
                       onChange={(e) => setCreateForm({ ...createForm, apiBaseUrl: e.target.value })}
-                      placeholder="http://localhost:5001"
+                      placeholder="https://api.organizer.example.com"
                       className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none border-slate-200 focus:border-[#F45135] focus:bg-white font-mono text-[11px] text-slate-800"
                     />
                   </div>

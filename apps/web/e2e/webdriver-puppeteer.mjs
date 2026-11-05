@@ -8,28 +8,12 @@ import puppeteer from 'puppeteer';
 import {
   STORE_URL,
   SELECTORS,
-  PROCEED_TEXT,
-  CONFIRM_TEXT,
   FETCH_HOOK_SCRIPT,
   buyerFor,
   assertBotTelemetry,
 } from './shared.mjs';
 
 const TOOL = 'Puppeteer';
-
-/** Bấm nút đang hiển thị có chứa đoạn chữ (trang có cả nút desktop và mobile). */
-const clickVisibleButton = async (page, text) => {
-  const buttons = await page.$$(`::-p-text(${text})`);
-  for (const handle of buttons) {
-    const button = await handle.evaluateHandle((el) => el.closest('button'));
-    const visible = await button.evaluate((el) => !!el && el.offsetParent !== null && !el.disabled);
-    if (visible) {
-      await button.click();
-      return;
-    }
-  }
-  throw new Error(`Không thấy nút "${text}" đang hiển thị`);
-};
 
 const browser = await puppeteer.launch({ headless: true, defaultViewport: { width: 1366, height: 900 } });
 let passed = false;
@@ -43,7 +27,7 @@ try {
 
   await page.waitForSelector(SELECTORS.increaseButton, { visible: true, timeout: 30_000 });
   await page.click(SELECTORS.increaseButton);
-  await clickVisibleButton(page, PROCEED_TEXT);
+  await page.click(SELECTORS.proceedButton);
 
   await page.waitForSelector(SELECTORS.nameInput, { visible: true, timeout: 10_000 });
   await page.type(SELECTORS.nameInput, buyer.name);
@@ -52,7 +36,7 @@ try {
   await page.click(SELECTORS.termsCheckbox);
 
   await page.evaluate(FETCH_HOOK_SCRIPT);
-  await clickVisibleButton(page, CONFIRM_TEXT);
+  await page.click(SELECTORS.confirmButton);
 
   await page.waitForFunction(() => window.__e2eCheckout !== null, { timeout: 30_000 });
   const captured = await page.evaluate(() => window.__e2eCheckout);

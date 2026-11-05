@@ -10,8 +10,6 @@ import chrome from 'selenium-webdriver/chrome.js';
 import {
   STORE_URL,
   SELECTORS,
-  PROCEED_TEXT,
-  CONFIRM_TEXT,
   FETCH_HOOK_SCRIPT,
   buyerFor,
   assertBotTelemetry,
@@ -26,18 +24,6 @@ const TOOL = 'Selenium';
 const scrollAndClick = async (driver, element) => {
   await driver.executeScript("arguments[0].scrollIntoView({ block: 'center', behavior: 'instant' });", element);
   await element.click();
-};
-
-/** Bấm nút đang hiển thị có chứa đoạn chữ (trang có cả nút desktop và mobile). */
-const clickVisibleButton = async (driver, text) => {
-  const buttons = await driver.findElements(By.xpath(`//button[contains(normalize-space(.), "${text}")]`));
-  for (const button of buttons) {
-    if ((await button.isDisplayed()) && (await button.isEnabled())) {
-      await scrollAndClick(driver, button);
-      return;
-    }
-  }
-  throw new Error(`Không thấy nút "${text}" đang hiển thị`);
 };
 
 const options = new chrome.Options().addArguments('--headless=new', '--window-size=1366,900');
@@ -58,7 +44,7 @@ try {
   const increase = await driver.wait(until.elementLocated(By.css(SELECTORS.increaseButton)), 30_000);
   await driver.wait(until.elementIsVisible(increase), 10_000);
   await scrollAndClick(driver, increase);
-  await clickVisibleButton(driver, PROCEED_TEXT);
+  await scrollAndClick(driver, await driver.findElement(By.css(SELECTORS.proceedButton)));
 
   const nameInput = await driver.wait(until.elementLocated(By.css(SELECTORS.nameInput)), 10_000);
   await driver.wait(until.elementIsVisible(nameInput), 10_000);
@@ -68,7 +54,7 @@ try {
   await scrollAndClick(driver, await driver.findElement(By.css(SELECTORS.termsCheckbox)));
 
   await driver.executeScript(FETCH_HOOK_SCRIPT);
-  await clickVisibleButton(driver, CONFIRM_TEXT);
+  await scrollAndClick(driver, await driver.findElement(By.css(SELECTORS.confirmButton)));
 
   const captured = await driver.wait(
     () => driver.executeScript('return window.__e2eCheckout'),
