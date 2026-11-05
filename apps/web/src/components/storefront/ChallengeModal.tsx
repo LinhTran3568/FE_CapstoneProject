@@ -124,7 +124,7 @@ export const ChallengeModal: React.FC<ChallengeModalProps> = ({
           },
           'error-callback': () => {
             // Auto fallback to Google reCAPTCHA
-            setWidgetError('Xác thực bảo mật tự động gặp sự cố mạng, đang chuyển sang thử thách hình ảnh...');
+            setWidgetError('Automated security check timed out, switching to visual challenge...');
             setTimeout(() => {
               setActiveProvider('recaptcha');
               setWidgetError(null);
@@ -165,7 +165,7 @@ export const ChallengeModal: React.FC<ChallengeModalProps> = ({
     };
   }, [isOpen, activeProvider, currentStep, isSequential, onSuccess]);
 
-  // Load Google reCAPTCHA v2 (with Vietnamese language hl=vi)
+  // Load Google reCAPTCHA v2 (with English language hl=en)
   useEffect(() => {
     if (!isOpen || activeProvider !== 'recaptcha') return;
     setWidgetError(null);
@@ -197,7 +197,7 @@ export const ChallengeModal: React.FC<ChallengeModalProps> = ({
               }, 500);
             },
             'error-callback': () => {
-              setWidgetError('Không thể kết nối đến máy chủ reCAPTCHA. Bạn có thể sử dụng nút xác minh nhanh.');
+              setWidgetError('Unable to connect to reCAPTCHA service. Please use simulated bypass or retry.');
             },
           });
         } catch (err) {
@@ -209,14 +209,14 @@ export const ChallengeModal: React.FC<ChallengeModalProps> = ({
     if (!script) {
       script = document.createElement('script');
       script.id = scriptId;
-      script.src = 'https://www.google.com/recaptcha/api.js?render=explicit&hl=vi';
+      script.src = 'https://www.google.com/recaptcha/api.js?render=explicit&hl=en';
       script.async = true;
       script.defer = true;
       script.onload = () => {
         setTimeout(renderRecaptcha, 250);
       };
       script.onerror = () => {
-        setWidgetError('Mạng chặn tải Google reCAPTCHA script.');
+        setWidgetError('Failed to load Google reCAPTCHA script.');
       };
       document.head.appendChild(script);
     } else {
@@ -249,10 +249,10 @@ export const ChallengeModal: React.FC<ChallengeModalProps> = ({
               <ShieldCheck className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="font-display font-bold text-base text-white">Xác minh người dùng</h3>
+              <h3 className="font-display font-bold text-base text-white">Security Verification</h3>
               {isSequential && (
                 <div className="text-[11px] font-mono text-cyan-400 mt-0.5">
-                  Bước {currentStep}/2: {currentStep === 1 ? 'Kiểm tra bảo mật phiên' : 'Thử thách hình ảnh'}
+                  Step {currentStep}/2: {currentStep === 1 ? 'Session Security Check' : 'Visual Puzzle Challenge'}
                 </div>
               )}
             </div>
@@ -260,7 +260,7 @@ export const ChallengeModal: React.FC<ChallengeModalProps> = ({
           <button
             onClick={onClose}
             className="text-slate-400 hover:text-white transition-colors p-1 rounded-lg hover:bg-white/5"
-            aria-label="Đóng"
+            aria-label="Close"
           >
             <X className="w-5 h-5" />
           </button>
@@ -295,7 +295,7 @@ export const ChallengeModal: React.FC<ChallengeModalProps> = ({
           {isVerifying && (
             <div className="flex items-center gap-2 text-xs text-emerald-400 font-mono mt-3">
               <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-              <span>Đang kiểm tra kết quả xác thực...</span>
+              <span>Verifying challenge response...</span>
             </div>
           )}
         </div>
@@ -308,7 +308,7 @@ export const ChallengeModal: React.FC<ChallengeModalProps> = ({
             disabled={isVerifying}
             className="text-[11px] text-slate-500 hover:text-slate-300 transition-colors font-mono cursor-pointer"
           >
-            Mô phỏng xác minh (Dev)
+            Simulate Pass (Dev)
           </button>
 
           <div className="flex items-center gap-2">
@@ -317,7 +317,7 @@ export const ChallengeModal: React.FC<ChallengeModalProps> = ({
               onClick={onClose}
               className="px-4 py-2 bg-white/5 hover:bg-white/10 text-slate-300 text-xs font-medium rounded-xl transition-all cursor-pointer"
             >
-              Đóng
+              Cancel
             </button>
           </div>
         </div>

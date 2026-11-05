@@ -58,8 +58,8 @@ export const DisputeConsolePage: React.FC = () => {
         rejected: overview?.rejectedCount ?? 0,
       });
     } catch (err: any) {
-      console.error('Lỗi khi tải danh sách khiếu nại:', err);
-      setError(err.response?.data?.message || err.message || 'Không thể tải danh sách khiếu nại từ hệ thống.');
+      console.error('Error fetching disputes:', err);
+      setError(err.response?.data?.message || err.message || 'Unable to load disputes from the system.');
       setDisputes([]);
     } finally {
       setLoading(false);
@@ -111,14 +111,14 @@ export const DisputeConsolePage: React.FC = () => {
       return (
         <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-rose-500/20 text-rose-400 border border-rose-500/30 flex items-center gap-1">
           <AlertTriangle className="w-3 h-3 text-rose-400 animate-pulse" />
-          <span>SLA Khẩn: {Math.round(hoursRemaining)}h còn lại</span>
+          <span>Urgent SLA: {Math.round(hoursRemaining)}h left</span>
         </span>
       );
     } else if (hoursElapsed >= 24) {
       return (
         <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-500/20 text-amber-400 border border-amber-500/30 flex items-center gap-1">
           <Clock className="w-3 h-3 text-amber-400" />
-          <span>SLA: {Math.round(hoursRemaining)}h còn lại</span>
+          <span>SLA: {Math.round(hoursRemaining)}h left</span>
         </span>
       );
     }
@@ -138,23 +138,20 @@ export const DisputeConsolePage: React.FC = () => {
           <h1 className="text-xl font-bold text-[#101722] tracking-tight">
             Dispute Resolution Console
           </h1>
-          <p className="text-xs text-[#667085] mt-0.5">
-            Đối soát chứng cứ song song và phán quyết tranh chấp 1-Click (Buyer Proof vs BTC Gate Access Logs)
-          </p>
         </div>
 
         {/* Inline Quick Counters */}
         <div className="flex items-center gap-2 font-mono text-xs">
           <div className="px-2.5 py-1 rounded-lg bg-white border border-[#E5EAF0] flex items-center gap-1.5 shadow-2xs">
-            <span className="text-[#667085]">Chờ xử lý:</span>
+            <span className="text-[#667085]">Pending:</span>
             <span className="font-bold text-amber-600">{stats.open}</span>
           </div>
           <div className="px-2.5 py-1 rounded-lg bg-white border border-[#E5EAF0] flex items-center gap-1.5 shadow-2xs">
-            <span className="text-[#667085]">Hoàn tiền:</span>
+            <span className="text-[#667085]">Refunded:</span>
             <span className="font-bold text-emerald-600">{stats.resolved}</span>
           </div>
           <div className="px-2.5 py-1 rounded-lg bg-white border border-[#E5EAF0] flex items-center gap-1.5 shadow-2xs">
-            <span className="text-[#667085]">Bác bỏ:</span>
+            <span className="text-[#667085]">Rejected:</span>
             <span className="font-bold text-rose-600">{stats.rejected}</span>
           </div>
         </div>
@@ -165,10 +162,10 @@ export const DisputeConsolePage: React.FC = () => {
         {/* Status Filter Tabs */}
         <div className="flex items-center gap-1 bg-[#F4F6F9] p-1 rounded-lg border border-[#E5EAF0]">
           {[
-            { key: 'OPEN', label: 'Chờ xử lý', count: stats.open },
-            { key: 'RESOLVED', label: 'Đã hoàn tiền', count: stats.resolved },
-            { key: 'REJECTED', label: 'Đã bác bỏ', count: stats.rejected },
-            { key: 'ALL', label: 'Tất cả', count: stats.total }
+            { key: 'OPEN', label: 'Pending', count: stats.open },
+            { key: 'RESOLVED', label: 'Refunded', count: stats.resolved },
+            { key: 'REJECTED', label: 'Rejected', count: stats.rejected },
+            { key: 'ALL', label: 'All', count: stats.total }
           ].map((tab) => (
             <button
               key={tab.key}
@@ -201,7 +198,7 @@ export const DisputeConsolePage: React.FC = () => {
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Tìm mã khiếu nại, mã vé, sự kiện..."
+              placeholder="Search dispute code, ticket code, event..."
               className="w-full bg-[#F4F6F9] border border-[#E5EAF0] rounded-lg pl-8 pr-3 py-1.5 text-xs text-[#101722] placeholder-slate-400 focus:outline-none focus:border-[#F45135] focus:bg-white transition-colors"
             />
           </form>
@@ -210,7 +207,7 @@ export const DisputeConsolePage: React.FC = () => {
             type="button"
             onClick={fetchDisputes}
             className="p-1.5 rounded-lg border border-[#E5EAF0] text-[#667085] hover:text-[#101722] hover:bg-slate-50 transition-colors shrink-0"
-            title="Làm mới dữ liệu"
+            title="Refresh"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin text-[#F45135]' : ''}`} />
           </button>
@@ -229,7 +226,7 @@ export const DisputeConsolePage: React.FC = () => {
             onClick={fetchDisputes}
             className="px-2.5 py-1 rounded bg-rose-600 hover:bg-rose-700 text-white text-xs font-semibold"
           >
-            Thử lại
+            Retry
           </button>
         </div>
       )}
@@ -239,9 +236,9 @@ export const DisputeConsolePage: React.FC = () => {
         {/* Left Panel: Dossiers List (4 cols) */}
         <div className="lg:col-span-4 bg-white border border-[#E5EAF0] rounded-xl flex flex-col overflow-hidden shadow-sm">
           <div className="p-3 bg-[#F4F6F9] border-b border-[#E5EAF0] flex items-center justify-between text-xs font-semibold text-[#667085]">
-            <span>Danh sách vụ việc ({totalItems})</span>
+            <span>Dispute Dossiers ({totalItems})</span>
             {totalPages > 1 && (
-              <span className="font-mono text-[11px] text-[#667085]">Trang {currentPage}/{totalPages}</span>
+              <span className="font-mono text-[11px] text-[#667085]">Page {currentPage} of {totalPages}</span>
             )}
           </div>
 
@@ -250,7 +247,7 @@ export const DisputeConsolePage: React.FC = () => {
             {loading ? (
               <div className="p-8 text-center text-xs text-[#667085] flex flex-col items-center justify-center gap-2">
                 <Loader2 className="w-5 h-5 animate-spin text-[#F45135]" />
-                <span>Đang tải danh sách khiếu nại...</span>
+                <span>Loading disputes...</span>
               </div>
             ) : paginatedDisputes.length > 0 ? (
               paginatedDisputes.map((d) => {
@@ -284,7 +281,7 @@ export const DisputeConsolePage: React.FC = () => {
                     <div className="flex items-center justify-between text-[11px] text-[#667085] font-mono mt-1.5">
                       <span className="truncate max-w-[130px]">Buyer: {d.buyerName}</span>
                       <span className="text-[#F45135] font-bold">
-                        {d.totalBuyerPaid ? d.totalBuyerPaid.toLocaleString('vi-VN') : '0'} ₫
+                        {d.totalBuyerPaid ? d.totalBuyerPaid.toLocaleString('en-US') : '0'} ₫
                       </span>
                     </div>
 
@@ -296,7 +293,7 @@ export const DisputeConsolePage: React.FC = () => {
                             ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
                             : 'bg-rose-50 text-rose-700 border border-rose-200'
                         }`}>
-                          {d.recommendation === 'RECOMMEND_REFUND' ? 'Khuyến nghị: Hoàn tiền' : 'Khuyến nghị: Bác bỏ'}
+                          {d.recommendation === 'RECOMMEND_REFUND' ? 'Recommendation: Refund' : 'Recommendation: Reject'}
                         </span>
                       </div>
                     )}
@@ -306,9 +303,9 @@ export const DisputeConsolePage: React.FC = () => {
             ) : (
               <div className="p-8 text-center text-slate-400 text-xs flex flex-col items-center justify-center gap-1.5">
                 <Inbox className="w-6 h-6 opacity-40 text-slate-400" />
-                <p className="font-medium text-[#101722]">Không có khiếu nại</p>
+                <p className="font-medium text-[#101722]">No disputes found</p>
                 <p className="text-[11px] text-[#667085]">
-                  Hồ sơ khiếu nại mới từ người mua sẽ hiển thị tại đây khi phát sinh.
+                  New dispute claims filed by buyers will appear here.
                 </p>
               </div>
             )}
@@ -324,7 +321,7 @@ export const DisputeConsolePage: React.FC = () => {
                 className="px-2 py-1 rounded bg-white border border-[#E5EAF0] hover:bg-slate-100 disabled:opacity-40 transition-colors flex items-center gap-1 text-[#101722]"
               >
                 <ChevronLeft className="w-3.5 h-3.5" />
-                <span>Trước</span>
+                <span>Previous</span>
               </button>
               <span>{currentPage} / {totalPages}</span>
               <button
@@ -333,7 +330,7 @@ export const DisputeConsolePage: React.FC = () => {
                 onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
                 className="px-2 py-1 rounded bg-white border border-[#E5EAF0] hover:bg-slate-100 disabled:opacity-40 transition-colors flex items-center gap-1 text-[#101722]"
               >
-                <span>Sau</span>
+                <span>Next</span>
                 <ChevronRight className="w-3.5 h-3.5" />
               </button>
             </div>
@@ -347,9 +344,9 @@ export const DisputeConsolePage: React.FC = () => {
           ) : (
             <div className="bg-white border border-[#E5EAF0] rounded-xl p-8 text-center text-[#667085] text-xs shadow-sm flex flex-col items-center justify-center gap-2 min-h-[260px]">
               <FileText className="w-8 h-8 opacity-30 text-[#667085]" />
-              <p className="font-semibold text-sm text-[#101722]">Chưa chọn hồ sơ khiếu nại</p>
+              <p className="font-semibold text-sm text-[#101722]">No Dispute Selected</p>
               <p className="text-xs text-[#667085] max-w-sm">
-                Chọn một hồ sơ từ danh sách bên trái để đối soát chứng cứ song song giữa ảnh của Buyer và nhật ký cổng soát vé BTC.
+                Select a dossier from the list to review buyer evidence against automated venue access logs.
               </p>
             </div>
           )}

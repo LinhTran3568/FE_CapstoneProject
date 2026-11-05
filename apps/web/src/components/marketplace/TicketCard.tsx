@@ -193,15 +193,15 @@ export const TicketCard: React.FC<TicketCardProps> = ({
             {/* Đường nét đứt xé vé ngăn cách 65% */}
             <div className="absolute left-[65%] top-0 bottom-0 border-r border-dashed border-white/10 pointer-events-none" />
 
-            {/* Giả lập cuống vé giấy ở mép phải của vé #2 */}
+            {/* Stub simulation for ticket #2 */}
             <div className="absolute right-0 top-0 bottom-0 w-[35%] bg-slate-300/25 border-l border-white/10 flex items-center justify-center">
               <span className="font-mono text-[9px] font-bold text-slate-400/80 uppercase tracking-widest rotate-90 select-none">
-                VÉ #2
+                TICKET #2
               </span>
             </div>
           </div>
 
-          {/* Deck Layer 3 (Back Ticket - nếu bundle >= 3 vé): Khoét lỗ bán nguyệt ở 65% trên & dưới */}
+          {/* Deck Layer 3 (Back Ticket - if bundle >= 3) */}
           {bundleCount >= 3 && (
             <div
               className="absolute inset-0 rounded-2xl bg-[#0d1017] border border-white/10 -z-20 opacity-45 pointer-events-none transition-all duration-300 ease-out origin-bottom-left -top-2 -right-2 group-hover:-top-4.5 group-hover:-right-7.5 group-hover:rotate-[2.6deg] group-hover:opacity-85 shadow-[0_12px_28px_rgba(0,0,0,0.7)] group-hover:border-[#FF5A36]/40 overflow-hidden"
@@ -215,13 +215,12 @@ export const TicketCard: React.FC<TicketCardProps> = ({
               }}
               aria-hidden="true"
             >
-              {/* Đường nét đứt xé vé ngăn cách 65% */}
               <div className="absolute left-[65%] top-0 bottom-0 border-r border-dashed border-white/10 pointer-events-none" />
 
-              {/* Giả lập cuống vé giấy ở mép phải của vé #3 */}
+              {/* Stub simulation for ticket #3 */}
               <div className="absolute right-0 top-0 bottom-0 w-[35%] bg-slate-400/15 border-l border-white/10 flex items-center justify-center">
                 <span className="font-mono text-[9px] font-bold text-slate-500/70 uppercase tracking-widest rotate-90 select-none">
-                  VÉ #3
+                  TICKET #3
                 </span>
               </div>
             </div>
@@ -385,10 +384,10 @@ export const TicketCard: React.FC<TicketCardProps> = ({
           <div className="flex flex-wrap items-center gap-x-3.5 gap-y-1 text-[11px] sm:text-xs text-zinc-300">
             {/* Seat Position from DB — Clean presentation for combos and single tickets */}
             {isBundle ? (
-              <div className="flex items-center gap-1.5 flex-wrap my-0.5" title="Bấm vào vé để xem chi tiết từng ghế">
+              <div className="flex items-center gap-1.5 flex-wrap my-0.5" title="Click to view details of each seat">
                 <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-[#FF5A36]/15 border border-[#FF5A36]/35 text-[#FF8A65] text-[10px] font-bold">
                   <Ticket className="w-3 h-3 text-[#FF5A36]" />
-                  <span>{bundleCount} Ghế:</span>
+                  <span>{bundleCount} Seats:</span>
                 </div>
                 {effectiveBundleListings.length > 1 ? (
                   effectiveBundleListings.slice(0, 3).map((item, idx) => (
@@ -396,12 +395,12 @@ export const TicketCard: React.FC<TicketCardProps> = ({
                       key={item.listingId || idx}
                       className="px-1.5 py-0.5 rounded bg-white/10 border border-white/10 text-white font-mono text-[10px] font-semibold truncate max-w-[140px]"
                     >
-                      {item.seatZone || item.tierName || `Ghế #${idx + 1}`}
+                      {item.seatZone || item.tierName || `Seat #${idx + 1}`}
                     </span>
                   ))
                 ) : (
                   <span className="px-1.5 py-0.5 rounded bg-white/10 border border-white/10 text-white font-mono text-[10px] font-semibold truncate max-w-[220px]">
-                    {listing.seatZone || listing.tierName || `${bundleCount} Vé`}
+                    {listing.seatZone || listing.tierName || `${bundleCount} Tickets`}
                   </span>
                 )}
                 {effectiveBundleListings.length > 3 && (
@@ -409,7 +408,7 @@ export const TicketCard: React.FC<TicketCardProps> = ({
                 )}
               </div>
             ) : listing.seatZone ? (
-              <div className="flex items-center gap-1.5 shrink-0" title={`Vị trí ghế: ${listing.seatZone}`}>
+              <div className="flex items-center gap-1.5 shrink-0" title={`Seat zone: ${listing.seatZone}`}>
                 <Ticket className="w-3.5 h-3.5 text-amber-400 shrink-0" />
                 <span className="font-semibold text-amber-200">
                   {listing.seatZone}
@@ -434,7 +433,7 @@ export const TicketCard: React.FC<TicketCardProps> = ({
             {/* Organizer */}
             {listing.organizerName && (
               <div className="hidden sm:flex items-center gap-1.5 shrink-0">
-                <span className="font-medium text-zinc-400">BTC:</span>
+                <span className="font-medium text-zinc-400">Organizer:</span>
                 <span className="font-medium text-white">{listing.organizerName}</span>
               </div>
             )}
@@ -462,7 +461,6 @@ export const TicketCard: React.FC<TicketCardProps> = ({
         {/* Stub Top: Monospace code pill and barcode */}
         <div className="flex items-center justify-between pt-0.5">
           {isBundle ? (
-            // Combo: thay mã vé đơn bằng badge số lượng vé
             <div className="px-2 py-0.5 rounded bg-[#FF5A36]/15 border border-[#FF5A36]/40 flex items-center gap-1">
               <Layers className="w-3 h-3 text-[#FF5A36] shrink-0" />
               <span className="font-mono text-[10px] sm:text-[11px] font-bold tracking-wider text-[#FF5A36] uppercase">
@@ -502,7 +500,7 @@ export const TicketCard: React.FC<TicketCardProps> = ({
             </span>
           </div>
 
-          {/* Giá vé gốc bị gạch ngang (nếu có giảm giá so với giá gốc) - Xuất hiện TRƯỚC giá mới */}
+          {/* Original face value */}
           {hasDiscount && (
             <div className="flex items-center gap-1.5 mb-0.5">
               <span className="text-[11px] text-slate-400 line-through font-medium">
@@ -516,7 +514,7 @@ export const TicketCard: React.FC<TicketCardProps> = ({
             </div>
           )}
 
-          {/* Giá vé mới */}
+          {/* Current price */}
           <div className="flex items-baseline">
             <span className="text-[20px] sm:text-[22px] font-extrabold tracking-tight text-slate-900 leading-none">
               {formattedPrice}
@@ -524,10 +522,10 @@ export const TicketCard: React.FC<TicketCardProps> = ({
             <span className="ml-1 text-xs font-bold text-slate-700">VND</span>
           </div>
 
-          {/* Micro-copy phụ trợ cho Combo */}
+          {/* Combo per-ticket price */}
           {isBundle && (
             <div className="text-[10px] font-mono text-slate-600 font-semibold mt-0.5">
-              ~{formattedPerTicketPrice} đ/vé
+              ~{formattedPerTicketPrice} ₫/ticket
             </div>
           )}
         </div>
@@ -592,7 +590,7 @@ export const TicketCard: React.FC<TicketCardProps> = ({
               }}
               className="w-full py-2 px-3 bg-[#ff5722] hover:bg-[#f4511e] active:scale-[0.98] transition-all duration-150 rounded-xl font-bold text-[11px] sm:text-xs text-white tracking-wide shadow-[0_4px_14px_rgba(255,87,34,0.35)] flex items-center justify-center gap-1.5 cursor-pointer group/btn"
             >
-              <span className="whitespace-nowrap">{isBundle ? 'XEM & MUA' : 'XEM & MUA'}</span>
+              <span className="whitespace-nowrap">{isBundle ? 'VIEW & BUY' : 'VIEW & BUY'}</span>
               <span className="transition-transform duration-150 group-hover/btn:translate-x-1">→</span>
             </button>
           )}

@@ -29,8 +29,8 @@ export const StorefrontEventDetailPage: React.FC = () => {
               <span className="font-bold uppercase tracking-wider">Live Concert 2025</span>
             </div>
             <div className="flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-[#00a0bb]/20 text-[#4cd7f6] border border-[#4cd7f6]/20 text-xs">
-              <span className="material-symbols-outlined text-[16px]">verified_user</span>
-              <span className="font-semibold uppercase tracking-wider">Xác thực bởi TicketShield Guard</span>
+              <span className="material-symbols-outlined text-[16px]">verified</span>
+              <span className="font-semibold uppercase tracking-wider">Official Partner</span>
             </div>
             <div className="flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-[#282a32]/80 text-[#e3beb8] backdrop-blur-md text-xs">
               <span className="material-symbols-outlined text-[16px] text-[#4cd7f6]">check_circle</span>
@@ -47,7 +47,7 @@ export const StorefrontEventDetailPage: React.FC = () => {
               {event.title}
             </h1>
             <p className="text-base sm:text-lg text-[#aa8984] font-medium tracking-tight mt-2">
-              Chặng dừng chân bùng nổ: {event.venueName} — {event.venueAddress}
+              Tour stop: {event.venueName} — {event.venueAddress}
             </p>
           </div>
 
@@ -58,7 +58,7 @@ export const StorefrontEventDetailPage: React.FC = () => {
                 <span className="material-symbols-outlined text-[24px]">calendar_clock</span>
               </div>
               <div className="flex flex-col min-w-0">
-                <span className="text-[11px] text-[#aa8984] uppercase tracking-wider">Thời gian</span>
+                <span className="text-[11px] text-[#aa8984] uppercase tracking-wider">Date &amp; Time</span>
                 <span className="font-bold text-white text-sm truncate">{event.dateDisplay}</span>
                 <span className="text-xs text-[#4cd7f6]">{event.timeDisplay}</span>
               </div>
@@ -69,7 +69,7 @@ export const StorefrontEventDetailPage: React.FC = () => {
                 <span className="material-symbols-outlined text-[24px]">stadium</span>
               </div>
               <div className="flex flex-col min-w-0">
-                <span className="text-[11px] text-[#aa8984] uppercase tracking-wider">Địa điểm</span>
+                <span className="text-[11px] text-[#aa8984] uppercase tracking-wider">Venue</span>
                 <span className="font-bold text-white text-sm truncate">{event.venueName}</span>
                 <span className="text-xs text-[#aa8984] truncate">{event.venueAddress}</span>
               </div>
@@ -80,11 +80,10 @@ export const StorefrontEventDetailPage: React.FC = () => {
                 <span className="material-symbols-outlined text-[24px]">payments</span>
               </div>
               <div className="flex flex-col min-w-0">
-                <span className="text-[11px] text-[#aa8984] uppercase tracking-wider">Mức giá niêm yết</span>
+                <span className="text-[11px] text-[#aa8984] uppercase tracking-wider">Price Range</span>
                 <span className="font-bold text-white text-sm truncate">
-                  {event.minPrice.toLocaleString('vi-VN')}₫ - {event.maxPrice.toLocaleString('vi-VN')}₫
+                  {event.minPrice.toLocaleString('en-US')} ₫ - {event.maxPrice.toLocaleString('en-US')} ₫
                 </span>
-                <span className="text-xs text-[#aa8984]">Bảo hiểm hoàn tiền 100%</span>
               </div>
             </div>
 
@@ -93,12 +92,12 @@ export const StorefrontEventDetailPage: React.FC = () => {
                 <span className="material-symbols-outlined text-[24px]">local_activity</span>
               </div>
               <div className="flex flex-col min-w-0">
-                <span className="text-[11px] text-[#aa8984] uppercase tracking-wider">Tình trạng vé</span>
+                <span className="text-[11px] text-[#aa8984] uppercase tracking-wider">Ticket Status</span>
                 <div className="flex items-center gap-1.5">
                   <span className="w-2 h-2 rounded-full bg-[#ff5945] animate-pulse" />
-                  <span className="text-sm font-bold text-[#ffb4a8]">Mở bán chính thức</span>
+                  <span className="text-sm font-bold text-[#ffb4a8]">Official On-Sale</span>
                 </div>
-                <span className="text-xs text-[#aa8984]">Chỉ còn 18% lượt mua VIP</span>
+                <span className="text-xs text-[#aa8984]">High Demand</span>
               </div>
             </div>
           </div>
@@ -112,7 +111,7 @@ export const StorefrontEventDetailPage: React.FC = () => {
               <span className="material-symbols-outlined text-[22px] group-hover:rotate-12 transition-transform">
                 confirmation_number
               </span>
-              <span className="tracking-wide">CHỌN HẠNG VÉ & MUA NGAY</span>
+              <span className="tracking-wide">SELECT TICKET &amp; BOOK NOW</span>
               <span className="material-symbols-outlined text-[20px] group-hover:translate-x-1 transition-transform">
                 arrow_forward
               </span>
@@ -130,13 +129,8 @@ export const StorefrontEventDetailPage: React.FC = () => {
               >
                 {isFavorite ? 'favorite' : 'favorite_border'}
               </span>
-              <span>{isFavorite ? 'Đã lưu yêu thích' : 'Lưu vào yêu thích'}</span>
+              <span>{isFavorite ? 'Saved to Favorites' : 'Save to Favorites'}</span>
             </button>
-
-            <div className="hidden xl:flex items-center gap-2 ml-auto text-xs text-[#aa8984]">
-              <span className="material-symbols-outlined text-[#4cd7f6] text-[18px]">lock</span>
-              <span>Bảo vệ quyền giao dịch trực tuyến qua TicketShield Cyber-Escrow</span>
-            </div>
           </div>
         </div>
       </section>
@@ -150,11 +144,11 @@ export const StorefrontEventDetailPage: React.FC = () => {
                 Official All-Star Lineup
               </span>
               <h2 className="font-display font-extrabold text-2xl sm:text-3xl text-white tracking-tight mt-1">
-                DÀN NGHỆ SĨ TRÌNH DIỄN
+                ARTIST LINEUP
               </h2>
             </div>
             <p className="text-xs sm:text-sm text-[#aa8984] max-w-md">
-              Hội tụ hơn 30 nghệ sĩ giải trí hàng đầu Việt Nam, mang đến màn kết hợp đa vũ trụ âm nhạc thị giác đỉnh cao độc quyền.
+              Featuring top Vietnamese entertainment artists and exclusive live stage collaborations.
             </p>
           </div>
 
@@ -189,11 +183,11 @@ export const StorefrontEventDetailPage: React.FC = () => {
             <div className="flex items-center gap-2">
               <span className="material-symbols-outlined text-[#d0bcff] text-[20px]">auto_awesome</span>
               <span className="text-[#e3beb8]">
-                Cùng dàn khách mời đặc biệt: Đức Phúc, Erik, Isaac, Song Luân, Captain Boy và hơn 20 vũ đoàn danh tiếng.
+                With special guest performers and full live accompaniment.
               </span>
             </div>
             <span className="text-[#4cd7f6] uppercase tracking-wider font-bold shrink-0 font-mono">
-              30+ Tiết Mục Sân Khấu
+              30+ Stage Performances
             </span>
           </div>
         </section>
@@ -205,31 +199,31 @@ export const StorefrontEventDetailPage: React.FC = () => {
           <div className="lg:col-span-7 flex flex-col space-y-4">
             <div className="inline-flex items-center gap-1.5 text-[#ff5945] text-xs uppercase tracking-widest font-bold">
               <span className="material-symbols-outlined text-[18px]">graphic_eq</span>
-              <span>Tiêu Chuẩn Sản Xuất Quốc Tế</span>
+              <span>International Production Standard</span>
             </div>
             <h2 className="font-display font-extrabold text-2xl sm:text-4xl text-white tracking-tight">
-              SÂN KHẤU 360 ĐỘ KHÔNG GIAN KẾT NỐI VÔ CỰC
+              360-DEGREE IMMERSIVE STAGE EXPERIENCE
             </h2>
             <p className="text-sm text-[#aa8984] leading-relaxed">
-              Được thiết kế bởi đạo diễn âm nhạc hàng đầu, <strong className="text-white">{event.title}</strong> phá vỡ mọi giới hạn về trải nghiệm nghe nhìn tại Việt Nam. Hệ thống âm thanh vòm ma trận <strong className="text-[#4cd7f6]">d&b audiotechnik KSL System</strong> phủ trọn vẹn từng thính giác tại {event.venueName}.
+              Engineered by premier musical directors, <strong className="text-white">{event.title}</strong> pushes the boundaries of live entertainment with international-grade acoustics. The <strong className="text-[#4cd7f6]">d&amp;b audiotechnik KSL System</strong> delivers pristine audio coverage across {event.venueName}.
             </p>
 
             {/* Metric Bento */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
               <div className="p-4 rounded-xl bg-[#1d1f28] border border-white/5 flex flex-col">
                 <span className="font-display font-extrabold text-3xl text-[#ff5945]">360°</span>
-                <span className="font-bold text-white text-sm mt-1">Sân khấu mở</span>
-                <span className="text-xs text-[#aa8984] mt-1">Tầm nhìn mãn nhãn từ mọi khán đài Tribune và GA.</span>
+                <span className="font-bold text-white text-sm mt-1">Open Stage</span>
+                <span className="text-xs text-[#aa8984] mt-1">Clear sightlines across all Tribune and GA sections.</span>
               </div>
               <div className="p-4 rounded-xl bg-[#1d1f28] border border-white/5 flex flex-col">
                 <span className="font-display font-extrabold text-3xl text-[#d0bcff]">180'</span>
-                <span className="font-bold text-white text-sm mt-1">3 giờ trình diễn</span>
-                <span className="text-xs text-[#aa8984] mt-1">Hơn 30 ca khúc phối khí mới, choreography độc quyền.</span>
+                <span className="font-bold text-white text-sm mt-1">3-Hour Show</span>
+                <span className="text-xs text-[#aa8984] mt-1">Over 30 reimagined tracks with exclusive choreography.</span>
               </div>
               <div className="p-4 rounded-xl bg-[#1d1f28] border border-white/5 flex flex-col">
                 <span className="font-display font-extrabold text-3xl text-[#4cd7f6]">40K+</span>
-                <span className="font-bold text-white text-sm mt-1">Biển Lightstick</span>
-                <span className="text-xs text-[#aa8984] mt-1">Đồng bộ tín hiệu tần số sóng RF theo từng nhịp beat.</span>
+                <span className="font-bold text-white text-sm mt-1">Synchronized LED</span>
+                <span className="text-xs text-[#aa8984] mt-1">RF-synced lightsticks pulsating to every beat.</span>
               </div>
             </div>
           </div>
@@ -238,7 +232,7 @@ export const StorefrontEventDetailPage: React.FC = () => {
             <div className="relative rounded-2xl overflow-hidden aspect-[4/5] bg-[#1d1f28] shadow-2xl border border-white/10">
               <img
                 src={event.stageLayoutImage}
-                alt="Sân khấu 360 độ"
+                alt="360 Stage Concept"
                 className="w-full h-full object-cover"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-[#0c0e16] via-transparent to-transparent" />
@@ -247,8 +241,8 @@ export const StorefrontEventDetailPage: React.FC = () => {
                   <span className="material-symbols-outlined text-[24px]">surround_sound</span>
                 </div>
                 <div className="flex flex-col min-w-0 text-xs">
-                  <span className="font-bold text-white">Công nghệ Dolby Atmos Live</span>
-                  <span className="text-[#aa8984] truncate">Âm thanh nguyên bản chuẩn phòng thu trên quy mô sân vận động.</span>
+                  <span className="font-bold text-white">Dolby Atmos Live Audio</span>
+                  <span className="text-[#aa8984] truncate">Studio-grade acoustics tuned for stadium performance.</span>
                 </div>
               </div>
             </div>
@@ -261,14 +255,14 @@ export const StorefrontEventDetailPage: React.FC = () => {
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
           <div>
             <span className="text-xs text-[#ff5945] uppercase tracking-[0.2em] font-bold">
-              Atmosphere & Visuals
+              Atmosphere &amp; Visuals
             </span>
             <h2 className="font-display font-extrabold text-2xl sm:text-3xl text-white tracking-tight mt-1">
-              KHOẢNH KHẮC ĐỈNH CAO
+              HIGHLIGHT MOMENTS
             </h2>
           </div>
           <span className="text-xs text-[#aa8984]">
-            Những hình ảnh rực cháy từ đêm tổng duyệt và các trạm tour tiền nhiệm.
+            Memorable scenes captured from rehearsals and previous tour dates.
           </span>
         </div>
 
@@ -283,10 +277,10 @@ export const StorefrontEventDetailPage: React.FC = () => {
             <div className="absolute inset-0 bg-gradient-to-t from-[#0c0e16]/90 via-transparent to-transparent flex items-end p-5">
               <div>
                 <span className="text-[11px] font-mono uppercase tracking-wider text-[#ff5945] font-bold">
-                  Cơn mưa kim tuyến Finale
+                  Grand Finale Confetti
                 </span>
                 <p className="text-sm sm:text-base font-bold text-white">
-                  Khoảnh khắc gắn kết của hơn 40.000 khán giả chung nhịp đập
+                  Shared moments uniting thousands of fans.
                 </p>
               </div>
             </div>
@@ -304,7 +298,7 @@ export const StorefrontEventDetailPage: React.FC = () => {
                   Pyrotechnics FX
                 </span>
                 <p className="text-sm sm:text-base font-bold text-white">
-                  Hệ thống hiệu ứng lửa và pháo sáng chuẩn quốc tế
+                  International-grade stage lighting and pyrotechnics.
                 </p>
               </div>
             </div>
@@ -317,7 +311,7 @@ export const StorefrontEventDetailPage: React.FC = () => {
               className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
             />
             <div className="absolute inset-0 bg-gradient-to-t from-[#0c0e16]/90 via-transparent to-transparent flex items-end p-4">
-              <span className="text-xs sm:text-sm font-bold text-white">Công nghệ Laser 3D Mapping</span>
+              <span className="text-xs sm:text-sm font-bold text-white">3D Laser Mapping</span>
             </div>
           </div>
 
@@ -328,7 +322,7 @@ export const StorefrontEventDetailPage: React.FC = () => {
               className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
             />
             <div className="absolute inset-0 bg-gradient-to-t from-[#0c0e16]/90 via-transparent to-transparent flex items-end p-4">
-              <span className="text-xs sm:text-sm font-bold text-white">Tương tác trực tiếp không rào cản</span>
+              <span className="text-xs sm:text-sm font-bold text-white">Direct Fan Interaction</span>
             </div>
           </div>
 
@@ -339,7 +333,7 @@ export const StorefrontEventDetailPage: React.FC = () => {
               className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
             />
             <div className="absolute inset-0 bg-gradient-to-t from-[#0c0e16]/90 via-transparent to-transparent flex items-end p-4">
-              <span className="text-xs sm:text-sm font-bold text-white">Đồng bộ Lightstick DMX</span>
+              <span className="text-xs sm:text-sm font-bold text-white">Synchronized DMX Lightsticks</span>
             </div>
           </div>
         </div>
@@ -353,7 +347,7 @@ export const StorefrontEventDetailPage: React.FC = () => {
               <div>
                 <div className="inline-flex items-center gap-1.5 text-[#4cd7f6] text-xs uppercase tracking-wider font-bold mb-1">
                   <span className="material-symbols-outlined text-[18px]">location_on</span>
-                  <span>Sơ đồ chỉ dẫn sân vận động</span>
+                  <span>Stadium Map &amp; Directions</span>
                 </div>
                 <h2 className="font-display font-extrabold text-2xl sm:text-3xl text-white uppercase">
                   {event.venueName}
@@ -366,28 +360,28 @@ export const StorefrontEventDetailPage: React.FC = () => {
                 <div className="p-4 rounded-xl bg-[#1d1f28] border border-white/5">
                   <div className="flex items-center gap-1.5 text-[#ff5945] font-bold text-xs mb-1">
                     <span className="material-symbols-outlined text-[18px]">stars</span>
-                    <span>CỔNG 1 (VIP)</span>
+                    <span>GATE 1 (VIP)</span>
                   </div>
                   <p className="text-xs text-[#aa8984] leading-relaxed">
-                    Dành riêng cho vé Diamond VIP, SVIP Lounge & Lối đi Soundcheck độc quyền.
+                    Exclusive to VIP Lounge &amp; Priority soundcheck entry.
                   </p>
                 </div>
                 <div className="p-4 rounded-xl bg-[#1d1f28] border border-white/5">
                   <div className="flex items-center gap-1.5 text-[#d0bcff] font-bold text-xs mb-1">
                     <span className="material-symbols-outlined text-[18px]">groups</span>
-                    <span>CỔNG 2 & 3 (GA)</span>
+                    <span>GATES 2 &amp; 3 (GA)</span>
                   </div>
                   <p className="text-xs text-[#aa8984] leading-relaxed">
-                    Dành cho các khu vực Fanzone đứng (GA A, GA B) và khu vực sân cỏ tự do.
+                    Standing fanzone access and general pitch entry.
                   </p>
                 </div>
                 <div className="p-4 rounded-xl bg-[#1d1f28] border border-white/5">
                   <div className="flex items-center gap-1.5 text-[#4cd7f6] font-bold text-xs mb-1">
                     <span className="material-symbols-outlined text-[18px]">chair</span>
-                    <span>CỔNG 4 (TRIBUNE)</span>
+                    <span>GATE 4 (TRIBUNE)</span>
                   </div>
                   <p className="text-xs text-[#aa8984] leading-relaxed">
-                    Khán đài tầng A1, A2, B và C có số ghế cố định, lối thang cuốn riêng.
+                    Seated grandstand tiers with dedicated escalator access.
                   </p>
                 </div>
               </div>
@@ -396,20 +390,20 @@ export const StorefrontEventDetailPage: React.FC = () => {
               <div className="space-y-2 pt-2 text-xs text-[#aa8984]">
                 <h3 className="font-bold text-white text-sm flex items-center gap-2">
                   <span className="material-symbols-outlined text-[#aa8984] text-[18px]">directions_car</span>
-                  <span>Bãi gửi xe & Di chuyển</span>
+                  <span>Parking &amp; Transport</span>
                 </h3>
                 <ul className="space-y-1.5 pl-1">
                   <li className="flex items-start gap-2">
                     <span className="text-[#4cd7f6] font-bold">✓</span>
-                    <span><strong className="text-white">Phương tiện cá nhân:</strong> Bãi giữ xe máy tại Cổng Hoàng Văn Thụ (sức chứa 15.000 xe).</span>
+                    <span><strong className="text-white">Personal vehicles:</strong> Parking available at designated stadium gates.</span>
                   </li>
                   <li className="flex items-start gap-2">
                     <span className="text-[#4cd7f6] font-bold">✓</span>
-                    <span><strong className="text-white">Xe công nghệ / Taxi:</strong> Khuyến nghị điểm trả khách tại góc đường Phan Đình Phùng - Hoàng Văn Thụ.</span>
+                    <span><strong className="text-white">Rideshare / Taxi:</strong> Recommended drop-off at main stadium avenue.</span>
                   </li>
                   <li className="flex items-start gap-2">
                     <span className="text-[#4cd7f6] font-bold">✓</span>
-                    <span><strong className="text-white">Mở cổng check-in:</strong> Bắt đầu từ <strong className="text-[#ff5945] font-mono">{event.gateOpenTime}</strong>. Vui lòng đến trước ít nhất 90 phút.</span>
+                    <span><strong className="text-white">Check-in opens:</strong> Starting from <strong className="text-[#ff5945] font-mono">{event.gateOpenTime}</strong>. Arrive at least 90 minutes early.</span>
                   </li>
                 </ul>
               </div>
@@ -428,7 +422,7 @@ export const StorefrontEventDetailPage: React.FC = () => {
                 <div className="w-full p-4 rounded-xl bg-[#191b23]/90 backdrop-blur-md flex items-center justify-between border border-white/10">
                   <div>
                     <span className="font-bold text-white text-xs">{event.venueName}</span>
-                    <p className="text-[11px] text-[#aa8984]">Mở Google Maps chỉ đường</p>
+                    <p className="text-[11px] text-[#aa8984]">Open Google Maps for directions</p>
                   </div>
                   <a
                     href="https://maps.google.com"
@@ -436,7 +430,7 @@ export const StorefrontEventDetailPage: React.FC = () => {
                     rel="noreferrer"
                     className="px-3 py-1.5 rounded-lg bg-[#282a32] text-white hover:text-[#ffb4a8] text-xs font-semibold flex items-center gap-1 transition-colors"
                   >
-                    <span>Chỉ đường</span>
+                    <span>Directions</span>
                     <span className="material-symbols-outlined text-[16px]">open_in_new</span>
                   </a>
                 </div>
@@ -446,20 +440,20 @@ export const StorefrontEventDetailPage: React.FC = () => {
         </div>
       </section>
 
-      {/* 6. POLICY & SECURITY ESCROW */}
+      {/* 6. POLICY & SECURITY */}
       <section className="w-full max-w-7xl mx-auto px-4 lg:px-12 py-16 space-y-6">
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
           <div>
             <span className="text-xs text-[#ff5945] uppercase tracking-[0.2em] font-bold">
-              Guidelines & Regulations
+              Guidelines &amp; Regulations
             </span>
             <h2 className="font-display font-extrabold text-2xl sm:text-3xl text-white tracking-tight mt-1">
-              LƯU Ý THAM DỰ & BẢO MẬT VÉ
+              ADMISSION GUIDELINES &amp; SECURITY
             </h2>
           </div>
           <div className="flex items-center gap-2 text-[#4cd7f6] text-xs font-bold">
-            <span className="material-symbols-outlined text-[20px]">shield</span>
-            <span>TicketShield Escrow Verified</span>
+            <span className="material-symbols-outlined text-[20px]">verified</span>
+            <span>Primary Verified</span>
           </div>
         </div>
 
@@ -468,9 +462,9 @@ export const StorefrontEventDetailPage: React.FC = () => {
             <div className="w-10 h-10 rounded-xl bg-[#282a32] flex items-center justify-center text-[#ff5945]">
               <span className="material-symbols-outlined text-[24px]">policy</span>
             </div>
-            <h3 className="font-bold text-white text-sm">Độ tuổi & Quy chế tham dự</h3>
+            <h3 className="font-bold text-white text-sm">Age Policy &amp; Guidelines</h3>
             <p className="text-xs text-[#aa8984] leading-relaxed">
-              Sự kiện dành cho khán giả từ <strong className="text-white">12 tuổi trở lên</strong> (khán giả dưới 16 tuổi cần có người giám hộ đi kèm tại khu khán đài Tribune). Phụ nữ mang thai không khuyến khích vào khu GA đứng.
+              Attendees must be at least <strong className="text-white">12 years of age</strong> (children under 16 must be accompanied by an adult in seated tribune sections). Pregnant women are not recommended in standing GA areas.
             </p>
           </div>
 
@@ -478,9 +472,9 @@ export const StorefrontEventDetailPage: React.FC = () => {
             <div className="w-10 h-10 rounded-xl bg-[#282a32] flex items-center justify-center text-[#d0bcff]">
               <span className="material-symbols-outlined text-[24px]">no_photography</span>
             </div>
-            <h3 className="font-bold text-white text-sm">Vật dụng bị cấm mang vào</h3>
+            <h3 className="font-bold text-white text-sm">Prohibited Items</h3>
             <p className="text-xs text-[#aa8984] leading-relaxed">
-              Nghiêm cấm mang theo máy ảnh chuyên nghiệp (ống kính rời), tripod, flycam, vũ khí, vật liệu cháy nổ, đồ ăn nước uống từ ngoài và banner có kích thước vượt quá 40x40cm.
+              Professional cameras (detachable lenses), tripods, drones, weapons, fireworks, outside food and beverages, and oversized banners (over 40x40cm) are strictly prohibited.
             </p>
           </div>
 
@@ -488,9 +482,9 @@ export const StorefrontEventDetailPage: React.FC = () => {
             <div className="w-10 h-10 rounded-xl bg-[#282a32] flex items-center justify-center text-[#4cd7f6]">
               <span className="material-symbols-outlined text-[24px]">security_update_good</span>
             </div>
-            <h3 className="font-bold text-white text-sm">Bảo vệ vé chống lừa đảo</h3>
+            <h3 className="font-bold text-white text-sm">Digital Ticket Security</h3>
             <p className="text-xs text-[#aa8984] leading-relaxed">
-              Vé điện tử tích hợp mã <strong className="text-[#4cd7f6]">Dynamic QR đổi mới mỗi 60 giây</strong>. Nghiêm cấm chụp màn hình chia sẻ mã QR lên mạng xã hội. Giao dịch mua lại chỉ an toàn qua nền tảng TicketShield Marketplace.
+              Digital tickets feature a <strong className="text-[#4cd7f6]">Dynamic QR code refreshed every 60 seconds</strong>. Never post screenshots of QR codes on social media. Secondary resale is secured through the TicketShield Marketplace.
             </p>
           </div>
         </div>
@@ -504,10 +498,10 @@ export const StorefrontEventDetailPage: React.FC = () => {
           </div>
           <div className="max-w-2xl space-y-2">
             <h2 className="font-display font-extrabold text-2xl sm:text-3xl text-white">
-              Sẵn sàng hòa mình vào đêm nhạc lớn nhất 2025?
+              Ready to experience the concert live?
             </h2>
             <p className="text-xs sm:text-sm text-[#aa8984] leading-relaxed">
-              Các hạng vé Fanzone và VVIP đang được săn đón với tốc độ kỷ lục. Nhấn bên dưới để xem chi tiết bảng giá và tiến hành chọn hạng vé ngay bây giờ.
+              Fanzone and VIP tiers are selling fast. Select your tier below to begin booking.
             </p>
           </div>
           <Link
@@ -515,7 +509,7 @@ export const StorefrontEventDetailPage: React.FC = () => {
             className="inline-flex items-center gap-2 px-8 py-4 rounded-xl bg-[#ff5945] hover:bg-[#ff7252] text-white font-bold text-sm hover:brightness-110 active:scale-[0.98] transition-all shadow-[0_0_32px_rgba(255,89,69,0.4)]"
           >
             <span className="material-symbols-outlined text-[20px]">confirmation_number</span>
-            <span className="tracking-wide">CHỌN HẠNG VÉ & MUA NGAY</span>
+            <span className="tracking-wide">SELECT TICKET &amp; BOOK NOW</span>
             <span className="material-symbols-outlined text-[20px]">arrow_forward</span>
           </Link>
         </div>

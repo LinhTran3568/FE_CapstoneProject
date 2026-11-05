@@ -199,7 +199,7 @@ export const OrganizerPortalPage: React.FC = () => {
   const handleCopy = (text: string, label: string) => {
     navigator.clipboard.writeText(text);
     setCopiedCode(text);
-    showToast(`Đã sao chép ${label}: ${text}`, 'success');
+    showToast(`Copied ${label}: ${text}`, 'success');
     setTimeout(() => setCopiedCode(null), 2000);
   };
 
@@ -214,13 +214,13 @@ export const OrganizerPortalPage: React.FC = () => {
 
       if (res.ok) {
         const newTicket: MockTicketDto = await res.json();
-        showToast(`Đã tạo vé mới: ${newTicket.ticketCode}`, 'success');
+        showToast(`Generated new ticket: ${newTicket.ticketCode}`, 'success');
         fetchInventory();
       } else {
-        showToast('Không thể tạo vé mới', 'error');
+        showToast('Could not generate new ticket', 'error');
       }
     } catch {
-      showToast('Lỗi kết nối tới máy chủ ban tổ chức', 'error');
+      showToast('Failed to connect to organizer service', 'error');
     } finally {
       setIsGenerating(false);
     }
@@ -233,26 +233,26 @@ export const OrganizerPortalPage: React.FC = () => {
       });
 
       if (res.ok) {
-        showToast(`Đã đặt lại trạng thái vé ${ticketCode}`, 'success');
+        showToast(`Reset ticket status for ${ticketCode}`, 'success');
         fetchInventory();
       } else {
-        showToast('Không thể đặt lại trạng thái vé', 'error');
+        showToast('Could not reset ticket status', 'error');
       }
     } catch {
-      showToast('Lỗi kết nối tới máy chủ ban tổ chức', 'error');
+      showToast('Failed to connect to organizer service', 'error');
     }
   };
 
   const handleResetAll = async () => {
-    if (!window.confirm('Khôi phục toàn bộ vé mẫu về trạng thái ban đầu?')) return;
+    if (!window.confirm('Reset all mock tickets to their initial state?')) return;
     try {
       const res = await fetch(`${ORGANIZER_API}/reset-all`, { method: 'POST' });
       if (res.ok) {
-        showToast('Đã khôi phục dữ liệu ban đầu', 'success');
+        showToast('Reset sample data to initial state', 'success');
         fetchInventory();
       }
     } catch {
-      showToast('Lỗi kết nối tới máy chủ', 'error');
+      showToast('Connection error', 'error');
     }
   };
 
@@ -261,7 +261,7 @@ export const OrganizerPortalPage: React.FC = () => {
     setPolicyError(null);
 
     if (allowThreshold >= blockThreshold) {
-      setPolicyError(`Ngưỡng Cho phép (${allowThreshold}) phải nhỏ hơn Ngưỡng Tạm dừng (${blockThreshold})`);
+      setPolicyError(`Allow threshold (${allowThreshold}) must be strictly less than Block threshold (${blockThreshold})`);
       return;
     }
 
@@ -273,11 +273,11 @@ export const OrganizerPortalPage: React.FC = () => {
         challengeMode,
         updatedBy: 'OrganizerAdmin'
       });
-      showToast(`Đã cập nhật cấu hình: Cho phép < ${updated.allowThreshold}, Tạm dừng >= ${updated.blockThreshold}`, 'success');
+      showToast(`Policy updated: Allow < ${updated.allowThreshold}, Block >= ${updated.blockThreshold}`, 'success');
       fetchAnalytics();
     } catch (err: any) {
-      setPolicyError(err.message || 'Cập nhật ngưỡng thất bại');
-      showToast(err.message || 'Cập nhật ngưỡng thất bại', 'error');
+      setPolicyError(err.message || 'Policy update failed');
+      showToast(err.message || 'Policy update failed', 'error');
     } finally {
       setIsSavingPolicy(false);
     }
@@ -290,10 +290,10 @@ export const OrganizerPortalPage: React.FC = () => {
       setAllowThreshold(res.allowThreshold);
       setBlockThreshold(res.blockThreshold);
       setChallengeMode('recaptcha');
-      showToast('Đã khôi phục cấu hình mặc định (0.35 / 0.75 - reCAPTCHA)', 'success');
+      showToast('Default policy restored (0.35 / 0.75 - reCAPTCHA)', 'success');
       fetchAnalytics();
     } catch {
-      showToast('Không thể đặt lại ngưỡng chính sách', 'error');
+      showToast('Could not reset policy thresholds', 'error');
     } finally {
       setIsSavingPolicy(false);
     }
@@ -302,10 +302,10 @@ export const OrganizerPortalPage: React.FC = () => {
   const handleResetAnalytics = async () => {
     try {
       await organizerStoreApi.resetAntiBotAnalytics();
-      showToast('Đã đặt lại bộ đếm lưu lượng', 'success');
+      showToast('Traffic analytics counters reset', 'success');
       fetchAnalytics();
     } catch {
-      showToast('Lỗi khi đặt lại bộ đếm', 'error');
+      showToast('Failed to reset analytics counters', 'error');
     }
   };
 
@@ -321,12 +321,12 @@ export const OrganizerPortalPage: React.FC = () => {
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h1 className="text-lg font-bold text-white tracking-wide font-display">CỔNG QUẢN LÝ BAN TỔ CHỨC</h1>
+                <h1 className="text-lg font-bold text-white tracking-wide font-display">ORGANIZER PORTAL</h1>
                 <span className={`flex items-center gap-1 text-[10px] font-mono px-2 py-0.5 rounded-full border ${
                   isConnected ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' : 'bg-rose-500/20 text-rose-400 border-rose-500/30'
                 }`}>
                   <span className={`w-1.5 h-1.5 rounded-full ${isConnected ? 'bg-emerald-400 animate-pulse' : 'bg-rose-400'}`}></span>
-                  {isConnected ? 'TRỰC TUYẾN (5001)' : 'MẤT KẾT NỐI'}
+                  {isConnected ? 'ONLINE (5001)' : 'DISCONNECTED'}
                 </span>
               </div>
             </div>
@@ -339,7 +339,7 @@ export const OrganizerPortalPage: React.FC = () => {
               className="px-3 py-2 bg-white/10 hover:bg-white/10 text-white text-xs font-medium rounded-xl transition-all flex items-center gap-1.5 cursor-pointer"
             >
               <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin' : ''}`} />
-              <span>Làm mới</span>
+              <span>Refresh</span>
             </button>
           </div>
         </header>
@@ -355,7 +355,7 @@ export const OrganizerPortalPage: React.FC = () => {
             }`}
           >
             <Activity className="w-4 h-4" />
-            <span>Giám sát Lưu lượng & Ngưỡng lọc</span>
+            <span>Traffic Monitoring &amp; Policy</span>
           </button>
           <button
             onClick={() => setActiveTab('inventory')}
@@ -366,7 +366,7 @@ export const OrganizerPortalPage: React.FC = () => {
             }`}
           >
             <Ticket className="w-4 h-4" />
-            <span>Kho vé & Mã xác thực</span>
+            <span>Ticket Inventory &amp; OTPs</span>
           </button>
         </div>
 
@@ -377,42 +377,42 @@ export const OrganizerPortalPage: React.FC = () => {
             {/* Key Metrics Cards */}
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
               <div className="p-4 bg-[#0d131d] border border-white/10 rounded-2xl space-y-1">
-                <span className="text-[11px] font-medium text-slate-400">Tổng lượt xử lý</span>
+                <span className="text-[11px] font-medium text-slate-400">Total Evaluations</span>
                 <p className="text-2xl font-bold font-mono text-white">
                   {analytics?.totalEvaluations ?? 0}
                 </p>
-                <span className="text-[10px] text-slate-400 font-mono">Độ trễ TB: {analytics?.averageLatencyMs ?? 0}ms</span>
+                <span className="text-[10px] text-slate-400 font-mono">Avg Latency: {analytics?.averageLatencyMs ?? 0}ms</span>
               </div>
 
               <div className="p-4 bg-[#0d131d] border border-emerald-500/20 rounded-2xl space-y-1">
-                <span className="text-[11px] font-medium text-emerald-400">Cho phép</span>
+                <span className="text-[11px] font-medium text-emerald-400">Allow</span>
                 <p className="text-2xl font-bold font-mono text-emerald-400">
                   {analytics?.allowCount ?? 0}
                 </p>
-                <span className="text-[10px] text-slate-400 font-mono">{analytics?.allowPercentage ?? 0}% tổng lượt</span>
+                <span className="text-[10px] text-slate-400 font-mono">{analytics?.allowPercentage ?? 0}% total</span>
               </div>
 
               <div className="p-4 bg-[#0d131d] border border-amber-500/20 rounded-2xl space-y-1">
-                <span className="text-[11px] font-medium text-amber-400">Yêu cầu xác thực</span>
+                <span className="text-[11px] font-medium text-amber-400">Challenge</span>
                 <p className="text-2xl font-bold font-mono text-amber-400">
                   {analytics?.challengeCount ?? 0}
                 </p>
-                <span className="text-[10px] text-slate-400 font-mono">{analytics?.challengePercentage ?? 0}% tổng lượt</span>
+                <span className="text-[10px] text-slate-400 font-mono">{analytics?.challengePercentage ?? 0}% total</span>
               </div>
 
               <div className="p-4 bg-[#0d131d] border border-rose-500/20 rounded-2xl space-y-1">
-                <span className="text-[11px] font-medium text-rose-400">Tạm dừng</span>
+                <span className="text-[11px] font-medium text-rose-400">Block</span>
                 <p className="text-2xl font-bold font-mono text-rose-400">
                   {analytics?.blockCount ?? 0}
                 </p>
-                <span className="text-[10px] text-slate-400 font-mono">{analytics?.blockPercentage ?? 0}% tổng lượt</span>
+                <span className="text-[10px] text-slate-400 font-mono">{analytics?.blockPercentage ?? 0}% total</span>
               </div>
 
               <div className="col-span-2 sm:col-span-1 p-4 bg-[#0d131d] border border-white/10 rounded-2xl space-y-1">
-                <span className="text-[11px] font-medium text-slate-400">Ngưỡng hiện hành</span>
+                <span className="text-[11px] font-medium text-slate-400">Active Policy</span>
                 <div className="text-xs font-mono pt-1 text-slate-300">
-                  <div>Duyệt: &lt; {analytics?.currentPolicy?.allowThreshold ?? 0.35}</div>
-                  <div>Chặn: &ge; {analytics?.currentPolicy?.blockThreshold ?? 0.75}</div>
+                  <div>Allow: &lt; {analytics?.currentPolicy?.allowThreshold ?? 0.35}</div>
+                  <div>Block: &ge; {analytics?.currentPolicy?.blockThreshold ?? 0.75}</div>
                 </div>
               </div>
             </div>
@@ -422,7 +422,7 @@ export const OrganizerPortalPage: React.FC = () => {
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <Sliders className="w-4 h-4 text-[#FF5A36]" />
-                  <h2 className="text-sm font-bold text-white uppercase tracking-wider font-display">Cấu hình Ngưỡng Lọc Tự động</h2>
+                  <h2 className="text-sm font-bold text-white uppercase tracking-wider font-display">Automated Policy Configuration</h2>
                 </div>
                 <div className="flex items-center gap-2">
                   <button
@@ -433,9 +433,9 @@ export const OrganizerPortalPage: React.FC = () => {
                     }}
                     disabled={isSavingPolicy}
                     className="px-2.5 py-1.5 bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/20 text-xs font-medium rounded-xl transition-all cursor-pointer"
-                    title="Hạ ngưỡng cho phép xuống 0.10 để ép bật CAPTCHA trên web"
+                    title="Lower allow threshold to 0.10 to trigger challenge on web client"
                   >
-                    Bật CAPTCHA (0.10 / 0.75)
+                    Force Challenge (0.10 / 0.75)
                   </button>
                   <button
                     type="button"
@@ -445,9 +445,9 @@ export const OrganizerPortalPage: React.FC = () => {
                     }}
                     disabled={isSavingPolicy}
                     className="px-2.5 py-1.5 bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 border border-rose-500/20 text-xs font-medium rounded-xl transition-all cursor-pointer"
-                    title="Hạ ngưỡng chặn xuống 0.20 để ép chặn 429 trên web"
+                    title="Lower block threshold to 0.20 to trigger 429 block on web client"
                   >
-                    Chặn Bot (0.10 / 0.20)
+                    Force Block (0.10 / 0.20)
                   </button>
                   <button
                     type="button"
@@ -455,7 +455,7 @@ export const OrganizerPortalPage: React.FC = () => {
                     disabled={isSavingPolicy}
                     className="px-2.5 py-1.5 bg-white/5 hover:bg-white/10 text-slate-300 text-xs font-medium rounded-xl transition-all cursor-pointer"
                   >
-                    Mặc định (0.35 / 0.75)
+                    Default (0.35 / 0.75)
                   </button>
                 </div>
               </div>
@@ -465,20 +465,20 @@ export const OrganizerPortalPage: React.FC = () => {
                 <div className="flex flex-wrap items-center justify-between gap-3 p-3 bg-[#080c14] border border-white/5 rounded-xl">
                   <div className="flex items-center gap-2">
                     <span className="text-xs font-medium text-slate-300 whitespace-nowrap">
-                      Phương thức Thử thách (Tier 2):
+                      Challenge Method (Tier 2):
                     </span>
                     <select
                       value={challengeMode}
                       onChange={(e) => setChallengeMode(e.target.value as 'recaptcha' | 'turnstile' | 'sequential')}
                       className="px-3 py-1.5 bg-[#0d131d] border border-white/10 rounded-lg text-xs text-white font-medium focus:outline-none focus:border-[#FF5A36]"
                     >
-                      <option value="recaptcha">Google reCAPTCHA v2 (Hình ảnh)</option>
-                      <option value="sequential">Tuần tự 2 bước (Turnstile → reCAPTCHA)</option>
-                      <option value="turnstile">Cloudflare Turnstile (Tự động)</option>
+                      <option value="recaptcha">Google reCAPTCHA v2 (Image Challenge)</option>
+                      <option value="sequential">Sequential 2-Step (Turnstile → reCAPTCHA)</option>
+                      <option value="turnstile">Cloudflare Turnstile (Managed)</option>
                     </select>
                   </div>
                   <span className="text-[11px] text-slate-400">
-                    Kích hoạt khi điểm rủi ro rơi vào Vùng xám (giữa Ngưỡng Cho phép và Ngưỡng Tạm dừng)
+                    Triggered when risk score falls into threshold range between Allow and Block
                   </span>
                 </div>
 
@@ -487,15 +487,15 @@ export const OrganizerPortalPage: React.FC = () => {
                   <div className="flex justify-between items-center text-xs font-mono">
                     <span className="text-emerald-400 font-medium flex items-center gap-1.5">
                       <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block"></span>
-                      Cho phép (&lt; {allowThreshold.toFixed(2)})
+                      Allow (&lt; {allowThreshold.toFixed(2)})
                     </span>
                     <span className="text-amber-400 font-medium flex items-center gap-1.5">
                       <span className="w-2 h-2 rounded-full bg-amber-500 inline-block"></span>
-                      Xác minh ({allowThreshold.toFixed(2)} - {blockThreshold.toFixed(2)})
+                      Challenge ({allowThreshold.toFixed(2)} - {blockThreshold.toFixed(2)})
                     </span>
                     <span className="text-rose-400 font-medium flex items-center gap-1.5">
                       <span className="w-2 h-2 rounded-full bg-rose-500 inline-block"></span>
-                      Tạm dừng (&ge; {blockThreshold.toFixed(2)})
+                      Block (&ge; {blockThreshold.toFixed(2)})
                     </span>
                   </div>
 
@@ -506,7 +506,7 @@ export const OrganizerPortalPage: React.FC = () => {
                       ref={barRef}
                       onClick={handleBarClick}
                       className="w-full h-4 bg-white/10 rounded-full overflow-hidden flex cursor-pointer relative shadow-inner"
-                      title="Bấm hoặc kéo các mốc tròn trên thanh để chỉnh ngưỡng trực tiếp"
+                      title="Click or drag knobs to adjust thresholds"
                     >
                       <div
                         style={{ width: `${Math.min(Math.max(allowThreshold * 100, 0), 100)}%` }}
@@ -532,7 +532,7 @@ export const OrganizerPortalPage: React.FC = () => {
                       className={`absolute top-1/2 -translate-y-1/2 -translate-x-1/2 z-20 w-6 h-6 rounded-full bg-[#0d131d] border-2 border-emerald-400 shadow-xl shadow-black/80 flex items-center justify-center cursor-ew-resize hover:scale-110 transition-transform ${
                         activeDrag === 'allow' ? 'scale-115 ring-4 ring-emerald-500/40' : ''
                       }`}
-                      title={`Kéo để đổi Ngưỡng Cho phép (${allowThreshold.toFixed(2)})`}
+                      title={`Drag to adjust Allow Threshold (${allowThreshold.toFixed(2)})`}
                     >
                       <div className="w-2 h-2 rounded-full bg-emerald-400" />
                       
@@ -546,7 +546,7 @@ export const OrganizerPortalPage: React.FC = () => {
                           type="button"
                           onClick={() => stepAllow(-0.01)}
                           className="w-5 h-5 flex items-center justify-center rounded hover:bg-emerald-500/20 text-emerald-400 transition-colors cursor-pointer"
-                          title="Giảm 0.01"
+                          title="Decrease 0.01"
                         >
                           <Minus className="w-3 h-3" />
                         </button>
@@ -563,7 +563,7 @@ export const OrganizerPortalPage: React.FC = () => {
                           type="button"
                           onClick={() => stepAllow(0.01)}
                           className="w-5 h-5 flex items-center justify-center rounded hover:bg-emerald-500/20 text-emerald-400 transition-colors cursor-pointer"
-                          title="Tăng 0.01"
+                          title="Increase 0.01"
                         >
                           <Plus className="w-3 h-3" />
                         </button>
@@ -580,7 +580,7 @@ export const OrganizerPortalPage: React.FC = () => {
                       className={`absolute top-1/2 -translate-y-1/2 -translate-x-1/2 z-20 w-6 h-6 rounded-full bg-[#0d131d] border-2 border-rose-400 shadow-xl shadow-black/80 flex items-center justify-center cursor-ew-resize hover:scale-110 transition-transform ${
                         activeDrag === 'block' ? 'scale-115 ring-4 ring-rose-500/40' : ''
                       }`}
-                      title={`Kéo để đổi Ngưỡng Tạm dừng (${blockThreshold.toFixed(2)})`}
+                      title={`Drag to adjust Block Threshold (${blockThreshold.toFixed(2)})`}
                     >
                       <div className="w-2 h-2 rounded-full bg-rose-400" />
 
@@ -594,7 +594,7 @@ export const OrganizerPortalPage: React.FC = () => {
                           type="button"
                           onClick={() => stepBlock(-0.01)}
                           className="w-5 h-5 flex items-center justify-center rounded hover:bg-rose-500/20 text-rose-400 transition-colors cursor-pointer"
-                          title="Giảm 0.01"
+                          title="Decrease 0.01"
                         >
                           <Minus className="w-3 h-3" />
                         </button>
@@ -611,7 +611,7 @@ export const OrganizerPortalPage: React.FC = () => {
                           type="button"
                           onClick={() => stepBlock(0.01)}
                           className="w-5 h-5 flex items-center justify-center rounded hover:bg-rose-500/20 text-rose-400 transition-colors cursor-pointer"
-                          title="Tăng 0.01"
+                          title="Increase 0.01"
                         >
                           <Plus className="w-3 h-3" />
                         </button>
@@ -629,14 +629,14 @@ export const OrganizerPortalPage: React.FC = () => {
 
                 <div className="flex items-center justify-between pt-2">
                   <span className="text-[11px] text-slate-400 font-mono">
-                    Cập nhật: {analytics?.currentPolicy?.lastUpdatedAtUtc ? new Date(analytics.currentPolicy.lastUpdatedAtUtc).toLocaleTimeString() : 'Hệ thống'}
+                    Updated: {analytics?.currentPolicy?.lastUpdatedAtUtc ? new Date(analytics.currentPolicy.lastUpdatedAtUtc).toLocaleTimeString() : 'System'}
                   </span>
                   <button
                     type="submit"
                     disabled={isSavingPolicy}
                     className="px-5 py-2 bg-[#FF5A36] hover:bg-[#FF7252] disabled:opacity-50 text-white text-xs font-bold rounded-xl transition-all cursor-pointer shadow-md shadow-[#FF5A36]/20"
                   >
-                    {isSavingPolicy ? 'Đang lưu...' : 'Lưu cấu hình'}
+                    {isSavingPolicy ? 'Saving...' : 'Save Policy'}
                   </button>
                 </div>
               </form>
@@ -647,13 +647,13 @@ export const OrganizerPortalPage: React.FC = () => {
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <Activity className="w-4 h-4 text-cyan-400" />
-                  <h2 className="text-sm font-bold text-white uppercase tracking-wider font-display">Nhật ký Giao dịch Gần nhất</h2>
+                  <h2 className="text-sm font-bold text-white uppercase tracking-wider font-display">Recent Transaction Log</h2>
                 </div>
                 <button
                   onClick={handleResetAnalytics}
                   className="px-3 py-1.5 bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 border border-rose-500/20 text-xs font-medium rounded-xl transition-all cursor-pointer"
                 >
-                  Xóa bộ đếm
+                  Reset Counter
                 </button>
               </div>
 
@@ -661,32 +661,32 @@ export const OrganizerPortalPage: React.FC = () => {
                 <table className="w-full text-left text-xs">
                   <thead>
                     <tr className="border-b border-white/10 text-slate-400 font-mono uppercase text-[10px]">
-                      <th className="pb-3 pl-2">Thời gian</th>
-                      <th className="pb-3">Người mua</th>
-                      <th className="pb-3">Quyết định</th>
-                      <th className="pb-3">Điểm rủi ro</th>
-                      <th className="pb-3">Độ trễ</th>
-                      <th className="pb-3 pr-2">Ghi chú</th>
+                      <th className="pb-3 pl-2">Timestamp</th>
+                      <th className="pb-3">Buyer</th>
+                      <th className="pb-3">Decision</th>
+                      <th className="pb-3">Risk Score</th>
+                      <th className="pb-3">Latency</th>
+                      <th className="pb-3 pr-2">Notes</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-white/5">
                     {(!analytics?.recentLogs || analytics.recentLogs.length === 0) ? (
                       <tr>
                         <td colSpan={6} className="py-8 text-center text-slate-500">
-                          Chưa có giao dịch phát sinh gần đây.
+                          No recent transactions recorded.
                         </td>
                       </tr>
                     ) : (
                       analytics.recentLogs.map((log, idx) => {
                         let badgeClass = 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30';
-                        let label = 'Cho phép';
+                        let label = 'Allow';
                         const dec = String(log.decision).toLowerCase();
                         if (dec === 'challenge' || dec === '1') {
                           badgeClass = 'bg-amber-500/20 text-amber-300 border border-amber-500/30';
-                          label = 'Xác thực';
+                          label = 'Challenge';
                         } else if (dec === 'block' || dec === '2') {
                           badgeClass = 'bg-rose-500/20 text-rose-300 border border-rose-500/30';
-                          label = 'Tạm dừng';
+                          label = 'Block';
                         }
 
                         return (
@@ -695,7 +695,7 @@ export const OrganizerPortalPage: React.FC = () => {
                               {new Date(log.timestampUtc).toLocaleTimeString()}
                             </td>
                             <td className="py-3 text-slate-200 truncate max-w-[180px]">
-                              {log.buyerEmail || 'Khách vãng lai'}
+                              {log.buyerEmail || 'Guest'}
                             </td>
                             <td className="py-3">
                               <span className={`px-2 py-0.5 rounded-full text-[10px] font-mono font-bold ${badgeClass}`}>
@@ -709,7 +709,7 @@ export const OrganizerPortalPage: React.FC = () => {
                               {Number(log.latencyMs).toFixed(1)} ms
                             </td>
                             <td className="py-3 pr-2 text-slate-400 truncate max-w-[200px]">
-                              {log.isFailOpen ? 'Dự phòng an toàn' : log.reason || '-'}
+                              {log.isFailOpen ? 'Fail-open fallback' : log.reason || '-'}
                             </td>
                           </tr>
                         );
@@ -730,7 +730,7 @@ export const OrganizerPortalPage: React.FC = () => {
             {/* Action Bar */}
             <div className="flex flex-wrap items-center justify-between gap-3 p-4 bg-[#0d131d] border border-white/10 rounded-2xl">
               <span className="text-xs text-slate-400">
-                Tổng số vé hiện có: <strong className="text-white font-mono">{tickets.length}</strong>
+                Total Tickets: <strong className="text-white font-mono">{tickets.length}</strong>
               </span>
 
               <div className="flex items-center gap-2">
@@ -740,7 +740,7 @@ export const OrganizerPortalPage: React.FC = () => {
                   className="px-4 py-2 bg-[#FF5A36] hover:bg-[#FF7252] disabled:opacity-50 text-white text-xs font-bold font-display rounded-xl shadow-lg shadow-[#FF5A36]/20 transition-all flex items-center gap-1.5 active:scale-95 cursor-pointer"
                 >
                   <Plus className="w-3.5 h-3.5" />
-                  <span>Tạo vé mẫu</span>
+                  <span>Generate Sample Ticket</span>
                 </button>
 
                 <button
@@ -748,7 +748,7 @@ export const OrganizerPortalPage: React.FC = () => {
                   className="px-3 py-2 bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 border border-rose-500/20 text-xs font-medium rounded-xl transition-all flex items-center gap-1.5 cursor-pointer"
                 >
                   <RotateCcw className="w-3.5 h-3.5" />
-                  <span>Khôi phục mẫu</span>
+                  <span>Reset Inventory</span>
                 </button>
               </div>
             </div>
@@ -758,15 +758,15 @@ export const OrganizerPortalPage: React.FC = () => {
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <KeyRound className="w-5 h-5 text-[#FF5A36]" />
-                  <h2 className="text-sm font-bold text-white uppercase tracking-wider font-display">Mã Xác thực Đang Hoạt động</h2>
+                  <h2 className="text-sm font-bold text-white uppercase tracking-wider font-display">Active Verification OTPs</h2>
                 </div>
-                <span className="text-[11px] text-slate-400 font-mono">Tự làm mới: 3s</span>
+                <span className="text-[11px] text-slate-400 font-mono">Auto-refresh: 3s</span>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
                 {otps.length === 0 ? (
                   <div className="col-span-full py-8 text-center text-xs text-slate-500 border border-white/5 rounded-xl">
-                    Chưa có mã xác thực nào được yêu cầu gần đây.
+                    No active verification OTPs requested recently.
                   </div>
                 ) : (
                   otps.slice(0, 6).map((o) => (
@@ -779,7 +779,7 @@ export const OrganizerPortalPage: React.FC = () => {
                       }`}
                     >
                       <div className="flex items-center justify-between text-[10px] font-mono text-slate-400">
-                        <span>Vé: <strong className="text-white">{o.ticketCode}</strong></span>
+                        <span>Ticket: <strong className="text-white">{o.ticketCode}</strong></span>
                         <span>{new Date(o.createdAt).toLocaleTimeString()}</span>
                       </div>
 
@@ -788,18 +788,18 @@ export const OrganizerPortalPage: React.FC = () => {
                           {o.otpCode}
                         </span>
                         <button
-                          onClick={() => handleCopy(o.otpCode, 'mã OTP')}
+                          onClick={() => handleCopy(o.otpCode, 'OTP code')}
                           className="px-3 py-1.5 bg-white/10 hover:bg-[#FF5A36] text-white text-[11px] font-bold rounded-lg transition-all flex items-center gap-1 shadow-sm cursor-pointer"
                         >
                           {copiedCode === o.otpCode ? (
                             <>
                               <Check className="w-3 h-3 text-emerald-400" />
-                              <span className="text-emerald-400">Đã chép</span>
+                              <span className="text-emerald-400">Copied</span>
                             </>
                           ) : (
                             <>
                               <Copy className="w-3 h-3" />
-                              <span>Sao chép</span>
+                              <span>Copy</span>
                             </>
                           )}
                         </button>
@@ -810,7 +810,7 @@ export const OrganizerPortalPage: React.FC = () => {
                         <span className={`px-1.5 py-0.5 rounded font-mono font-bold ${
                           o.isUsed ? 'bg-white/5 text-slate-400' : 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
                         }`}>
-                          {o.isUsed ? 'ĐÃ DÙNG' : 'SẴN SÀNG'}
+                          {o.isUsed ? 'USED' : 'ACTIVE'}
                         </span>
                       </div>
                     </div>
@@ -824,7 +824,7 @@ export const OrganizerPortalPage: React.FC = () => {
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                 <div className="flex items-center gap-2">
                   <Ticket className="w-5 h-5 text-cyan-400" />
-                  <h2 className="text-sm font-bold text-white uppercase tracking-wider font-display">Danh sách Vé trong Kho</h2>
+                  <h2 className="text-sm font-bold text-white uppercase tracking-wider font-display">Organizer Ticket Inventory</h2>
                 </div>
               </div>
 
@@ -832,20 +832,20 @@ export const OrganizerPortalPage: React.FC = () => {
                 <table className="w-full text-left text-xs">
                   <thead>
                     <tr className="border-b border-white/10 text-slate-400 font-mono uppercase text-[10px]">
-                      <th className="pb-3 pl-2">Mã vé</th>
-                      <th className="pb-3">Sự kiện</th>
-                      <th className="pb-3">Khu vực</th>
-                      <th className="pb-3">Giá gốc</th>
-                      <th className="pb-3">Email chủ vé</th>
-                      <th className="pb-3">Trạng thái</th>
-                      <th className="pb-3 text-right pr-2">Thao tác</th>
+                      <th className="pb-3 pl-2">Ticket Code</th>
+                      <th className="pb-3">Event</th>
+                      <th className="pb-3">Zone</th>
+                      <th className="pb-3">Original Price</th>
+                      <th className="pb-3">Owner Email</th>
+                      <th className="pb-3">Status</th>
+                      <th className="pb-3 text-right pr-2">Action</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-white/5">
                     {tickets.length === 0 ? (
                       <tr>
                         <td colSpan={7} className="py-8 text-center text-slate-500">
-                          Chưa có vé trong kho.
+                          No tickets in inventory.
                         </td>
                       </tr>
                     ) : (
@@ -860,8 +860,8 @@ export const OrganizerPortalPage: React.FC = () => {
                               <div className="flex items-center gap-1.5 font-mono font-bold text-white">
                                 <span>{t.ticketCode}</span>
                                 <button
-                                  onClick={() => handleCopy(t.ticketCode, 'mã vé')}
-                                  title="Sao chép mã vé"
+                                  onClick={() => handleCopy(t.ticketCode, 'ticket code')}
+                                  title="Copy ticket code"
                                   className="text-slate-400 hover:text-[#FF5A36] transition-colors p-1 cursor-pointer"
                                 >
                                   <Copy className="w-3 h-3" />
@@ -871,7 +871,7 @@ export const OrganizerPortalPage: React.FC = () => {
                             <td className="py-3 text-slate-300">{t.eventName}</td>
                             <td className="py-3 text-slate-400 font-mono text-[11px]">{t.seatZone}</td>
                             <td className="py-3 font-mono font-bold text-[#FF5A36]">
-                              {Number(t.originalPrice).toLocaleString('vi-VN')} VND
+                              {Number(t.originalPrice).toLocaleString('en-US')} ₫
                             </td>
                             <td className="py-3 text-slate-400 truncate max-w-[160px]">{t.ownerEmail}</td>
                             <td className="py-3">
@@ -885,7 +885,7 @@ export const OrganizerPortalPage: React.FC = () => {
                                   onClick={() => handleResetTicket(t.ticketCode)}
                                   className="px-2.5 py-1 bg-white/5 hover:bg-emerald-500/20 text-slate-300 hover:text-emerald-300 border border-white/10 hover:border-emerald-500/30 rounded-lg text-[10px] font-mono transition-all cursor-pointer"
                                 >
-                                  Khôi phục Hợp lệ
+                                  Reset to Valid
                                 </button>
                               ) : (
                                 <span className="text-[10px] text-slate-600 font-mono">-</span>

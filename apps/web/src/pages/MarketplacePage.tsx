@@ -245,7 +245,7 @@ export const MarketplacePage: React.FC = () => {
           )
         );
         if (isOwner) {
-          showToast('Bạn không thể tự mua vé do chính mình đăng bán!', 'warning');
+          showToast('You cannot purchase your own listing!', 'warning');
         } else {
           setBuyingListing(targetListing);
         }
@@ -275,7 +275,7 @@ export const MarketplacePage: React.FC = () => {
       )
     );
     if (isOwner) {
-      showToast('Bạn không thể tự mua vé do chính mình đăng bán!', 'warning');
+      showToast('You cannot purchase your own listing!', 'warning');
       return;
     }
 
@@ -560,7 +560,7 @@ export const MarketplacePage: React.FC = () => {
 
         {/* Page Header */}
         <div className="mb-6">
-          <div className="flex items-center gap-3 mb-1.5">
+          <div className="flex items-center gap-3">
             <h1 className="text-2xl sm:text-3xl font-black font-display text-white tracking-tight flex items-center gap-2.5">
               <span>Ticket Marketplace</span>
               <Sparkles className="w-5 h-5 text-[#FF5A36] animate-pulse" />
@@ -577,9 +577,6 @@ export const MarketplacePage: React.FC = () => {
               </span>
             )}
           </div>
-          <p className="text-xs sm:text-sm text-[#94A3B8]">
-            Discover and purchase verified tickets directly reissued by official organizers, protected by our 24-hour buyer funds guarantee
-          </p>
         </div>
 
         {/* Category Filter Pills */}

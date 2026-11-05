@@ -22,12 +22,12 @@ export const StorefrontDiscoveryPage: React.FC = () => {
   const heroSlides = [
     {
       id: 'atsh-2026',
-      stadium: 'SVĐ Quốc gia Mỹ Đình, Hà Nội • 19:30 - 29/03/2026',
+      stadium: 'My Dinh National Stadium, Hanoi • 19:30 - Mar 29, 2026',
       titleMain: 'ANH TRAI SAY HI',
       titleHighlight: 'LIVE CONCERT 2026',
       gradient: 'from-[#ffb4a8] via-[#ff5945] to-[#d0bcff]',
       description:
-        'Đại nhạc hội bùng nổ nhất năm quy tụ dàn nghệ sĩ đỉnh cao với hệ thống âm thanh vòm L-Acoustics K1 chuẩn quốc tế và hiệu ứng thị giác laser đa chiều.',
+        'The biggest music festival of the year featuring top artists with international standard L-Acoustics K1 surround sound and multi-dimensional laser visual effects.',
       bgImage: '/images/storefront/concert-hero.jpg',
       countdownDays: '02',
       countdownHours: '14',
@@ -35,12 +35,12 @@ export const StorefrontDiscoveryPage: React.FC = () => {
     },
     {
       id: 'mixtape-hanoi-2026',
-      stadium: 'Cung Thể thao Điền kinh Hà Nội • 20:00 - 15/04/2026',
+      stadium: 'Hanoi Athletics Palace • 20:00 - Apr 15, 2026',
       titleMain: 'SPACESPEAKERS',
       titleHighlight: 'MIXTAPE HANOI 2026',
       gradient: 'from-[#d0bcff] via-[#4cd7f6] to-[#ffb4a8]',
       description:
-        'Đêm nhạc Hip-hop & EDM bùng nổ quy tụ dàn Producer và Rapper hàng đầu SpaceSpeakers với hệ thống ánh sáng visual 3D đỉnh cao.',
+        'The explosive Hip-hop & EDM night featuring top SpaceSpeakers producers and rappers with 3D visual projection.',
       bgImage: '/images/storefront/gallery-finale.jpg',
       countdownDays: '05',
       countdownHours: '08',
@@ -48,12 +48,12 @@ export const StorefrontDiscoveryPage: React.FC = () => {
     },
     {
       id: 'westlife-vn-2026',
-      stadium: 'SVĐ Thống Nhất, TP.HCM • 19:00 - 20/05/2026',
+      stadium: 'Thong Nhat Stadium, Ho Chi Minh City • 19:00 - May 20, 2026',
       titleMain: 'WESTLIFE',
       titleHighlight: 'THE WILD DREAMS TOUR',
       gradient: 'from-[#4cd7f6] via-[#acedff] to-[#ff5945]',
       description:
-        'Huyền thoại Pop Boyband trở lại Việt Nam trong chuyến lưu diễn toàn cầu kỷ niệm 25 năm thành lập ban nhạc cùng hàng loạt bản hit kinh điển.',
+        'Legendary pop boyband returns to Vietnam on their 25th anniversary global tour performing timeless classic hits.',
       bgImage: '/images/storefront/concert-stage.jpg',
       countdownDays: '14',
       countdownHours: '19',
@@ -94,10 +94,10 @@ export const StorefrontDiscoveryPage: React.FC = () => {
   ];
 
   const dateFilters = [
-    { id: 'all', label: 'Tất cả' },
-    { id: 'weekend', label: 'Cuối tuần này' },
-    { id: 'apr2025', label: 'Tháng 04/2025' },
-    { id: 'summer2025', label: 'Mùa hè 2025' },
+    { id: 'all', label: 'All' },
+    { id: 'weekend', label: 'This Weekend' },
+    { id: 'apr2025', label: 'April 2025' },
+    { id: 'summer2025', label: 'Summer 2025' },
   ];
 
   const normalizeSearch = (str: string): string => {
@@ -150,17 +150,23 @@ export const StorefrontDiscoveryPage: React.FC = () => {
     // 3. Date filter
     if (selectedDateFilter === 'weekend') {
       const isWeekend =
+        e.dateDisplay.includes('Saturday') ||
+        e.dateDisplay.includes('Sunday') ||
+        e.dateDisplay.includes('Friday') ||
         e.dateDisplay.includes('Thứ Bảy') ||
         e.dateDisplay.includes('Chủ Nhật') ||
         e.dateDisplay.includes('Thứ Sáu');
       if (!isWeekend) return false;
     } else if (selectedDateFilter === 'apr2025') {
-      if (!e.dateDisplay.includes('/04/2025')) return false;
+      if (!e.dateDisplay.includes('/04/2025') && !e.dateDisplay.includes('Apr')) return false;
     } else if (selectedDateFilter === 'summer2025') {
       const isSummer =
         e.dateDisplay.includes('/05/2025') ||
         e.dateDisplay.includes('/06/2025') ||
-        e.dateDisplay.includes('/07/2025');
+        e.dateDisplay.includes('/07/2025') ||
+        e.dateDisplay.includes('May') ||
+        e.dateDisplay.includes('Jun') ||
+        e.dateDisplay.includes('Jul');
       if (!isSummer) return false;
     }
 
@@ -269,7 +275,7 @@ export const StorefrontDiscoveryPage: React.FC = () => {
                       to={`/storefront/event/${slide.id}`}
                       className="px-6 py-3 rounded-xl bg-[#ff5945] hover:bg-[#ff6c5b] text-white font-extrabold text-sm sm:text-base hover:shadow-[0_0_32px_rgba(255,89,69,0.6)] transition-all flex items-center gap-2.5 group active:scale-95 shadow-xl"
                     >
-                      <span>Khám phá & Đặt vé ngay</span>
+                      <span>Explore & Book Tickets</span>
                       <span className="material-symbols-outlined text-[20px] group-hover:translate-x-1 transition-transform">
                         arrow_forward
                       </span>
@@ -279,7 +285,7 @@ export const StorefrontDiscoveryPage: React.FC = () => {
                       className="px-5 py-3 rounded-xl bg-[#191b23]/90 hover:bg-[#282a32] text-white font-bold text-sm sm:text-base backdrop-blur-md transition-all flex items-center gap-2 border border-white/15 hover:border-white/30 shadow-lg"
                     >
                       <span className="material-symbols-outlined text-[20px] text-[#4cd7f6]">play_circle</span>
-                      <span>Trailer & Sơ đồ sân khấu</span>
+                      <span>Trailer & Stage Map</span>
                     </Link>
                   </div>
 
@@ -287,29 +293,29 @@ export const StorefrontDiscoveryPage: React.FC = () => {
                   <div className="flex items-center gap-3 px-5 py-2.5 rounded-2xl bg-[#13151f]/95 backdrop-blur-xl shadow-2xl border border-white/10 w-fit">
                     <div className="flex items-center gap-1.5 text-[#ffb4a8]">
                       <span className="material-symbols-outlined text-[20px] animate-pulse text-[#ff5945]">timer</span>
-                      <span className="text-[10px] uppercase tracking-wider text-[#aa8984] font-bold">Mở bán sau</span>
+                      <span className="text-[10px] uppercase tracking-wider text-[#aa8984] font-bold">On Sale In</span>
                     </div>
                     <div className="flex items-center gap-1.5 font-display text-base sm:text-lg font-black text-white">
                       <div className="flex flex-col items-center">
                         <span className="bg-[#282a32] px-2 py-0.5 rounded text-[#ffb4a8] shadow-inner">{slide.countdownDays}</span>
-                        <span className="text-[9px] text-[#aa8984] font-normal">Ngày</span>
+                        <span className="text-[9px] text-[#aa8984] font-normal">Days</span>
                       </div>
                       <span className="text-[#aa8984] pb-2">:</span>
                       <div className="flex flex-col items-center">
                         <span className="bg-[#282a32] px-2 py-0.5 rounded text-[#ffb4a8] shadow-inner">{slide.countdownHours}</span>
-                        <span className="text-[9px] text-[#aa8984] font-normal">Giờ</span>
+                        <span className="text-[9px] text-[#aa8984] font-normal">Hours</span>
                       </div>
                       <span className="text-[#aa8984] pb-2">:</span>
                       <div className="flex flex-col items-center">
                         <span className="bg-[#282a32] px-2 py-0.5 rounded text-[#ffb4a8] shadow-inner">{slide.countdownMins}</span>
-                        <span className="text-[9px] text-[#aa8984] font-normal">Phút</span>
+                        <span className="text-[9px] text-[#aa8984] font-normal">Mins</span>
                       </div>
                       <span className="text-[#aa8984] pb-2">:</span>
                       <div className="flex flex-col items-center">
                         <span className="bg-[#282a32] px-2 py-0.5 rounded text-[#4cd7f6] shadow-inner">
                           {seconds < 10 ? `0${seconds}` : seconds}
                         </span>
-                        <span className="text-[9px] text-[#aa8984] font-normal">Giây</span>
+                        <span className="text-[9px] text-[#aa8984] font-normal">Secs</span>
                       </div>
                     </div>
                   </div>
@@ -324,7 +330,7 @@ export const StorefrontDiscoveryPage: React.FC = () => {
           type="button"
           onClick={prevSlide}
           className="absolute left-3 top-1/2 -translate-y-1/2 z-30 w-11 h-11 rounded-full bg-black/60 hover:bg-[#ff5945] text-white flex items-center justify-center backdrop-blur-md border border-white/10 transition-all shadow-xl active:scale-95"
-          aria-label="Sự kiện trước"
+          aria-label="Previous slide"
         >
           <span className="material-symbols-outlined text-[24px]">chevron_left</span>
         </button>
@@ -332,7 +338,7 @@ export const StorefrontDiscoveryPage: React.FC = () => {
           type="button"
           onClick={nextSlide}
           className="absolute right-3 top-1/2 -translate-y-1/2 z-30 w-11 h-11 rounded-full bg-black/60 hover:bg-[#ff5945] text-white flex items-center justify-center backdrop-blur-md border border-white/10 transition-all shadow-xl active:scale-95"
-          aria-label="Sự kiện tiếp theo"
+          aria-label="Next slide"
         >
           <span className="material-symbols-outlined text-[24px]">chevron_right</span>
         </button>
@@ -349,7 +355,7 @@ export const StorefrontDiscoveryPage: React.FC = () => {
                   ? 'w-10 bg-[#ff5945] shadow-[0_0_12px_rgba(255,89,69,0.7)]'
                   : 'w-2.5 bg-white/30 hover:bg-white/60'
               }`}
-              aria-label={`Chuyển tới slide ${idx + 1}`}
+              aria-label={`Go to slide ${idx + 1}`}
             />
           ))}
         </div>
@@ -367,7 +373,7 @@ export const StorefrontDiscoveryPage: React.FC = () => {
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Tìm kiếm concert, nghệ sĩ, lễ hội âm nhạc, sân vận động..."
+              placeholder="Search concerts, artists, music festivals, venues..."
               className="w-full h-11 pl-11 pr-28 rounded-xl bg-[#191b23] text-white text-xs placeholder:text-[#aa8984] border border-[#33343d]/40 focus:outline-none focus:border-[#ff5945] transition-all"
             />
             {searchQuery && (
@@ -375,7 +381,7 @@ export const StorefrontDiscoveryPage: React.FC = () => {
                 type="button"
                 onClick={() => setSearchQuery('')}
                 className="absolute right-24 top-1/2 -translate-y-1/2 text-[#aa8984] hover:text-white transition-colors"
-                title="Xóa tìm kiếm"
+                title="Clear search"
               >
                 <span className="material-symbols-outlined text-[18px]">close</span>
               </button>
@@ -389,7 +395,7 @@ export const StorefrontDiscoveryPage: React.FC = () => {
                   : 'bg-[#282a32] text-[#e3beb8] hover:text-white'
               }`}
             >
-              {isFiltering ? 'Xóa lọc' : 'Tất cả'}
+              {isFiltering ? 'Clear' : 'All'}
             </button>
           </div>
 
@@ -419,10 +425,10 @@ export const StorefrontDiscoveryPage: React.FC = () => {
               onChange={(e) => setSelectedCity(e.target.value)}
               className="bg-transparent text-white border-none outline-none text-xs cursor-pointer"
             >
-              <option value="all" className="bg-[#191b23]">Tất cả địa điểm</option>
-              <option value="hcm" className="bg-[#191b23]">TP. Hồ Chí Minh (5)</option>
-              <option value="hanoi" className="bg-[#191b23]">Hà Nội (3)</option>
-              <option value="danang" className="bg-[#191b23]">Đà Nẵng & Hội An (2)</option>
+              <option value="all" className="bg-[#191b23]">All Locations</option>
+              <option value="hcm" className="bg-[#191b23]">Ho Chi Minh City (5)</option>
+              <option value="hanoi" className="bg-[#191b23]">Hanoi (3)</option>
+              <option value="danang" className="bg-[#191b23]">Da Nang & Hoi An (2)</option>
             </select>
           </div>
         </div>
@@ -430,7 +436,7 @@ export const StorefrontDiscoveryPage: React.FC = () => {
         {/* Genre Pills */}
         <div className="max-w-7xl mx-auto flex items-center gap-2 pt-2.5 overflow-x-auto scrollbar-none text-xs">
           <span className="text-[11px] text-[#aa8984] uppercase tracking-wider shrink-0 mr-1 font-bold">
-            Thể loại:
+            Genre:
           </span>
           {genres.map((g) => (
             <button
@@ -456,11 +462,11 @@ export const StorefrontDiscoveryPage: React.FC = () => {
             <div className="flex items-center gap-2">
               <span className="flex items-center gap-1.5 text-[#ff5945]">
                 <span className="material-symbols-outlined text-[20px]">local_fire_department</span>
-                <span className="text-xs uppercase tracking-widest font-bold">Cháy vé nhanh nhất</span>
+                <span className="text-xs uppercase tracking-widest font-bold">Fast Selling</span>
               </span>
             </div>
             <h2 className="font-display font-bold text-2xl sm:text-3xl text-white tracking-tight">
-              Sự kiện nổi bật & Đang bán chạy
+              Featured &amp; Trending Events
             </h2>
           </div>
 
@@ -470,7 +476,7 @@ export const StorefrontDiscoveryPage: React.FC = () => {
               to="/storefront/events"
               className="px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 active:scale-95 shadow-md border bg-[#191b23] hover:bg-[#ff5945] text-[#ffb4a8] hover:text-white border-[#33343d]/60 hover:shadow-[0_0_18px_rgba(255,89,69,0.4)]"
             >
-              <span>Xem toàn bộ sự kiện</span>
+              <span>View all events</span>
               <span className="material-symbols-outlined text-[18px]">arrow_forward</span>
             </Link>
 
@@ -480,7 +486,7 @@ export const StorefrontDiscoveryPage: React.FC = () => {
                   type="button"
                   onClick={scrollEventsLeft}
                   className="w-10 h-10 rounded-full bg-[#191b23] hover:bg-[#ff5945] text-white flex items-center justify-center border border-[#33343d]/60 transition-all shadow-md active:scale-95"
-                  aria-label="Cuộn sang trái"
+                  aria-label="Scroll left"
                 >
                   <span className="material-symbols-outlined text-[22px]">chevron_left</span>
                 </button>
@@ -488,7 +494,7 @@ export const StorefrontDiscoveryPage: React.FC = () => {
                   type="button"
                   onClick={scrollEventsRight}
                   className="w-10 h-10 rounded-full bg-[#191b23] hover:bg-[#ff5945] text-white flex items-center justify-center border border-[#33343d]/60 transition-all shadow-md active:scale-95"
-                  aria-label="Cuộn sang phải"
+                  aria-label="Scroll right"
                 >
                   <span className="material-symbols-outlined text-[22px]">chevron_right</span>
                 </button>
@@ -503,15 +509,15 @@ export const StorefrontDiscoveryPage: React.FC = () => {
             <div className="flex items-center gap-2 text-xs text-[#e5d0cd]">
               <span className="material-symbols-outlined text-[#ff5945] text-[18px]">filter_list</span>
               <span>
-                Tìm thấy <strong className="text-white font-bold">{filteredEvents.length}</strong> concert phù hợp
+                Found <strong className="text-white font-bold">{filteredEvents.length}</strong> matching concerts
                 {searchQuery && (
-                  <span> với từ khóa "<strong className="text-[#ffb4a8]">{searchQuery}</strong>"</span>
+                  <span> for "<strong className="text-[#ffb4a8]">{searchQuery}</strong>"</span>
                 )}
                 {selectedGenre && (
-                  <span> • Thể loại: <strong className="text-[#4cd7f6]">{selectedGenre.toUpperCase()}</strong></span>
+                  <span> • Genre: <strong className="text-[#4cd7f6]">{selectedGenre.toUpperCase()}</strong></span>
                 )}
                 {selectedCity !== 'all' && (
-                  <span> • Khu vực: <strong className="text-[#d0bcff]">{selectedCity.toUpperCase()}</strong></span>
+                  <span> • Location: <strong className="text-[#d0bcff]">{selectedCity.toUpperCase()}</strong></span>
                 )}
               </span>
             </div>
@@ -521,7 +527,7 @@ export const StorefrontDiscoveryPage: React.FC = () => {
               className="text-xs text-[#ffb4a8] hover:text-white underline font-semibold flex items-center gap-1"
             >
               <span className="material-symbols-outlined text-[16px]">restart_alt</span>
-              Xóa tất cả bộ lọc
+              Clear all filters
             </button>
           </div>
         )}
@@ -533,9 +539,9 @@ export const StorefrontDiscoveryPage: React.FC = () => {
               <span className="material-symbols-outlined text-[36px]">search_off</span>
             </div>
             <div className="space-y-1">
-              <h3 className="font-display font-bold text-xl text-white">Không tìm thấy concert phù hợp</h3>
+              <h3 className="font-display font-bold text-xl text-white">No matching concerts found</h3>
               <p className="text-sm text-[#aa8984] max-w-md mx-auto">
-                Không có sự kiện nào khớp với tiêu chí tìm kiếm hiện tại. Hãy thử tìm bằng từ khóa khác hoặc xóa bộ lọc.
+                No events matched your current search criteria. Try a different keyword or reset filters.
               </p>
             </div>
             <button
@@ -543,7 +549,7 @@ export const StorefrontDiscoveryPage: React.FC = () => {
               onClick={handleResetFilters}
               className="px-6 py-2.5 rounded-xl bg-[#ff5945] text-white text-xs font-bold hover:shadow-[0_0_20px_rgba(255,89,69,0.5)] transition-all"
             >
-              Đặt lại tất cả bộ lọc
+              Reset all filters
             </button>
           </div>
         ) : (
@@ -585,12 +591,12 @@ export const StorefrontDiscoveryPage: React.FC = () => {
                     <div className="absolute top-3 left-3 right-3 flex items-center justify-between pointer-events-none">
                       <span className="px-2.5 py-1 rounded-md bg-[#ff5945]/25 text-[#ffb4a8] text-[10px] uppercase font-bold tracking-wide backdrop-blur-md border border-[#ff5945]/30 flex items-center gap-1 shadow-md">
                         <span className="w-1.5 h-1.5 rounded-full bg-[#ff5945] animate-ping" />
-                        {event.tagBadge || 'Còn vé'}
+                        {event.tagBadge || 'Available'}
                       </span>
                       <button
                         type="button"
                         className="pointer-events-auto w-8 h-8 rounded-full bg-black/60 hover:bg-black/90 text-white flex items-center justify-center backdrop-blur-md transition-colors shadow-md"
-                        aria-label="Lưu sự kiện"
+                        aria-label="Save event"
                       >
                         <span className="material-symbols-outlined text-[18px]">bookmark</span>
                       </button>
@@ -598,9 +604,9 @@ export const StorefrontDiscoveryPage: React.FC = () => {
 
                     {/* Price Sticker */}
                     <div className="absolute bottom-3 right-3 px-2.5 py-1 rounded-lg bg-[#0c0e16]/90 backdrop-blur-md border border-white/10 shadow-lg">
-                      <span className="text-[10px] text-[#aa8984]">Từ</span>
+                      <span className="text-[10px] text-[#aa8984]">From</span>
                       <span className="text-xs sm:text-sm text-[#ffb4a8] font-bold ml-1">
-                        {event.minPrice.toLocaleString('vi-VN')}₫
+                        {event.minPrice.toLocaleString('en-US')} ₫
                       </span>
                     </div>
                   </div>
@@ -624,13 +630,13 @@ export const StorefrontDiscoveryPage: React.FC = () => {
                     <div className="pt-2.5 flex items-center justify-between border-t border-[#33343d]/30">
                       <div className="flex items-center gap-1 text-[#d0bcff] text-xs font-semibold">
                         <span className="material-symbols-outlined text-[16px] text-[#4cd7f6]">verified_user</span>
-                        <span>Vé chính chủ</span>
+                        <span>Official Ticket</span>
                       </div>
                       <Link
                         to={`/storefront/event/${event.id}`}
                         className="px-3.5 py-1.5 rounded-lg bg-[#282a32] group-hover:bg-[#ff5945] text-white text-xs font-bold transition-all shadow-md active:scale-95"
                       >
-                        Xem chi tiết
+                        View Details
                       </Link>
                     </div>
                   </div>
@@ -656,18 +662,18 @@ export const StorefrontDiscoveryPage: React.FC = () => {
             <div className="flex flex-col gap-3.5 max-w-xl">
               <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#ff5945]/20 text-[#ffb4a8] w-fit text-[11px] uppercase tracking-wider font-bold border border-[#ff5945]/40">
                 <span className="material-symbols-outlined text-[16px]">workspace_premium</span>
-                <span>Quy chuẩn vé gốc chính hãng từ BTC</span>
+                <span>Official Organizer Standard</span>
               </div>
 
               <h2 className="font-display font-bold text-xl sm:text-2xl lg:text-3xl text-white tracking-tight leading-snug">
-                Bảo chứng vé gốc trực tiếp, <br />
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#ffb4a8] via-[#ff5945] to-[#4cd7f6]">
-                  Đặc quyền Fan & Trải nghiệm VIP 100%
+                Direct Official Tickets, <br />
+                <span className="text-white">
+                  Fan Privileges & VIP Access
                 </span>
               </h2>
 
               <p className="text-xs text-[#aa8984] leading-relaxed max-w-lg">
-                Vé phát hành trực tiếp từ hệ thống độc quyền của Ban Tổ Chức (BTC). Tận hưởng đặc quyền Fanzone, Soundcheck, mã Dynamic QR chống vé giả và làn check-in ưu tiên tại SVĐ.
+                Issued directly through organizer systems. Enjoy fanzone access, soundcheck sessions, dynamic anti-counterfeit QR codes, and dedicated stadium check-in lanes.
               </p>
 
               {/* 3 Value Pillars */}
@@ -675,17 +681,17 @@ export const StorefrontDiscoveryPage: React.FC = () => {
                 <div className="flex flex-col gap-1 p-2.5 rounded-xl bg-[#282a32]/60 backdrop-blur-md border border-[#33343d]/40">
                   <span className="material-symbols-outlined text-[#4cd7f6] text-[20px]">qr_code_scanner</span>
                   <span className="text-xs text-white font-bold">Dynamic QR</span>
-                  <span className="text-[10px] text-[#aa8984] leading-normal">Đổi token mỗi 30s, chống chụp màn hình.</span>
+                  <span className="text-[10px] text-[#aa8984] leading-normal">Refreshed token prevents screenshots.</span>
                 </div>
                 <div className="flex flex-col gap-1 p-2.5 rounded-xl bg-[#282a32]/60 backdrop-blur-md border border-[#33343d]/40">
                   <span className="material-symbols-outlined text-[#ff5945] text-[20px]">chair</span>
-                  <span className="text-xs text-white font-bold">Giữ chỗ sơ đồ 100%</span>
-                  <span className="text-[10px] text-[#aa8984] leading-normal">Giữ đúng số ghế và khu vực VIP/GA đã chọn.</span>
+                  <span className="text-xs text-white font-bold">Direct Seat Reservation</span>
+                  <span className="text-[10px] text-[#aa8984] leading-normal">Reserve your exact seat and chosen zone.</span>
                 </div>
                 <div className="flex flex-col gap-1 p-2.5 rounded-xl bg-[#282a32]/60 backdrop-blur-md border border-[#33343d]/40">
                   <span className="material-symbols-outlined text-[#d0bcff] text-[20px]">card_membership</span>
-                  <span className="text-xs text-white font-bold">Đặc quyền VIP Fan</span>
-                  <span className="text-[10px] text-[#aa8984] leading-normal">Tặng Merch Kit, Lightstick và Soundcheck.</span>
+                  <span className="text-xs text-white font-bold">VIP Fan Privileges</span>
+                  <span className="text-[10px] text-[#aa8984] leading-normal">Includes Merch Kit, Lightstick & Soundcheck.</span>
                 </div>
               </div>
 
@@ -694,7 +700,7 @@ export const StorefrontDiscoveryPage: React.FC = () => {
                   to="/storefront/events"
                   className="px-4 py-2 rounded-xl bg-[#ff5945] hover:bg-[#e04330] text-white font-bold text-xs transition-all flex items-center gap-1.5 shadow-md shadow-[#ff5945]/30 active:scale-95"
                 >
-                  <span>Khám phá toàn bộ concert</span>
+                  <span>Explore all concerts</span>
                   <span className="material-symbols-outlined text-[16px]">arrow_forward</span>
                 </Link>
               </div>
@@ -710,7 +716,7 @@ export const StorefrontDiscoveryPage: React.FC = () => {
                 </div>
                 <span className="px-2 py-0.5 rounded bg-[#00a0bb]/20 text-[#4cd7f6] text-[9px] font-mono font-bold flex items-center gap-1 border border-[#00a0bb]/40">
                   <span className="w-1.5 h-1.5 rounded-full bg-[#4cd7f6] animate-pulse" />
-                  VERIFIED BY BTC
+                  VERIFIED BY ORGANIZER
                 </span>
               </div>
 
@@ -720,23 +726,23 @@ export const StorefrontDiscoveryPage: React.FC = () => {
                   <span className="text-[10px] text-[#ff5945] uppercase tracking-wider font-bold">
                     DIAMOND VIP • FANZONE A1
                   </span>
-                  <span className="text-[10px] text-[#4cd7f6] font-semibold">Cổng Fast-track 01</span>
+                  <span className="text-[10px] text-[#4cd7f6] font-semibold">Gate Fast-track 01</span>
                 </div>
                 <h4 className="font-display font-bold text-sm text-white leading-snug">
                   ANH TRAI SAY HI LIVE CONCERT 2025
                 </h4>
                 <div className="text-[11px] text-[#aa8984]">
-                  BTC: <strong className="text-white">VieON & Vie Channel</strong>
+                  Organizer: <strong className="text-white">VieON & Vie Channel</strong>
                 </div>
 
                 {/* Exclusive Perks Box */}
                 <div className="p-2 rounded-lg bg-[#191b23] border border-white/5 space-y-1 text-[10px]">
                   <div className="text-[9px] text-[#ffb4a8] font-bold uppercase tracking-wider">
-                    Đặc quyền kèm theo:
+                    Included Privileges:
                   </div>
                   <div className="text-[#e1e1ed] flex items-center gap-1">
                     <span className="material-symbols-outlined text-[#4cd7f6] text-[13px]">check_circle</span>
-                    <span>Quyền tham gia Soundcheck & Tổng duyệt</span>
+                    <span>Soundcheck & rehearsal access</span>
                   </div>
                   <div className="text-[#e1e1ed] flex items-center gap-1">
                     <span className="material-symbols-outlined text-[#4cd7f6] text-[13px]">check_circle</span>
@@ -745,10 +751,10 @@ export const StorefrontDiscoveryPage: React.FC = () => {
                 </div>
 
                 <div className="flex items-center justify-between py-1.5 px-2.5 rounded-lg bg-[#191b23]">
-                  <span className="text-[11px] text-[#aa8984]">Giá vé niêm yết:</span>
+                  <span className="text-[11px] text-[#aa8984]">Face Value:</span>
                   <div className="flex items-baseline gap-1">
-                    <span className="font-display font-bold text-base text-[#ff5945]">2.500.000₫</span>
-                    <span className="text-[10px] text-emerald-400 font-mono">Vé gốc</span>
+                    <span className="font-display font-bold text-base text-[#ff5945]">2,500,000 ₫</span>
+                    <span className="text-[10px] text-emerald-400 font-mono">Original</span>
                   </div>
                 </div>
               </div>
@@ -781,7 +787,7 @@ export const StorefrontDiscoveryPage: React.FC = () => {
                 </div>
                 <div className="flex items-center gap-1 text-[9px] text-[#4cd7f6] font-mono tracking-wider uppercase font-semibold">
                   <span className="w-1.5 h-1.5 rounded-full bg-[#4cd7f6] animate-ping" />
-                  MÃ QR DYNAMIC • LÀM MỚI MỖI 30S
+                  DYNAMIC QR CODE • REFRESHED EVERY 30S
                 </div>
               </div>
             </div>

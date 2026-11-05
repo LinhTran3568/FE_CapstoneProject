@@ -213,7 +213,7 @@ export const SeatAdjacencyBadge: React.FC<SeatAdjacencyBadgeProps> = ({
             {parsedSeats.length > 1 && (
               <div className="bg-black/50 rounded-xl p-2 border border-white/5 space-y-1">
                 <div className="text-[10px] uppercase font-mono font-bold text-zinc-400 tracking-wider">
-                  Chi tiết vị trí ({parsedSeats.length} vé):
+                  Seat Details ({parsedSeats.length} tickets):
                 </div>
                 <div className="flex flex-wrap gap-1">
                   {parsedSeats.map((seat, idx) => (
@@ -221,8 +221,8 @@ export const SeatAdjacencyBadge: React.FC<SeatAdjacencyBadgeProps> = ({
                       key={idx}
                       className="px-1.5 py-0.5 rounded bg-white/5 border border-white/10 text-[10px] font-mono text-zinc-200"
                     >
-                      {seat.row ? `Hàng ${seat.row} - ` : ''}
-                      {seat.seatNumber !== null ? `Ghế ${seat.seatNumber}` : seat.zone || `Vé #${idx + 1}`}
+                      {seat.row ? `Row ${seat.row} - ` : ''}
+                      {seat.seatNumber !== null ? `Seat ${seat.seatNumber}` : seat.zone || `Ticket #${idx + 1}`}
                     </span>
                   ))}
                 </div>

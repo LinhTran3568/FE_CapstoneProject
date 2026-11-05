@@ -79,28 +79,24 @@ export const AdminConfigPage: React.FC = () => {
   return (
     <div className="space-y-6">
       {/* ── Page Header & Context ── */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-extrabold text-[#101722] tracking-tight font-display flex items-center gap-2.5">
-            <span>Cấu Hình Hệ Thống Toàn Sàn</span>
-            <span className="text-xs font-mono font-bold px-2.5 py-0.5 rounded-full bg-[#F45135]/10 text-[#F45135] border border-[#F45135]/20">
-              Policy Engine
-            </span>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#E5EAF0] pb-4">
+        <div className="flex items-center gap-3">
+          <h1 className="text-xl font-bold text-[#101722] tracking-tight">
+            System Configuration
           </h1>
-          <p className="text-xs text-[#667085] mt-1">
-            Điều phối tham số kinh tế toàn sàn: Biểu phí giao dịch động, Trần giá vé bán lại và Thời gian đệm ký quỹ Escrow
-          </p>
+          <span className="text-xs font-mono font-bold px-2.5 py-0.5 rounded-full bg-[#F45135]/10 text-[#F45135] border border-[#F45135]/20">
+            Policy Engine
+          </span>
         </div>
-
       </div>
 
       {/* ── Compact Live Parameters Summary Strip ── */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
         <div className="bg-white border border-[#E5EAF0] rounded-xl p-3.5 shadow-2xs flex items-center justify-between">
           <div className="space-y-0.5">
-            <span className="text-[10px] font-mono text-[#667085] uppercase tracking-wider">Biểu Phí Sàn</span>
+            <span className="text-[10px] font-mono text-[#667085] uppercase tracking-wider">Fee Schedule</span>
             <div className="text-base font-bold font-mono text-[#101722]">
-              {feeConfig ? `+${(feeConfig.buyerFeePercentage * 100).toFixed(0)}% Buyer / -${(feeConfig.sellerFeePercentage * 100).toFixed(0)}% Seller` : 'Đang tải...'}
+              {feeConfig ? `+${(feeConfig.buyerFeePercentage * 100).toFixed(0)}% Buyer / -${(feeConfig.sellerFeePercentage * 100).toFixed(0)}% Seller` : 'Loading...'}
             </div>
           </div>
           <div className="w-8 h-8 rounded-lg bg-[#F45135]/10 text-[#F45135] flex items-center justify-center shrink-0">
@@ -110,9 +106,9 @@ export const AdminConfigPage: React.FC = () => {
 
         <div className="bg-white border border-[#E5EAF0] rounded-xl p-3.5 shadow-2xs flex items-center justify-between">
           <div className="space-y-0.5">
-            <span className="text-[10px] font-mono text-[#667085] uppercase tracking-wider">Đệm Ký Quỹ Escrow</span>
+            <span className="text-[10px] font-mono text-[#667085] uppercase tracking-wider">Settlement Buffer</span>
             <div className="text-base font-bold font-mono text-[#101722]">
-              {bufferConfig ? `${formatDurationHours(bufferConfig.bufferSeconds)} (Cutoff ${formatDurationHours(bufferConfig.cutoffSeconds)})` : 'Đang tải...'}
+              {bufferConfig ? `${formatDurationHours(bufferConfig.bufferSeconds)} (Cutoff ${formatDurationHours(bufferConfig.cutoffSeconds)})` : 'Loading...'}
             </div>
           </div>
           <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
@@ -122,9 +118,9 @@ export const AdminConfigPage: React.FC = () => {
 
         <div className="bg-white border border-[#E5EAF0] rounded-xl p-3.5 shadow-2xs flex items-center justify-between">
           <div className="space-y-0.5">
-            <span className="text-[10px] font-mono text-[#667085] uppercase tracking-wider">Giám Sát Trần Giá</span>
+            <span className="text-[10px] font-mono text-[#667085] uppercase tracking-wider">Price Ceilings</span>
             <div className="text-base font-bold font-mono text-[#101722]">
-              {eventCount > 0 ? `${eventCount} Sự kiện đang áp dụng` : 'Đang kiểm tra...'}
+              {eventCount > 0 ? `${eventCount} monitored events` : 'Checking...'}
             </div>
           </div>
           <div className="w-8 h-8 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center shrink-0">
@@ -145,7 +141,7 @@ export const AdminConfigPage: React.FC = () => {
           }`}
         >
           <Percent className="w-3.5 h-3.5 text-[#F45135]" />
-          <span>Biểu Phí Dịch Vụ</span>
+          <span>Service Fees</span>
         </button>
 
         <button
@@ -158,7 +154,7 @@ export const AdminConfigPage: React.FC = () => {
           }`}
         >
           <TrendingUp className="w-3.5 h-3.5 text-amber-500" />
-          <span>Trần Giá Sự Kiện</span>
+          <span>Event Price Ceilings</span>
         </button>
 
         <button
@@ -171,7 +167,7 @@ export const AdminConfigPage: React.FC = () => {
           }`}
         >
           <Clock className="w-3.5 h-3.5 text-blue-500" />
-          <span>Đệm An Toàn Escrow</span>
+          <span>Settlement Buffer</span>
         </button>
       </div>
 

@@ -1,9 +1,5 @@
 export const formatVND = (amount: number): string => {
-  return new Intl.NumberFormat('vi-VN', {
-    style: 'currency',
-    currency: 'VND',
-    maximumFractionDigits: 0,
-  }).format(amount);
+  return `${(amount || 0).toLocaleString('en-US')} ₫`;
 };
 
 export const formatVietnameseDate = (isoString: string): string => {

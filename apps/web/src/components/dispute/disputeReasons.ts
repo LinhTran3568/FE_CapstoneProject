@@ -4,20 +4,20 @@ import { DisputeReasonCode } from '@ticketshield/api-client';
 export const DISPUTE_REASONS = [
   {
     code: DisputeReasonCode.TicketInvalid,
-    title: 'Vé không hợp lệ / Không quét được mã',
-    desc: 'Mã QR bị từ chối hoặc máy quét tại cổng báo không đúng dữ liệu.',
+    title: 'Invalid Ticket / Cannot Scan QR',
+    desc: 'QR code was rejected or the gate scanner reported invalid data.',
   },
   {
     code: DisputeReasonCode.DuplicateEntry,
-    title: 'Vé trùng lặp / Đã có người quét trước',
-    desc: 'Vé đã được người khác sử dụng để vào cổng trước bạn.',
+    title: 'Duplicate Ticket / Already Scanned',
+    desc: 'The ticket was already scanned by someone else before you entered.',
   },
   {
     code: DisputeReasonCode.FakeTicket,
-    title: 'Vé giả / Sai thông tin niêm yết',
-    desc: 'Khán đài, vị trí ghế hoặc chi tiết sự kiện không đúng cam kết.',
+    title: 'Counterfeit / Incorrect Tier or Seat',
+    desc: 'Seat zone, row, or event details do not match the listing commitment.',
   },
 ];
 
 export const disputeReasonTitle = (code: number): string =>
-  DISPUTE_REASONS.find((reason) => reason.code === code)?.title ?? 'Sự cố với vé';
+  DISPUTE_REASONS.find((reason) => reason.code === code)?.title ?? 'Ticket Issue';

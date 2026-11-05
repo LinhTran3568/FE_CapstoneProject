@@ -10,7 +10,7 @@ export const InteractiveStadiumMap: React.FC<InteractiveStadiumMapProps> = ({
   onSelectTier,
 }) => {
   const [zoomLevel, setZoomLevel] = useState(1);
-  const [hoverLabel, setHoverLabel] = useState<string>('Nhấp vào khu vực để chọn');
+  const [hoverLabel, setHoverLabel] = useState<string>('Click a zone to select');
 
   const handleZoom = (delta: number) => {
     setZoomLevel((prev) => Math.max(0.7, Math.min(1.8, +(prev + delta).toFixed(1))));
@@ -39,7 +39,7 @@ export const InteractiveStadiumMap: React.FC<InteractiveStadiumMapProps> = ({
             type="button"
             onClick={() => handleZoom(0.2)}
             className="w-8 h-8 flex items-center justify-center rounded-lg text-[#e3beb8] hover:text-white hover:bg-[#33343d] transition-all"
-            title="Phóng to"
+            title="Zoom in"
           >
             <span className="material-symbols-outlined text-[18px]">add</span>
           </button>
@@ -47,7 +47,7 @@ export const InteractiveStadiumMap: React.FC<InteractiveStadiumMapProps> = ({
             type="button"
             onClick={() => handleZoom(-0.2)}
             className="w-8 h-8 flex items-center justify-center rounded-lg text-[#e3beb8] hover:text-white hover:bg-[#33343d] transition-all"
-            title="Thu nhỏ"
+            title="Zoom out"
           >
             <span className="material-symbols-outlined text-[18px]">remove</span>
           </button>
@@ -55,7 +55,7 @@ export const InteractiveStadiumMap: React.FC<InteractiveStadiumMapProps> = ({
             type="button"
             onClick={handleResetZoom}
             className="w-8 h-8 flex items-center justify-center rounded-lg text-[#e3beb8] hover:text-white hover:bg-[#33343d] transition-all"
-            title="Đặt lại góc nhìn"
+            title="Reset view"
           >
             <span className="material-symbols-outlined text-[16px]">restart_alt</span>
           </button>
@@ -128,8 +128,8 @@ export const InteractiveStadiumMap: React.FC<InteractiveStadiumMapProps> = ({
           <g
             className="cursor-pointer transition-all duration-200 group"
             onClick={() => onSelectTier('diamond')}
-            onMouseEnter={() => setHoverLabel('Diamond Lounge VIP • 4.500.000₫')}
-            onMouseLeave={() => setHoverLabel('Nhấp vào khu vực để chọn')}
+            onMouseEnter={() => setHoverLabel('Diamond Lounge VIP • 4,500,000 ₫')}
+            onMouseLeave={() => setHoverLabel('Click a zone to select')}
           >
             {/* Pit Left */}
             <path
@@ -153,13 +153,13 @@ export const InteractiveStadiumMap: React.FC<InteractiveStadiumMapProps> = ({
               DIAMOND VIP
             </text>
             <text x="320" y="185" textAnchor="middle" fill="#D0BCFF" fontFamily="Plus Jakarta Sans" fontSize="9" fontWeight="600">
-              4.500.000đ
+              4,500,000 ₫
             </text>
             <text x="480" y="170" textAnchor="middle" fill="#FFFFFF" fontFamily="Plus Jakarta Sans" fontSize="11" fontWeight="700">
               DIAMOND VIP
             </text>
             <text x="480" y="185" textAnchor="middle" fill="#D0BCFF" fontFamily="Plus Jakarta Sans" fontSize="9" fontWeight="600">
-              4.500.000đ
+              4,500,000 ₫
             </text>
             <circle cx="320" cy="140" r="5" fill="#FF5945" className="animate-ping" />
             <circle cx="320" cy="140" r="3" fill="#FFFFFF" />
@@ -169,8 +169,8 @@ export const InteractiveStadiumMap: React.FC<InteractiveStadiumMapProps> = ({
           <g
             className="cursor-pointer transition-all duration-200 group"
             onClick={() => onSelectTier('vipa')}
-            onMouseEnter={() => setHoverLabel('VIP Zone A & B • 2.800.000₫')}
-            onMouseLeave={() => setHoverLabel('Nhấp vào khu vực để chọn')}
+            onMouseEnter={() => setHoverLabel('VIP Zone A & B • 2,800,000 ₫')}
+            onMouseLeave={() => setHoverLabel('Click a zone to select')}
           >
             <polygon
               points="170,140 240,140 240,260 170,240"
@@ -200,8 +200,8 @@ export const InteractiveStadiumMap: React.FC<InteractiveStadiumMapProps> = ({
           <g
             className="cursor-pointer transition-all duration-200 group"
             onClick={() => onSelectTier('ga')}
-            onMouseEnter={() => setHoverLabel('GA Standing Zone • 1.200.000₫')}
-            onMouseLeave={() => setHoverLabel('Nhấp vào khu vực để chọn')}
+            onMouseEnter={() => setHoverLabel('GA Standing Zone • 1,200,000 ₫')}
+            onMouseLeave={() => setHoverLabel('Click a zone to select')}
           >
             <path
               d="M 260 270 L 540 270 L 520 370 L 280 370 Z"
@@ -215,7 +215,7 @@ export const InteractiveStadiumMap: React.FC<InteractiveStadiumMapProps> = ({
               GA STANDING ZONE
             </text>
             <text x="400" y="335" textAnchor="middle" fill="#E1E1ED" fontFamily="Plus Jakarta Sans" fontSize="10" fontWeight="500">
-              1.200.000đ • Fanzone Sôi Động
+              1,200,000 ₫ • High-Energy Fanzone
             </text>
           </g>
 
@@ -223,8 +223,8 @@ export const InteractiveStadiumMap: React.FC<InteractiveStadiumMapProps> = ({
           <g
             className="cursor-pointer transition-all duration-200 group"
             onClick={() => onSelectTier('tribune')}
-            onMouseEnter={() => setHoverLabel('Khán đài C1 & C2')}
-            onMouseLeave={() => setHoverLabel('Nhấp vào khu vực để chọn')}
+            onMouseEnter={() => setHoverLabel('Grandstand C1 & C2')}
+            onMouseLeave={() => setHoverLabel('Click a zone to select')}
           >
             <path
               d="M 80,180 L 150,180 L 150,380 L 80,410 Z"
@@ -236,7 +236,7 @@ export const InteractiveStadiumMap: React.FC<InteractiveStadiumMapProps> = ({
               className="group-hover:fill-opacity-35 transition-all"
             />
             <text x="115" y="295" textAnchor="middle" fill="#F59E0B" fontFamily="Plus Jakarta Sans" fontSize="11" fontWeight="600" transform="rotate(-90 115 295)">
-              KHÁN ĐÀI C1
+              GRANDSTAND C1
             </text>
             <path
               d="M 650,180 L 720,180 L 720,410 L 650,380 Z"
@@ -248,7 +248,7 @@ export const InteractiveStadiumMap: React.FC<InteractiveStadiumMapProps> = ({
               className="group-hover:fill-opacity-35 transition-all"
             />
             <text x="685" y="295" textAnchor="middle" fill="#F59E0B" fontFamily="Plus Jakarta Sans" fontSize="11" fontWeight="600" transform="rotate(90 685 295)">
-              KHÁN ĐÀI C2
+              GRANDSTAND C2
             </text>
           </g>
 
@@ -256,7 +256,7 @@ export const InteractiveStadiumMap: React.FC<InteractiveStadiumMapProps> = ({
           <g className="cursor-not-allowed opacity-40">
             <path d="M 170 400 L 630 400 L 610 490 L 190 490 Z" fill="#33343D" stroke="#AA8984" strokeWidth="1" />
             <text x="400" y="440" textAnchor="middle" fill="#AA8984" fontFamily="Plus Jakarta Sans" fontSize="12" fontWeight="700">
-              TRIBUNE UPPER D1 (HẾT VÉ)
+              TRIBUNE UPPER D1 (SOLD OUT)
             </text>
             <text x="400" y="460" textAnchor="middle" fill="#FFB4AB" fontFamily="Plus Jakarta Sans" fontSize="10" fontWeight="500">
               SOLD OUT
@@ -273,7 +273,7 @@ export const InteractiveStadiumMap: React.FC<InteractiveStadiumMapProps> = ({
         {/* Bottom Perforation Indicator */}
         <div className="absolute bottom-3 left-4 text-xs text-[#aa8984] flex items-center gap-1.5 font-mono">
           <span className="material-symbols-outlined text-[15px]">sports_score</span>
-          <span>SVĐ Quân Khu 7 • Sức chứa 25.000 khán giả</span>
+          <span>Military Zone 7 Stadium • Capacity: 25,000</span>
         </div>
       </div>
 
@@ -312,13 +312,8 @@ export const InteractiveStadiumMap: React.FC<InteractiveStadiumMapProps> = ({
           </button>
           <div className="flex items-center gap-1.5 opacity-50 cursor-not-allowed">
             <span className="w-3 h-3 rounded-sm bg-[#33343d]" />
-            <span className="text-[#aa8984]">Upper CAT (Hết vé)</span>
+            <span className="text-[#aa8984]">Upper CAT (Sold Out)</span>
           </div>
-        </div>
-
-        <div className="flex items-center gap-1 text-[#4cd7f6] text-xs font-semibold">
-          <span className="material-symbols-outlined text-[16px]">verified</span>
-          <span>Bảo chứng vị trí Escrow</span>
         </div>
       </div>
     </div>

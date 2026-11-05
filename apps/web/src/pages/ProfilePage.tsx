@@ -457,7 +457,7 @@ export const ProfilePage: React.FC = () => {
                     <div className="text-right shrink-0">
                       <p className="text-xs font-mono text-zinc-400">
                         {ticket.bundleTotalTickets && ticket.bundleTotalTickets >= 2
-                          ? `${ticket.tierName} · Combo (${ticket.bundleTotalTickets} vé)`
+                          ? `${ticket.tierName} · Combo (${ticket.bundleTotalTickets} tickets)`
                           : ticket.tierName}
                       </p>
                       <p className="text-sm font-bold text-white mt-0.5">{formatVND(ticket.totalAmountPaid)}</p>
@@ -515,10 +515,10 @@ export const ProfilePage: React.FC = () => {
                   </div>
                   <div>
                     <span className="font-bold text-xs text-white uppercase tracking-wide block">
-                      Chưa cài đặt tài khoản ngân hàng nhận tiền!
+                      No payout bank account configured!
                     </span>
                     <p className="text-[11px] text-amber-200/80 leading-relaxed font-sans mt-0.5">
-                      Liên kết tài khoản ngân hàng để hệ thống tự động giải ngân tiền bán vé trực tiếp qua NAPAS 247.
+                      Link a bank account to receive automated ticket payouts via NAPAS 247.
                     </p>
                   </div>
                 </div>
@@ -529,7 +529,7 @@ export const ProfilePage: React.FC = () => {
                   className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 bg-gradient-to-r from-amber-500 to-[#FF5A36] hover:from-amber-400 hover:to-[#FF7252] text-black font-bold font-display text-[11px] uppercase tracking-wider rounded-xl shadow transition-all shrink-0 cursor-pointer active:scale-95"
                 >
                   <CreditCard className="w-3.5 h-3.5 stroke-[2.2]" />
-                  <span>Liên kết ngay</span>
+                  <span>Link Account</span>
                 </button>
               </div>
             )}
@@ -567,7 +567,7 @@ export const ProfilePage: React.FC = () => {
                       <div className="flex flex-wrap gap-3 mt-1 text-[11px] text-[#8B929C] font-mono">
                         <span>
                           {listing.bundleTotalTickets && listing.bundleTotalTickets >= 2
-                            ? `${listing.tierName} · Combo (${listing.bundleTotalTickets} vé)`
+                            ? `${listing.tierName} · Combo (${listing.bundleTotalTickets} tickets)`
                             : listing.tierName}
                         </span>
                         <span className="flex items-center gap-1"><Calendar className="w-3 h-3" />{formatEventDateTime(listing.eventStartAt)}</span>

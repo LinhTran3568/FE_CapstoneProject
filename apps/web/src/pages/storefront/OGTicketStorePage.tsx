@@ -124,13 +124,13 @@ export const OGTicketStorePage: React.FC = () => {
                 totalQuantity: live.totalQuantity,
                 availableQuantity: live.availableQuantity,
                 maxPerOrder: 4,
-                seatZone: `${live.tierName} - Khu vực chính thức BTC`,
-                gateEntrance: 'Cổng 1 & 2 (Kiểm soát điện tử)',
+                seatZone: `${live.tierName} - Official Organizer Allocation`,
+                gateEntrance: 'Gate 1 & 2 (Electronic Access Control)',
                 isSoldOut: live.availableQuantity <= 0,
                 perks: [
-                  'Vé điện tử chính thức phát hành từ Ban Tổ Chức',
-                  'Mã QR bảo mật chống làm giả',
-                  'Kèm quà tặng lưu niệm concert chính hãng',
+                  'Official e-ticket issued directly by Organizer',
+                  'Encrypted dynamic QR code preventing counterfeit',
+                  'Includes official concert tour souvenir package',
                 ],
                 category,
                 backendSynced: true,
@@ -143,8 +143,8 @@ export const OGTicketStorePage: React.FC = () => {
 
         void fetchCheckoutSessions(liveTiers);
         setBackendStatus('connected');
-        setLastSyncedTime(new Date().toLocaleTimeString('vi-VN'));
-        setAlertNotice('Đã cập nhật tình trạng vé mới nhất từ Ban Tổ Chức');
+        setLastSyncedTime(new Date().toLocaleTimeString('en-US'));
+        setAlertNotice('Updated real-time ticket availability from Organizer');
         setTimeout(() => setAlertNotice(null), 4000);
         return;
       }
@@ -237,14 +237,14 @@ export const OGTicketStorePage: React.FC = () => {
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row md:items-center md:justify-between gap-3">
           <div className="flex items-center gap-2 text-xs text-[#aa8984]">
             <Link to="/storefront" className="hover:text-white transition-colors">
-              Khám phá
+              Discover
             </Link>
             <span className="material-symbols-outlined text-[12px]">chevron_right</span>
             <Link to={`/storefront/event/${event.id}`} className="hover:text-white transition-colors truncate max-w-[200px]">
               {event.title}
             </Link>
             <span className="material-symbols-outlined text-[12px]">chevron_right</span>
-            <span className="text-[#ffb4a8] font-bold">Đặt vé chính thức từ Ban Tổ Chức</span>
+            <span className="text-[#ffb4a8] font-bold">Official Organizer Tickets</span>
           </div>
 
           {/* Sync indicator */}
@@ -252,26 +252,26 @@ export const OGTicketStorePage: React.FC = () => {
             {backendStatus === 'connected' ? (
               <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-[11px] font-mono text-emerald-300">
                 <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                <span>HỆ THỐNG VÉ TRỰC TUYẾN</span>
+                <span>LIVE TICKET SYSTEM</span>
                 {lastSyncedTime && <span className="text-emerald-400/60 hidden sm:inline">({lastSyncedTime})</span>}
               </div>
             ) : (
               <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-slate-500/10 border border-white/10 text-[11px] font-mono text-slate-300">
                 <span className="w-2 h-2 rounded-full bg-slate-400" />
-                <span>KHO VÉ SỰ KIỆN</span>
+                <span>EVENT ALLOCATION</span>
               </div>
             )}
 
             <button
               onClick={fetchBackendTiers}
               disabled={isBackendLoading}
-              title="Làm mới tồn kho vé từ backend"
+              title="Refresh ticket inventory"
               className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[#1e2029] hover:bg-[#282a32] text-[#e1e1ed] text-xs border border-white/10 transition-colors disabled:opacity-50"
             >
               <span className={`material-symbols-outlined text-[14px] ${isBackendLoading ? 'animate-spin' : ''}`}>
                 refresh
               </span>
-              <span className="hidden sm:inline">Làm mới</span>
+              <span className="hidden sm:inline">Refresh</span>
             </button>
           </div>
         </div>
@@ -331,7 +331,7 @@ export const OGTicketStorePage: React.FC = () => {
                     <span className="material-symbols-outlined text-[#ff5945] text-[20px]">calendar_today</span>
                   </div>
                   <div className="min-w-0 text-left">
-                    <div className="text-[11px] text-[#aa8984] uppercase tracking-wider font-mono">Thời gian</div>
+                    <div className="text-[11px] text-[#aa8984] uppercase tracking-wider font-mono">Date & Time</div>
                     <div className="text-xs font-bold text-white truncate">{event.dateDisplay}</div>
                     <div className="text-[11px] text-[#4cd7f6]">{event.timeDisplay}</div>
                   </div>
@@ -342,7 +342,7 @@ export const OGTicketStorePage: React.FC = () => {
                     <span className="material-symbols-outlined text-[#4cd7f6] text-[20px]">location_on</span>
                   </div>
                   <div className="min-w-0 text-left">
-                    <div className="text-[11px] text-[#aa8984] uppercase tracking-wider font-mono">Địa điểm</div>
+                    <div className="text-[11px] text-[#aa8984] uppercase tracking-wider font-mono">Venue</div>
                     <div className="text-xs font-bold text-white truncate">{event.venueName}</div>
                     <div className="text-[11px] text-[#aa8984] truncate">{event.venueAddress}</div>
                   </div>
@@ -350,12 +350,12 @@ export const OGTicketStorePage: React.FC = () => {
 
                 <div className="bg-[#191b23]/80 p-3.5 rounded-xl border border-white/5 flex items-center gap-3">
                   <div className="w-10 h-10 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center shrink-0">
-                    <span className="material-symbols-outlined text-emerald-400 text-[20px]">shield</span>
+                    <span className="material-symbols-outlined text-emerald-400 text-[20px]">verified</span>
                   </div>
                   <div className="min-w-0 text-left">
-                    <div className="text-[11px] text-[#aa8984] uppercase tracking-wider font-mono">Bảo chứng</div>
-                    <div className="text-xs font-bold text-white">Cyber-Escrow BTC</div>
-                    <div className="text-[11px] text-emerald-400">100% Vé chính ngạch</div>
+                    <div className="text-[11px] text-[#aa8984] uppercase tracking-wider font-mono">Source</div>
+                    <div className="text-xs font-bold text-white">Event Organizer</div>
+                    <div className="text-[11px] text-emerald-400">Official Allocation</div>
                   </div>
                 </div>
               </div>
@@ -367,7 +367,7 @@ export const OGTicketStorePage: React.FC = () => {
                   className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[#282a32] hover:bg-[#333540] text-white text-xs font-medium border border-white/10 transition-all shadow-md cursor-pointer"
                 >
                   <span className="material-symbols-outlined text-[16px] text-[#4cd7f6]">map</span>
-                  <span>Xem sơ đồ sân khấu & khán đài</span>
+                  <span>View Stage Layout & Seating Chart</span>
                 </button>
 
                 <a
@@ -375,7 +375,7 @@ export const OGTicketStorePage: React.FC = () => {
                   className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-[#ff5945] to-[#d03724] hover:opacity-95 text-white text-xs font-bold transition-all shadow-lg shadow-[#ff5945]/20 cursor-pointer"
                 >
                   <span className="material-symbols-outlined text-[16px]">confirmation_number</span>
-                  <span>Chọn hạng vé ngay</span>
+                  <span>Select Tickets Now</span>
                 </a>
               </div>
             </div>
@@ -394,14 +394,11 @@ export const OGTicketStorePage: React.FC = () => {
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-[#33343d]/40">
               <div>
                 <h2 className="font-display font-bold text-xl sm:text-2xl text-white flex items-center gap-2.5">
-                  <span>Danh sách hạng vé phát hành</span>
+                  <span>Available Ticket Tiers</span>
                   <span className="text-xs font-mono font-normal px-2.5 py-0.5 rounded-full bg-[#1e2029] text-[#aa8984] border border-white/5">
-                    {tiers.length} hạng vé
+                    {tiers.length} {tiers.length === 1 ? 'tier' : 'tiers'}
                   </span>
                 </h2>
-                <p className="text-xs text-[#aa8984] mt-1">
-                  Giá đã bao gồm VAT. Vé được liên kết mã QR động chống gian lận thương mại.
-                </p>
               </div>
 
               {/* Filter Pills */}
@@ -414,7 +411,7 @@ export const OGTicketStorePage: React.FC = () => {
                       : 'text-[#aa8984] hover:text-white'
                   }`}
                 >
-                  Tất cả
+                  All
                 </button>
                 <button
                   onClick={() => setActiveFilter('vip')}
@@ -424,7 +421,7 @@ export const OGTicketStorePage: React.FC = () => {
                       : 'text-[#aa8984] hover:text-white'
                   }`}
                 >
-                  Hạng VIP
+                  VIP Pass
                 </button>
                 <button
                   onClick={() => setActiveFilter('standard')}
@@ -444,7 +441,7 @@ export const OGTicketStorePage: React.FC = () => {
                       : 'text-[#aa8984] hover:text-white'
                   }`}
                 >
-                  Còn vé
+                  Available
                 </button>
               </div>
             </div>
@@ -503,16 +500,16 @@ export const OGTicketStorePage: React.FC = () => {
                           {/* Inventory Status Badge */}
                           {isSoldOut ? (
                             <span className="px-2.5 py-0.5 rounded-full bg-zinc-800 text-zinc-400 border border-zinc-700 text-xs font-mono font-medium">
-                              Hết vé
+                              Sold Out
                             </span>
                           ) : isLowStock ? (
                             <span className="px-2.5 py-0.5 rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/30 text-xs font-mono font-medium flex items-center gap-1">
                               <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-ping" />
-                              Chỉ còn {tier.availableQuantity} vé
+                              Only {tier.availableQuantity} left
                             </span>
                           ) : (
                             <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 text-xs font-mono font-medium">
-                              Còn {tier.availableQuantity} vé
+                              {tier.availableQuantity} available
                             </span>
                           )}
                         </div>
@@ -521,11 +518,11 @@ export const OGTicketStorePage: React.FC = () => {
                         <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-[#aa8984]">
                           <div className="flex items-center gap-1.5">
                             <span className="material-symbols-outlined text-[15px] text-[#ff5945]">event_seat</span>
-                            <span>Khu vực: <strong className="text-[#e1e1ed]">{tier.seatZone}</strong></span>
+                            <span>Zone: <strong className="text-[#e1e1ed]">{tier.seatZone}</strong></span>
                           </div>
                           <div className="flex items-center gap-1.5">
                             <span className="material-symbols-outlined text-[15px] text-[#4cd7f6]">meeting_room</span>
-                            <span>Cửa vào: <strong className="text-[#e1e1ed]">{tier.gateEntrance}</strong></span>
+                            <span>Gate: <strong className="text-[#e1e1ed]">{tier.gateEntrance}</strong></span>
                           </div>
                         </div>
 
@@ -554,7 +551,7 @@ export const OGTicketStorePage: React.FC = () => {
                                 style={{ width: `${Math.min(100, Math.max(5, stockPercent))}%` }}
                               />
                             </div>
-                            <span>Tồn kho {tier.availableQuantity} / {tier.totalQuantity || 100}</span>
+                            <span>Stock {tier.availableQuantity} / {tier.totalQuantity || 100}</span>
                           </div>
                         )}
                       </div>
@@ -562,9 +559,9 @@ export const OGTicketStorePage: React.FC = () => {
                       {/* Right: Price & Quantity Counter */}
                       <div className="flex flex-col sm:items-end justify-between gap-4 shrink-0 pt-4 md:pt-0 border-t md:border-t-0 border-white/5">
                         <div className="text-left sm:text-right">
-                          <div className="text-[11px] text-[#aa8984] uppercase font-mono tracking-wider">Đơn giá</div>
+                          <div className="text-[11px] text-[#aa8984] uppercase font-mono tracking-wider">Price</div>
                           <div className="font-display font-extrabold text-xl sm:text-2xl text-white">
-                            {tier.price.toLocaleString('vi-VN')} <span className="text-sm font-normal text-[#ffb4a8]">₫</span>
+                            {tier.price.toLocaleString('en-US')} <span className="text-sm font-normal text-[#ffb4a8]">₫</span>
                           </div>
                         </div>
 
@@ -575,7 +572,7 @@ export const OGTicketStorePage: React.FC = () => {
                               disabled
                               className="px-4 py-2 rounded-xl bg-zinc-800 text-zinc-500 text-xs font-mono font-medium cursor-not-allowed"
                             >
-                              Tạm hết vé
+                              Sold Out
                             </button>
                           ) : (
                             <div className="flex items-center bg-[#1e2029] border border-white/10 rounded-xl p-1 shadow-inner">
@@ -584,7 +581,7 @@ export const OGTicketStorePage: React.FC = () => {
                                 id={`decrease-${tier.id}`}
                                 onClick={() => handleQuantityChange(tier.id, -1)}
                                 disabled={qty === 0}
-                                title="Giảm số lượng"
+                                title="Decrease quantity"
                                 className={`w-9 h-9 rounded-lg flex items-center justify-center text-white transition-all cursor-pointer ${
                                   qty === 0
                                     ? 'opacity-30 cursor-not-allowed'
@@ -603,7 +600,7 @@ export const OGTicketStorePage: React.FC = () => {
                                 id={`increase-${tier.id}`}
                                 onClick={() => handleQuantityChange(tier.id, 1)}
                                 disabled={qty >= maxAllowed}
-                                title="Tăng số lượng"
+                                title="Increase quantity"
                                 className={`w-9 h-9 rounded-lg flex items-center justify-center transition-all cursor-pointer ${
                                   qty >= maxAllowed
                                     ? 'opacity-30 cursor-not-allowed text-zinc-500'
@@ -619,7 +616,7 @@ export const OGTicketStorePage: React.FC = () => {
                         {/* Subtotal note if selected */}
                         {qty > 0 && (
                           <div className="text-xs font-mono text-[#ffb4a8] text-right">
-                            = {(tier.price * qty).toLocaleString('vi-VN')} ₫
+                            = {(tier.price * qty).toLocaleString('en-US')} ₫
                           </div>
                         )}
                       </div>
@@ -634,7 +631,7 @@ export const OGTicketStorePage: React.FC = () => {
               <div className="flex items-center gap-2">
                 <span className="material-symbols-outlined text-[#ff5945] text-[18px]">policy</span>
                 <h4 className="font-display font-bold text-sm text-white">
-                  Quy chế nhận vé & vào cổng của Ban Tổ Chức
+                  Admission Policy & Entry Guidelines
                 </h4>
               </div>
               <ul className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-[#aa8984]">
@@ -653,11 +650,8 @@ export const OGTicketStorePage: React.FC = () => {
             <div className="bg-[#151720] border border-white/10 rounded-2xl p-6 sticky top-24 space-y-6 shadow-2xl">
               <div className="border-b border-white/10 pb-4">
                 <h3 className="font-display font-bold text-lg text-white">
-                  Chi tiết đơn đặt vé
+                  Order Summary
                 </h3>
-                <p className="text-xs text-[#aa8984] mt-0.5">
-                  Phát hành trực tiếp từ hệ thống đối tác
-                </p>
               </div>
 
               {selectedItems.length === 0 ? (
@@ -666,10 +660,10 @@ export const OGTicketStorePage: React.FC = () => {
                     <span className="material-symbols-outlined text-[24px]">confirmation_number</span>
                   </div>
                   <p className="text-xs text-[#aa8984]">
-                    Chưa có hạng vé nào được chọn.
+                    No tickets selected.
                   </p>
                   <p className="text-[11px] text-[#64748B]">
-                    Chọn số lượng ở danh sách bên trái để mở khóa thanh toán.
+                    Select ticket quantities on the left to proceed to checkout.
                   </p>
                 </div>
               ) : (
@@ -686,11 +680,11 @@ export const OGTicketStorePage: React.FC = () => {
                             {tier.tierName}
                           </div>
                           <div className="text-[11px] text-[#aa8984] font-mono">
-                            {quantity} vé × {tier.price.toLocaleString('vi-VN')} ₫
+                            {quantity} {quantity === 1 ? 'ticket' : 'tickets'} × {tier.price.toLocaleString('en-US')} ₫
                           </div>
                         </div>
                         <div className="font-mono font-bold text-white shrink-0">
-                          {subtotal.toLocaleString('vi-VN')} ₫
+                          {subtotal.toLocaleString('en-US')} ₫
                         </div>
                       </div>
                     ))}
@@ -699,16 +693,16 @@ export const OGTicketStorePage: React.FC = () => {
                   {/* Calculations Breakdown */}
                   <div className="space-y-2 text-xs pt-2">
                     <div className="flex justify-between text-[#aa8984]">
-                      <span>Tổng số lượng:</span>
-                      <span className="font-mono text-white font-bold">{totalQuantity} vé</span>
+                      <span>Total Quantity:</span>
+                      <span className="font-mono text-white font-bold">{totalQuantity} {totalQuantity === 1 ? 'ticket' : 'tickets'}</span>
                     </div>
                     <div className="flex justify-between text-[#aa8984]">
-                      <span>Phí dịch vụ & xuất vé:</span>
-                      <span className="font-mono text-emerald-400 font-medium">0 ₫ (Miễn phí)</span>
+                      <span>Processing & Issuance:</span>
+                      <span className="font-mono text-emerald-400 font-medium">0 ₫ (Complimentary)</span>
                     </div>
                     <div className="flex justify-between text-[#aa8984]">
-                      <span>Thuế giá trị gia tăng (VAT):</span>
-                      <span className="font-mono text-[#aa8984]">Đã bao gồm 10%</span>
+                      <span>Value-Added Tax (VAT):</span>
+                      <span className="font-mono text-[#aa8984]">Included (10%)</span>
                     </div>
                   </div>
 
@@ -717,23 +711,14 @@ export const OGTicketStorePage: React.FC = () => {
                   {/* Grand Total */}
                   <div className="flex items-baseline justify-between">
                     <div>
-                      <div className="text-xs text-[#aa8984]">Tổng tiền thanh toán</div>
-                      <div className="text-[10px] text-[#4cd7f6] font-mono">Đã bảo vệ Cyber-Escrow</div>
+                      <div className="text-xs text-[#aa8984]">Total Due</div>
                     </div>
                     <div className="text-right">
                       <div className="font-display font-extrabold text-2xl text-white">
-                        {grandTotal.toLocaleString('vi-VN')}{' '}
+                        {grandTotal.toLocaleString('en-US')}{' '}
                         <span className="text-sm font-normal text-[#ffb4a8]">₫</span>
                       </div>
                     </div>
-                  </div>
-
-                  {/* Escrow Guarantee Pill */}
-                  <div className="p-3 rounded-xl bg-[#1e2029] border border-white/5 flex items-start gap-2.5 text-xs text-[#aa8984]">
-                    <span className="material-symbols-outlined text-[#ff5945] text-[18px] shrink-0 mt-0.5">verified_user</span>
-                    <span className="leading-relaxed">
-                      Vé có định danh bất biến trên sổ cái TicketShield. Trường hợp không thể tham gia, bạn được quyền ký gửi bán lại P2P an toàn.
-                    </span>
                   </div>
 
                   {/* CTA BUTTON */}
@@ -743,7 +728,7 @@ export const OGTicketStorePage: React.FC = () => {
                     onClick={handleProceedToCheckout}
                     className="w-full py-3.5 px-4 rounded-xl bg-gradient-to-r from-[#ff5945] to-[#d03724] hover:opacity-95 text-white font-bold text-sm transition-all shadow-xl shadow-[#ff5945]/25 flex items-center justify-center gap-2 group cursor-pointer"
                   >
-                    <span>Tiếp tục đặt vé</span>
+                    <span>Proceed to Checkout</span>
                     <span className="material-symbols-outlined text-[18px] group-hover:translate-x-1 transition-transform">
                       arrow_forward
                     </span>
@@ -760,16 +745,16 @@ export const OGTicketStorePage: React.FC = () => {
         <div className="lg:hidden fixed bottom-0 left-0 right-0 z-50 p-4 bg-[#0e1017]/95 backdrop-blur-md border-t border-white/10 shadow-2xl">
           <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
             <div>
-              <div className="text-[11px] text-[#aa8984]">Đã chọn {totalQuantity} vé</div>
+              <div className="text-[11px] text-[#aa8984]">{totalQuantity} {totalQuantity === 1 ? 'ticket' : 'tickets'} selected</div>
               <div className="font-display font-extrabold text-lg text-white">
-                {grandTotal.toLocaleString('vi-VN')} <span className="text-xs text-[#ffb4a8]">₫</span>
+                {grandTotal.toLocaleString('en-US')} <span className="text-xs text-[#ffb4a8]">₫</span>
               </div>
             </div>
             <button
               onClick={handleProceedToCheckout}
               className="py-2.5 px-5 rounded-xl bg-[#ff5945] hover:bg-[#ff6c5b] text-white text-xs font-bold transition-all shadow-lg shadow-[#ff5945]/30 flex items-center gap-1.5 cursor-pointer"
             >
-              <span>Thanh toán</span>
+              <span>Checkout</span>
               <span className="material-symbols-outlined text-[16px]">arrow_forward</span>
             </button>
           </div>

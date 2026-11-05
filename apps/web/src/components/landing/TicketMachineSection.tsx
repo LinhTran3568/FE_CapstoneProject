@@ -30,7 +30,7 @@ const ticketThemes: TicketTheme[] = [
   {
     name: 'SUNSET AMBER',
     code: 'TS-4920',
-    event: 'VƯỢT NGÀN CHÔNG GAI LIVE',
+    event: 'CALL ME BY FIRE LIVE TOUR',
     gradStart: '#ff4b72',
     gradMid: '#f97316',
     gradEnd: '#fbbf24',
@@ -50,7 +50,7 @@ const ticketThemes: TicketTheme[] = [
   {
     name: 'ELECTRIC COBALT',
     code: 'TS-9104',
-    event: 'HÀ ANH TUẤN — STORII TOUR',
+    event: 'HA ANH TUAN — STORII TOUR',
     gradStart: '#00d2ff',
     gradMid: '#2563eb',
     gradEnd: '#1e3a8a',
@@ -60,7 +60,7 @@ const ticketThemes: TicketTheme[] = [
   {
     name: 'SOLAR GOLD',
     code: 'TS-7019',
-    event: 'VŨ. — BẢO TÀNG NUỐI TIẾC',
+    event: 'VU — MUSEUM OF REGRETS',
     gradStart: '#fde047',
     gradMid: '#f59e0b',
     gradEnd: '#d97706',
@@ -70,7 +70,7 @@ const ticketThemes: TicketTheme[] = [
   {
     name: 'HYPER CORAL',
     code: 'TS-6145',
-    event: 'RAP VIỆT ALL-STAR CONCERT',
+    event: 'RAP VIET ALL-STAR CONCERT',
     gradStart: '#fb7185',
     gradMid: '#f43f5e',
     gradEnd: '#be123c',
@@ -259,11 +259,11 @@ export const TicketMachineSection: React.FC = () => {
     const printerRig = new THREE.Group();
     masterGroup.add(printerRig);
 
-    // --- INDUSTRIAL MATTE CHARCOAL GREY MATERIALS (NHÁM MỜ, XÁM ĐEN, KHÔNG BÓNG) ---
+    // --- INDUSTRIAL MATTE CHARCOAL GREY MATERIALS ---
     const matChassisMatte = new THREE.MeshStandardMaterial({
-      color: 0x24272c,       // Pure dark charcoal gray (xám đen trung tính, không trùng nền xanh)
+      color: 0x24272c,       // Pure dark charcoal gray
       metalness: 0.12,       // Low metalness -> no mirror reflections
-      roughness: 0.88,       // Super matte texture (nhám mờ tán sắc)
+      roughness: 0.88,       // Super matte texture
     });
 
     const matUpperMatte = new THREE.MeshStandardMaterial({

@@ -16,8 +16,8 @@ export interface CopyButtonProps {
 
 export const CopyButton: React.FC<CopyButtonProps> = ({
   value,
-  label = 'Sao chép',
-  copiedLabel = 'Đã sao chép',
+  label = 'Copy',
+  copiedLabel = 'Copied',
   className = '',
   iconOnly = false,
   size = 'sm',
@@ -124,7 +124,7 @@ export const CopyButton: React.FC<CopyButtonProps> = ({
       {error ? (
         <>
           <AlertCircle className="w-3.5 h-3.5 text-red-400 shrink-0" />
-          {!iconOnly && <span className="font-semibold text-red-300 text-[10px]">Lỗi sao chép</span>}
+          {!iconOnly && <span className="font-semibold text-red-300 text-[10px]">Copy failed</span>}
         </>
       ) : copied ? (
         <>
@@ -138,7 +138,7 @@ export const CopyButton: React.FC<CopyButtonProps> = ({
         </>
       )}
       <span className="sr-only" aria-live="polite">
-        {copied ? copiedLabel : error ? 'Lỗi sao chép' : ''}
+        {copied ? copiedLabel : error ? 'Copy failed' : ''}
       </span>
     </button>
   );

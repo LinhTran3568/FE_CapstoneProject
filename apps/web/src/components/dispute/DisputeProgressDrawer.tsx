@@ -24,37 +24,42 @@ interface DisputeProgressDrawerProps {
 }
 
 const STEP_LABELS: Record<string, string> = {
-  SUBMITTED: 'Đã nộp khiếu nại',
-  GATE_LOG_CHECK: 'Đối chiếu dữ liệu soát vé tại cổng',
-  RESOLVED: 'Đã phân xử',
+  SUBMITTED: 'Dispute Submitted',
+  GATE_LOG_CHECK: 'Venue Gate Log Verification',
+  RESOLVED: 'Dispute Resolved',
 };
 
 const formatDateTime = (iso?: string | null): string => {
   if (!iso) return '';
   const date = new Date(iso);
   if (Number.isNaN(date.getTime())) return '';
-  const day = new Intl.DateTimeFormat('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' }).format(date);
-  const time = new Intl.DateTimeFormat('vi-VN', { hour: '2-digit', minute: '2-digit', hour12: false }).format(date);
-  return `${day} ${time}`;
+  return new Intl.DateTimeFormat('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: true,
+  }).format(date);
 };
 
 const statusPill = (status: string) => {
   switch (status) {
     case 'RESOLVED':
-      return { label: 'Được chấp nhận', classes: 'bg-emerald-500/15 border-emerald-500/40 text-emerald-300' };
+      return { label: 'Accepted', classes: 'bg-emerald-500/15 border-emerald-500/40 text-emerald-300' };
     case 'REJECTED':
-      return { label: 'Không được chấp nhận', classes: 'bg-rose-500/15 border-rose-500/40 text-rose-300' };
+      return { label: 'Rejected', classes: 'bg-rose-500/15 border-rose-500/40 text-rose-300' };
     default:
-      return { label: 'Đang xử lý', classes: 'bg-amber-500/15 border-amber-500/40 text-amber-300' };
+      return { label: 'In Progress', classes: 'bg-amber-500/15 border-amber-500/40 text-amber-300' };
   }
 };
 
 const MONEY_STATUS_LABELS: Record<string, string> = {
-  APPROVED: 'Đã duyệt',
-  PENDING: 'Đang chờ chuyển',
-  PROCESSING: 'Đang chuyển',
-  SUCCESS: 'Đã chuyển',
-  FAILED: 'Chuyển chưa thành công',
+  APPROVED: 'Approved',
+  PENDING: 'Pending Transfer',
+  PROCESSING: 'Transferring',
+  SUCCESS: 'Completed',
+  FAILED: 'Transfer Failed',
 };
 
 /** Green when the outcome favours the viewer, red when it goes against them, neutral for the seller of a refunded sale. */
@@ -80,10 +85,10 @@ const TimelineStep: React.FC<{ step: DisputeTimelineStepDto; isLast: boolean }> 
   const current = step.state === 'CURRENT';
   const skipped = step.state === 'SKIPPED';
 
-  let detail = 'Chưa tới bước này';
-  if (done) detail = formatDateTime(step.at) || 'Đã xong';
-  else if (current) detail = 'Đang thực hiện…';
-  else if (skipped) detail = 'Đã bỏ qua';
+  let detail = 'Pending step';
+  if (done) detail = formatDateTime(step.at) || 'Completed';
+  else if (current) detail = 'In progress…';
+  else if (skipped) detail = 'Skipped';
 
   const dotClasses = done
     ? 'bg-emerald-400 text-[#05140f]'
@@ -118,16 +123,16 @@ const TimelineStep: React.FC<{ step: DisputeTimelineStepDto; isLast: boolean }> 
 
 const MoneyBlock: React.FC<{ money: DisputeMoneyDto }> = ({ money }) => {
   const isRefund = money.kind === 'REFUND';
-  const statusLabel = MONEY_STATUS_LABELS[money.status] ?? 'Đang xử lý';
+  const statusLabel = MONEY_STATUS_LABELS[money.status] ?? 'Processing';
   const processedAt = formatDateTime(money.processedAt);
   const settled = money.status === 'APPROVED' || money.status === 'SUCCESS';
 
   return (
     <section>
-      <SectionLabel>Tiền của bạn</SectionLabel>
+      <SectionLabel>Escrow Funds</SectionLabel>
       <div className="rounded-xl border border-white/10 bg-white/[0.03] px-3.5 py-3">
         <div className="flex items-center justify-between gap-3 text-xs text-slate-300">
-          <span>{isRefund ? 'Hoàn tiền' : 'Tiền bán vé'}</span>
+          <span>{isRefund ? 'Buyer Refund' : 'Seller Payout'}</span>
           <span
             className={`rounded-full border px-2.5 py-0.5 text-[10.5px] font-mono font-extrabold uppercase ${
               settled
@@ -139,14 +144,14 @@ const MoneyBlock: React.FC<{ money: DisputeMoneyDto }> = ({ money }) => {
           </span>
         </div>
         <p className="mt-1 text-[22px] font-extrabold tabular-nums text-white">{formatVND(money.amount)}</p>
-        {processedAt && <p className="text-[11.5px] text-[#8B929C]">Xử lý lúc {processedAt}</p>}
+        {processedAt && <p className="text-[11.5px] text-[#8B929C]">Processed at {processedAt}</p>}
       </div>
     </section>
   );
 };
 
 const LoadingSkeleton: React.FC = () => (
-  <div className="space-y-5 animate-pulse" aria-busy="true" aria-label="Đang tải tiến độ khiếu nại">
+  <div className="space-y-5 animate-pulse" aria-busy="true" aria-label="Loading dispute progress">
     <div className="h-6 w-32 rounded-full bg-white/10" />
     <div className="h-14 rounded-xl bg-white/[0.06]" />
     {[0, 1, 2].map((i) => (
@@ -163,8 +168,8 @@ const LoadingSkeleton: React.FC = () => (
 
 const errorMessage = (error: unknown): string => {
   const status = (error as { status?: number } | null)?.status;
-  if (status === 403 || status === 404) return 'Không tìm thấy khiếu nại này, hoặc bạn không có quyền xem.';
-  return 'Không tải được tiến độ khiếu nại. Vui lòng thử lại.';
+  if (status === 403 || status === 404) return 'Dispute not found, or you do not have permission to view it.';
+  return 'Failed to load dispute progress. Please try again.';
 };
 
 const ProgressBody: React.FC<{ data: MyDisputeProgressDto }> = ({ data }) => {
@@ -183,22 +188,22 @@ const ProgressBody: React.FC<{ data: MyDisputeProgressDto }> = ({ data }) => {
       </div>
 
       <section>
-        <SectionLabel>Lý do khiếu nại</SectionLabel>
+        <SectionLabel>Dispute Reason</SectionLabel>
         <div className="rounded-xl border border-white/10 bg-[#05070A] px-3 py-2.5 text-[12.5px] leading-relaxed text-slate-200">
           {disputeReasonTitle(Number(data.reasonCode))}
           {isBuyer && data.description && (
             <p className="mt-1.5 border-l-2 border-white/20 pl-2 text-[11.5px] text-[#8B929C]">
               <span className="block text-[10.5px] font-bold uppercase tracking-wide text-[#8B929C]/80">
-                Lời bạn đã nêu
+                Submitted Statement
               </span>
-              “{data.description}”
+              "{data.description}"
             </p>
           )}
         </div>
       </section>
 
       <section>
-        <SectionLabel>Các bước xử lý</SectionLabel>
+        <SectionLabel>Timeline</SectionLabel>
         <ol>
           {data.timeline.map((step, index) => (
             <TimelineStep key={step.step} step={step} isLast={index === data.timeline.length - 1} />
@@ -208,7 +213,7 @@ const ProgressBody: React.FC<{ data: MyDisputeProgressDto }> = ({ data }) => {
 
       {data.resolutionMessage && (
         <section>
-          <SectionLabel>Kết quả</SectionLabel>
+          <SectionLabel>Resolution</SectionLabel>
           <p className={`rounded-xl border px-3.5 py-3 text-[13px] leading-relaxed ${TONE_CLASSES[tone]}`}>
             {data.resolutionMessage}
           </p>
@@ -262,21 +267,21 @@ export const DisputeProgressDrawer: React.FC<DisputeProgressDrawerProps> = ({ ta
         <header className="flex items-start justify-between gap-3 border-b border-white/10 px-5 pb-3.5 pt-[18px]">
           <div className="min-w-0">
             <p className="text-[10.5px] font-mono font-bold uppercase tracking-wider text-[#8B929C]">
-              Khiếu nại{data?.disputeCode ? ` · ${data.disputeCode}` : ''}
+              Dispute{data?.disputeCode ? ` · ${data.disputeCode}` : ''}
             </p>
             <h2 id={titleId} className="mt-0.5 text-[17px] font-extrabold text-white">
-              Tiến độ khiếu nại
+              Dispute Status
             </h2>
             <p className="truncate text-[11.5px] text-[#8B929C]">
               {target.eventName}
-              {target.ticketCode ? ` · Mã vé ${target.ticketCode}` : ''}
+              {target.ticketCode ? ` · Ticket ${target.ticketCode}` : ''}
             </p>
           </div>
           <button
             ref={closeRef}
             type="button"
             onClick={onClose}
-            aria-label="Đóng"
+            aria-label="Close"
             className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-white/10 bg-white/[0.05] text-slate-300 transition-colors hover:bg-white/10 hover:text-white"
           >
             <X className="h-4 w-4" />
@@ -294,7 +299,7 @@ export const DisputeProgressDrawer: React.FC<DisputeProgressDrawerProps> = ({ ta
                 className="inline-flex items-center gap-1.5 rounded-lg border border-rose-400/40 bg-rose-500/20 px-3 py-1.5 text-xs font-bold text-rose-100 transition-colors hover:bg-rose-500/30 disabled:opacity-60"
               >
                 {isFetching ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
-                Thử lại
+                Retry
               </button>
             </div>
           ) : data ? (
@@ -308,7 +313,7 @@ export const DisputeProgressDrawer: React.FC<DisputeProgressDrawerProps> = ({ ta
           {isAutoUpdating ? (
             <span className="flex items-center gap-1.5">
               <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" aria-hidden="true" />
-              Tự động cập nhật vài giây một lần
+              Live updates active
             </span>
           ) : (
             <span />
@@ -318,7 +323,7 @@ export const DisputeProgressDrawer: React.FC<DisputeProgressDrawerProps> = ({ ta
             onClick={onClose}
             className="rounded-[10px] border border-white/15 bg-white/[0.06] px-4 py-1.5 text-[11px] font-mono font-extrabold text-white transition-colors hover:bg-white/10"
           >
-            Đóng
+            Close
           </button>
         </footer>
       </motion.aside>

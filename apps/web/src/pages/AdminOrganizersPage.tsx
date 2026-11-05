@@ -49,22 +49,22 @@ const PRESET_PROFILES: PresetProfile[] = [
     name: 'VieON Entertainment',
     officialEmail: 'partner@vieon.vn',
     taxCode: '0312345678',
-    contactPerson: 'Nguyễn Văn Đại Diện',
+    contactPerson: 'Authorized Representative',
     contactPhone: '19001234',
     apiBaseUrl: 'http://localhost:5001',
     grpcEndpoint: 'http://localhost:5004',
-    description: 'Đối tác phát hành độc quyền concert Anh Trai Say Hi 2026',
+    description: 'Exclusive ticketing partner for Anh Trai Say Hi Concert 2026',
   },
   {
     id: 'spacespeakers',
     name: 'SpaceSpeakers Production',
     officialEmail: 'contact@spacespeakers.vn',
     taxCode: '0398765432',
-    contactPerson: 'Touliver Hoàng',
+    contactPerson: 'Lead Producer',
     contactPhone: '0901234567',
     apiBaseUrl: 'http://localhost:5001',
     grpcEndpoint: 'http://localhost:5004',
-    description: 'Đơn vị tổ chức chuỗi sự kiện Hip-hop Mixtape Hanoi 2026',
+    description: 'Organizer of Hip-hop Mixtape Hanoi 2026 series',
   },
   {
     id: 'livenation',
@@ -75,7 +75,7 @@ const PRESET_PROFILES: PresetProfile[] = [
     contactPhone: '0988776655',
     apiBaseUrl: 'http://localhost:5001',
     grpcEndpoint: 'http://localhost:5004',
-    description: 'Đại diện phát hành vé The Wild Dreams Tour - Westlife Vietnam 2026',
+    description: 'Ticketing representative for The Wild Dreams Tour - Westlife Vietnam 2026',
   },
 ];
 
@@ -140,7 +140,7 @@ export const AdminOrganizersPage: React.FC = () => {
         setSelectedNodeId(data[0].id);
       }
     } catch (err: any) {
-      showToast(err?.message || 'Không thể tải danh sách Ban tổ chức đối tác.', 'error');
+      showToast(err?.message || 'Unable to load organizers from the server.', 'error');
     } finally {
       setLoading(false);
     }
@@ -153,7 +153,7 @@ export const AdminOrganizersPage: React.FC = () => {
   const copyToClipboard = (text: string, key: string) => {
     navigator.clipboard.writeText(text);
     setCopiedKey(key);
-    showToast('Đã sao chép vào bộ nhớ tạm', 'info');
+    showToast('Copied to clipboard', 'info');
     setTimeout(() => setCopiedKey(null), 2000);
   };
 
@@ -169,7 +169,7 @@ export const AdminOrganizersPage: React.FC = () => {
       webhookUrl: `${preset.apiBaseUrl}/api/v1/webhook`,
       webhookSecretKey: `whsec_${preset.id}_${Date.now().toString().slice(-6)}`,
     });
-    showToast(`Đã áp dụng cấu hình mẫu: ${preset.name}`, 'info');
+    showToast(`Applied preset configuration: ${preset.name}`, 'info');
   };
 
   // Ping Health Check action for single node
@@ -180,14 +180,14 @@ export const AdminOrganizersPage: React.FC = () => {
       const isConnected = (res.connectionStatus || res.status) === 'CONNECTED';
       showToast(
         isConnected
-          ? `Kết nối thành công tới ${name} (${res.latencyMs}ms)`
-          : `Không thể kết nối tới ${name}: ${res.message}`,
+          ? `Connected successfully to ${name} (${res.latencyMs}ms)`
+          : `Unable to connect to ${name}: ${res.message}`,
         isConnected ? 'success' : 'warning'
       );
       const updated = await adminApi.getOrganizers();
       setOrganizers(updated);
     } catch (err: any) {
-      showToast(err?.message || 'Lỗi khi kiểm tra kết nối tới Ban tổ chức.', 'error');
+      showToast(err?.message || 'Error checking connection to organizer.', 'error');
     } finally {
       setTestingId(null);
     }
@@ -206,11 +206,11 @@ export const AdminOrganizersPage: React.FC = () => {
           r.status === 'fulfilled' &&
           ((r.value.connectionStatus || r.value.status) === 'CONNECTED')
       ).length;
-      showToast(`Đã kiểm tra ${organizers.length} đối tác: ${connectedCount} kết nối ổn định.`, 'success');
+      showToast(`Checked ${organizers.length} partners: ${connectedCount} healthy connections.`, 'success');
       const updated = await adminApi.getOrganizers();
       setOrganizers(updated);
     } catch (err: any) {
-      showToast(err?.message || 'Lỗi khi kiểm tra đồng loạt kết nối.', 'error');
+      showToast(err?.message || 'Error running batch connection test.', 'error');
     } finally {
       setIsPingingAll(false);
     }
@@ -221,11 +221,11 @@ export const AdminOrganizersPage: React.FC = () => {
     setSyncingId(id);
     try {
       const res: SyncOrganizerEventsResult = await adminApi.syncOrganizerEvents(id);
-      showToast(res.message || `Đồng bộ sự kiện cho ${name} thành công.`, 'success');
+      showToast(res.message || `Events catalog synced for ${name} successfully.`, 'success');
       const updated = await adminApi.getOrganizers();
       setOrganizers(updated);
     } catch (err: any) {
-      showToast(err?.message || 'Lỗi khi đồng bộ danh mục sự kiện.', 'error');
+      showToast(err?.message || 'Error syncing events catalog.', 'error');
     } finally {
       setSyncingId(null);
     }
@@ -240,11 +240,11 @@ export const AdminOrganizersPage: React.FC = () => {
         organizers.map((org) => adminApi.syncOrganizerEvents(org.id))
       );
       const successCount = results.filter((r) => r.status === 'fulfilled').length;
-      showToast(`Đã đồng bộ danh mục từ ${successCount}/${organizers.length} đối tác.`, 'success');
+      showToast(`Synced catalogs from ${successCount}/${organizers.length} partners.`, 'success');
       const updated = await adminApi.getOrganizers();
       setOrganizers(updated);
     } catch (err: any) {
-      showToast(err?.message || 'Lỗi khi đồng bộ danh mục sự kiện.', 'error');
+      showToast(err?.message || 'Error syncing events catalog.', 'error');
     } finally {
       setIsSyncingAll(false);
     }
@@ -253,14 +253,14 @@ export const AdminOrganizersPage: React.FC = () => {
   const handleCreateSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!createForm.name.trim() || !createForm.officialEmail.trim()) {
-      showToast('Vui lòng nhập tên và email chính thức của Ban tổ chức.', 'warning');
+      showToast('Please provide the organizer name and official email.', 'warning');
       return;
     }
 
     setSubmitting(true);
     try {
       await adminApi.createOrganizer(createForm);
-      showToast('Đã thêm đối tác Ban tổ chức mới thành công.', 'success');
+      showToast('New event organizer added successfully.', 'success');
       setIsCreateModalOpen(false);
       setCreateForm({
         name: '',
@@ -275,7 +275,7 @@ export const AdminOrganizersPage: React.FC = () => {
       });
       fetchOrganizers();
     } catch (err: any) {
-      showToast(err?.message || 'Không thể tạo Ban tổ chức.', 'error');
+      showToast(err?.message || 'Failed to create organizer.', 'error');
     } finally {
       setSubmitting(false);
     }
@@ -304,11 +304,11 @@ export const AdminOrganizersPage: React.FC = () => {
     setSubmitting(true);
     try {
       await adminApi.updateOrganizer(editingOrganizer.id, editForm);
-      showToast(`Đã cập nhật cấu hình cho ${editingOrganizer.name}.`, 'success');
+      showToast(`Configuration updated for ${editingOrganizer.name}.`, 'success');
       setEditingOrganizer(null);
       fetchOrganizers();
     } catch (err: any) {
-      showToast(err?.message || 'Không thể cập nhật thông số kết nối.', 'error');
+      showToast(err?.message || 'Failed to update connection parameters.', 'error');
     } finally {
       setSubmitting(false);
     }
@@ -368,7 +368,7 @@ export const AdminOrganizersPage: React.FC = () => {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold font-display text-[#101722] tracking-tight">
-            Quản lý Đối tác
+            Event Organizers
           </h1>
         </div>
 
@@ -385,7 +385,7 @@ export const AdminOrganizersPage: React.FC = () => {
                }`}
              >
                <Sliders className="w-3.5 h-3.5" />
-               <span>Bảng danh sách</span>
+               <span>List View</span>
              </button>
              <button
                type="button"
@@ -397,7 +397,7 @@ export const AdminOrganizersPage: React.FC = () => {
                }`}
              >
                <Share2 className="w-3.5 h-3.5" />
-               <span>Sơ đồ kết nối</span>
+               <span>Topology Graph</span>
              </button>
           </div>
 
@@ -406,7 +406,7 @@ export const AdminOrganizersPage: React.FC = () => {
             onClick={fetchOrganizers}
             disabled={loading}
             className="flex items-center gap-2 px-3 py-2 rounded-xl border border-[#E5EAF0] bg-white text-xs font-semibold text-[#101722] hover:bg-slate-50 transition-colors shadow-sm disabled:opacity-60"
-            title="Làm mới"
+            title="Refresh"
           >
             <RefreshCw className={`w-3.5 h-3.5 text-slate-500 ${loading ? 'animate-spin' : ''}`} />
           </button>
@@ -417,7 +417,7 @@ export const AdminOrganizersPage: React.FC = () => {
             className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[#F45135] text-white text-xs font-bold hover:bg-[#e0452a] transition-all shadow-sm shadow-[#F45135]/20"
           >
             <Plus className="w-4 h-4" />
-            <span>Thêm đối tác</span>
+            <span>Add Organizer</span>
           </button>
         </div>
       </div>
@@ -427,7 +427,7 @@ export const AdminOrganizersPage: React.FC = () => {
         <div className="bg-white p-4 rounded-2xl border border-[#E5EAF0] shadow-sm flex items-center justify-between">
           <div className="space-y-0.5">
             <span className="text-[11px] font-mono uppercase tracking-wider text-[#667085] font-semibold">
-              Tổng số đối tác
+              Total Organizers
             </span>
             <p className="text-2xl font-bold font-display text-[#101722]">{totalCount}</p>
           </div>
@@ -439,7 +439,7 @@ export const AdminOrganizersPage: React.FC = () => {
         <div className="bg-white p-4 rounded-2xl border border-[#E5EAF0] shadow-sm flex items-center justify-between">
           <div className="space-y-0.5">
             <span className="text-[11px] font-mono uppercase tracking-wider text-[#667085] font-semibold">
-              Đang kết nối
+              Connected
             </span>
             <div className="flex items-center gap-2">
               <p className="text-2xl font-bold font-display text-emerald-600">{connectedCount}</p>
@@ -454,7 +454,7 @@ export const AdminOrganizersPage: React.FC = () => {
         <div className="bg-white p-4 rounded-2xl border border-[#E5EAF0] shadow-sm flex items-center justify-between">
           <div className="space-y-0.5">
             <span className="text-[11px] font-mono uppercase tracking-wider text-[#667085] font-semibold">
-              Đang mở bán
+              Active
             </span>
             <p className="text-2xl font-bold font-display text-indigo-600">{activeCount}</p>
           </div>
@@ -466,7 +466,7 @@ export const AdminOrganizersPage: React.FC = () => {
         <div className="bg-white p-4 rounded-2xl border border-[#E5EAF0] shadow-sm flex items-center justify-between">
           <div className="space-y-0.5">
             <span className="text-[11px] font-mono uppercase tracking-wider text-[#667085] font-semibold">
-              Sự kiện đã nạp
+              Synced Events
             </span>
             <p className="text-2xl font-bold font-display text-[#101722]">{totalEvents}</p>
           </div>
@@ -485,7 +485,7 @@ export const AdminOrganizersPage: React.FC = () => {
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Tìm theo tên đối tác, email, cổng kết nối..."
+            placeholder="Search by organizer name, email, endpoint..."
             className="w-full pl-10 pr-4 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-[#F45135] focus:bg-white transition-all text-[#101722]"
           />
         </div>
@@ -494,7 +494,7 @@ export const AdminOrganizersPage: React.FC = () => {
         <div className="flex flex-wrap items-center gap-3">
           {/* Status Filter */}
           <div className="flex items-center gap-2">
-            <span className="text-xs text-[#667085] font-medium whitespace-nowrap">Trạng thái:</span>
+            <span className="text-xs text-[#667085] font-medium whitespace-nowrap">Status:</span>
             <div className="flex items-center bg-slate-100 p-1 rounded-xl gap-1">
               {(['ALL', 'CONNECTED', 'DISCONNECTED', 'PENDING'] as const).map((st) => (
                 <button
@@ -508,12 +508,12 @@ export const AdminOrganizersPage: React.FC = () => {
                   }`}
                 >
                   {st === 'ALL'
-                    ? 'Tất cả'
+                    ? 'All'
                     : st === 'CONNECTED'
-                    ? 'Đã kết nối'
+                    ? 'Connected'
                     : st === 'DISCONNECTED'
-                    ? 'Ngoại tuyến'
-                    : 'Chờ'}
+                    ? 'Offline'
+                    : 'Pending'}
                 </button>
               ))}
             </div>
@@ -521,21 +521,21 @@ export const AdminOrganizersPage: React.FC = () => {
 
           <div className="h-5 w-px bg-slate-200 hidden sm:block" />
 
-          {/* Batch Actions: Kiểm tra toàn bộ & Đồng bộ toàn bộ */}
+          {/* Batch Actions: Ping All & Sync All */}
           <div className="flex items-center gap-2">
             <button
               type="button"
               onClick={handlePingAll}
               disabled={isPingingAll || organizers.length === 0}
               className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-amber-200 bg-amber-50 hover:bg-amber-100 text-amber-800 text-xs font-bold transition-all shadow-sm disabled:opacity-50"
-              title="Kiểm tra kết nối toàn bộ đối tác"
+              title="Test connection to all organizers"
             >
               {isPingingAll ? (
                 <Loader2 className="w-3.5 h-3.5 animate-spin text-amber-700" />
               ) : (
                 <Zap className="w-3.5 h-3.5 text-amber-600" />
               )}
-              <span>Kiểm tra toàn bộ</span>
+              <span>Ping All</span>
             </button>
 
             <button
@@ -543,14 +543,14 @@ export const AdminOrganizersPage: React.FC = () => {
               onClick={handleSyncAll}
               disabled={isSyncingAll || organizers.length === 0}
               className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-indigo-200 bg-indigo-50 hover:bg-indigo-100 text-indigo-800 text-xs font-bold transition-all shadow-sm disabled:opacity-50"
-              title="Đồng bộ danh mục sự kiện từ tất cả đối tác"
+              title="Sync events catalog from all organizers"
             >
               {isSyncingAll ? (
                 <Loader2 className="w-3.5 h-3.5 animate-spin text-indigo-700" />
               ) : (
                 <RefreshCw className="w-3.5 h-3.5 text-indigo-600" />
               )}
-              <span>Đồng bộ toàn bộ</span>
+              <span>Sync All</span>
             </button>
           </div>
         </div>
@@ -578,11 +578,11 @@ export const AdminOrganizersPage: React.FC = () => {
               <div className="flex items-center gap-2">
                 <span className="w-2 h-2 rounded-full bg-emerald-400" />
                 <h3 className="text-xs font-mono font-bold uppercase tracking-wider text-slate-200">
-                  Sơ đồ kết nối
+                  Topology Graph
                 </h3>
               </div>
               <span className="text-[11px] font-mono text-slate-400">
-                {filteredOrganizers.length} đối tác
+                {filteredOrganizers.length} partners
               </span>
             </div>
 
@@ -643,7 +643,7 @@ export const AdminOrganizersPage: React.FC = () => {
                 })}
               </svg>
 
-              {/* ── Center Node: Cổng kết nối (Gateway) ── */}
+              {/* ── Center Node: Gateway ── */}
               <div
                 style={{
                   position: 'absolute',
@@ -656,9 +656,9 @@ export const AdminOrganizersPage: React.FC = () => {
                 <div className="w-7 h-7 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center mb-1">
                   <Share2 className="w-3.5 h-3.5" />
                 </div>
-                <h4 className="text-[11px] font-bold text-white tracking-wide">Cổng kết nối</h4>
+                <h4 className="text-[11px] font-bold text-white tracking-wide">Gateway</h4>
                 <span className="text-[10px] font-mono text-emerald-400 mt-0.5">
-                  {connectedCount}/{totalCount} kết nối
+                  {connectedCount}/{totalCount} connected
                 </span>
               </div>
 
@@ -666,11 +666,11 @@ export const AdminOrganizersPage: React.FC = () => {
               {loading ? (
                 <div className="text-center py-8 text-slate-400 text-xs z-30">
                   <Loader2 className="w-5 h-5 animate-spin mx-auto text-[#F45135]" />
-                  <p className="mt-2 font-mono">Đang nạp sơ đồ...</p>
+                  <p className="mt-2 font-mono">Loading topology...</p>
                 </div>
               ) : filteredOrganizers.length === 0 ? (
                 <div className="p-4 rounded-xl border border-dashed border-slate-700 text-center text-slate-400 text-xs z-30">
-                  Chưa có đối tác nào.
+                  No partners found.
                 </div>
               ) : (
                 radialPositions.map(({ org, leftPct, topPct }) => {
@@ -723,14 +723,14 @@ export const AdminOrganizersPage: React.FC = () => {
               <div className="flex items-center gap-4">
                 <span className="flex items-center gap-1.5">
                   <span className="w-2 h-2 rounded-full bg-emerald-400 shadow-sm shadow-emerald-400/50" />
-                  <span>Đã kết nối (Tia xanh)</span>
+                  <span>Connected (Green)</span>
                 </span>
                 <span className="flex items-center gap-1.5">
                   <span className="w-2 h-2 rounded-full bg-slate-600" />
-                  <span>Chưa kết nối (Đường xám)</span>
+                  <span>Disconnected (Gray)</span>
                 </span>
               </div>
-              <span>Bấm vào đối tác để xem chi tiết</span>
+              <span>Click a node to inspect details</span>
             </div>
           </div>
 
@@ -753,7 +753,7 @@ export const AdminOrganizersPage: React.FC = () => {
                     type="button"
                     onClick={() => handleOpenEdit(selectedOrganizer)}
                     className="p-1.5 rounded-lg border border-slate-200 hover:bg-slate-50 text-slate-600 transition-colors"
-                    title="Chỉnh sửa thông số"
+                    title="Edit parameters"
                   >
                     <Edit2 className="w-3.5 h-3.5" />
                   </button>
@@ -762,15 +762,15 @@ export const AdminOrganizersPage: React.FC = () => {
                 {/* 4-Step Lifecycle Timeline */}
                 <div className="space-y-2">
                   <label className="block text-[11px] font-mono uppercase tracking-wider text-[#667085] font-semibold">
-                    Tiến trình đối tác
+                    Partner Lifecycle
                   </label>
                   <div className="bg-slate-50 p-3 rounded-xl border border-slate-200 space-y-2 text-xs">
                     <div className="flex items-center justify-between">
                       <span className="flex items-center gap-2 text-emerald-700 font-medium">
                         <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                        <span>1. Hồ sơ kinh doanh</span>
+                        <span>1. Business Profile</span>
                       </span>
-                      <span className="text-[10px] font-mono text-emerald-600">Hoàn tất</span>
+                      <span className="text-[10px] font-mono text-emerald-600">Completed</span>
                     </div>
 
                     <div className="flex items-center justify-between">
@@ -786,12 +786,12 @@ export const AdminOrganizersPage: React.FC = () => {
                         ) : (
                           <XCircle className="w-3.5 h-3.5 text-slate-400" />
                         )}
-                        <span>2. Kết nối mạng</span>
+                        <span>2. Network Gateway</span>
                       </span>
                       <span className="text-[10px] font-mono text-slate-500">
                         {selectedOrganizer.lastPingLatencyMs
                           ? `${selectedOrganizer.lastPingLatencyMs}ms`
-                          : 'Chưa kiểm tra'}
+                          : 'Not tested'}
                       </span>
                     </div>
 
@@ -808,10 +808,10 @@ export const AdminOrganizersPage: React.FC = () => {
                         ) : (
                           <XCircle className="w-3.5 h-3.5 text-slate-400" />
                         )}
-                        <span>3. Danh mục vé</span>
+                        <span>3. Ticket Catalog</span>
                       </span>
                       <span className="text-[10px] font-mono text-slate-500">
-                        {selectedOrganizer.eventsCount ?? selectedOrganizer.totalEvents ?? 0} sự kiện
+                        {selectedOrganizer.eventsCount ?? selectedOrganizer.totalEvents ?? 0} events
                       </span>
                     </div>
 
@@ -828,10 +828,10 @@ export const AdminOrganizersPage: React.FC = () => {
                         ) : (
                           <XCircle className="w-3.5 h-3.5 text-slate-400" />
                         )}
-                        <span>4. Trạng thái bán</span>
+                        <span>4. Trading Status</span>
                       </span>
                       <span className="text-[10px] font-mono text-slate-500">
-                        {selectedOrganizer.status === 'ACTIVE' ? 'Sẵn sàng' : 'Chờ kích hoạt'}
+                        {selectedOrganizer.status === 'ACTIVE' ? 'Ready' : 'Pending activation'}
                       </span>
                     </div>
                   </div>
@@ -850,7 +850,7 @@ export const AdminOrganizersPage: React.FC = () => {
                     ) : (
                       <Zap className="w-3.5 h-3.5 text-amber-600" />
                     )}
-                    <span>Kiểm tra</span>
+                    <span>Ping</span>
                   </button>
 
                   <button
@@ -864,7 +864,7 @@ export const AdminOrganizersPage: React.FC = () => {
                     ) : (
                       <RefreshCw className="w-3.5 h-3.5 text-indigo-600" />
                     )}
-                    <span>Đồng bộ</span>
+                    <span>Sync</span>
                   </button>
                 </div>
 
@@ -874,7 +874,7 @@ export const AdminOrganizersPage: React.FC = () => {
                     <label className="text-[11px] font-mono uppercase tracking-wider text-[#667085] font-semibold flex items-center gap-1.5">
                       <Calendar className="w-3.5 h-3.5 text-indigo-500" />
                       <span>
-                        Sự kiện đã nạp ({selectedOrganizer.events?.length ?? selectedOrganizer.eventsCount ?? 0})
+                        Synced Events ({selectedOrganizer.events?.length ?? selectedOrganizer.eventsCount ?? 0})
                       </span>
                     </label>
                     <button
@@ -884,7 +884,7 @@ export const AdminOrganizersPage: React.FC = () => {
                       className="text-[10px] font-semibold text-indigo-600 hover:text-indigo-800 flex items-center gap-1"
                     >
                       <RefreshCw className={`w-3 h-3 ${syncingId === selectedOrganizer.id ? 'animate-spin' : ''}`} />
-                      <span>Tải mới</span>
+                      <span>Reload</span>
                     </button>
                   </div>
 
@@ -898,25 +898,25 @@ export const AdminOrganizersPage: React.FC = () => {
                           <div className="flex items-start justify-between gap-1">
                             <h5 className="font-bold text-slate-900 truncate">{ev.name}</h5>
                             <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200 shrink-0">
-                              {ev.tiersCount} hạng vé
+                              {ev.tiersCount} tiers
                             </span>
                           </div>
                           <div className="flex items-center justify-between text-[10px] text-slate-500 font-mono mt-1">
-                            <span className="truncate max-w-[140px]">{ev.venue || ev.city || 'Việt Nam'}</span>
-                            <span>{new Date(ev.eventStartAt).toLocaleDateString('vi-VN')}</span>
+                            <span className="truncate max-w-[140px]">{ev.venue || ev.city || 'Vietnam'}</span>
+                            <span>{new Date(ev.eventStartAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
                           </div>
                         </div>
                       ))}
                     </div>
                   ) : (
                     <div className="p-3 rounded-xl border border-dashed border-slate-200 text-center text-slate-400 text-xs">
-                      <p>Chưa có sự kiện nào được nạp.</p>
+                      <p>No events synced yet.</p>
                       <button
                         type="button"
                         onClick={() => handleSyncEvents(selectedOrganizer.id, selectedOrganizer.name)}
                         className="mt-1.5 px-3 py-1 rounded-lg bg-indigo-50 text-indigo-600 font-semibold text-[11px] hover:bg-indigo-100 transition-colors"
                       >
-                        Tải danh mục sự kiện từ BTC
+                        Fetch events catalog from organizer
                       </button>
                     </div>
                   )}
@@ -925,24 +925,24 @@ export const AdminOrganizersPage: React.FC = () => {
                 {/* Technical Node Details */}
                 <div className="space-y-3 pt-2 text-xs border-t border-slate-100">
                   <div className="flex items-center justify-between text-[#667085]">
-                    <span>Mã số thuế:</span>
+                    <span>Tax Code:</span>
                     <span className="font-mono font-bold text-slate-800">
-                      {selectedOrganizer.taxCode || 'Chưa cập nhật'}
+                      {selectedOrganizer.taxCode || 'Not provided'}
                     </span>
                   </div>
 
                   <div className="flex items-center justify-between text-[#667085]">
-                    <span>Người liên hệ:</span>
+                    <span>Representative:</span>
                     <span className="font-medium text-slate-800">
-                      {selectedOrganizer.contactPerson || 'Chưa cập nhật'}
+                      {selectedOrganizer.contactPerson || 'Not provided'}
                     </span>
                   </div>
 
                   <div className="space-y-1">
-                    <span className="text-[#667085] text-[11px]">Cổng kết nối:</span>
+                    <span className="text-[#667085] text-[11px]">Network Gateway:</span>
                     <div className="flex items-center justify-between bg-slate-50 p-2 rounded-lg border border-slate-200 font-mono text-[11px] text-slate-700">
                       <span className="truncate max-w-[200px]" title={selectedOrganizer.grpcEndpoint}>
-                        {selectedOrganizer.grpcEndpoint || 'Chưa cấu hình'}
+                        {selectedOrganizer.grpcEndpoint || 'Not configured'}
                       </span>
                       {selectedOrganizer.grpcEndpoint && (
                         <button
@@ -962,14 +962,14 @@ export const AdminOrganizersPage: React.FC = () => {
 
                   <div className="space-y-1">
                     <div className="flex items-center justify-between">
-                      <span className="text-[#667085] text-[11px]">Khóa bảo mật:</span>
+                      <span className="text-[#667085] text-[11px]">Webhook Secret Key:</span>
                       <button
                         type="button"
                         onClick={() => setShowSecretKey(!showSecretKey)}
                         className="text-[10px] text-slate-400 hover:text-slate-600 flex items-center gap-1"
                       >
                         {showSecretKey ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
-                        <span>{showSecretKey ? 'Ẩn' : 'Hiện'}</span>
+                        <span>{showSecretKey ? 'Hide' : 'Show'}</span>
                       </button>
                     </div>
                     <div className="flex items-center justify-between bg-slate-50 p-2 rounded-lg border border-slate-200 font-mono text-[11px] text-slate-700">
@@ -978,7 +978,7 @@ export const AdminOrganizersPage: React.FC = () => {
                           ? showSecretKey
                             ? selectedOrganizer.webhookSecretKey
                             : '••••••••••••••••••••••••'
-                          : 'Chưa cấu hình'}
+                          : 'Not configured'}
                       </span>
                       {selectedOrganizer.webhookSecretKey && (
                         <button
@@ -1000,7 +1000,7 @@ export const AdminOrganizersPage: React.FC = () => {
             ) : (
               <div className="text-center py-12 text-slate-400 text-xs">
                 <Building2 className="w-8 h-8 mx-auto text-slate-300 stroke-[1.5]" />
-                <p className="mt-2 font-medium">Chọn một đối tác trên sơ đồ để xem chi tiết.</p>
+                <p className="mt-2 font-medium">Select an organizer on the graph to view details.</p>
               </div>
             )}
           </div>
@@ -1010,138 +1010,138 @@ export const AdminOrganizersPage: React.FC = () => {
       {/* ── VIEW MODE 2: TABLE VIEW ── */}
       {viewMode === 'table' && (
         <div className="bg-white rounded-2xl border border-[#E5EAF0] shadow-sm overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs">
-                <thead>
-                  <tr className="bg-slate-50/80 border-b border-[#E5EAF0] text-[#667085] font-mono uppercase text-[10px] tracking-wider">
-                    <th className="py-3.5 px-4 font-semibold">Ban tổ chức</th>
-                    <th className="py-3.5 px-4 font-semibold">Cổng kết nối</th>
-                    <th className="py-3.5 px-4 font-semibold">Địa chỉ API</th>
-                    <th className="py-3.5 px-4 font-semibold text-center">Trạng thái</th>
-                    <th className="py-3.5 px-4 font-semibold text-center">Sự kiện</th>
-                    <th className="py-3.5 px-4 font-semibold text-right">Thao tác</th>
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs">
+              <thead>
+                <tr className="bg-slate-50/80 border-b border-[#E5EAF0] text-[#667085] font-mono uppercase text-[10px] tracking-wider">
+                  <th className="py-3.5 px-4 font-semibold">Organizer</th>
+                  <th className="py-3.5 px-4 font-semibold">Gateway</th>
+                  <th className="py-3.5 px-4 font-semibold">API Base URL</th>
+                  <th className="py-3.5 px-4 font-semibold text-center">Status</th>
+                  <th className="py-3.5 px-4 font-semibold text-center">Events</th>
+                  <th className="py-3.5 px-4 font-semibold text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-[#E5EAF0]">
+                {loading ? (
+                  <tr>
+                    <td colSpan={6} className="py-12 text-center text-slate-400">
+                      <Loader2 className="w-6 h-6 animate-spin mx-auto text-[#F45135]" />
+                      <p className="mt-2 text-xs">Loading event organizers...</p>
+                    </td>
                   </tr>
-                </thead>
-                <tbody className="divide-y divide-[#E5EAF0]">
-                  {loading ? (
-                    <tr>
-                      <td colSpan={6} className="py-12 text-center text-slate-400">
-                        <Loader2 className="w-6 h-6 animate-spin mx-auto text-[#F45135]" />
-                        <p className="mt-2 text-xs">Đang tải danh sách Ban tổ chức...</p>
-                      </td>
-                    </tr>
-                  ) : filteredOrganizers.length === 0 ? (
-                    <tr>
-                      <td colSpan={6} className="py-12 text-center text-slate-400">
-                        <Building2 className="w-8 h-8 mx-auto text-slate-300 stroke-[1.5]" />
-                        <p className="mt-2 font-medium text-slate-600">Không tìm thấy đối tác phù hợp</p>
-                      </td>
-                    </tr>
-                  ) : (
-                    filteredOrganizers.map((org) => {
-                      const isConn = org.connectionStatus === 'CONNECTED';
-                      const isTesting = testingId === org.id;
-                      const isSyncing = syncingId === org.id;
+                ) : filteredOrganizers.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className="py-12 text-center text-slate-400">
+                      <Building2 className="w-8 h-8 mx-auto text-slate-300 stroke-[1.5]" />
+                      <p className="mt-2 font-medium text-slate-600">No matching organizers found</p>
+                    </td>
+                  </tr>
+                ) : (
+                  filteredOrganizers.map((org) => {
+                    const isConn = org.connectionStatus === 'CONNECTED';
+                    const isTesting = testingId === org.id;
+                    const isSyncing = syncingId === org.id;
 
-                      return (
-                        <tr key={org.id} className="hover:bg-slate-50/70 transition-colors">
-                          <td className="py-4 px-4">
-                            <div className="flex items-center gap-3">
-                              <div className="w-9 h-9 rounded-xl bg-slate-100 border border-slate-200 text-slate-700 flex items-center justify-center font-bold text-sm shrink-0">
-                                {org.name.slice(0, 2).toUpperCase()}
-                              </div>
-                              <div className="min-w-0">
-                                <p className="font-bold text-[#101722] truncate text-xs">{org.name}</p>
-                                <div className="flex items-center gap-1.5 text-[11px] text-[#667085] mt-0.5">
-                                  <Mail className="w-3 h-3 shrink-0" />
-                                  <span className="truncate">{org.officialEmail}</span>
-                                </div>
+                    return (
+                      <tr key={org.id} className="hover:bg-slate-50/70 transition-colors">
+                        <td className="py-4 px-4">
+                          <div className="flex items-center gap-3">
+                            <div className="w-9 h-9 rounded-xl bg-slate-100 border border-slate-200 text-slate-700 flex items-center justify-center font-bold text-sm shrink-0">
+                              {org.name.slice(0, 2).toUpperCase()}
+                            </div>
+                            <div className="min-w-0">
+                              <p className="font-bold text-[#101722] truncate text-xs">{org.name}</p>
+                              <div className="flex items-center gap-1.5 text-[11px] text-[#667085] mt-0.5">
+                                <Mail className="w-3 h-3 shrink-0" />
+                                <span className="truncate">{org.officialEmail}</span>
                               </div>
                             </div>
-                          </td>
+                          </div>
+                        </td>
 
-                          <td className="py-4 px-4 font-mono text-[11px]">
+                        <td className="py-4 px-4 font-mono text-[11px]">
+                          <span
+                            className="bg-slate-100 text-slate-700 px-2.5 py-1 rounded-lg border border-slate-200 truncate max-w-[200px] inline-block"
+                            title={org.grpcEndpoint}
+                          >
+                            {org.grpcEndpoint || 'Not configured'}
+                          </span>
+                        </td>
+
+                        <td className="py-4 px-4 font-mono text-[11px] text-slate-600">
+                          {org.apiBaseUrl || 'Not configured'}
+                        </td>
+
+                        <td className="py-4 px-4 text-center">
+                          <span
+                            className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold font-mono ${
+                              isConn
+                                ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                                : 'bg-rose-50 text-rose-700 border border-rose-200'
+                            }`}
+                          >
                             <span
-                              className="bg-slate-100 text-slate-700 px-2.5 py-1 rounded-lg border border-slate-200 truncate max-w-[200px] inline-block"
-                              title={org.grpcEndpoint}
+                              className={`w-1.5 h-1.5 rounded-full ${isConn ? 'bg-emerald-500' : 'bg-rose-500'}`}
+                            />
+                            {isConn ? 'Connected' : 'Pending'}
+                          </span>
+                        </td>
+
+                        <td className="py-4 px-4 text-center font-bold font-mono text-[#101722]">
+                          {org.eventsCount ?? org.totalEvents ?? 0}
+                        </td>
+
+                        <td className="py-4 px-4 text-right">
+                          <div className="flex items-center justify-end gap-1.5">
+                            <button
+                              type="button"
+                              onClick={() => handleTestConnection(org.id, org.name)}
+                              disabled={isTesting}
+                              className="flex items-center gap-1 px-2 py-1 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold shadow-sm"
+                              title="Test connection"
                             >
-                              {org.grpcEndpoint || 'Chưa cấu hình'}
-                            </span>
-                          </td>
+                              {isTesting ? (
+                                <Loader2 className="w-3.5 h-3.5 animate-spin text-amber-500" />
+                              ) : (
+                                <Zap className="w-3.5 h-3.5 text-amber-500" />
+                              )}
+                              <span>Ping</span>
+                            </button>
 
-                          <td className="py-4 px-4 font-mono text-[11px] text-slate-600">
-                            {org.apiBaseUrl || 'Chưa cấu hình'}
-                          </td>
-
-                          <td className="py-4 px-4 text-center">
-                            <span
-                              className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold font-mono ${
-                                isConn
-                                  ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                                  : 'bg-rose-50 text-rose-700 border border-rose-200'
-                              }`}
+                            <button
+                              type="button"
+                              onClick={() => handleSyncEvents(org.id, org.name)}
+                              disabled={isSyncing}
+                              className="flex items-center gap-1 px-2 py-1 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-indigo-700 text-xs font-semibold shadow-sm"
+                              title="Sync event catalog"
                             >
-                              <span
-                                className={`w-1.5 h-1.5 rounded-full ${isConn ? 'bg-emerald-500' : 'bg-rose-500'}`}
-                              />
-                              {isConn ? 'Đã kết nối' : 'Chờ'}
-                            </span>
-                          </td>
+                              {isSyncing ? (
+                                <Loader2 className="w-3.5 h-3.5 animate-spin text-indigo-500" />
+                              ) : (
+                                <RefreshCw className="w-3.5 h-3.5 text-indigo-500" />
+                              )}
+                              <span>Sync</span>
+                            </button>
 
-                          <td className="py-4 px-4 text-center font-bold font-mono text-[#101722]">
-                            {org.eventsCount ?? org.totalEvents ?? 0}
-                          </td>
-
-                          <td className="py-4 px-4 text-right">
-                            <div className="flex items-center justify-end gap-1.5">
-                              <button
-                                type="button"
-                                onClick={() => handleTestConnection(org.id, org.name)}
-                                disabled={isTesting}
-                                className="flex items-center gap-1 px-2 py-1 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold shadow-sm"
-                                title="Kiểm tra kết nối"
-                              >
-                                {isTesting ? (
-                                  <Loader2 className="w-3.5 h-3.5 animate-spin text-amber-500" />
-                                ) : (
-                                  <Zap className="w-3.5 h-3.5 text-amber-500" />
-                                )}
-                                <span>Kiểm tra</span>
-                              </button>
-
-                              <button
-                                type="button"
-                                onClick={() => handleSyncEvents(org.id, org.name)}
-                                disabled={isSyncing}
-                                className="flex items-center gap-1 px-2 py-1 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-indigo-700 text-xs font-semibold shadow-sm"
-                                title="Đồng bộ danh mục sự kiện"
-                              >
-                                {isSyncing ? (
-                                  <Loader2 className="w-3.5 h-3.5 animate-spin text-indigo-500" />
-                                ) : (
-                                  <RefreshCw className="w-3.5 h-3.5 text-indigo-500" />
-                                )}
-                                <span>Đồng bộ</span>
-                              </button>
-
-                              <button
-                                type="button"
-                                onClick={() => handleOpenEdit(org)}
-                                className="p-1 rounded-lg border border-slate-200 hover:bg-slate-50 text-slate-600 transition-colors shadow-sm"
-                                title="Chỉnh sửa cấu hình"
-                              >
-                                <Edit2 className="w-3.5 h-3.5" />
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      );
-                    })
-                  )}
-                </tbody>
-              </table>
-            </div>
+                            <button
+                              type="button"
+                              onClick={() => handleOpenEdit(org)}
+                              className="p-1 rounded-lg border border-slate-200 hover:bg-slate-50 text-slate-600 transition-colors shadow-sm"
+                              title="Edit configuration"
+                            >
+                              <Edit2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
           </div>
+        </div>
       )}
 
       {/* ── Modal: Create Organizer with Presets ── */}
@@ -1153,7 +1153,7 @@ export const AdminOrganizersPage: React.FC = () => {
                 <div className="w-8 h-8 rounded-lg bg-[#F45135]/10 text-[#F45135] flex items-center justify-center">
                   <Building2 className="w-4 h-4" />
                 </div>
-                <h3 className="font-bold text-[#101722] text-sm">Thêm đối tác mới</h3>
+                <h3 className="font-bold text-[#101722] text-sm">Add Event Organizer</h3>
               </div>
               <button
                 type="button"
@@ -1168,8 +1168,8 @@ export const AdminOrganizersPage: React.FC = () => {
               {/* Presets Selector */}
               <div>
                 <label className="font-semibold text-slate-700 mb-1.5 flex items-center justify-between">
-                  <span>Mẫu cấu hình nhanh</span>
-                  <span className="text-[10px] text-indigo-600 font-normal">Bấm để tự động điền</span>
+                  <span>Configuration Presets</span>
+                  <span className="text-[10px] text-indigo-600 font-normal">Click to autofill</span>
                 </label>
                 <div className="grid grid-cols-3 gap-2">
                   {PRESET_PROFILES.map((preset) => (
@@ -1192,7 +1192,7 @@ export const AdminOrganizersPage: React.FC = () => {
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="block font-semibold text-slate-700 mb-1">
-                      Tên Ban tổ chức <span className="text-rose-500">*</span>
+                      Organizer Name <span className="text-rose-500">*</span>
                     </label>
                     <input
                       type="text"
@@ -1204,7 +1204,7 @@ export const AdminOrganizersPage: React.FC = () => {
                     />
                   </div>
                   <div>
-                    <label className="block font-semibold text-slate-700 mb-1">Mã số thuế</label>
+                    <label className="block font-semibold text-slate-700 mb-1">Tax Code</label>
                     <input
                       type="text"
                       value={createForm.taxCode || ''}
@@ -1218,24 +1218,24 @@ export const AdminOrganizersPage: React.FC = () => {
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="block font-semibold text-slate-700 mb-1">
-                      Email chính thức <span className="text-rose-500">*</span>
+                      Official Email <span className="text-rose-500">*</span>
                     </label>
                     <input
                       type="email"
                       required
                       value={createForm.officialEmail}
                       onChange={(e) => setCreateForm({ ...createForm, officialEmail: e.target.value })}
-                      placeholder="contact@organizer.vn"
+                      placeholder="contact@organizer.com"
                       className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-[#F45135] focus:bg-white text-slate-800"
                     />
                   </div>
                   <div>
-                    <label className="block font-semibold text-slate-700 mb-1">Người đại diện liên hệ</label>
+                    <label className="block font-semibold text-slate-700 mb-1">Contact Person</label>
                     <input
                       type="text"
                       value={createForm.contactPerson || ''}
                       onChange={(e) => setCreateForm({ ...createForm, contactPerson: e.target.value })}
-                      placeholder="Nguyễn Văn A"
+                      placeholder="John Doe"
                       className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-[#F45135] focus:bg-white text-slate-800"
                     />
                   </div>
@@ -1246,7 +1246,7 @@ export const AdminOrganizersPage: React.FC = () => {
               <div className="border-t border-slate-100 pt-3 space-y-3">
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block font-semibold text-slate-700 mb-1">Cổng kết nối (Endpoint)</label>
+                    <label className="block font-semibold text-slate-700 mb-1">Network Gateway (Endpoint)</label>
                     <input
                       type="text"
                       value={createForm.grpcEndpoint || ''}
@@ -1256,24 +1256,24 @@ export const AdminOrganizersPage: React.FC = () => {
                     />
                   </div>
                   <div>
-                    <label className="block font-semibold text-slate-700 mb-1">Địa chỉ API</label>
+                    <label className="block font-semibold text-slate-700 mb-1">API Base URL</label>
                     <input
                       type="text"
                       value={createForm.apiBaseUrl || ''}
                       onChange={(e) => setCreateForm({ ...createForm, apiBaseUrl: e.target.value })}
                       placeholder="http://localhost:5001"
-                      className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-[#F45135] focus:bg-white font-mono text-[11px] text-slate-800"
+                      className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none border-slate-200 focus:border-[#F45135] focus:bg-white font-mono text-[11px] text-slate-800"
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label className="block font-semibold text-slate-700 mb-1">Khóa bí mật Webhook (Tùy chọn)</label>
+                  <label className="block font-semibold text-slate-700 mb-1">Webhook Secret Key (Optional)</label>
                   <input
                     type="text"
                     value={createForm.webhookSecretKey || ''}
                     onChange={(e) => setCreateForm({ ...createForm, webhookSecretKey: e.target.value })}
-                    placeholder="Để trống sẽ tự sinh mã khóa bí mật an toàn (whsec_...)"
+                    placeholder="Leave empty to auto-generate secure key (whsec_...)"
                     className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-[#F45135] focus:bg-white font-mono text-[11px] text-slate-800"
                   />
                 </div>
@@ -1285,7 +1285,7 @@ export const AdminOrganizersPage: React.FC = () => {
                   onClick={() => setIsCreateModalOpen(false)}
                   className="px-4 py-2 rounded-xl border border-slate-200 text-slate-600 font-semibold hover:bg-slate-50"
                 >
-                  Hủy
+                  Cancel
                 </button>
                 <button
                   type="submit"
@@ -1293,7 +1293,7 @@ export const AdminOrganizersPage: React.FC = () => {
                   className="px-5 py-2 rounded-xl bg-[#F45135] text-white font-bold hover:bg-[#e0452a] disabled:opacity-60 flex items-center gap-1.5 shadow-sm"
                 >
                   {submitting && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-                  <span>Xác nhận</span>
+                  <span>Create Organizer</span>
                 </button>
               </div>
             </form>
@@ -1311,7 +1311,7 @@ export const AdminOrganizersPage: React.FC = () => {
                   <Edit2 className="w-4 h-4" />
                 </div>
                 <div>
-                  <h3 className="font-bold text-[#101722] text-sm">Cập nhật đối tác: {editingOrganizer.name}</h3>
+                  <h3 className="font-bold text-[#101722] text-sm">Configure Organizer: {editingOrganizer.name}</h3>
                   <p className="text-[10px] font-mono text-slate-400">{editingOrganizer.id}</p>
                 </div>
               </div>
@@ -1327,7 +1327,7 @@ export const AdminOrganizersPage: React.FC = () => {
             <form onSubmit={handleEditSubmit} className="p-6 space-y-4 text-xs">
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block font-semibold text-slate-700 mb-1">Mã số thuế</label>
+                  <label className="block font-semibold text-slate-700 mb-1">Tax Code</label>
                   <input
                     type="text"
                     value={editForm.taxCode || ''}
@@ -1336,7 +1336,7 @@ export const AdminOrganizersPage: React.FC = () => {
                   />
                 </div>
                 <div>
-                  <label className="block font-semibold text-slate-700 mb-1">Người đại diện</label>
+                  <label className="block font-semibold text-slate-700 mb-1">Contact Person</label>
                   <input
                     type="text"
                     value={editForm.contactPerson || ''}
@@ -1348,7 +1348,7 @@ export const AdminOrganizersPage: React.FC = () => {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block font-semibold text-slate-700 mb-1">Cổng kết nối (Endpoint)</label>
+                  <label className="block font-semibold text-slate-700 mb-1">Network Gateway (Endpoint)</label>
                   <input
                     type="text"
                     value={editForm.grpcEndpoint || ''}
@@ -1357,7 +1357,7 @@ export const AdminOrganizersPage: React.FC = () => {
                   />
                 </div>
                 <div>
-                  <label className="block font-semibold text-slate-700 mb-1">Địa chỉ API</label>
+                  <label className="block font-semibold text-slate-700 mb-1">API Base URL</label>
                   <input
                     type="text"
                     value={editForm.apiBaseUrl || ''}
@@ -1368,7 +1368,7 @@ export const AdminOrganizersPage: React.FC = () => {
               </div>
 
               <div>
-                <label className="block font-semibold text-slate-700 mb-1">Khóa bí mật Webhook</label>
+                <label className="block font-semibold text-slate-700 mb-1">Webhook Secret Key</label>
                 <input
                   type="text"
                   value={editForm.webhookSecretKey || ''}
@@ -1379,28 +1379,28 @@ export const AdminOrganizersPage: React.FC = () => {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block font-semibold text-slate-700 mb-1">Trạng thái sàn</label>
+                  <label className="block font-semibold text-slate-700 mb-1">Marketplace Status</label>
                   <select
                     value={editForm.status}
                     onChange={(e) => setEditForm({ ...editForm, status: e.target.value })}
                     className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-[#F45135] text-slate-800 font-semibold"
                   >
-                    <option value="ACTIVE">Sẵn sàng bán (ACTIVE)</option>
-                    <option value="DRAFT">Chờ kích hoạt (DRAFT)</option>
-                    <option value="INACTIVE">Tạm dừng (INACTIVE)</option>
+                    <option value="ACTIVE">Active (Ready to list)</option>
+                    <option value="DRAFT">Draft (Pending setup)</option>
+                    <option value="INACTIVE">Inactive (Suspended)</option>
                   </select>
                 </div>
 
                 <div>
-                  <label className="block font-semibold text-slate-700 mb-1">Kênh kết nối</label>
+                  <label className="block font-semibold text-slate-700 mb-1">Connection Channel</label>
                   <select
                     value={editForm.connectionStatus}
                     onChange={(e) => setEditForm({ ...editForm, connectionStatus: e.target.value })}
                     className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-[#F45135] text-slate-800 font-semibold"
                   >
-                    <option value="CONNECTED">Đã kết nối (CONNECTED)</option>
-                    <option value="DISCONNECTED">Ngoại tuyến (DISCONNECTED)</option>
-                    <option value="PENDING">Đang chờ (PENDING)</option>
+                    <option value="CONNECTED">Connected (Online)</option>
+                    <option value="DISCONNECTED">Disconnected (Offline)</option>
+                    <option value="PENDING">Pending Verification</option>
                   </select>
                 </div>
               </div>
@@ -1411,7 +1411,7 @@ export const AdminOrganizersPage: React.FC = () => {
                   onClick={() => setEditingOrganizer(null)}
                   className="px-4 py-2 rounded-xl border border-slate-200 text-slate-600 font-semibold hover:bg-slate-50"
                 >
-                  Hủy
+                  Cancel
                 </button>
                 <button
                   type="submit"
@@ -1419,7 +1419,7 @@ export const AdminOrganizersPage: React.FC = () => {
                   className="px-5 py-2 rounded-xl bg-[#F45135] text-white font-bold hover:bg-[#e0452a] disabled:opacity-60 flex items-center gap-1.5 shadow-sm"
                 >
                   {submitting && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-                  <span>Lưu thay đổi</span>
+                  <span>Save Changes</span>
                 </button>
               </div>
             </form>

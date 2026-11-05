@@ -101,7 +101,7 @@ export const TicketDetailModal: React.FC<TicketDetailModalProps> = ({
         id: item.listingId || `ticket-${idx}`,
         ticketIndex: idx + 1,
         tierName: item.tierName || listing.tierName || 'VIP ZONE',
-        seatZone: item.seatZone || `Ghế #${idx + 1}`,
+        seatZone: item.seatZone || `Seat #${idx + 1}`,
         originalPrice: item.originalPrice || perTicketOriginalPrice,
         price: item.resalePrice || perTicketResalePrice,
         code: item.maskedTicketCode || `AT*******${String(idx + 1).padStart(2, '0')}`,
@@ -114,7 +114,7 @@ export const TicketDetailModal: React.FC<TicketDetailModalProps> = ({
           id: `seat-${sn}-${idx}`,
           ticketIndex: idx + 1,
           tierName: listing.tierName || 'VIP ZONE A',
-          seatZone: adjacency.commonRow ? `Hàng ${adjacency.commonRow} · Ghế ${sn}` : `Ghế ${sn}`,
+          seatZone: adjacency.commonRow ? `Row ${adjacency.commonRow} · Seat ${sn}` : `Seat ${sn}`,
           originalPrice: perTicketOriginalPrice,
           price: perTicketResalePrice,
           code: listing.maskedTicketCode
@@ -127,7 +127,7 @@ export const TicketDetailModal: React.FC<TicketDetailModalProps> = ({
         id: `ticket-${idx}`,
         ticketIndex: idx + 1,
         tierName: listing.tierName || 'VIP ZONE A',
-        seatZone: listing.seatZone ? `${listing.seatZone} (Vé #${idx + 1})` : `Ghế #${idx + 1}`,
+        seatZone: listing.seatZone ? `${listing.seatZone} (Ticket #${idx + 1})` : `Seat #${idx + 1}`,
         originalPrice: perTicketOriginalPrice,
         price: perTicketResalePrice,
         code: listing.maskedTicketCode || `AT*******${String(idx + 1).padStart(2, '0')}`,
@@ -139,7 +139,7 @@ export const TicketDetailModal: React.FC<TicketDetailModalProps> = ({
         id: listing.listingId,
         ticketIndex: 1,
         tierName: listing.tierName || 'VIP ZONE A',
-        seatZone: listing.seatZone || 'Khán đài',
+        seatZone: listing.seatZone || 'General Seating',
         originalPrice: listing.originalPrice,
         price: listing.resalePrice,
         code: listing.maskedTicketCode || 'AT*******99',
@@ -162,7 +162,7 @@ export const TicketDetailModal: React.FC<TicketDetailModalProps> = ({
           className="fixed inset-0 bg-black/85 backdrop-blur-md"
         />
 
-        {/* Modal Window: Kích thước tinh gọn max-w-2xl */}
+        {/* Modal Window */}
         <motion.div
           initial={{ opacity: 0, scale: 0.96, y: 12 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -170,7 +170,7 @@ export const TicketDetailModal: React.FC<TicketDetailModalProps> = ({
           transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
           className="relative w-full max-w-2xl bg-[#090C12] border border-white/15 rounded-2xl shadow-2xl overflow-hidden z-10 my-auto text-left"
         >
-          {/* Header Banner: Tinh gọn chiều cao h-28 */}
+          {/* Header Banner */}
           <div className="relative h-28 w-full overflow-hidden">
             <img
               src={backdropUrl}
@@ -185,12 +185,12 @@ export const TicketDetailModal: React.FC<TicketDetailModalProps> = ({
               onClick={onClose}
               type="button"
               className="absolute top-3 right-3 p-1.5 rounded-full bg-black/60 hover:bg-black/90 text-zinc-300 hover:text-white border border-white/15 backdrop-blur-md transition-all cursor-pointer z-20"
-              title="Đóng modal"
+              title="Close"
             >
               <X className="w-4 h-4" />
             </button>
 
-            {/* Badges in Header: Tối giản, chỉ giữ 2 badge quan trọng */}
+            {/* Badges in Header */}
             <div className="absolute top-3 left-4 flex items-center gap-2 z-10">
               <span className="px-2.5 py-0.5 rounded-full bg-black/75 border border-white/20 text-white text-[11px] font-bold tracking-wider uppercase backdrop-blur-md">
                 {listing.tierName || 'VIP ZONE'}
@@ -199,7 +199,7 @@ export const TicketDetailModal: React.FC<TicketDetailModalProps> = ({
               {isBundle && (
                 <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-[#FF5A36] text-white text-[11px] font-extrabold tracking-wider uppercase shadow-sm">
                   <Layers className="w-3 h-3 text-white" />
-                  <span>GÓI COMBO · {bundleCount} VÉ</span>
+                  <span>COMBO · {bundleCount} TICKETS</span>
                 </span>
               )}
             </div>
@@ -214,7 +214,7 @@ export const TicketDetailModal: React.FC<TicketDetailModalProps> = ({
 
           {/* Body Content */}
           <div className="p-4 sm:p-5 space-y-4 max-h-[calc(88vh-140px)] overflow-y-auto [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:bg-white/10 [&::-webkit-scrollbar-thumb]:rounded-full">
-            {/* Event Meta Line: Ngày & Địa điểm */}
+            {/* Event Meta Line */}
             <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-zinc-400 border-b border-white/[0.08] pb-3">
               <div className="flex items-center gap-1.5 text-zinc-300">
                 <Calendar className="w-3.5 h-3.5 text-[#FF5A36]" />
@@ -226,18 +226,18 @@ export const TicketDetailModal: React.FC<TicketDetailModalProps> = ({
               </div>
             </div>
 
-            {/* ================= DANH SÁCH CÁC CARD VÉ TRỰC QUAN (AUTHENTIC TICKET STUBS) ================= */}
+            {/* Authentic Ticket Stubs */}
             <div className="space-y-2.5">
               <div className="flex items-center justify-between text-xs font-bold uppercase tracking-wider text-zinc-400">
                 <span className="flex items-center gap-1.5 text-white">
                   <Ticket className="w-3.5 h-3.5 text-[#FF5A36]" />
                   <span>
-                    {isBundle ? `Vé có trong Gói (${bundleCount} vé)` : 'Chi tiết vé'}
+                    {isBundle ? `Tickets in Bundle (${bundleCount})` : 'Ticket Details'}
                   </span>
                 </span>
                 {isBundle && (
                   <span className="text-[11px] font-mono text-amber-300 font-semibold px-2 py-0.5 rounded bg-amber-500/10 border border-amber-500/25">
-                    {isRetailAllowed ? 'Có bán lẻ' : 'Không bán lẻ'}
+                    {isRetailAllowed ? 'Individual Sale Allowed' : 'Bundle Only'}
                   </span>
                 )}
               </div>
@@ -283,7 +283,7 @@ export const TicketDetailModal: React.FC<TicketDetailModalProps> = ({
                         </div>
 
                         <span className="px-2 py-0.5 rounded bg-white/10 text-zinc-300 font-mono text-[9px] font-extrabold uppercase tracking-wider">
-                          VÉ #{t.ticketIndex}
+                          TICKET #{t.ticketIndex}
                         </span>
                       </div>
 
@@ -294,7 +294,7 @@ export const TicketDetailModal: React.FC<TicketDetailModalProps> = ({
                         </h3>
                       </div>
 
-                      {/* Metadata: Vị trí ghế & Ngày/Địa điểm */}
+                      {/* Metadata */}
                       <div className="relative z-10 space-y-0.5 text-[10px] sm:text-[11px] text-zinc-300">
                         <div className="flex items-center gap-1.5 text-amber-200 font-semibold truncate">
                           <Ticket className="w-3.5 h-3.5 text-amber-400 shrink-0" />
@@ -308,25 +308,23 @@ export const TicketDetailModal: React.FC<TicketDetailModalProps> = ({
                           </div>
                           <div className="flex items-center gap-1 shrink-0 text-zinc-300">
                             <span className="text-emerald-400 font-bold">✓</span>
-                            <span className="truncate">{listing.sellerFullName ? `Seller: ${listing.sellerFullName}` : 'Seller: Hoang Thong'}</span>
+                            <span className="truncate">{listing.sellerFullName ? `Seller: ${listing.sellerFullName}` : 'Seller: Verified'}</span>
                           </div>
                         </div>
                       </div>
                     </div>
 
-                    {/* PHẦN CUỐNG PHẢI (32% width): Nền giấy ngà sáng tối giản, không hover, không badge rác */}
+                    {/* Right stub */}
                     <div className="relative w-[32%] h-full rounded-r-2xl p-2.5 sm:p-3 flex flex-col justify-between bg-gradient-to-br from-[#f8f7f2] via-[#f1f0e9] to-[#e8e6dc] text-slate-900">
-                      {/* Mã vé */}
                       <div className="flex items-center justify-between">
                         <span className="px-2 py-0.5 rounded bg-black/5 border border-black/10 text-[10px] font-mono font-bold text-slate-700 tracking-wider">
                           {t.code}
                         </span>
                       </div>
 
-                      {/* Khối giá vé */}
                       <div className="my-auto py-0.5 text-left">
                         <div className="text-[9px] font-bold text-slate-500 uppercase tracking-wider">
-                          GIÁ VÉ
+                          PRICE
                         </div>
                         {t.originalPrice > t.price && (
                           <div className="flex items-center gap-1 mt-0.5">
@@ -345,9 +343,8 @@ export const TicketDetailModal: React.FC<TicketDetailModalProps> = ({
                         </div>
                       </div>
 
-                      {/* Phân cách chân cuống */}
                       <div className="text-[9px] font-mono text-slate-400 border-t border-slate-300/60 pt-1">
-                        VÉ #{t.ticketIndex}
+                        TICKET #{t.ticketIndex}
                       </div>
                     </div>
                   </div>
@@ -355,11 +352,11 @@ export const TicketDetailModal: React.FC<TicketDetailModalProps> = ({
               </div>
             </div>
 
-            {/* ================= TỔNG KẾT TÀI CHÍNH ================= */}
+            {/* Financial Summary */}
             <div className="p-3.5 rounded-xl bg-white/[0.03] border border-white/10 space-y-2">
               {totalOriginalPrice > totalResalePrice && (
                 <div className="flex items-center justify-between text-xs text-zinc-400">
-                  <span>Giá gốc ban đầu:</span>
+                  <span>Original face value:</span>
                   <span className="font-mono text-zinc-400 line-through">
                     {formatVND(totalOriginalPrice)}
                   </span>
@@ -368,9 +365,9 @@ export const TicketDetailModal: React.FC<TicketDetailModalProps> = ({
 
               {isBundle && (
                 <div className="flex items-center justify-between text-xs text-zinc-300">
-                  <span>Giá bình quân:</span>
+                  <span>Average per ticket:</span>
                   <span className="font-mono text-orange-300 font-bold">
-                    ~{formatVND(perTicketResalePrice)} / vé
+                    ~{formatVND(perTicketResalePrice)} / ticket
                   </span>
                 </div>
               )}
@@ -378,7 +375,7 @@ export const TicketDetailModal: React.FC<TicketDetailModalProps> = ({
               <div className="pt-1.5 border-t border-white/10 flex items-baseline justify-between">
                 <div>
                   <span className="text-xs sm:text-sm font-bold text-white block">
-                    {isBundle ? `Tổng thanh toán (${bundleCount} vé)` : 'Tổng thanh toán'}
+                    {isBundle ? `Total Amount (${bundleCount} tickets)` : 'Total Amount'}
                   </span>
                 </div>
                 <div className="text-right">
@@ -395,36 +392,36 @@ export const TicketDetailModal: React.FC<TicketDetailModalProps> = ({
                 <div className="flex items-center gap-1.5">
                   <User className="w-3.5 h-3.5 text-zinc-500" />
                   <span>
-                    Người bán: <strong className="text-zinc-200">{listing.sellerFullName}</strong>
+                    Seller: <strong className="text-zinc-200">{listing.sellerFullName}</strong>
                   </span>
                 </div>
-                {listing.organizerName && <span>BTC: {listing.organizerName}</span>}
+                {listing.organizerName && <span>Organizer: {listing.organizerName}</span>}
               </div>
             )}
           </div>
 
-          {/* Footer Actions: Tinh gọn */}
+          {/* Footer Actions */}
           <div className="p-3.5 sm:p-4 bg-[#06080d] border-t border-white/10 flex items-center justify-end gap-2.5">
             <button
               type="button"
               onClick={onClose}
               className="px-4 py-2 rounded-xl border border-white/15 bg-white/5 hover:bg-white/10 text-xs font-semibold text-zinc-300 transition-colors cursor-pointer"
             >
-              Đóng lại
+              Close
             </button>
 
             {isTransacting ? (
               <div className="flex items-center gap-1.5 text-amber-400 text-xs font-semibold px-4 py-2 rounded-xl bg-amber-500/10 border border-amber-500/30">
                 <Lock className="w-3.5 h-3.5" />
-                <span>Vé đang thanh toán</span>
+                <span>Currently In Checkout</span>
               </div>
             ) : isSold ? (
               <div className="text-xs font-semibold text-zinc-400 px-4 py-2 rounded-xl bg-white/5">
-                Vé đã bán hết
+                Sold Out
               </div>
             ) : isOwner ? (
               <div className="text-xs font-semibold text-zinc-400 px-4 py-2 rounded-xl bg-white/5">
-                Đây là vé của bạn
+                Your Listing
               </div>
             ) : (
               <button
@@ -436,7 +433,7 @@ export const TicketDetailModal: React.FC<TicketDetailModalProps> = ({
                 }}
                 className="px-5 py-2.5 bg-[#FF5A36] hover:bg-[#FF7252] text-white rounded-xl text-xs sm:text-sm font-bold tracking-wider uppercase transition-all shadow-md shadow-[#FF5A36]/30 flex items-center gap-1.5 cursor-pointer active:scale-95"
               >
-                <span>{isBundle ? `Mua Combo (${bundleCount} Vé)` : 'Tiến hành mua vé'}</span>
+                <span>{isBundle ? `Buy Combo (${bundleCount} Tickets)` : 'Proceed to Checkout'}</span>
                 <ArrowRight className="w-4 h-4" />
               </button>
             )}

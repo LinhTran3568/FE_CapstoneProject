@@ -72,32 +72,32 @@ export const STOREFRONT_EVENTS: StorefrontEvent[] = [
     tourName: 'THE GRAND ARENA WORLD TOUR',
     genre: 'pop',
     cityKey: 'hcm',
-    subtitle: 'Đại nhạc hội bùng nổ nhất năm quy tụ 30 anh trai với hệ thống âm thanh vòm d&b audiotechnik chuẩn quốc tế và hiệu ứng thị giác laser đa chiều.',
+    subtitle: 'The biggest music festival of the year featuring 30 artists with international standard d&b audiotechnik surround sound and multi-dimensional laser visual effects.',
     organizerId: 'e0000000-0000-0000-0000-000000000001',
     organizerName: 'VieON & Vie Channel',
-    organizerBadge: 'Đơn vị phân phối chính thức',
-    dateDisplay: 'Thứ Bảy, 19/04/2025',
+    organizerBadge: 'Official Distributor',
+    dateDisplay: 'Saturday, Apr 19, 2025',
     timeDisplay: '19:30 - 23:00',
-    venueName: 'Sân vận động Quân Khu 7',
-    venueAddress: '202 Hoàng Văn Thụ, Phường 9, Quận Phú Nhuận, TP. Hồ Chí Minh',
+    venueName: 'Military Zone 7 Stadium',
+    venueAddress: '202 Hoang Van Thu, Ward 9, Phu Nhuan District, Ho Chi Minh City',
     gateOpenTime: '15:00',
     minPrice: 800000,
     maxPrice: 4500000,
     isFeatured: true,
-    tagBadge: 'Cháy vé nhanh nhất',
+    tagBadge: 'Fast Selling',
     bannerImage: '/images/storefront/hero-discovery.jpg',
     posterImage: '/images/storefront/atsh-poster.jpg',
     stageLayoutImage: '/images/storefront/atsh-stage.jpg',
-    description: 'Chuyến lưu diễn chính thức quy tụ trọn vẹn dàn nghệ sĩ của chương trình Anh Trai Say Hi. Sân khấu được trang bị hệ thống âm thanh d&b audiotechnik chuẩn quốc tế cùng hiệu ứng laser và pháo hoa nghệ thuật đặc biệt.',
+    description: 'The official live tour featuring the full artist lineup of Anh Trai Say Hi. The stage is equipped with international-grade d&b audiotechnik sound systems alongside laser choreography and pyrotechnics.',
     countdownDays: 2,
     countdownHours: 14,
     countdownMinutes: 23,
     countdownSeconds: 48,
     admissionPolicy: [
-      'Khán giả xuất trình vé điện tử kèm mã QR hợp lệ tại cửa kiểm soát.',
-      'Khu vực GA Standing không dành cho trẻ em dưới 12 tuổi.',
-      'Mỗi mã QR chỉ có giá trị cho một (01) lượt vào cổng duy nhất.',
-      'Nghiêm cấm mang theo máy ảnh chuyên nghiệp, flycam, vũ khí và đồ ăn từ bên ngoài.'
+      'Attendees must present a valid digital ticket with QR code at the entrance.',
+      'GA Standing area is not permitted for children under 12.',
+      'Each QR code is valid for one (1) single entry.',
+      'Professional cameras, drones, weapons, and outside food are strictly prohibited.'
     ],
     artists: [
       {
@@ -146,12 +146,12 @@ export const STOREFRONT_EVENTS: StorefrontEvent[] = [
         totalQuantity: 100,
         availableQuantity: 47,
         maxPerOrder: 4,
-        seatZone: 'VIP Zone A - Ghế ngồi trực diện',
-        gateEntrance: 'Cổng 1 (VIP Priority)',
+        seatZone: 'VIP Zone A - Direct Stage Center',
+        gateEntrance: 'Gate 1 (VIP Priority)',
         perks: [
-          'Ghế ngồi trực diện tầm nhìn sân khấu hoàn hảo',
-          'Lối đi riêng VIP, check-in đặc quyền từ 16:30',
-          'Bộ quà tặng Banner cổ vũ & Glowstick chính thức'
+          'Direct front stage seating with optimal sightlines',
+          'Dedicated VIP entrance, priority check-in from 16:30',
+          'Official commemorative cheer banner & glowstick package'
         ]
       },
       {
@@ -162,11 +162,11 @@ export const STOREFRONT_EVENTS: StorefrontEvent[] = [
         totalQuantity: 500,
         availableQuantity: 312,
         maxPerOrder: 6,
-        seatZone: 'GA Fanzone Sân cỏ trung tâm',
-        gateEntrance: 'Cổng 2 & 3',
+        seatZone: 'GA Center Pitch Fanzone',
+        gateEntrance: 'Gates 2 & 3',
         perks: [
-          'Khu vực đứng fanzone nhiệt huyết, âm thanh bao trùm',
-          'Wristband vải phát sáng lưu niệm'
+          'High-energy center pitch fanzone with immersive sound',
+          'Commemorative light-up wristband'
         ]
       }
     ]
@@ -177,24 +177,24 @@ export const STOREFRONT_EVENTS: StorefrontEvent[] = [
     tourName: 'SPACESPEAKERS LIVE TOUR 2026',
     genre: 'rap',
     cityKey: 'hanoi',
-    subtitle: 'Đêm tiệc rap bùng nổ của SpaceSpeakers quy tụ dàn nghệ sĩ đỉnh cao cùng hệ thống âm thanh festival quốc tế.',
+    subtitle: 'The premier rap & hip-hop festival from SpaceSpeakers featuring top producers, rappers, and an international concert audio system.',
     organizerId: 'e0000000-0000-0000-0000-000000000001',
     organizerName: 'SpaceSpeakers Group',
-    organizerBadge: 'Tour diễn chính thức',
-    dateDisplay: 'Thứ Bảy, 12/09/2026',
+    organizerBadge: 'Official Tour',
+    dateDisplay: 'Saturday, Sep 12, 2026',
     timeDisplay: '19:30 - 23:00',
-    venueName: 'Sân vận động Quốc gia Mỹ Đình, Hà Nội',
-    venueAddress: 'Đường Lê Đức Thọ, Mỹ Đình, Nam Từ Liêm, Hà Nội',
+    venueName: 'My Dinh National Stadium, Hanoi',
+    venueAddress: 'Le Duc Tho Street, My Dinh, Nam Tu Liem, Hanoi',
     gateOpenTime: '16:00',
     minPrice: 800000,
     maxPrice: 3500000,
     isFeatured: true,
-    tagBadge: 'Sự kiện Hot',
+    tagBadge: 'Trending',
     bannerImage: '/images/storefront/hero-discovery.jpg',
     posterImage: '/images/storefront/hero-discovery.jpg',
     stageLayoutImage: '/images/storefront/atsh-stage.jpg',
-    description: 'Mixtape Hanoi 2026 là concert lớn nhất năm của SpaceSpeakers kết hợp dàn live band và visual 3D hoành tráng.',
-    admissionPolicy: ['Không mang đồ uống có cồn vào sân', 'Trẻ em dưới 12 tuổi cần người lớn đi kèm'],
+    description: 'Mixtape Hanoi 2026 is the year-defining concert from SpaceSpeakers, featuring a full live band and 3D visual spectacle.',
+    admissionPolicy: ['No outside alcoholic beverages permitted', 'Children under 12 must be accompanied by an adult'],
     tiers: [
       {
         id: 'c0000000-0000-0000-0000-000000000003',
@@ -204,9 +204,9 @@ export const STOREFRONT_EVENTS: StorefrontEvent[] = [
         totalQuantity: 80,
         availableQuantity: 30,
         maxPerOrder: 4,
-        seatZone: 'Khu VIP Lounge Sát Sân Khấu',
-        gateEntrance: 'Cổng VIP',
-        perks: ['Lối đi riêng VIP', 'Quà tặng lưu niệm SpaceSpeakers chính hãng']
+        seatZone: 'Stage-Front VIP Lounge',
+        gateEntrance: 'Gate VIP',
+        perks: ['Dedicated VIP entrance', 'Official SpaceSpeakers commemorative gift pack']
       },
       {
         id: 'c0000000-0000-0000-0000-000000000004',
@@ -216,9 +216,9 @@ export const STOREFRONT_EVENTS: StorefrontEvent[] = [
         totalQuantity: 400,
         availableQuantity: 250,
         maxPerOrder: 6,
-        seatZone: 'Fanzone Sân Cỏ Tự Do',
-        gateEntrance: 'Cổng 2 & 3',
-        perks: ['Vòng tay phát sáng', 'Tự do di chuyển trong fanzone']
+        seatZone: 'Free Movement Pitch Fanzone',
+        gateEntrance: 'Gates 2 & 3',
+        perks: ['LED wristband', 'Free access throughout the fanzone']
       }
     ]
   },
@@ -228,24 +228,24 @@ export const STOREFRONT_EVENTS: StorefrontEvent[] = [
     tourName: 'THE WILD DREAMS TOUR 2026',
     genre: 'pop',
     cityKey: 'hcm',
-    subtitle: 'Đêm nhạc huyền thoại của nhóm nhạc pop hàng đầu thế giới Westlife tại Việt Nam.',
+    subtitle: 'Legendary world tour from the global pop boyband Westlife performing live in Vietnam.',
     organizerId: 'e0000000-0000-0000-0000-000000000001',
     organizerName: 'Live Nation Vietnam',
-    organizerBadge: 'World Tour Độc Quyền',
-    dateDisplay: 'Chủ Nhật, 25/10/2026',
+    organizerBadge: 'Exclusive World Tour',
+    dateDisplay: 'Sunday, Oct 25, 2026',
     timeDisplay: '20:00 - 22:30',
-    venueName: 'Sân vận động Thống Nhất, TP.HCM',
-    venueAddress: '30 Nguyễn Kim, Phường 6, Quận 10, TP.HCM',
+    venueName: 'Thong Nhat Stadium, Ho Chi Minh City',
+    venueAddress: '30 Nguyen Kim, Ward 6, District 10, Ho Chi Minh City',
     gateOpenTime: '17:00',
     minPrice: 1500000,
     maxPrice: 5000000,
     isFeatured: true,
-    tagBadge: 'Quốc tế',
+    tagBadge: 'International',
     bannerImage: '/images/storefront/concert-lights.jpg',
     posterImage: '/images/storefront/concert-lights.jpg',
     stageLayoutImage: '/images/storefront/gallery-finale.jpg',
-    description: 'Thưởng thức những bản tình ca bất hủ My Love, I Lay My Love on You, Fool Again cùng 4 chàng trai Westlife.',
-    admissionPolicy: ['Không mang máy ảnh chuyên nghiệp', 'Vé điện tử quét mã QR vào cổng'],
+    description: 'Experience timeless hits My Love, I Lay My Love on You, and Fool Again performed live by Westlife.',
+    admissionPolicy: ['No professional cameras allowed', 'Digital tickets scanned via QR code at entrance'],
     tiers: [
       {
         id: 'c0000000-0000-0000-0000-000000000005',
@@ -255,9 +255,9 @@ export const STOREFRONT_EVENTS: StorefrontEvent[] = [
         totalQuantity: 60,
         availableQuantity: 18,
         maxPerOrder: 2,
-        seatZone: 'Ghế Ngồi VIP Platinum Trực Diện',
-        gateEntrance: 'Cổng VIP',
-        perks: ['Ghế bọc nệm đặc quyền', 'Gói quà tặng lưu niệm World Tour']
+        seatZone: 'VIP Platinum Direct Front Seating',
+        gateEntrance: 'Gate VIP',
+        perks: ['Premium cushioned seating', 'World Tour souvenir package']
       },
       {
         id: 'c0000000-0000-0000-0000-000000000006',
@@ -267,9 +267,9 @@ export const STOREFRONT_EVENTS: StorefrontEvent[] = [
         totalQuantity: 300,
         availableQuantity: 189,
         maxPerOrder: 6,
-        seatZone: 'Fanzone Sân Cỏ Trung Tâm',
-        gateEntrance: 'Cổng 1 & 2',
-        perks: ['Vòng tay phát sáng', 'Trải nghiệm âm thanh bao trùm']
+        seatZone: 'Center Pitch Fanzone',
+        gateEntrance: 'Gates 1 & 2',
+        perks: ['LED wristband', 'Immersive concert audio experience']
       }
     ]
   }
@@ -279,11 +279,11 @@ export const UPCOMING_CONCERTS: UpcomingConcertItem[] = [
   {
     id: 'atsh-hcm-2026',
     title: 'ANH TRAI SAY HI - LIVE CONCERT 2026',
-    dateText: 'THỨ BẢY TUẦN TỚI • 19:00',
-    relativeTime: 'Diễn ra sau 7 ngày',
-    venueText: 'Sân vận động Quốc gia Mỹ Đình, Hà Nội',
-    priceText: '1.200.000₫',
-    badgeText: 'Chỉ còn ít vé',
+    dateText: 'NEXT SATURDAY • 19:00',
+    relativeTime: 'Starts in 7 days',
+    venueText: 'My Dinh National Stadium, Hanoi',
+    priceText: '1,200,000 ₫',
+    badgeText: 'Low Stock',
     badgeType: 'warning',
     image: '/images/storefront/atsh-poster.jpg',
     eventId: 'atsh-2026'
@@ -292,10 +292,10 @@ export const UPCOMING_CONCERTS: UpcomingConcertItem[] = [
     id: 'mixtape-hanoi-live',
     title: 'SPACESPEAKERS - MIXTAPE HANOI 2026',
     dateText: '12/09/2026 • 19:30',
-    relativeTime: 'Mở cổng lúc 16:00',
-    venueText: 'Sân vận động Quốc gia Mỹ Đình, Hà Nội',
-    priceText: '800.000₫',
-    badgeText: 'Sự kiện Hot',
+    relativeTime: 'Gates open at 16:00',
+    venueText: 'My Dinh National Stadium, Hanoi',
+    priceText: '800,000 ₫',
+    badgeText: 'Trending',
     badgeType: 'info',
     image: '/images/storefront/hero-discovery.jpg',
     eventId: 'mixtape-hanoi-2026'
@@ -304,9 +304,9 @@ export const UPCOMING_CONCERTS: UpcomingConcertItem[] = [
     id: 'westlife-tour-hcm',
     title: 'WESTLIFE - THE WILD DREAMS TOUR 2026',
     dateText: '25/10/2026 • 20:00',
-    relativeTime: 'Mở bán chính thức',
-    venueText: 'Sân vận động Thống Nhất, TP.HCM',
-    priceText: '1.500.000₫',
+    relativeTime: 'Official On-Sale',
+    venueText: 'Thong Nhat Stadium, Ho Chi Minh City',
+    priceText: '1,500,000 ₫',
     badgeText: 'World Tour',
     badgeType: 'error',
     image: '/images/storefront/concert-lights.jpg',

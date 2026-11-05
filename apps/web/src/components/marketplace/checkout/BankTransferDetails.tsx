@@ -20,10 +20,10 @@ export const BankTransferDetails: React.FC<BankTransferDetailsProps> = ({
   accountName,
   amount,
   paymentReference,
-  currency = 'VND',
+  currency = '₫',
   className = '',
 }) => {
-  const formattedAmount = amount ? amount.toLocaleString('vi-VN') : '0';
+  const formattedAmount = amount ? amount.toLocaleString('en-US') : '0';
 
   return (
     <div className={`flex flex-col gap-3 ${className}`}>

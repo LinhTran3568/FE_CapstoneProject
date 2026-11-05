@@ -177,6 +177,8 @@ export interface OrganizerCheckoutRequest {
   buyerPhone: string;
   telemetry?: ClientTelemetry;
   sessionToken?: string;
+  challengeToken?: string;
+  challengeProvider?: string;
 }
 
 export interface OrganizerCheckoutResponse {
@@ -229,7 +231,9 @@ export interface AntiBotPolicyConfig {
   allowThreshold: number;
   blockThreshold: number;
   guardTimeoutMs: number;
+  challengeMode?: 'turnstile' | 'recaptcha' | 'sequential';
   updatedAtUtc?: string;
+  lastUpdatedAtUtc?: string;
   updatedBy?: string;
 }
 
@@ -238,6 +242,8 @@ export interface UpdateAntiBotPolicyRequest {
   allowThreshold?: number;
   blockThreshold?: number;
   guardTimeoutMs?: number;
+  challengeMode?: string;
+  updatedBy?: string;
 }
 
 export interface AntiBotAnalyticsSummary {
@@ -251,6 +257,18 @@ export interface AntiBotAnalyticsSummary {
   p95LatencyMs: number;
   eventId?: string;
   tierId?: string;
+
+  // Web portal metrics & policy
+  currentPolicy?: AntiBotPolicyConfig;
+  totalEvaluations?: number;
+  averageLatencyMs?: number;
+  allowCount?: number;
+  allowPercentage?: number;
+  challengeCount?: number;
+  challengePercentage?: number;
+  blockCount?: number;
+  blockPercentage?: number;
+  recentLogs?: any[];
 }
 
 export const organizerStoreApi = {

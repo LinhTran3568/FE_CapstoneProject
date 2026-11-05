@@ -131,19 +131,19 @@ const SettlementCountdownBanner: React.FC<{
     <div
       onClick={onToggleBreakdown}
       className="p-2.5 rounded-xl bg-amber-500/10 hover:bg-amber-500/15 border border-amber-500/30 hover:border-amber-500/50 flex items-center justify-between gap-3 text-xs text-amber-200 cursor-pointer transition-all group"
-      title="Bấm để xem chi tiết tiền khấu trừ"
+      title="Click to view payout breakdown"
     >
       <div className="flex items-center gap-2 min-w-0">
         <Clock className="w-4 h-4 text-amber-400 shrink-0 animate-pulse" />
         <span className="truncate">
-          <strong className="text-amber-300">Đang ký quỹ ({isEnded ? '00:00' : `${mm}:${ss}`}):</strong>{' '}
-          Dự kiến nhận {formatVND(netSellerPayout || resalePrice)}
+          <strong className="text-amber-300">In Escrow ({isEnded ? '00:00' : `${mm}:${ss}`}):</strong>{' '}
+          Est. Payout {formatVND(netSellerPayout || resalePrice)}
         </span>
       </div>
 
       {onToggleBreakdown && (
         <div className="flex items-center gap-1 text-[11px] font-mono font-bold text-amber-300 group-hover:text-amber-200 bg-amber-500/20 px-2 py-0.5 rounded transition-colors shrink-0">
-          <span>{isBreakdownOpen ? 'Đóng' : 'Chi tiết'}</span>
+          <span>{isBreakdownOpen ? 'Close' : 'Details'}</span>
           <ChevronDown
             className={`w-3.5 h-3.5 transition-transform duration-200 ${
               isBreakdownOpen ? 'rotate-180' : ''
@@ -156,7 +156,7 @@ const SettlementCountdownBanner: React.FC<{
 };
 
 /**
- * Bảng Kê Chi Tiết Tiền Bán Vé & Khấu Trừ (Thiết kế tinh gọn, súc tích)
+ * Payout & Fee Deduction Financial Breakdown
  */
 const ListingFinancialBreakdown: React.FC<{
   listing: SellerListingDto;
@@ -183,32 +183,32 @@ const ListingFinancialBreakdown: React.FC<{
 
   return (
     <div className="mt-2 p-3 sm:p-3.5 rounded-xl bg-[#080B10] border border-white/10 space-y-2 text-xs font-mono text-left animate-fade-in-up">
-      {/* 3 dòng chi tiết ngắn gọn */}
+      {/* Fee Breakdown */}
       <div className="space-y-1.5 pb-2 border-b border-white/10">
         <div className="flex justify-between text-gray-400">
-          <span>Giá bán {isBundle && bundleTotal > 1 ? `(${bundleTotal} vé)` : ''}:</span>
+          <span>Listing Price {isBundle && bundleTotal > 1 ? `(${bundleTotal} tickets)` : ''}:</span>
           <span className="text-white font-semibold tabular-nums">+{formatVND(grossAmount)}</span>
         </div>
         <div className="flex justify-between text-rose-400">
-          <span>Phí sàn ({feePercent}%):</span>
+          <span>Platform Fee ({feePercent}%):</span>
           <span className="tabular-nums font-semibold">-{formatVND(feeAmount)}</span>
         </div>
         <div className="flex justify-between text-gray-400">
-          <span>Phí chuyển khoản:</span>
-          <span className="text-emerald-400 font-semibold">0 ₫ (Miễn phí)</span>
+          <span>Transfer Fee:</span>
+          <span className="text-emerald-400 font-semibold">0 ₫ (Free)</span>
         </div>
       </div>
 
-      {/* Thực nhận */}
+      {/* Net Payout */}
       <div className="flex justify-between items-center text-sm pt-0.5">
-        <span className="text-gray-300 font-bold">Thực nhận:</span>
+        <span className="text-gray-300 font-bold">Net Payout:</span>
         {listing.escrowStatus === 'Refunded' ? (
           <span className="text-sm font-extrabold text-rose-400 tabular-nums font-display flex items-center gap-1">
-            0 ₫ <span className="text-[11px] font-normal text-rose-400/80">(Đã hoàn người mua)</span>
+            0 ₫ <span className="text-[11px] font-normal text-rose-400/80">(Refunded to buyer)</span>
           </span>
         ) : listing.escrowStatus === 'Disputed' ? (
           <span className="text-sm font-extrabold text-amber-400 tabular-nums font-display flex items-center gap-1">
-            {formatVND(netPayout)} <span className="text-[11px] font-normal text-amber-400/80">(Tạm phong tỏa)</span>
+            {formatVND(netPayout)} <span className="text-[11px] font-normal text-amber-400/80">(Temporarily locked)</span>
           </span>
         ) : (
           <span className="text-base font-extrabold text-emerald-400 tabular-nums font-display">
@@ -217,22 +217,22 @@ const ListingFinancialBreakdown: React.FC<{
         )}
       </div>
 
-      {/* Tài khoản nhận & Mã đối soát */}
+      {/* Linked Account & Ref */}
       <div className="pt-2 border-t border-white/5 flex items-center justify-between text-[11px] text-gray-400 flex-wrap gap-2">
         <div className="truncate">
-          <span className="text-gray-500">Nhận tại: </span>
+          <span className="text-gray-500">Payout to: </span>
           <span className="text-gray-200 font-medium">
             {listing.payoutBankInfo ||
               (listing.payoutBankCode
                 ? `${listing.payoutBankCode} - ${listing.payoutAccountNumber}`
-                : 'TK liên kết')}
+                : 'Linked Account')}
           </span>
           {listing.payoutAccountName && (
             <span className="text-gray-400"> ({listing.payoutAccountName})</span>
           )}
         </div>
         <div className="shrink-0">
-          <span className="text-gray-500">Mã: </span>
+          <span className="text-gray-500">Ref: </span>
           <span className="text-cyan-400 font-medium">
             {listing.payoutCode || `PO-${listing.listingId.substring(0, 8).toUpperCase()}`}
           </span>
@@ -268,7 +268,7 @@ export const MyListingsPage: React.FC = () => {
         ? ` (${payload.bankCode} - ${payload.accountNumber})`
         : '';
       showToast(
-        `🎉 Tiền bán vé ${amountStr} đã được giải ngân thành công về tài khoản${bankInfo}!`,
+        `🎉 Ticket sale payout of ${amountStr} was disbursed to account${bankInfo}!`,
         'success'
       );
     }, [queryClient, refetch, showToast]),
@@ -276,7 +276,7 @@ export const MyListingsPage: React.FC = () => {
       void queryClient.invalidateQueries({ queryKey: myListingsQueryKey });
       void queryClient.invalidateQueries({ queryKey: myPayoutsQueryKey });
       void refetch();
-      showToast('🎟️ Vé của bạn vừa được người mua thanh toán! Đang chuyển sang trạng thái xử lý/ký quỹ.', 'info');
+      showToast('🎟️ Your ticket was purchased! Transitioning to escrow processing.', 'info');
     }, [queryClient, refetch, showToast]),
     onHoldExpired: useCallback(() => {
       void queryClient.invalidateQueries({ queryKey: myListingsQueryKey });
@@ -378,7 +378,7 @@ export const MyListingsPage: React.FC = () => {
       onSuccess: () => {
         showToast(
           isBundle
-            ? '🎉 Hủy trọn gói vé (Combo) thành công! Tất cả các vé con trong gói đã được mở khóa với Ban Tổ Chức.'
+            ? '🎉 Bundle listing cancelled successfully! All tickets in the package have been unlocked by the Organizer.'
             : TOAST_CANCEL_SUCCESS,
           'success'
         );
@@ -448,9 +448,6 @@ export const MyListingsPage: React.FC = () => {
             <h1 className="text-3xl sm:text-4xl md:text-5xl font-extrabold font-display uppercase tracking-tight text-[#F5F5F5] leading-none">
               MY LISTINGS
             </h1>
-            <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 pt-1 text-sm text-[#8B929C]">
-              <p>Manage your tickets and track your resale activity.</p>
-            </div>
           </div>
 
           <Link
@@ -468,7 +465,7 @@ export const MyListingsPage: React.FC = () => {
             <div className="flex items-center gap-2.5 text-amber-200">
               <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0" />
               <span>
-                <strong className="text-amber-300 font-semibold">Chưa liên kết ngân hàng:</strong> Vui lòng thêm tài khoản để nhận tiền bán vé tự động qua NAPAS 247.
+                <strong className="text-amber-300 font-semibold">No Linked Bank Account:</strong> Please add a bank account to receive automatic payouts via NAPAS 247.
               </span>
             </div>
 
@@ -478,7 +475,7 @@ export const MyListingsPage: React.FC = () => {
               className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 bg-amber-500 hover:bg-amber-400 text-black font-bold font-mono text-xs rounded-lg transition-all shrink-0 cursor-pointer active:scale-95 shadow-sm"
             >
               <CreditCard className="w-3.5 h-3.5" />
-              <span>Liên kết ngay</span>
+              <span>Link Account</span>
             </button>
           </div>
         )}
@@ -678,7 +675,7 @@ export const MyListingsPage: React.FC = () => {
                         {/* Combo / Bundle Badge */}
                         {Boolean(listing.bundleId || (listing.bundleTotalTickets && listing.bundleTotalTickets >= 2)) && (
                           <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold uppercase tracking-wider bg-purple-500/15 border border-purple-500/40 text-purple-300">
-                            <span>COMBO ({listing.bundleTotalTickets || 2} VÉ)</span>
+                            <span>COMBO ({listing.bundleTotalTickets || 2} TICKETS)</span>
                           </span>
                         )}
 
@@ -699,13 +696,13 @@ export const MyListingsPage: React.FC = () => {
                                 )
                               }
                               className="p-2 sm:p-2.5 rounded-xl bg-rose-500/10 hover:bg-rose-500/15 border border-rose-500/30 hover:border-rose-500/50 flex items-center justify-between gap-3 text-xs text-rose-300 transition-all cursor-pointer group"
-                              title="Bấm để xem chi tiết tiền hoàn cho người mua"
+                              title="Click to view refund details"
                             >
                               <div className="flex items-center gap-2 min-w-0">
                                 <XCircle className="w-4 h-4 text-rose-400 shrink-0" />
                                 <span className="truncate">
-                                  <strong className="text-rose-400 font-semibold">Đã hoàn tiền cho người mua:</strong>{' '}
-                                  {formatVND(listing.totalBuyerPaid || listing.resalePrice)} (Khiếu nại được chấp thuận · Hủy nhận tiền)
+                                  <strong className="text-rose-400 font-semibold">Refunded to Buyer:</strong>{' '}
+                                  {formatVND(listing.totalBuyerPaid || listing.resalePrice)} (Dispute resolved · Payout cancelled)
                                 </span>
                               </div>
 
@@ -724,11 +721,11 @@ export const MyListingsPage: React.FC = () => {
                                     className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-rose-500/20 hover:bg-rose-500/30 border border-rose-500/40 text-rose-200 text-[11px] font-mono font-bold transition-colors shrink-0 cursor-pointer"
                                   >
                                     <Clock className="w-3.5 h-3.5" />
-                                    <span>Xem tiến độ</span>
+                                    <span>View Progress</span>
                                   </button>
                                 )}
                               <div className="flex items-center gap-1 px-2 py-0.5 rounded-lg bg-rose-500/20 text-rose-300 group-hover:bg-rose-500/30 text-[11px] font-mono font-bold transition-colors shrink-0">
-                                <span>{expandedBreakdownId === listing.listingId ? 'Đóng' : 'Chi tiết'}</span>
+                                <span>{expandedBreakdownId === listing.listingId ? 'Close' : 'Details'}</span>
                                 <ChevronDown
                                   className={`w-3.5 h-3.5 transition-transform duration-200 ${
                                     expandedBreakdownId === listing.listingId ? 'rotate-180' : ''
@@ -745,13 +742,13 @@ export const MyListingsPage: React.FC = () => {
                                 )
                               }
                               className="p-2 sm:p-2.5 rounded-xl bg-amber-500/10 hover:bg-amber-500/15 border border-amber-500/30 hover:border-amber-500/50 flex items-center justify-between gap-3 text-xs text-amber-300 transition-all cursor-pointer group"
-                              title="Bấm để xem chi tiết khoản tiền đang phong tỏa"
+                              title="Click to view locked funds details"
                             >
                               <div className="flex items-center gap-2 min-w-0">
                                 <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0 animate-pulse" />
                                 <span className="truncate">
-                                  <strong className="text-amber-400 font-semibold">Đang có khiếu nại sự cố:</strong>{' '}
-                                  Khoản tiền {formatVND(listing.netSellerPayout || listing.resalePrice)} đang bị phong tỏa chờ BQT xử lý
+                                  <strong className="text-amber-400 font-semibold">Dispute in Progress:</strong>{' '}
+                                  {formatVND(listing.netSellerPayout || listing.resalePrice)} is locked pending admin review
                                 </span>
                               </div>
 
@@ -770,11 +767,11 @@ export const MyListingsPage: React.FC = () => {
                                     className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-amber-200 text-[11px] font-mono font-bold transition-colors shrink-0 cursor-pointer"
                                   >
                                     <Clock className="w-3.5 h-3.5" />
-                                    <span>Xem tiến độ</span>
+                                    <span>View Progress</span>
                                   </button>
                                 )}
                               <div className="flex items-center gap-1 px-2 py-0.5 rounded-lg bg-amber-500/20 text-amber-300 group-hover:bg-amber-500/30 text-[11px] font-mono font-bold transition-colors shrink-0">
-                                <span>{expandedBreakdownId === listing.listingId ? 'Đóng' : 'Chi tiết'}</span>
+                                <span>{expandedBreakdownId === listing.listingId ? 'Close' : 'Details'}</span>
                                 <ChevronDown
                                   className={`w-3.5 h-3.5 transition-transform duration-200 ${
                                     expandedBreakdownId === listing.listingId ? 'rotate-180' : ''
@@ -790,11 +787,11 @@ export const MyListingsPage: React.FC = () => {
                                 <span>
                                   {listing.escrowStatus === 'Disputed' ? (
                                     <>
-                                      <strong className="text-amber-300 font-semibold">Người mua đang khiếu nại.</strong>{' '}
-                                      Tiền chưa chuyển cho bạn, đang chờ xử lý.
+                                      <strong className="text-amber-300 font-semibold">Buyer disputed this ticket.</strong>{' '}
+                                      Payout is locked pending dispute resolution.
                                     </>
                                   ) : (
-                                    <strong className="text-amber-300 font-semibold">Khiếu nại đã có kết quả.</strong>
+                                    <strong className="text-amber-300 font-semibold">Dispute resolved.</strong>
                                   )}
                                 </span>
                               </div>
@@ -810,7 +807,7 @@ export const MyListingsPage: React.FC = () => {
                                 className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-amber-200 text-[11px] font-mono font-bold transition-colors shrink-0 cursor-pointer"
                               >
                                 <Clock className="w-3.5 h-3.5" />
-                                <span>Xem tiến độ</span>
+                                <span>View Progress</span>
                               </button>
                             </div>
                           ) : listing.inSettlementBuffer ? (
@@ -838,12 +835,12 @@ export const MyListingsPage: React.FC = () => {
                                 )
                               }
                               className="p-2 sm:p-2.5 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/15 border border-emerald-500/25 hover:border-emerald-500/40 flex items-center justify-between gap-3 text-xs text-emerald-300 transition-all cursor-pointer group"
-                              title="Bấm để xem chi tiết tiền bán & khấu trừ"
+                              title="Click to view payout details"
                             >
                               <div className="flex items-center gap-2 min-w-0">
                                 <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
                                 <span className="truncate">
-                                  <strong className="text-emerald-400 font-semibold">Đã thanh toán:</strong>{' '}
+                                  <strong className="text-emerald-400 font-semibold">Paid Out:</strong>{' '}
                                   {formatVND(listing.netSellerPayout || listing.resalePrice)}
                                   {listing.payoutBankInfo && (
                                     <span className="text-emerald-400/80 font-normal"> · {listing.payoutBankInfo}</span>
@@ -852,7 +849,7 @@ export const MyListingsPage: React.FC = () => {
                               </div>
 
                               <div className="flex items-center gap-1 px-2 py-0.5 rounded-lg bg-emerald-500/20 text-emerald-300 group-hover:bg-emerald-500/30 text-[11px] font-mono font-bold transition-colors shrink-0">
-                                <span>{expandedBreakdownId === listing.listingId ? 'Đóng' : 'Chi tiết'}</span>
+                                <span>{expandedBreakdownId === listing.listingId ? 'Close' : 'Details'}</span>
                                 <ChevronDown
                                   className={`w-3.5 h-3.5 transition-transform duration-200 ${
                                     expandedBreakdownId === listing.listingId ? 'rotate-180' : ''
@@ -862,7 +859,7 @@ export const MyListingsPage: React.FC = () => {
                             </div>
                           )}
 
-                          {/* Chi tiết tài chính & khấu trừ được mở rộng khi người dùng bấm vào */}
+                          {/* Expanded Financial Breakdown */}
                           {expandedBreakdownId === listing.listingId && (
                             <ListingFinancialBreakdown
                               listing={listing}
@@ -1022,28 +1019,28 @@ export const MyListingsPage: React.FC = () => {
         open={listingToCancel !== null}
         eyebrow={
           listingToCancel && Boolean(listingToCancel.bundleId || (listingToCancel.bundleTotalTickets && listingToCancel.bundleTotalTickets >= 2))
-            ? 'XÁC NHẬN HỦY GÓI VÉ'
+            ? 'CONFIRM BUNDLE CANCELLATION'
             : 'Seller Action'
         }
         title={
           listingToCancel && Boolean(listingToCancel.bundleId || (listingToCancel.bundleTotalTickets && listingToCancel.bundleTotalTickets >= 2))
-            ? `Hủy gói combo (${childBundleListings.length || listingToCancel.bundleTotalTickets || 2} vé)?`
-            : 'Hủy niêm yết vé này?'
+            ? `Cancel combo bundle (${childBundleListings.length || listingToCancel.bundleTotalTickets || 2} tickets)?`
+            : 'Cancel this listing?'
         }
         description={
           listingToCancel && Boolean(listingToCancel.bundleId || (listingToCancel.bundleTotalTickets && listingToCancel.bundleTotalTickets >= 2))
-            ? 'Khi bạn xác nhận hủy, tất cả các vé con thuộc gói combo này sẽ đồng thời được hủy niêm yết khỏi chợ và tự động mở khóa về tài khoản ban đầu.'
-            : 'Vé này sẽ được hủy niêm yết khỏi chợ và hệ thống sẽ gửi yêu cầu mở khóa vé về trạng thái hợp lệ ban đầu cho bạn.'
+            ? 'When confirmed, all tickets in this combo bundle will be delisted from the marketplace and unlocked with the organizer.'
+            : 'This ticket will be delisted from the marketplace and unlocked with the organizer.'
         }
         confirmLabel={
           cancelMutation.isError
             ? 'Retry'
             : listingToCancel && Boolean(listingToCancel.bundleId || (listingToCancel.bundleTotalTickets && listingToCancel.bundleTotalTickets >= 2))
-            ? 'Hủy toàn bộ gói vé'
-            : 'Xác nhận hủy vé'
+            ? 'Cancel Entire Bundle'
+            : 'Confirm Cancellation'
         }
-        cancelLabel="Giữ lại tin đăng"
-        loadingLabel="Đang mở khóa gói vé..."
+        cancelLabel="Keep Listing"
+        loadingLabel="Releasing ticket locks..."
         tone="danger"
         isLoading={cancelMutation.isPending}
         onConfirm={handleConfirmCancel}
@@ -1054,15 +1051,15 @@ export const MyListingsPage: React.FC = () => {
             {Boolean(listingToCancel.bundleId || (listingToCancel.bundleTotalTickets && listingToCancel.bundleTotalTickets >= 2)) ? (
               <div className="space-y-3">
                 <div className="p-3.5 bg-purple-500/10 border border-purple-500/30 rounded-xl text-purple-300 text-xs leading-relaxed flex items-start gap-2.5">
-                  <span className="font-bold text-xs uppercase text-purple-400 bg-purple-500/20 px-2 py-0.5 rounded border border-purple-500/40 shrink-0 mt-0.5">QUY ĐỊNH BÁN GÓI</span>
+                  <span className="font-bold text-xs uppercase text-purple-400 bg-purple-500/20 px-2 py-0.5 rounded border border-purple-500/40 shrink-0 mt-0.5">BUNDLE POLICY</span>
                   <span>
-                    Gói vé bao gồm <strong>{childBundleListings.length || listingToCancel.bundleTotalTickets || 2} vé con</strong>. Tất cả các vé trong gói sẽ đồng thời được mở khóa và hoàn trả về tài khoản ban đầu của bạn.
+                    This bundle contains <strong>{childBundleListings.length || listingToCancel.bundleTotalTickets || 2} tickets</strong>. All tickets will be simultaneously unlocked and returned to your account.
                   </span>
                 </div>
 
                 <div className="text-xs font-mono font-bold text-[#8B929C] uppercase tracking-wider pt-1 flex items-center justify-between">
-                  <span>Danh sách vé con trong Combo:</span>
-                  <span className="text-purple-400 font-extrabold">{childBundleListings.length} vé</span>
+                  <span>Bundle Tickets:</span>
+                  <span className="text-purple-400 font-extrabold">{childBundleListings.length} tickets</span>
                 </div>
 
                 <div className="max-h-60 overflow-y-auto space-y-2 pr-1 no-scrollbar">
@@ -1078,7 +1075,7 @@ export const MyListingsPage: React.FC = () => {
                         <div className="min-w-0">
                           <p className="font-bold text-white truncate">{child.eventName}</p>
                           <p className="text-[11px] text-[#8B929C] font-mono truncate">
-                            {child.tierName} {child.seatZone ? `• ${child.seatZone}` : ''} • Mã {child.originalTicketCode}
+                            {child.tierName} {child.seatZone ? `• ${child.seatZone}` : ''} • Code {child.originalTicketCode}
                           </p>
                         </div>
                       </div>
@@ -1132,7 +1129,7 @@ export const MyListingsPage: React.FC = () => {
         onSuccess={() => {
           setIsAddBankModalOpen(false);
           void queryClient.invalidateQueries({ queryKey: myBankAccountsQueryKey });
-          showToast('Liên kết tài khoản ngân hàng nhận tiền thành công!', 'success');
+          showToast('Bank account linked successfully!', 'success');
         }}
       />
 
@@ -1198,7 +1195,7 @@ const EmptyState: React.FC<{ filter: StatusFilter; onReset: () => void }> = ({ f
   const meta: Record<StatusFilter, { title: string; desc: string; showCta: boolean }> = {
     all: {
       title: 'No tickets listed yet',
-      desc: 'Verify and list your official tickets with 100% funds protection.',
+      desc: 'Verify and list your tickets on the marketplace.',
       showCta: true,
     },
     Verified: {
@@ -1208,7 +1205,7 @@ const EmptyState: React.FC<{ filter: StatusFilter; onReset: () => void }> = ({ f
     },
     Transacting: {
       title: 'No listings currently under protection',
-      desc: 'Tickets currently undergoing 24-hour buyer funds protection will appear here.',
+      desc: 'Tickets currently in checkout or escrow will appear here.',
       showCta: false,
     },
     Sold: {

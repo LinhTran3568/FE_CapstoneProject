@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { QrCode, ShieldCheck, AlertTriangle } from 'lucide-react';
+import { QrCode, AlertTriangle } from 'lucide-react';
 
 export interface VietQrPanelProps {
   qrImageUrl?: string | null;

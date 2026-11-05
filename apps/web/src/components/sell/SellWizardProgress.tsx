@@ -71,12 +71,12 @@ export const SellWizardProgress: React.FC<SellWizardProgressProps> = ({
               className="p-1 bg-white/10 hover:bg-white/20 text-white rounded-full transition-colors flex items-center justify-center cursor-pointer shrink-0 disabled:opacity-40 disabled:cursor-not-allowed"
               title={
                 currentStep === 2
-                  ? 'Hủy phiên xác thực & mở khóa vé'
+                  ? 'Cancel verification & unlock tickets'
                   : currentStep === 4
-                  ? 'Quay lại Bước 3'
+                  ? 'Go back to Step 3'
                   : currentStep === 5
-                  ? 'Quay lại Bước 4 (Chỉnh giá bán)'
-                  : 'Quay lại bước trước'
+                  ? 'Go back to Step 4 (Pricing)'
+                  : 'Go back'
               }
             >
               <ArrowLeft className="w-3.5 h-3.5" />
@@ -119,12 +119,12 @@ export const SellWizardProgress: React.FC<SellWizardProgressProps> = ({
                   }`}
                   title={
                     isCurrent
-                      ? `Bước ${stepNum} (Hiện tại)`
+                      ? `Step ${stepNum} (Current)`
                       : isCompleted
                       ? clickable
-                        ? `Quay lại Bước ${stepNum}`
-                        : `Bước ${stepNum} (Đã khóa, không thể quay lại)`
-                      : `Bước ${stepNum}`
+                        ? `Go back to Step ${stepNum}`
+                        : `Step ${stepNum} (Locked)`
+                      : `Step ${stepNum}`
                   }
                 >
                   {isCompleted ? <Check className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-black stroke-[3]" /> : stepNum}

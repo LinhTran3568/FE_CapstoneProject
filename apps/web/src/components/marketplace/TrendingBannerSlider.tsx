@@ -14,10 +14,10 @@ const FALLBACK_SLIDES: TrendingEventDto[] = [
   {
     eventId: 'fb-1',
     name: 'Anh Trai Say Hi Live Concert 2026',
-    artist: 'HIEUTHUHAI, Anh Tú, Isaac, Rhyder',
+    artist: 'HIEUTHUHAI, Anh Tu, Isaac, Rhyder',
     category: 'CONCERT',
-    venue: 'Sân vận động Quốc gia Mỹ Đình',
-    city: 'Hà Nội',
+    venue: 'My Dinh National Stadium',
+    city: 'Hanoi',
     bannerUrl: '/images/landing/hero-concert.jpg',
     eventStartAt: '2026-10-24T19:00:00Z',
     minResalePrice: 1200000,
@@ -25,11 +25,11 @@ const FALLBACK_SLIDES: TrendingEventDto[] = [
   },
   {
     eventId: 'fb-2',
-    name: 'Mỹ Tâm Live Concert - Tri Âm Tour',
-    artist: 'Mỹ Tâm',
+    name: 'My Tam Live Concert - Tri Am Tour',
+    artist: 'My Tam',
     category: 'CONCERT',
-    venue: 'Sân vận động Quân khu 7',
-    city: 'TP. Hồ Chí Minh',
+    venue: 'Military Zone 7 Stadium',
+    city: 'Ho Chi Minh City',
     bannerUrl: '/images/landing/featured-1.jpg',
     eventStartAt: '2026-11-15T19:30:00Z',
     minResalePrice: 850000,
@@ -40,8 +40,8 @@ const FALLBACK_SLIDES: TrendingEventDto[] = [
     name: 'Ravolution Music Festival 2026',
     artist: 'Armin van Buuren, KSHMR, Suboi',
     category: 'FESTIVAL',
-    venue: 'Khu Đô Thị Sala, TP. Thủ Đức',
-    city: 'TP. Hồ Chí Minh',
+    venue: 'Sala Urban Area, Thu Duc City',
+    city: 'Ho Chi Minh City',
     bannerUrl: '/images/landing/festival.jpg',
     eventStartAt: '2026-12-05T15:00:00Z',
     minResalePrice: 650000,
@@ -183,7 +183,7 @@ export const TrendingBannerSlider: React.FC<TrendingBannerSliderProps> = ({ onSe
               {/* Artist / Performer */}
               {currentSlide.artist && (
                 <p className="text-sm sm:text-base font-medium text-[#CBD5E1] line-clamp-1 mb-3">
-                  Nghệ sĩ: <span className="text-white font-bold">{currentSlide.artist}</span>
+                  Artist: <span className="text-white font-bold">{currentSlide.artist}</span>
                 </p>
               )}
 

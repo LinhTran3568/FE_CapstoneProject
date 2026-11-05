@@ -30,13 +30,13 @@ export const StorefrontHero: React.FC<StorefrontHeroProps> = ({
             {/* Organizer & Official Badge */}
             <div className="flex flex-wrap items-center gap-2.5">
               <span className="px-2.5 py-1 rounded-md text-xs font-mono font-semibold uppercase tracking-wider bg-[#E11D48] text-white">
-                Vé Gốc Ban Tổ Chức
+                Official Organizer Ticket
               </span>
               <span className="px-2.5 py-1 rounded-md text-xs font-medium bg-[#16202E] text-[#CBD5E1] border border-white/10">
-                Đơn vị tổ chức: <strong className="text-white">{event.organizerName}</strong>
+                Organizer: <strong className="text-white">{event.organizerName}</strong>
               </span>
               <span className="px-2 py-0.5 rounded text-[11px] font-mono text-emerald-400 bg-emerald-950/60 border border-emerald-500/30">
-                Đang mở bán trực tiếp
+                Live Allocation On-Sale
               </span>
             </div>
 
@@ -54,7 +54,7 @@ export const StorefrontHero: React.FC<StorefrontHeroProps> = ({
             <div className="pt-2 grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div className="bg-[#131B26]/80 backdrop-blur-sm border border-white/10 rounded-xl p-3">
                 <div className="text-[11px] font-mono uppercase text-[#94A3B8] mb-1">
-                  Thời gian biểu diễn
+                  Date & Time
                 </div>
                 <div className="font-bold text-white text-sm sm:text-base leading-snug">
                   {event.dateDisplay}
@@ -66,7 +66,7 @@ export const StorefrontHero: React.FC<StorefrontHeroProps> = ({
 
               <div className="bg-[#131B26]/80 backdrop-blur-sm border border-white/10 rounded-xl p-3 sm:col-span-2">
                 <div className="text-[11px] font-mono uppercase text-[#94A3B8] mb-1">
-                  Địa điểm tổ chức
+                  Venue
                 </div>
                 <div className="font-bold text-white text-sm sm:text-base leading-snug">
                   {event.venueName}
@@ -82,7 +82,7 @@ export const StorefrontHero: React.FC<StorefrontHeroProps> = ({
           <div className="lg:col-span-4 flex flex-col justify-end gap-3">
             <div className="bg-[#131B26]/90 border border-white/10 rounded-xl p-4 space-y-3">
               <div className="flex items-center justify-between text-xs">
-                <span className="text-[#94A3B8]">Giờ mở cửa soát vé:</span>
+                <span className="text-[#94A3B8]">Gate Opening Time:</span>
                 <span className="font-mono font-bold text-white text-sm">
                   {event.gateOpenTime}
                 </span>
@@ -96,7 +96,7 @@ export const StorefrontHero: React.FC<StorefrontHeroProps> = ({
                 <svg className="w-4 h-4 text-[#E11D48]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
                 </svg>
-                <span>Xem sơ đồ sân khấu & khán đài</span>
+                <span>View Stage Layout & Seating Chart</span>
               </button>
             </div>
           </div>

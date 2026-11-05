@@ -58,13 +58,13 @@ export const PayoutSuccessModal: React.FC<PayoutSuccessModalProps> = ({
 
           <div>
             <div className="inline-block px-2.5 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-500/30 text-emerald-300 font-mono text-[9px] font-bold uppercase tracking-wider mb-1">
-              NAPAS 247 • GIẢI NGÂN THÀNH CÔNG
+              NAPAS 247 • PAYOUT TRANSFERRED
             </div>
             <h2 id="payout-success-title" className="text-lg font-bold font-display text-white tracking-tight">
-              Tiền Đã Về Tài Khoản!
+              Payout Received!
             </h2>
             <p className="text-[11px] text-zinc-400 mt-0.5">
-              Hệ thống đã chuyển tiền bán vé vào tài khoản của bạn.
+              Ticket proceeds have been disbursed to your account.
             </p>
           </div>
         </div>
@@ -72,7 +72,7 @@ export const PayoutSuccessModal: React.FC<PayoutSuccessModalProps> = ({
         {/* Amount Box */}
         <div className="my-3 p-3.5 rounded-xl bg-gradient-to-br from-emerald-500/15 via-emerald-500/5 to-transparent border border-emerald-500/30 text-center space-y-0.5">
           <span className="text-[10px] font-mono text-emerald-400 font-semibold uppercase tracking-wider block">
-            Số tiền thực nhận (Đã khấu trừ phí dịch vụ sàn)
+            Net Payout (After platform fee)
           </span>
           <div className="text-2xl font-extrabold font-display text-emerald-300 tracking-tight">
             +{formatVND(amount)}
@@ -84,7 +84,7 @@ export const PayoutSuccessModal: React.FC<PayoutSuccessModalProps> = ({
           <div className="flex items-center justify-between text-zinc-400">
             <span className="flex items-center gap-1.5 text-zinc-400">
               <Building2 className="w-3 h-3 text-zinc-400" />
-              Ngân hàng:
+              Bank:
             </span>
             <span className="font-bold text-white">{payoutData.bankCode || 'MB'}</span>
           </div>
@@ -92,7 +92,7 @@ export const PayoutSuccessModal: React.FC<PayoutSuccessModalProps> = ({
           <div className="flex items-center justify-between text-zinc-400">
             <span className="flex items-center gap-1.5 text-zinc-400">
               <CreditCard className="w-3 h-3 text-zinc-400" />
-              Số tài khoản:
+              Account Number:
             </span>
             <span className="font-bold text-emerald-300 tracking-wider">
               {payoutData.accountNumber || '—'}
@@ -103,7 +103,7 @@ export const PayoutSuccessModal: React.FC<PayoutSuccessModalProps> = ({
             <div className="flex items-center justify-between text-zinc-400">
               <span className="flex items-center gap-1.5 text-zinc-400">
                 <User className="w-3 h-3 text-zinc-400" />
-                Chủ tài khoản:
+                Account Holder:
               </span>
               <span className="font-bold text-white uppercase">{payoutData.accountName}</span>
             </div>
@@ -111,7 +111,7 @@ export const PayoutSuccessModal: React.FC<PayoutSuccessModalProps> = ({
 
           {payoutData.bankReference && (
             <div className="flex items-center justify-between text-zinc-400 pt-1 border-t border-white/5">
-              <span>Mã giao dịch:</span>
+              <span>Transaction Ref:</span>
               <span className="text-[10px] text-zinc-300 font-bold">{payoutData.bankReference}</span>
             </div>
           )}
@@ -124,7 +124,7 @@ export const PayoutSuccessModal: React.FC<PayoutSuccessModalProps> = ({
             onClick={onClose}
             className="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-black font-bold font-display text-xs uppercase tracking-wider shadow-md shadow-emerald-500/20 transition-all cursor-pointer active:scale-95"
           >
-            Đã Hiểu & Đóng
+            Got It &amp; Close
           </button>
         </div>
       </div>

@@ -40,8 +40,8 @@ export const EventMarkupControlPanel: React.FC = () => {
       const data = await adminApi.getAllEventMarkups();
       setEvents(data || []);
     } catch (err: any) {
-      console.error('Lỗi khi tải danh sách sự kiện:', err);
-      setErrorMessage(err.response?.data?.message || err.message || 'Không thể tải danh sách sự kiện từ máy chủ.');
+      console.error('Error fetching event markups:', err);
+      setErrorMessage(err.response?.data?.message || err.message || 'Failed to load event markups from server.');
     } finally {
       setLoading(false);
     }
@@ -101,7 +101,7 @@ export const EventMarkupControlPanel: React.FC = () => {
     if (!editingEvent) return;
 
     if (newMarkup < 0 || newMarkup > 100) {
-      setErrorMessage('Biên độ trần giá phải nằm trong khoảng từ 0% đến 100%.');
+      setErrorMessage('Markup percentage must be between 0% and 100%.');
       return;
     }
 
@@ -112,7 +112,7 @@ export const EventMarkupControlPanel: React.FC = () => {
         maxResaleMarkupPercentage: newMarkup,
       });
 
-      setSuccessMessage(`Đã cập nhật biên độ trần giá cho "${editingEvent.eventName}" thành +${newMarkup}%!`);
+      setSuccessMessage(`Updated price ceiling for "${editingEvent.eventName}" to +${newMarkup}%!`);
       setTimeout(() => setSuccessMessage(null), 4000);
 
       setEvents((prev) =>
@@ -124,7 +124,7 @@ export const EventMarkupControlPanel: React.FC = () => {
       );
       setEditingEvent(null);
     } catch (err: any) {
-      setErrorMessage(err.response?.data?.message || err.message || 'Lỗi khi cập nhật trần giá sự kiện.');
+      setErrorMessage(err.response?.data?.message || err.message || 'Failed to update event price ceiling.');
     } finally {
       setUpdating(false);
     }
@@ -135,7 +135,7 @@ export const EventMarkupControlPanel: React.FC = () => {
   };
 
   const formatVND = (amount: number) => {
-    return new Intl.NumberFormat('vi-VN').format(amount) + ' ₫';
+    return new Intl.NumberFormat('en-US').format(amount) + ' ₫';
   };
 
   return (
@@ -178,11 +178,11 @@ export const EventMarkupControlPanel: React.FC = () => {
         <div className="flex items-center gap-2">
           <Info className="w-4 h-4 text-[#F45135] shrink-0" />
           <span>
-            <strong className="text-[#101722]">Quy tắc chống phe vé:</strong> Giá bán lại tối đa ={' '}
+            <strong className="text-[#101722]">Price Cap Rule:</strong> Maximum resale price ={' '}
             <code className="text-[#101722] font-mono bg-slate-100 px-1 py-0.5 rounded text-[11px]">
-              Giá gốc × (1 + % Trần giá)
+              Face Value × (1 + Cap %)
             </code>
-            . Hệ thống tự động từ chối niêm yết vượt ngưỡng này.
+            . The platform automatically blocks listings exceeding this ceiling.
           </span>
         </div>
         <button
@@ -191,7 +191,7 @@ export const EventMarkupControlPanel: React.FC = () => {
           className="text-[11px] font-medium text-[#667085] hover:text-[#101722] flex items-center gap-1 shrink-0"
         >
           <RefreshCw className={`w-3 h-3 ${loading ? 'animate-spin text-[#F45135]' : ''}`} />
-          <span>Làm mới</span>
+          <span>Refresh</span>
         </button>
       </div>
 
@@ -203,7 +203,7 @@ export const EventMarkupControlPanel: React.FC = () => {
             <Search className="w-3.5 h-3.5 text-[#667085] absolute left-3 top-1/2 -translate-y-1/2" />
             <input
               type="text"
-              placeholder="Tìm theo tên sự kiện, địa điểm..."
+              placeholder="Search by event name, venue..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full bg-[#F4F6F9] border border-[#E5EAF0] rounded-lg pl-8 pr-3 py-1.5 text-xs text-[#101722] placeholder-[#667085] focus:outline-none focus:border-[#F45135] focus:bg-white transition-all"
@@ -216,7 +216,7 @@ export const EventMarkupControlPanel: React.FC = () => {
             onChange={(e) => setCategoryFilter(e.target.value)}
             className="bg-[#F4F6F9] border border-[#E5EAF0] rounded-lg px-2.5 py-1.5 text-xs text-[#101722] focus:outline-none focus:border-[#F45135] cursor-pointer"
           >
-            <option value="ALL">Mọi phân loại</option>
+            <option value="ALL">All Categories</option>
             {categories.map((c) => (
               <option key={c} value={c}>
                 {c}
@@ -230,15 +230,15 @@ export const EventMarkupControlPanel: React.FC = () => {
             onChange={(e) => setMarkupStatusFilter(e.target.value as any)}
             className="bg-[#F4F6F9] border border-[#E5EAF0] rounded-lg px-2.5 py-1.5 text-xs text-[#101722] focus:outline-none focus:border-[#F45135] cursor-pointer"
           >
-            <option value="ALL">Mọi mức trần</option>
-            <option value="POSITIVE">Có trần dương (&gt;0%)</option>
-            <option value="ZERO">Giá gốc (0%)</option>
+            <option value="ALL">All Caps</option>
+            <option value="POSITIVE">Positive Cap (&gt;0%)</option>
+            <option value="ZERO">Face Value (0%)</option>
           </select>
         </div>
 
         {/* Counter */}
         <div className="text-[11px] font-mono text-[#667085] shrink-0">
-          Hiển thị <strong>{filteredEvents.length}</strong> / {events.length} sự kiện
+          Showing <strong>{filteredEvents.length}</strong> of {events.length} events
         </div>
       </div>
 
@@ -248,11 +248,11 @@ export const EventMarkupControlPanel: React.FC = () => {
           <table className="w-full text-left text-xs">
             <thead className="bg-[#F4F6F9] text-[#667085] border-b border-[#E5EAF0] uppercase font-mono font-bold text-[10px] tracking-wider">
               <tr>
-                <th className="py-2.5 px-4">Sự Kiện</th>
-                <th className="py-2.5 px-4">Địa Điểm & Thời Gian</th>
-                <th className="py-2.5 px-4">Phân Loại</th>
-                <th className="py-2.5 px-4 text-center">Trần Giá Bán Lại</th>
-                <th className="py-2.5 px-4 text-right">Thao Tác</th>
+                <th className="py-2.5 px-4">Event</th>
+                <th className="py-2.5 px-4">Venue & Schedule</th>
+                <th className="py-2.5 px-4">Category</th>
+                <th className="py-2.5 px-4 text-center">Resale Price Ceiling</th>
+                <th className="py-2.5 px-4 text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[#E5EAF0]">
@@ -261,16 +261,16 @@ export const EventMarkupControlPanel: React.FC = () => {
                   <td colSpan={5} className="py-12 text-center text-[#667085]">
                     <div className="flex flex-col items-center justify-center gap-2">
                       <Loader2 className="w-5 h-5 animate-spin text-[#F45135]" />
-                      <span>Đang tải danh sách sự kiện...</span>
+                      <span>Loading events...</span>
                     </div>
                   </td>
                 </tr>
               ) : filteredEvents.length === 0 ? (
                 <tr>
                   <td colSpan={5} className="py-10 text-center text-[#667085]">
-                    <p className="font-medium text-[#101722]">Không tìm thấy sự kiện nào</p>
+                    <p className="font-medium text-[#101722]">No events found</p>
                     <p className="text-[11px] text-[#667085] mt-0.5">
-                      Thử xóa từ khóa tìm kiếm hoặc đặt lại bộ lọc phân loại.
+                      Try clearing your search query or resetting filters.
                     </p>
                   </td>
                 </tr>
@@ -289,7 +289,7 @@ export const EventMarkupControlPanel: React.FC = () => {
                           <button
                             type="button"
                             onClick={(e) => handleCopyId(ev.eventId, e)}
-                            title="Sao chép toàn bộ Event ID"
+                            title="Copy full Event ID"
                             className="text-[#667085] hover:text-[#101722] p-0.5 rounded transition-colors"
                           >
                             {copiedId === ev.eventId ? (
@@ -305,12 +305,12 @@ export const EventMarkupControlPanel: React.FC = () => {
                       <td className="py-3 px-4 text-[#667085]">
                         <div className="flex items-center gap-1.5 text-xs text-[#101722]">
                           <Building className="w-3.5 h-3.5 text-[#667085] shrink-0" />
-                          <span className="truncate max-w-[200px]">{ev.venue || 'Chưa cập nhật'}</span>
+                          <span className="truncate max-w-[200px]">{ev.venue || 'Not specified'}</span>
                         </div>
                         {ev.eventStartAt && (
                           <div className="flex items-center gap-1.5 text-[11px] font-mono text-[#667085] mt-0.5">
                             <Calendar className="w-3 h-3 text-[#667085] shrink-0" />
-                            <span>{new Date(ev.eventStartAt).toLocaleDateString('vi-VN')}</span>
+                            <span>{new Date(ev.eventStartAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
                           </div>
                         )}
                       </td>
@@ -330,7 +330,7 @@ export const EventMarkupControlPanel: React.FC = () => {
                           </span>
                         ) : (
                           <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-mono font-medium bg-slate-100 text-slate-600 border border-slate-200">
-                            0% (Giá gốc)
+                            0% (Face Value)
                           </span>
                         )}
                       </td>
@@ -343,7 +343,7 @@ export const EventMarkupControlPanel: React.FC = () => {
                           className="px-2.5 py-1 rounded-lg bg-white border border-[#E5EAF0] text-[#101722] hover:border-[#F45135] hover:text-[#F45135] text-xs font-medium transition-colors shadow-2xs inline-flex items-center gap-1"
                         >
                           <Edit2 className="w-3 h-3" />
-                          <span>Chỉnh trần</span>
+                          <span>Edit Cap</span>
                         </button>
                       </td>
                     </tr>
@@ -362,7 +362,7 @@ export const EventMarkupControlPanel: React.FC = () => {
             <div className="flex items-center justify-between border-b border-[#E5EAF0] pb-3">
               <div>
                 <h4 className="text-sm font-bold text-[#101722]">
-                  Cài Đặt Trần Giá Bán Lại Sự Kiện
+                  Configure Resale Price Ceiling
                 </h4>
                 <p className="text-xs text-[#667085] mt-0.5 truncate max-w-xs">
                   {editingEvent.eventName}
@@ -380,7 +380,7 @@ export const EventMarkupControlPanel: React.FC = () => {
             <form onSubmit={handleSaveMarkup} className="space-y-4">
               <div className="space-y-1.5">
                 <label className="block text-xs font-semibold text-[#101722]">
-                  Biên độ trần giá tối đa (% cho phép vượt giá gốc)
+                  Maximum Resale Markup (% above face value)
                 </label>
                 <div className="relative">
                   <input
@@ -395,26 +395,26 @@ export const EventMarkupControlPanel: React.FC = () => {
                   <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-mono font-bold text-[#667085]">%</span>
                 </div>
                 <p className="text-[11px] text-[#667085]">
-                  0% = Bán lại không được vượt giá gốc. Tối đa cho phép: 100%.
+                  0% = Resale cannot exceed face value. Maximum allowed: 100%.
                 </p>
               </div>
 
               {/* Price Ceiling Calculator Demo in Modal */}
               <div className="p-3 rounded-lg bg-[#F4F6F9] border border-[#E5EAF0] space-y-1.5 text-xs font-mono">
                 <div className="font-semibold text-[#101722] flex items-center justify-between font-sans">
-                  <span>Mô phỏng trần giá:</span>
+                  <span>Price Ceiling Preview:</span>
                   <span className="text-[#F45135] font-mono font-bold">+{newMarkup}%</span>
                 </div>
                 <div className="flex items-center justify-between text-[#667085] text-[11px]">
-                  <span>Vé gốc 500.000 ₫:</span>
+                  <span>Face Value 500,000 ₫:</span>
                   <span className="font-semibold text-[#101722]">{formatVND(computeCeiling(500000, newMarkup))}</span>
                 </div>
                 <div className="flex items-center justify-between text-[#667085] text-[11px]">
-                  <span>Vé gốc 1.000.000 ₫:</span>
+                  <span>Face Value 1,000,000 ₫:</span>
                   <span className="font-semibold text-[#101722]">{formatVND(computeCeiling(1000000, newMarkup))}</span>
                 </div>
                 <div className="flex items-center justify-between text-[#667085] text-[11px]">
-                  <span>Vé gốc 2.000.000 ₫:</span>
+                  <span>Face Value 2,000,000 ₫:</span>
                   <span className="font-semibold text-[#101722]">{formatVND(computeCeiling(2000000, newMarkup))}</span>
                 </div>
               </div>
@@ -425,7 +425,7 @@ export const EventMarkupControlPanel: React.FC = () => {
                   onClick={() => setEditingEvent(null)}
                   className="px-3 py-1.5 rounded-lg border border-[#E5EAF0] text-[#667085] hover:text-[#101722] hover:bg-slate-50 text-xs font-medium"
                 >
-                  Hủy Bỏ
+                  Cancel
                 </button>
                 <button
                   type="submit"
@@ -435,12 +435,12 @@ export const EventMarkupControlPanel: React.FC = () => {
                   {updating ? (
                     <>
                       <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                      <span>Đang lưu...</span>
+                      <span>Saving...</span>
                     </>
                   ) : (
                     <>
                       <Save className="w-3.5 h-3.5" />
-                      <span>Lưu Thay Đổi</span>
+                      <span>Save Changes</span>
                     </>
                   )}
                 </button>

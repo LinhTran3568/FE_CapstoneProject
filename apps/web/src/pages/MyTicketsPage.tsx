@@ -56,7 +56,7 @@ const getDisputeStatusBadge = (ticket: PurchasedTicketDto) => {
   }
   if (status === 'REFUNDED') {
     return {
-      label: 'ĐÃ HOÀN TIỀN',
+      label: 'REFUNDED',
       classes: 'bg-black/80 text-indigo-300 border border-indigo-400/50 backdrop-blur-md shadow-sm',
       dotClass: 'bg-indigo-400',
     };
@@ -558,7 +558,7 @@ const OfficialTicketPassCard: React.FC<OfficialTicketPassCardProps> = ({ ticket,
             </div>
           ) : isCombo ? (
             <div className="text-[10px] sm:text-[11px] font-mono text-amber-300 bg-black/50 px-2 py-0.5 rounded border border-amber-500/20 truncate">
-              Seats: {ticket.seatZone || 'Multiple Seats (Vé Đôi)'}
+              Seats: {ticket.seatZone || 'Multiple Seats (Pair)'}
             </div>
           ) : null}
 
@@ -714,12 +714,12 @@ const OfficialTicketPassCard: React.FC<OfficialTicketPassCardProps> = ({ ticket,
               className="w-full py-1.5 px-1.5 bg-slate-800 hover:bg-slate-900 border border-slate-900 text-white font-bold text-[9.5px] sm:text-[10px] tracking-tight rounded-lg flex items-center justify-center gap-1 transition-colors cursor-pointer"
             >
               <Clock className="w-3 h-3 shrink-0" />
-              <span>XEM TIẾN ĐỘ KHIẾU NẠI</span>
+              <span>VIEW DISPUTE STATUS</span>
             </button>
           ) : ticket.status === 'DISPUTED' ? (
             <div className="w-full py-1 px-1.5 bg-amber-100 border border-amber-500/50 text-amber-800 font-bold text-[9.5px] sm:text-[10px] tracking-tight rounded-lg flex items-center justify-center gap-1 text-center select-none">
               <ShieldAlert className="w-3 h-3 text-amber-700 shrink-0" />
-              <span>Người mua đang khiếu nại</span>
+              <span>Buyer Disputed</span>
             </div>
           ) : (
             ticket.escrowId &&
@@ -731,10 +731,10 @@ const OfficialTicketPassCard: React.FC<OfficialTicketPassCardProps> = ({ ticket,
                   onOpenDispute();
                 }}
                 className="w-full py-1 px-1.5 bg-slate-800/10 hover:bg-rose-500/15 border border-slate-400/40 hover:border-rose-500/40 text-slate-700 hover:text-rose-700 font-bold text-[9.5px] sm:text-[10px] tracking-tight rounded-lg flex items-center justify-center gap-1 transition-all cursor-pointer"
-                title="Gửi khiếu nại sự cố vé đến TicketShield Escrow"
+                title="Report a ticket issue"
               >
                 <ShieldAlert className="w-3 h-3 text-rose-600 shrink-0" />
-                <span>BÁO SỰ CỐ VÉ</span>
+                <span>REPORT ISSUE</span>
               </button>
             )
           )}
@@ -819,7 +819,7 @@ const EntryQrModal: React.FC<EntryQrModalProps> = ({ ticket, onClose }) => {
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
-        showToast('Tải mã QR vé thành công!', 'success');
+        showToast('QR code downloaded successfully!', 'success');
         setIsDownloading(false);
         return;
       }
@@ -843,17 +843,17 @@ const EntryQrModal: React.FC<EntryQrModalProps> = ({ ticket, onClose }) => {
           document.body.appendChild(link);
           link.click();
           document.body.removeChild(link);
-          showToast('Tải mã QR vé thành công!', 'success');
+          showToast('QR code downloaded successfully!', 'success');
           setIsDownloading(false);
           return;
         }
       }
 
-      showToast('Không thể tạo file ảnh QR lúc này.', 'error');
+      showToast('Unable to generate QR image at this time.', 'error');
       setIsDownloading(false);
     } catch (err) {
       console.error('Failed to download QR image:', err);
-      showToast('Lỗi khi tải mã QR.', 'error');
+      showToast('Failed to download QR code.', 'error');
       setIsDownloading(false);
     }
   }, [code, payload, selectedTicketIndex, ticket.escrowId, showToast]);

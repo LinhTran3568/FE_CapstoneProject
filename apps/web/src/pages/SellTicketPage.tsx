@@ -6,7 +6,6 @@ import { UserBankAccountDto, PurchasedTicketDto } from '@ticketshield/types';
 import { useMyTickets } from '../hooks/useMyTickets';
 import { useOrganizers } from '../hooks/useOrganizers';
 import { useResaleFeeConfig } from '../hooks/useResaleFeeConfig';
-import { PrivateResaleScenarioModal } from '../components/ui/PrivateResaleScenarioModal';
 import { SellerBankAccountModal } from '../components/profile/SellerBankAccountModal';
 import { buildPrivateShareLink, buildPublicShareLink, copyToClipboard } from '../utils/shareLink';
 import {
@@ -64,8 +63,6 @@ const DRAFT_STORAGE_KEY = 'ticketshield_sell_draft';
   const [isRequestingOtp, setIsRequestingOtp] = useState<boolean>(false);
   const { data: organizers = [], isLoading: isLoadingOrganizers } = useOrganizers();
 
-  // Scenario Modal state
-  const [showScenarioModal, setShowScenarioModal] = useState<boolean>(false);
   const [activeFeeTooltip, setActiveFeeTooltip] = useState<'seller' | 'buyer' | null>(null);
 
   // Step 4 Pricing state: lưu giá bán của từng vé (theo mã vé)
@@ -118,7 +115,7 @@ const DRAFT_STORAGE_KEY = 'ticketshield_sell_draft';
 
         if (!allValid) {
           localStorage.removeItem(DRAFT_STORAGE_KEY);
-          showToast('Phiên xác thực vé trước đó đã hết hạn. Vui lòng xác thực lại vé.', 'warning');
+          showToast('Previous ticket verification session has expired. Please verify your ticket again.', 'warning');
           return;
         }
 
@@ -416,7 +413,7 @@ const DRAFT_STORAGE_KEY = 'ticketshield_sell_draft';
       if (matched.length > 1) {
         const firstEventId = matched[0]?.eventId;
         if (firstEventId && matched.some((m) => m?.eventId && m.eventId !== firstEventId)) {
-          showToast('Tất cả các vé trong gói bán phải thuộc cùng một sự kiện!', 'error');
+          showToast('All tickets in a bundle listing must belong to the same event!', 'error');
           return false;
         }
       }
@@ -520,13 +517,13 @@ const DRAFT_STORAGE_KEY = 'ticketshield_sell_draft';
   // Nếu chỉ sai mã OTP thông thường (OTP_INVALID) thì giữ nguyên trang để người dùng nhập lại.
   const handleVerifyOneTicket = async (entry: { code: string; otp: string }): Promise<boolean> => {
     if (sessions.length === 0) {
-      showToast('Phiên xác thực không hợp lệ!', 'error');
+      showToast('Invalid verification session!', 'error');
       return false;
     }
 
     const target = sessions.find((s) => s.code === entry.code);
     if (!target) {
-      showToast(`Vé ${entry.code} không tồn tại trong danh sách xác thực.`, 'error');
+      showToast(`Ticket ${entry.code} is not in the verification list.`, 'error');
       return false;
     }
 
@@ -562,7 +559,7 @@ const DRAFT_STORAGE_KEY = 'ticketshield_sell_draft';
       const errorCode = err?.response?.data?.errors?.[0] || rawMsg;
       const status = err?.response?.status;
 
-      // Chỉ hủy toàn bộ và đá về Step 1 khi số lần thử đã cạn kiệt (429 / OTP_ATTEMPTS_EXHAUSTED) hoặc vé đã bị khóa bên khác
+      // Only abort all and return to Step 1 if attempts exhausted or ticket locked elsewhere
       const isFatal =
         errorCode === 'OTP_ATTEMPTS_EXHAUSTED' ||
         status === 429 ||
@@ -574,18 +571,18 @@ const DRAFT_STORAGE_KEY = 'ticketshield_sell_draft';
         resetToStep1(sessions.map((s) => s.code).join(', '));
         const fatalMsg =
           errorCode === 'OTP_ATTEMPTS_EXHAUSTED' || status === 429
-            ? 'Đã nhập sai OTP quá 3 lần. Toàn bộ vé trong gói đã được mở khóa, vui lòng thực hiện lại từ đầu!'
-            : `Xác thực thất bại (${rawMsg || 'Vé không khả dụng'}). Toàn bộ vé đã được mở khóa.`;
+            ? 'Exceeded 3 incorrect OTP attempts. All tickets have been unlocked, please start over.'
+            : `Verification failed (${rawMsg || 'Ticket unavailable'}). All tickets have been unlocked.`;
         showToast(fatalMsg, 'error');
         return false;
       }
 
-      // Xử lý lỗi có thể thử lại tại Step 2 (không bị out ra):
-      let userFriendlyMsg = 'Mã OTP không chính xác. Vui lòng kiểm tra lại!';
+      // Retryable errors on Step 2
+      let userFriendlyMsg = 'Incorrect OTP code. Please try again.';
       if (errorCode === 'OTP_INVALID' || rawMsg.includes('OTP_INVALID')) {
-        userFriendlyMsg = 'Mã OTP không chính xác. Vui lòng kiểm tra kỹ 6 chữ số được gửi tới email/SĐT chủ vé!';
+        userFriendlyMsg = 'Incorrect OTP code. Please check the 6-digit code sent to the ticket owner.';
       } else if (errorCode === 'OTP_EXPIRED' || rawMsg.includes('OTP_EXPIRED') || rawMsg.includes('expired')) {
-        userFriendlyMsg = 'Mã OTP đã hết hạn. Vui lòng bấm "Gửi lại OTP" bên dưới để nhận mã mới!';
+        userFriendlyMsg = 'OTP code has expired. Please click "Resend OTP" to request a new code.';
       } else if (rawMsg) {
         userFriendlyMsg = rawMsg;
       }
@@ -635,7 +632,7 @@ const DRAFT_STORAGE_KEY = 'ticketshield_sell_draft';
     if (!target) return;
 
     try {
-      showToast(`Đang hủy phiên và mở khóa vé ${code} tại Ban tổ chức...`, 'info');
+      showToast(`Cancelling session and unlocking ticket ${code} with Organizer...`, 'info');
       await resaleApi.closeVerification(target.verificationId);
 
       const remainingSessions = sessions.filter((s) => s.code !== code);
@@ -647,7 +644,7 @@ const DRAFT_STORAGE_KEY = 'ticketshield_sell_draft';
       setTicketCode(remainingSessions.map((s) => s.code).join(', '));
       setActiveTicketIndex(0);
 
-      showToast(`Đã gỡ vé ${code} thành công và mở khóa tại BTC.`, 'success');
+      showToast(`Removed ticket ${code} successfully and unlocked with Organizer.`, 'success');
 
       if (remainingSessions.length === 0) {
         resetToStep1();
@@ -656,7 +653,7 @@ const DRAFT_STORAGE_KEY = 'ticketshield_sell_draft';
       }
     } catch (err: any) {
       console.warn('Could not close single verification session', err);
-      showToast(`Không thể gỡ vé ${code}. Vui lòng thử lại!`, 'error');
+      showToast(`Could not remove ticket ${code}. Please try again.`, 'error');
     }
   };
 
@@ -714,14 +711,14 @@ const DRAFT_STORAGE_KEY = 'ticketshield_sell_draft';
       const ceiling = s.priceCeiling && s.priceCeiling > 0 ? s.priceCeiling : Number.MAX_SAFE_INTEGER;
       if (p > ceiling) {
         showToast(
-          `Giá bán vé ${s.code} vượt quá trần cho phép (${ceiling.toLocaleString('vi-VN')} VND). Vui lòng hạ giá.`,
+          `Listing price for ticket ${s.code} exceeds the price ceiling (${ceiling.toLocaleString('en-US')} ₫). Please reduce your price.`,
           'warning'
         );
         return;
       }
       if (p < minSellerFee) {
         showToast(
-          `Giá bán vé ${s.code} phải tối thiểu ${minSellerFee.toLocaleString('vi-VN')} VND (phí sàn tối thiểu). Vui lòng tăng giá.`,
+          `Listing price for ticket ${s.code} must be at least ${minSellerFee.toLocaleString('en-US')} ₫ (minimum platform fee).`,
           'warning'
         );
         return;
@@ -788,7 +785,7 @@ const DRAFT_STORAGE_KEY = 'ticketshield_sell_draft';
         try {
           localStorage.removeItem(DRAFT_STORAGE_KEY);
         } catch {}
-        showToast('Phiên xác thực vé đã hết hạn hoặc không còn hiệu lực. Vui lòng xác thực lại vé để tiếp tục.', 'error');
+        showToast('Ticket verification session has expired. Please verify your ticket again to proceed.', 'error');
         setCurrentStep(1);
       } else {
         const msg = rawMsg || 'Could not publish listing. Please try again.';
@@ -1060,20 +1057,20 @@ const DRAFT_STORAGE_KEY = 'ticketshield_sell_draft';
                 (t) => purchasedPassCode(t).toUpperCase() === sessions[0]?.code?.toUpperCase()
               )?.eventName ||
               (organizers.find((o) => o.id === selectedOrganizerId)?.name
-                ? `Đêm nhạc phát hành bởi ${organizers.find((o) => o.id === selectedOrganizerId)?.name}`
+                ? `Live Concert by ${organizers.find((o) => o.id === selectedOrganizerId)?.name}`
                 : 'Official Concert Event')
             }
             eventVenue={
               allPurchasedTickets.find(
                 (t) => purchasedPassCode(t).toUpperCase() === sessions[0]?.code?.toUpperCase()
-              )?.eventVenue || 'Sân vận động Quốc gia Mỹ Đình'
+              )?.eventVenue || 'National Stadium'
             }
             eventStartAt={
               allPurchasedTickets.find(
                 (t) => purchasedPassCode(t).toUpperCase() === sessions[0]?.code?.toUpperCase()
               )?.eventStartAt
             }
-            organizerName={organizers.find((o) => o.id === selectedOrganizerId)?.name || 'Ban tổ chức'}
+            organizerName={organizers.find((o) => o.id === selectedOrganizerId)?.name || 'Event Organizer'}
             onContinue={() => {
               setPriceSubStep('pricing');
               setCurrentStep(4);
@@ -1119,12 +1116,12 @@ const DRAFT_STORAGE_KEY = 'ticketshield_sell_draft';
               allPurchasedTickets.find((t) => purchasedPassCode(t).toUpperCase() === sessions[0]?.code?.toUpperCase())?.eventName ||
               (sessions[0] as any)?.eventName ||
               (organizers.find((o) => o.id === selectedOrganizerId)?.name
-                ? `Đêm nhạc phát hành bởi ${organizers.find((o) => o.id === selectedOrganizerId)?.name}`
-                : 'Anh Trai Say Hi - Concert 2024')
+                ? `Live Concert by ${organizers.find((o) => o.id === selectedOrganizerId)?.name}`
+                : 'Live Concert Event')
             }
             eventVenue={
               allPurchasedTickets.find((t) => purchasedPassCode(t).toUpperCase() === sessions[0]?.code?.toUpperCase())?.eventVenue ||
-              'Sân vận động Quốc gia Mỹ Đình, Hà Nội'
+              'National Stadium'
             }
             isPrivateListing={isPrivateListing}
             setIsPrivateListing={setIsPrivateListing}
@@ -1165,13 +1162,6 @@ const DRAFT_STORAGE_KEY = 'ticketshield_sell_draft';
             saleType={saleType}
           />
         )}
-
-        {/* Private Resale Scenario Messaging Modal */}
-        <PrivateResaleScenarioModal
-          isOpen={showScenarioModal}
-          onClose={() => setShowScenarioModal(false)}
-          role="seller"
-        />
 
         {/* Seller Bank Account Setup Modal */}
         <SellerBankAccountModal

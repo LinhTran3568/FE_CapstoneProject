@@ -183,7 +183,7 @@ export const SellerBankAccountModal: React.FC<SellerBankAccountModalProps> = ({
         isDefault,
       });
 
-      showToast('Đã liên kết tài khoản ngân hàng thành công!', 'success');
+      showToast('Bank account linked successfully!', 'success');
       onSuccess(result);
       onClose();
     } catch (err: any) {

@@ -178,7 +178,7 @@ const TicketCardItem: React.FC<TicketCardItemProps> = ({
 
               {/* Nền tảng phát hành */}
               <div className="flex items-center gap-1.5 shrink-0 text-zinc-400">
-                <span>BTC:</span>
+                <span>Organizer:</span>
                 <span className="font-medium text-white">{organizerName}</span>
               </div>
             </div>
@@ -189,7 +189,7 @@ const TicketCardItem: React.FC<TicketCardItemProps> = ({
         <div className="relative w-full h-full bg-[#e2e8f0] rounded-r-2xl overflow-hidden flex flex-col justify-between p-3.5 sm:p-4 paper-texture shadow-inner">
           <div className="absolute top-0 bottom-0 left-0 w-3 bg-gradient-to-r from-black/10 to-transparent pointer-events-none" />
 
-          {/* Stub Top: Mã vé pill */}
+          {/* Stub Top: Ticket Code pill */}
           <div className="flex items-center justify-between pt-0.5">
             <div className="px-2 py-0.5 rounded bg-slate-300/80 border border-slate-400/50">
               <span className="font-mono text-xs font-bold tracking-wider text-slate-800">
@@ -198,7 +198,7 @@ const TicketCardItem: React.FC<TicketCardItemProps> = ({
             </div>
 
             {/* Barcode Graphic */}
-            <div className="flex items-center gap-[2px] h-4.5 opacity-80" title="Barcode vé">
+            <div className="flex items-center gap-[2px] h-4.5 opacity-80" title="Ticket barcode">
               <span className="w-[2.5px] h-full bg-slate-900" />
               <span className="w-[1px] h-full bg-slate-900" />
               <span className="w-[3px] h-full bg-slate-900" />
@@ -211,20 +211,20 @@ const TicketCardItem: React.FC<TicketCardItemProps> = ({
             </div>
           </div>
 
-          {/* Stub Middle: Pricing Block (Chỉ hiển thị giá gốc vé, không trần giá) */}
+          {/* Stub Middle: Pricing Block */}
           <div className="my-auto py-2">
             <span className="text-[10px] font-bold tracking-wider text-slate-500 uppercase block">
-              PRICE
+              ORIGINAL PRICE
             </span>
             <div className="flex items-baseline">
               <span className="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900 leading-none">
-                {ticket.originalPrice.toLocaleString('vi-VN')}
+                {ticket.originalPrice.toLocaleString('en-US')}
               </span>
-              <span className="ml-1 text-xs font-bold text-slate-700">VND</span>
+              <span className="ml-1 text-xs font-bold text-slate-700">₫</span>
             </div>
           </div>
 
-          {/* Stub Bottom: Để trống sạch sẽ không nút thừa */}
+          {/* Stub Bottom */}
           <div className="h-2" />
         </div>
       </div>
@@ -279,7 +279,7 @@ export const Step3ConfirmDetails: React.FC<Step3ConfirmDetailsProps> = ({
   onCancel,
   isCancelling = false,
   eventName = 'Official Concert Event',
-  eventVenue = 'Sân vận động Quốc gia Mỹ Đình',
+  eventVenue = 'National Stadium',
   eventStartAt,
   organizerName = 'VieON Entertainment',
 }) => {
@@ -289,17 +289,16 @@ export const Step3ConfirmDetails: React.FC<Step3ConfirmDetailsProps> = ({
 
   return (
     <div key={3} className="animate-fade-in-up max-w-2xl mx-auto space-y-4 pt-1 text-center">
-      {/* Tiêu đề ngắn gọn */}
+      {/* Title */}
       <div>
         <h2 className="text-2xl sm:text-3xl font-bold font-display text-white tracking-tight">
-          Thông tin vé
+          Ticket Details
         </h2>
       </div>
 
-      {/* Hiển thị dạng STACK khi có nhiều vé (giống Step 2 OTP) */}
+      {/* Stack display for combo / multiple tickets */}
       {isCombo ? (
         <div className="space-y-4 pt-1">
-          {/* CardStack theo phong cách so le */}
           <CardStack
             items={tickets.map((t) => ({ id: t.code, ...t }))}
             activeIndex={safeIndex}
@@ -320,43 +319,40 @@ export const Step3ConfirmDetails: React.FC<Step3ConfirmDetailsProps> = ({
                 );
               }
 
-              // Thẻ phía sau: header tinh gọn để click trồi lên
               return (
                 <div
                   onClick={() => setActiveIndex(index)}
                   className="h-11 px-4 rounded-xl bg-[#0A0D12] border border-white/15 hover:border-[#FF5A36]/60 flex items-center justify-between text-xs cursor-pointer shadow-md transition-all group"
                 >
                   <div className="flex items-center gap-2">
-                    <span className="font-mono text-zinc-400">Vé {index + 1}:</span>
+                    <span className="font-mono text-zinc-400">Ticket {index + 1}:</span>
                     <span className="font-mono font-bold text-white group-hover:text-[#FF5A36] transition-colors">
                       {ticket.code}
                     </span>
                   </div>
                   <span className="text-zinc-400 font-mono text-[11px]">
-                    {ticket.originalPrice.toLocaleString('vi-VN')} VND
+                    {ticket.originalPrice.toLocaleString('en-US')} ₫
                   </span>
                 </div>
               );
             }}
           />
 
-          {/* Cụm Paging trực quan chuẩn xác giống hệt bên OTP */}
+          {/* Pagination controls */}
           <div className="flex items-center justify-center gap-3 pt-1">
-            {/* Mũi tên lùi vé trước */}
             <button
               type="button"
               onClick={() => setActiveIndex((prev) => Math.max(0, prev - 1))}
               disabled={safeIndex === 0}
-              aria-label="Vé trước"
+              aria-label="Previous ticket"
               className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl border border-white/15 bg-[#0A0D14] hover:bg-white/[0.08] hover:border-white/25 text-white/80 hover:text-white flex items-center justify-center disabled:opacity-20 disabled:cursor-not-allowed transition-all cursor-pointer shadow-sm active:scale-95"
             >
               <ChevronLeft className="w-4 h-4 sm:w-5 sm:h-5" />
             </button>
 
-            {/* Cụm Paging: Vé X/Y + Dots rõ ràng, to và dễ nhìn */}
             <div className="flex items-center gap-3 px-4 py-2 rounded-full bg-[#0A0D14] border border-white/15 text-sm font-semibold text-white/90 shadow-sm">
               <span className="tracking-wide">
-                Vé {safeIndex + 1}/{tickets.length}
+                Ticket {safeIndex + 1}/{tickets.length}
               </span>
               <div className="flex items-center gap-2 pl-1">
                 {tickets.map((t, idx) => {
@@ -372,19 +368,18 @@ export const Step3ConfirmDetails: React.FC<Step3ConfirmDetailsProps> = ({
                           ? 'w-6 h-2 rounded-full bg-[#FF5A36] shadow-sm shadow-[#FF5A36]/40'
                           : 'w-2 h-2 rounded-full bg-white/30 hover:bg-white/50'
                       }`}
-                      title={`Vé ${idx + 1}: ${t.code}`}
+                      title={`Ticket ${idx + 1}: ${t.code}`}
                     />
                   );
                 })}
               </div>
             </div>
 
-            {/* Mũi tên tiến vé kế tiếp */}
             <button
               type="button"
               onClick={() => setActiveIndex((prev) => Math.min(tickets.length - 1, prev + 1))}
               disabled={safeIndex === tickets.length - 1}
-              aria-label="Vé kế tiếp"
+              aria-label="Next ticket"
               className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl border border-white/15 bg-[#0A0D14] hover:bg-white/[0.08] hover:border-white/25 text-white/80 hover:text-white flex items-center justify-center disabled:opacity-20 disabled:cursor-not-allowed transition-all cursor-pointer shadow-sm active:scale-95"
             >
               <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5" />
@@ -392,7 +387,6 @@ export const Step3ConfirmDetails: React.FC<Step3ConfirmDetailsProps> = ({
           </div>
         </div>
       ) : (
-        /* Vé đơn: 1 chiếc TicketCard chuẩn mực */
         <div className="pt-1">
           {tickets[0] && (
             <TicketCardItem
@@ -406,18 +400,17 @@ export const Step3ConfirmDetails: React.FC<Step3ConfirmDetailsProps> = ({
         </div>
       )}
 
-      {/* Nút to dưới cùng duy nhất để chuyển tiếp */}
+      {/* Action Buttons */}
       <div className="pt-3 space-y-3">
         <button
           type="button"
           onClick={onContinue}
           className="w-full h-14 bg-[#FF5A36] hover:bg-[#FF7252] text-white font-bold font-display uppercase tracking-widest text-sm rounded-2xl shadow-lg shadow-[#FF5A36]/30 hover:shadow-xl hover:shadow-[#FF5A36]/50 hover:-translate-y-0.5 active:translate-y-0 transition-all cursor-pointer flex items-center justify-center gap-2"
         >
-          <span>Tiếp tục thiết lập giá bán</span>
+          <span>Continue to Pricing</span>
           <ArrowRight className="w-4 h-4 stroke-[2.5]" />
         </button>
 
-        {/* Nút hủy phiên mở khóa vé ở Bước 3 */}
         {onCancel && (
           <div>
             <button
@@ -427,7 +420,7 @@ export const Step3ConfirmDetails: React.FC<Step3ConfirmDetailsProps> = ({
               className="text-xs sm:text-sm font-medium text-white/50 hover:text-rose-400 transition-colors inline-flex items-center gap-2 cursor-pointer disabled:opacity-30 py-1.5 px-3 rounded-lg hover:bg-rose-500/10 hover:border hover:border-rose-500/20"
             >
               <XCircle className="w-4 h-4" />
-              <span>{isCancelling ? 'Đang hủy...' : 'Không bán nữa'}</span>
+              <span>{isCancelling ? 'Cancelling...' : 'Cancel Listing'}</span>
             </button>
           </div>
         )}
