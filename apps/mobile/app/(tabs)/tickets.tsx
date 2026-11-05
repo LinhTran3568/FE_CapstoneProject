@@ -18,7 +18,6 @@ import {
   ShieldCheck,
   Calendar,
   MapPin,
-  RefreshCw,
   X,
   Share2,
   AlertTriangle,
@@ -30,7 +29,7 @@ import {
 import { theme, fontFamilies } from '../../src/theme';
 import type { PurchasedTicketDto } from '@ticketshield/types';
 import { resaleListingsApi } from '@ticketshield/api-client';
-import { generateRotatingToken } from '../../src/utils/totp';
+import { expandPurchasedTickets, getIssuedQrImageUrl } from '../../src/utils/purchasedTickets';
 import { FintechButton } from '../../src/components/FintechButton';
 import { EventPoster } from '../../src/components/EventPoster';
 import { formatEventDate } from '../../src/utils/format';
@@ -39,13 +38,20 @@ import { DisputeTicketModal } from '../../src/components/DisputeTicketModal';
 
 const STATUS_LABELS: Record<string, string> = {
   VALID: 'Valid for Entry',
-  IN_ESCROW: 'Locked for Resale',
+  IN_ESCROW: 'Pass Issued · Escrow Active',
   USED: 'Checked In',
   EXPIRED: 'Expired',
   CANCELLED: 'Cancelled',
   TRANSFERRED: 'Transferred',
   PENDING_VERIFICATION: 'Pending Verification',
 };
+
+// A completed payment transfers the ticket and QR data to the buyer immediately.
+// `IN_ESCROW` only means the seller payout is still protected by escrow; it does
+// not mean the buyer's pass is unavailable.
+const canOpenPass = (ticket: PurchasedTicketDto) =>
+  (ticket.status === 'VALID' || ticket.status === 'IN_ESCROW') &&
+  Boolean(ticket.qrCodeData?.trim() || ticket.qrCodeImageUrl?.trim() || ticket.ticketPassCode?.trim());
 
 type TicketStatusFilter = 'ALL' | 'VALID' | 'USED' | 'EXPIRED';
 
@@ -70,8 +76,6 @@ export default function MobileTicketsScreen() {
   const [refreshing, setRefreshing] = useState(false);
 
   const [selectedTicket, setSelectedTicket] = useState<PurchasedTicketDto | null>(null);
-  const [rotatingToken, setRotatingToken] = useState('');
-  const [secondsRemaining, setSecondsRemaining] = useState(30);
   const [qrLoadFailed, setQrLoadFailed] = useState(false);
   const [selectedStatus, setSelectedStatus] = useState<TicketStatusFilter>('ALL');
   const [searchQuery, setSearchQuery] = useState('');
@@ -79,7 +83,7 @@ export default function MobileTicketsScreen() {
   const [disputeModalTicket, setDisputeModalTicket] = useState<PurchasedTicketDto | null>(null);
 
   const counts = useMemo(() => {
-    const valid = tickets.filter((t) => t.status === 'VALID').length;
+    const valid = tickets.filter(canOpenPass).length;
     const used = tickets.filter((t) => t.status === 'USED').length;
     const expired = tickets.filter((t) => t.status !== 'VALID' && t.status !== 'USED').length;
     return {
@@ -92,9 +96,9 @@ export default function MobileTicketsScreen() {
 
   const filteredTickets = useMemo(() => {
     return tickets.filter((ticket) => {
-      if (selectedStatus === 'VALID' && ticket.status !== 'VALID') return false;
+      if (selectedStatus === 'VALID' && !canOpenPass(ticket)) return false;
       if (selectedStatus === 'USED' && ticket.status !== 'USED') return false;
-      if (selectedStatus === 'EXPIRED' && (ticket.status === 'VALID' || ticket.status === 'USED')) return false;
+      if (selectedStatus === 'EXPIRED' && (canOpenPass(ticket) || ticket.status === 'USED')) return false;
 
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase().trim();
@@ -119,7 +123,7 @@ export default function MobileTicketsScreen() {
     setError(null);
     try {
       const data = await resaleListingsApi.getMyPurchasedTickets();
-      setTickets(data);
+      setTickets(expandPurchasedTickets(data));
     } catch (err) {
       const message =
         err instanceof Error ? err.message : 'Unable to sync tickets. Please try again.';
@@ -146,18 +150,7 @@ export default function MobileTicketsScreen() {
   };
 
   useEffect(() => {
-    if (!selectedTicket) return;
-    setQrLoadFailed(false);
-
-    const updateToken = () => {
-      const res = generateRotatingToken(selectedTicket.ticketPassCode);
-      setRotatingToken(res.token);
-      setSecondsRemaining(res.secondsRemaining);
-    };
-
-    updateToken();
-    const interval = setInterval(updateToken, 1000);
-    return () => clearInterval(interval);
+    if (selectedTicket) setQrLoadFailed(false);
   }, [selectedTicket]);
 
   const handleShareTicket = async () => {
@@ -188,7 +181,7 @@ export default function MobileTicketsScreen() {
         <View style={[styles.statusBadge, { backgroundColor: 'rgba(255, 152, 0, 0.15)', borderColor: 'rgba(255, 152, 0, 0.4)' }]}>
           <Lock size={12} color="#FF9800" />
           <Text style={[styles.statusText, { color: '#FF9800', fontFamily: fontFamilies.bold }]}>
-            Locked for Resale
+            Escrow Active
           </Text>
         </View>
       );
@@ -219,7 +212,7 @@ export default function MobileTicketsScreen() {
   };
 
   const renderTicket = ({ item }: { item: PurchasedTicketDto }) => {
-    const isValid = item.status === 'VALID';
+    const isValid = canOpenPass(item);
     return (
       <TouchableOpacity
         style={[styles.ticketCard, !isValid && { opacity: 0.75 }]}
@@ -241,7 +234,7 @@ export default function MobileTicketsScreen() {
                 <>
                   <Lock size={12} color={theme.colors.textMuted} />
                   <Text style={[styles.openQrPillText, styles.lockedQrPillText]}>
-                    {item.status === 'IN_ESCROW' ? 'Pass Locked' : item.status === 'USED' ? 'Checked In' : 'Invalid'}
+                    {item.status === 'USED' ? 'Checked In' : 'Invalid'}
                   </Text>
                 </>
               )}
@@ -318,9 +311,6 @@ export default function MobileTicketsScreen() {
             <Ticket size={30} color={theme.colors.textMuted} />
           </View>
           <Text style={styles.emptyTitle}>Your Ticket Wallet is Empty</Text>
-          <Text style={styles.emptyDesc}>
-            You do not own any tickets yet. Explore the Marketplace to purchase verified tickets backed by guaranteed escrow protection.
-          </Text>
           <FintechButton
             title="Explore Marketplace"
             onPress={() => router.push('/(tabs)/marketplace')}
@@ -479,9 +469,7 @@ export default function MobileTicketsScreen() {
                   ) : (
                     <Image
                       source={{
-                        uri: `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(
-                          rotatingToken || selectedTicket.ticketPassCode
-                        )}`,
+                        uri: getIssuedQrImageUrl(selectedTicket),
                       }}
                       style={styles.qrImage}
                       resizeMode="contain"
@@ -489,21 +477,6 @@ export default function MobileTicketsScreen() {
                     />
                   )}
 
-                  <View style={styles.tokenTimerRow}>
-                    <RefreshCw size={14} color="#0C0A09" />
-                    <Text style={styles.tokenTimerText}>
-                      Refreshes in{' '}
-                      <Text style={styles.timerHighlight}>{secondsRemaining}s</Text>
-                    </Text>
-                  </View>
-                  <View style={styles.progressTrack}>
-                    <View
-                      style={[
-                        styles.progressFill,
-                        { width: `${Math.max(0, Math.min(100, (secondsRemaining / 30) * 100))}%` },
-                      ]}
-                    />
-                  </View>
                 </View>
 
                 <View style={styles.infoGrid}>

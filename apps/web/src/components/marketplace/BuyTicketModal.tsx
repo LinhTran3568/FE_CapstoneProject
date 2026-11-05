@@ -55,7 +55,6 @@ export const BuyTicketModal: React.FC<BuyTicketModalProps> = ({
 
   // Step 1: Buyer Info Form State
   const [fullName, setFullName] = useState(user?.fullName || '');
-  const [phone, setPhone] = useState(user?.phoneNumber || '');
   const [email, setEmail] = useState(user?.email || '');
   const [idCard, setIdCard] = useState('');
   const [showIdCardInput, setShowIdCardInput] = useState(false);
@@ -73,15 +72,12 @@ export const BuyTicketModal: React.FC<BuyTicketModalProps> = ({
   const paidHandledRef = useRef(false);
 
   const handleSimulatePayment = async () => {
-    if (!holdData?.paymentReference) return;
+    if (!holdData?.listingId) return;
     try {
       setIsSimulatingPayment(true);
-      showToast('Sending simulated SePay payment webhook...', 'info');
-      await resaleListingsApi.simulatePaymentWebhook(
-        holdData.paymentReference,
-        holdData.totalBuyerPaid
-      );
-      showToast('Simulated payment sent! Awaiting SignalR approval...', 'success');
+      showToast('Simulating payment confirmation...', 'info');
+      await resaleListingsApi.simulatePaymentSuccess(holdData.listingId);
+      showToast('Simulated payment confirmed.', 'success');
     } catch (err: any) {
       showToast(err.message || 'Failed to simulate payment', 'error');
     } finally {
@@ -121,13 +117,12 @@ export const BuyTicketModal: React.FC<BuyTicketModalProps> = ({
         paymentReference: payload.paymentReference || holdData?.paymentReference,
         totalBuyerPaid: payload.totalBuyerPaid || holdData?.totalBuyerPaid || listing.resalePrice,
         buyerName: fullName,
-        buyerPhone: phone,
         buyerEmail: email,
         newTicketCode: payload.newTicketCode,
         qrCodeData: payload.qrCodeData,
       });
     },
-    [listing, holdData, fullName, phone, email, onSuccess, showToast]
+    [listing, holdData, fullName, email, onSuccess, showToast]
   );
 
   const handleHoldExpired = useCallback(
@@ -165,10 +160,9 @@ export const BuyTicketModal: React.FC<BuyTicketModalProps> = ({
   useEffect(() => {
     if (user) {
       if (user.fullName && !fullName) setFullName(user.fullName);
-      if (user.phoneNumber && !phone) setPhone(user.phoneNumber);
       if (user.email && !email) setEmail(user.email);
     }
-  }, [user, fullName, phone, email]);
+  }, [user, fullName, email]);
 
   // Reset modal state on open/close
   useEffect(() => {
@@ -273,7 +267,7 @@ export const BuyTicketModal: React.FC<BuyTicketModalProps> = ({
       showToast('You cannot purchase your own listing!', 'error');
       return;
     }
-    if (!fullName || !phone || !email) {
+    if (!fullName || !email) {
       showToast('Please fill in all recipient details!', 'warning');
       return;
     }
@@ -323,7 +317,6 @@ export const BuyTicketModal: React.FC<BuyTicketModalProps> = ({
           paymentReference: holdData.paymentReference,
           totalBuyerPaid: holdData.totalBuyerPaid || listing.resalePrice,
           buyerName: fullName,
-          buyerPhone: phone,
           buyerEmail: email,
         });
       } else {
@@ -522,38 +515,22 @@ export const BuyTicketModal: React.FC<BuyTicketModalProps> = ({
                       Recipient information
                     </div>
 
-                    {/* Row 1: Full Name & Phone Number */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      <div>
-                        <label className="text-xs font-medium text-zinc-300 block mb-1">
-                          Full Name <span className="text-red-400">*</span>
-                        </label>
-                        <input
-                          type="text"
-                          required
-                          value={fullName}
-                          onChange={(e) => setFullName(e.target.value)}
-                          placeholder="John Doe"
-                          className="w-full h-10 px-3 rounded-lg bg-[#1A2335] border border-[#28354D] text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-[#ff5722] focus:ring-1 focus:ring-[#ff5722]/30 transition-all"
-                        />
-                      </div>
-
-                      <div>
-                        <label className="text-xs font-medium text-zinc-300 block mb-1">
-                          Phone Number <span className="text-red-400">*</span>
-                        </label>
-                        <input
-                          type="tel"
-                          required
-                          value={phone}
-                          onChange={(e) => setPhone(e.target.value)}
-                          placeholder="0901234567"
-                          className="w-full h-10 px-3 rounded-lg bg-[#1A2335] border border-[#28354D] text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-[#ff5722] focus:ring-1 focus:ring-[#ff5722]/30 transition-all"
-                        />
-                      </div>
+                    {/* Recipient name */}
+                    <div>
+                      <label className="text-xs font-medium text-zinc-300 block mb-1">
+                        Full Name <span className="text-red-400">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        value={fullName}
+                        onChange={(e) => setFullName(e.target.value)}
+                        placeholder="John Doe"
+                        className="w-full h-10 px-3 rounded-lg bg-[#1A2335] border border-[#28354D] text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-[#ff5722] focus:ring-1 focus:ring-[#ff5722]/30 transition-all"
+                      />
                     </div>
 
-                    {/* Row 2: Delivery Email */}
+                    {/* Delivery Email */}
                     <div>
                       <label className="text-xs font-medium text-zinc-300 block mb-1">
                         Email Address <span className="text-red-400">*</span>
@@ -724,7 +701,7 @@ export const BuyTicketModal: React.FC<BuyTicketModalProps> = ({
                   <div className="lg:col-span-6 h-full flex flex-col justify-between">
                     <BankTransferDetails
                       bankBin={holdData.bankBin}
-                      bankName={holdData.bankBin === '970422' ? 'MB Bank (Ngân hàng Quân Đội)' : holdData.bankBin}
+                      bankName={holdData.bankBin ? `Bank BIN ${holdData.bankBin}` : 'Bank information unavailable'}
                       accountNumber={holdData.accountNumber}
                       accountName={holdData.accountName}
                       amount={holdData.totalBuyerPaid}

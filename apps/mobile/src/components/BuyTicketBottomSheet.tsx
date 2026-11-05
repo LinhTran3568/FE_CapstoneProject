@@ -1,6 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  ActivityIndicator,
   Image,
   KeyboardAvoidingView,
   Linking,
@@ -24,13 +23,16 @@ import {
   CreditCard,
   ExternalLink,
   Mail,
-  Phone,
   Plus,
   ShieldCheck,
   User,
   X,
 } from 'lucide-react-native';
-import type { ResaleListingDetailDto, HoldListingForPurchaseResponse } from '@ticketshield/types';
+import type {
+  ResaleListingDetailDto,
+  HoldListingForPurchaseResponse,
+  ResaleFeeConfigDto,
+} from '@ticketshield/types';
 import { resaleListingsApi } from '@ticketshield/api-client';
 import { Text } from './AppText';
 import { EventPoster } from './EventPoster';
@@ -53,7 +55,14 @@ export interface BuyTicketBottomSheetProps {
   onSuccess?: (orderData?: any) => void;
 }
 
-const DEFAULT_HOLD_DURATION_SECONDS = 600; // 10-minute escrow hold
+// Mirrors .NET Math.Round(decimal, 0): midpoint values round to the nearest
+// even integer. The hold response remains the authoritative payment amount.
+const roundToEven = (value: number): number => {
+  const lower = Math.floor(value);
+  const fraction = value - lower;
+  if (Math.abs(fraction - 0.5) < 1e-9) return lower % 2 === 0 ? lower : lower + 1;
+  return Math.round(value);
+};
 
 export const BuyTicketBottomSheet: React.FC<BuyTicketBottomSheetProps> = ({
   visible,
@@ -68,24 +77,25 @@ export const BuyTicketBottomSheet: React.FC<BuyTicketBottomSheetProps> = ({
   // Recipient form state
   const [recipientName, setRecipientName] = useState(user?.fullName || '');
   const [recipientEmail, setRecipientEmail] = useState(user?.email || '');
-  const [recipientPhone, setRecipientPhone] = useState(user?.phoneNumber || '');
   const [recipientIdCard, setRecipientIdCard] = useState('');
   const [showIdCard, setShowIdCard] = useState(false);
   const [checkoutStep, setCheckoutStep] = useState<'REVIEW' | 'RECIPIENT'>('REVIEW');
   const [formErrors, setFormErrors] = useState<{
     name?: string;
     email?: string;
-    phone?: string;
   }>({});
 
   // Hold transaction state
   const [isHolding, setIsHolding] = useState(false);
   const [holdData, setHoldData] = useState<HoldListingForPurchaseResponse | null>(null);
   const [holdError, setHoldError] = useState<string | null>(null);
+  const [feeConfig, setFeeConfig] = useState<ResaleFeeConfigDto | null>(null);
+  const [isLoadingFeeConfig, setIsLoadingFeeConfig] = useState(false);
+  const [feeConfigError, setFeeConfigError] = useState<string | null>(null);
 
   // 5-minute countdown timer state
-  const [secondsLeft, setSecondsLeft] = useState<number>(DEFAULT_HOLD_DURATION_SECONDS);
-  const [initialDuration, setInitialDuration] = useState<number>(DEFAULT_HOLD_DURATION_SECONDS);
+  const [secondsLeft, setSecondsLeft] = useState<number>(0);
+  const [initialDuration, setInitialDuration] = useState<number>(0);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // Verification & status state (FE-MOB-9.3.4 ready)
@@ -98,7 +108,6 @@ export const BuyTicketBottomSheet: React.FC<BuyTicketBottomSheetProps> = ({
     if (user) {
       if (!recipientName && user.fullName) setRecipientName(user.fullName);
       if (!recipientEmail && user.email) setRecipientEmail(user.email);
-      if (!recipientPhone && user.phoneNumber) setRecipientPhone(user.phoneNumber);
     }
   }, [user]);
 
@@ -114,7 +123,6 @@ export const BuyTicketBottomSheet: React.FC<BuyTicketBottomSheetProps> = ({
       if (user) {
         setRecipientName(user.fullName || '');
         setRecipientEmail(user.email || '');
-        setRecipientPhone(user.phoneNumber || '');
       }
     } else {
       if (timerRef.current) {
@@ -123,6 +131,35 @@ export const BuyTicketBottomSheet: React.FC<BuyTicketBottomSheetProps> = ({
       }
     }
   }, [visible, listing, user]);
+
+  // Preview the same dynamic fee policy used by the hold endpoint. The QR
+  // payment amount remains authoritative because it comes from the backend.
+  useEffect(() => {
+    if (!visible || !listing) return;
+
+    let isActive = true;
+    setIsLoadingFeeConfig(true);
+    setFeeConfigError(null);
+
+    resaleListingsApi
+      .getFeePolicy()
+      .then((config) => {
+        if (isActive) setFeeConfig(config);
+      })
+      .catch(() => {
+        if (isActive) {
+          setFeeConfig(null);
+          setFeeConfigError('Unable to load the current payment fee. Please try again.');
+        }
+      })
+      .finally(() => {
+        if (isActive) setIsLoadingFeeConfig(false);
+      });
+
+    return () => {
+      isActive = false;
+    };
+  }, [visible, listing]);
 
   // Setup 5-minute countdown timer when holdData is established
   useEffect(() => {
@@ -134,7 +171,7 @@ export const BuyTicketBottomSheet: React.FC<BuyTicketBottomSheetProps> = ({
       return;
     }
 
-    const duration = holdData.holdDurationSeconds || DEFAULT_HOLD_DURATION_SECONDS;
+    const duration = Math.max(0, holdData.holdDurationSeconds);
     setInitialDuration(duration);
 
     const unlockTime = holdData.unlockAt
@@ -173,10 +210,12 @@ export const BuyTicketBottomSheet: React.FC<BuyTicketBottomSheetProps> = ({
         const status = await resaleListingsApi.getPaymentStatus(holdData.listingId);
         const escrowStatus = status?.escrowStatus?.toLowerCase();
         const listingStatus = status?.listingStatus?.toLowerCase();
+        // `Transacting` only means that BE has reserved the listing. It is not
+        // a bank-confirmed payment and must never unlock a ticket in the app.
         const hasFunds =
           escrowStatus === 'funded' ||
+          escrowStatus === 'releasing' ||
           escrowStatus === 'released' ||
-          listingStatus === 'transacting' ||
           listingStatus === 'sold';
 
         if (hasFunds && isPolling) {
@@ -191,7 +230,6 @@ export const BuyTicketBottomSheet: React.FC<BuyTicketBottomSheetProps> = ({
             totalBuyerPaid: holdData.totalBuyerPaid,
             recipientName,
             recipientEmail,
-            recipientPhone,
           });
         }
       } catch {}
@@ -201,18 +239,23 @@ export const BuyTicketBottomSheet: React.FC<BuyTicketBottomSheetProps> = ({
       isPolling = false;
       clearInterval(pollInterval);
     };
-  }, [holdData, purchaseSuccess, secondsLeft, listing, recipientName, recipientEmail, recipientPhone, onSuccess]);
+  }, [holdData, purchaseSuccess, secondsLeft, listing, recipientName, recipientEmail, onSuccess]);
 
-  // Price calculations
-  const escrowFee = useMemo(() => {
-    if (!listing) return 0;
-    return Math.round(listing.resalePrice * 0.03);
-  }, [listing]);
+  // Mirrors DynamicResaleFeeCalculator on the backend for the review screen.
+  const feePreview = useMemo(() => {
+    if (!listing || !feeConfig) return null;
+    const percentageFee = listing.resalePrice * feeConfig.buyerFeePercentage;
+    const rawBuyerFee = Math.max(percentageFee, feeConfig.minimumBuyerFee);
+    const isMinimumApplied = feeConfig.minimumBuyerFee > 0 && percentageFee < feeConfig.minimumBuyerFee;
+    const buyerFee = roundToEven(rawBuyerFee);
 
-  const totalAmount = useMemo(() => {
-    if (!listing) return 0;
-    return listing.resalePrice + escrowFee;
-  }, [listing, escrowFee]);
+    return {
+      buyerFee,
+      totalBuyerPaid: roundToEven(listing.resalePrice + buyerFee),
+      isMinimumApplied,
+      percentageLabel: `${Number((feeConfig.buyerFeePercentage * 100).toFixed(2))}%`,
+    };
+  }, [listing, feeConfig]);
 
   const isOwner = Boolean(user?.id && listing && (listing.sellerId === user.id || (listing as any).userId === user.id));
 
@@ -231,14 +274,6 @@ export const BuyTicketBottomSheet: React.FC<BuyTicketBottomSheetProps> = ({
       errors.email = 'Please enter recipient email';
     } else if (!emailRegex.test(recipientEmail.trim())) {
       errors.email = 'Invalid email address (e.g. name@domain.com)';
-    }
-
-    const digits = recipientPhone.replace(/[\s.-]/g, '');
-    const phoneRegex = /(84|0[3|5|7|8|9])+([0-9]{8})\b/;
-    if (!recipientPhone.trim()) {
-      errors.phone = 'Please enter recipient phone number';
-    } else if (!phoneRegex.test(digits)) {
-      errors.phone = 'Invalid phone number (must be 10 digits)';
     }
 
     setFormErrors(errors);
@@ -300,8 +335,8 @@ export const BuyTicketBottomSheet: React.FC<BuyTicketBottomSheetProps> = ({
 
       const hasFunds =
         escrowStatus === 'funded' ||
+        escrowStatus === 'releasing' ||
         escrowStatus === 'released' ||
-        listingStatus === 'transacting' ||
         listingStatus === 'sold';
 
       if (!hasFunds) {
@@ -320,7 +355,6 @@ export const BuyTicketBottomSheet: React.FC<BuyTicketBottomSheetProps> = ({
         totalBuyerPaid: holdData.totalBuyerPaid,
         recipientName,
         recipientEmail,
-        recipientPhone,
       });
     } catch (err) {
       const message =
@@ -338,14 +372,7 @@ export const BuyTicketBottomSheet: React.FC<BuyTicketBottomSheetProps> = ({
     if (!listing || !holdData) return;
     setIsCheckingTransfer(true);
     try {
-      try {
-        await resaleListingsApi.simulatePaymentSuccess(listing.listingId);
-      } catch {
-        await resaleListingsApi.simulatePaymentWebhook(
-          holdData.paymentReference,
-          holdData.totalBuyerPaid
-        );
-      }
+      await resaleListingsApi.simulatePaymentSuccess(listing.listingId);
       setPurchaseSuccess(true);
       onSuccess?.({
         orderId: holdData.paymentReference,
@@ -355,7 +382,6 @@ export const BuyTicketBottomSheet: React.FC<BuyTicketBottomSheetProps> = ({
         totalBuyerPaid: holdData.totalBuyerPaid,
         recipientName,
         recipientEmail,
-        recipientPhone,
       });
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Payment simulation failed.';
@@ -441,9 +467,6 @@ export const BuyTicketBottomSheet: React.FC<BuyTicketBottomSheetProps> = ({
                   <CheckCircle2 size={38} color={theme.colors.success} />
                 </View>
                 <Text style={styles.successTitle}>Ticket Added to Your Wallet</Text>
-                <Text style={styles.successText}>
-                  Escrow is securely holding the funds. Ticket ownership has been transferred to {recipientName}.
-                </Text>
                 <FintechButton
                   title="View My Tickets"
                   onPress={handleNavigateToWallet}
@@ -562,19 +585,34 @@ export const BuyTicketBottomSheet: React.FC<BuyTicketBottomSheetProps> = ({
                           </Text>
                         </View>
                         <View style={styles.pricePanelRow}>
-                          <Text style={styles.pricePanelLabel}>Escrow Protection Fee (3%)</Text>
+                          <Text style={styles.pricePanelLabel}>
+                            {feePreview
+                              ? `Escrow Protection Fee ${
+                                  feePreview.isMinimumApplied
+                                    ? `(min. ${formatPrice(feeConfig!.minimumBuyerFee)})`
+                                    : `(${feePreview.percentageLabel})`
+                                }`
+                              : 'Escrow Protection Fee'}
+                          </Text>
                           <Text style={styles.pricePanelValue}>
-                            {formatPrice(escrowFee)}
+                            {feePreview ? formatPrice(feePreview.buyerFee) : '—'}
                           </Text>
                         </View>
                         <View style={styles.pricePanelDivider} />
                         <View style={styles.pricePanelRow}>
                           <Text style={styles.pricePanelTotal}>Total Amount</Text>
                           <Text style={styles.pricePanelTotalValue}>
-                            {formatPrice(totalAmount)}
+                            {feePreview ? formatPrice(feePreview.totalBuyerPaid) : '—'}
                           </Text>
                         </View>
                       </View>
+
+                      {feeConfigError && (
+                        <View style={styles.errorNote}>
+                          <AlertTriangle size={16} color={theme.colors.danger} />
+                          <Text style={styles.errorNoteText}>{feeConfigError}</Text>
+                        </View>
+                      )}
 
                       {holdError && (
                         <View style={styles.errorNote}>
@@ -584,8 +622,9 @@ export const BuyTicketBottomSheet: React.FC<BuyTicketBottomSheetProps> = ({
                       )}
 
                       <FintechButton
-                        title="Buy Ticket"
+                        title={isLoadingFeeConfig ? 'Loading payment fee...' : 'Buy Ticket'}
                         onPress={() => setCheckoutStep('RECIPIENT')}
+                        disabled={!feePreview}
                         icon={<ArrowRight size={16} color={theme.colors.onPrimary} />}
                       />
                     </>
@@ -603,7 +642,9 @@ export const BuyTicketBottomSheet: React.FC<BuyTicketBottomSheetProps> = ({
                         </View>
                         <View style={styles.compactSummaryTotalBlock}>
                           <Text style={styles.compactSummaryTotalLabel}>Total</Text>
-                          <Text style={styles.compactSummaryTotal}>{formatPrice(totalAmount)}</Text>
+                          <Text style={styles.compactSummaryTotal}>
+                            {formatPrice(feePreview?.totalBuyerPaid ?? listing.resalePrice)}
+                          </Text>
                         </View>
                       </View>
 
@@ -642,18 +683,6 @@ export const BuyTicketBottomSheet: React.FC<BuyTicketBottomSheetProps> = ({
                           icon={<Mail size={18} color={theme.colors.primary} />}
                         />
 
-                        <FintechInput
-                          label="Phone Number *"
-                          placeholder="Enter 10-digit phone number"
-                          value={recipientPhone}
-                          onChangeText={(text) => {
-                            setRecipientPhone(text);
-                            if (formErrors.phone) setFormErrors((prev) => ({ ...prev, phone: undefined }));
-                          }}
-                          error={formErrors.phone}
-                          keyboardType="phone-pad"
-                          icon={<Phone size={18} color={theme.colors.primary} />}
-                        />
 
                         {showIdCard ? (
                           <FintechInput
@@ -844,14 +873,6 @@ export const BuyTicketBottomSheet: React.FC<BuyTicketBottomSheetProps> = ({
                       </View>
                     </View>
 
-                    {/* Auto-listening status */}
-                    <View style={styles.autoPollingBox}>
-                      <ActivityIndicator size="small" color={theme.colors.success} />
-                      <Text style={styles.autoPollingText}>
-                        Listening for bank transfer. Your ticket will be automatically transferred to your wallet upon payment confirmation.
-                      </Text>
-                    </View>
-
                     {secondsLeft === 0 && (
                       <View style={styles.errorNote}>
                         <Clock size={16} color={theme.colors.danger} />
@@ -893,9 +914,6 @@ export const BuyTicketBottomSheet: React.FC<BuyTicketBottomSheetProps> = ({
                           variant="success"
                           disabled={isCheckingTransfer}
                         />
-                        <Text style={styles.devHint}>
-                          Developer button for testing escrow settlement flow.
-                        </Text>
                       </View>
                     )}
                   </>

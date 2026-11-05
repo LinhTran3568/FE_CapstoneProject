@@ -33,7 +33,6 @@ import { resaleListingsApi } from '@ticketshield/api-client';
 import { theme } from '../../src/theme';
 import { EventPoster } from '../../src/components/EventPoster';
 import { FintechButton } from '../../src/components/FintechButton';
-import { CategoryFilterBar } from '../../src/components/CategoryFilterBar';
 import { FairPriceBadge } from '../../src/components/FairPriceBadge';
 import { BuyTicketBottomSheet } from '../../src/components/BuyTicketBottomSheet';
 import { formatPrice, formatEventDateTime } from '../../src/utils/format';
@@ -63,7 +62,6 @@ export default function MarketplaceScreen() {
   const [keyword, setKeyword] = useState('');
   const [debouncedKeyword, setDebouncedKeyword] = useState('');
   const [priceBand, setPriceBand] = useState<PriceBand>('ALL');
-  const [selectedCategory, setSelectedCategory] = useState<string>('ALL');
   const [isPriceModalOpen, setIsPriceModalOpen] = useState(false);
   const [listings, setListings] = useState<ResaleListingDetailDto[]>([]);
   const [loading, setLoading] = useState(true);
@@ -105,32 +103,12 @@ export default function MarketplaceScreen() {
     }, [debouncedKeyword, loadListings])
   );
 
-  
-  const inferCategory = (eventName: string, organizer?: string): string => {
-    const text = `${eventName} ${organizer || ''}`.toLowerCase();
-    if (/derby|bóng đá|match|tournament|sport|clb|v-league|football|cúp/i.test(text)) return 'SPORTS';
-    if (/festival|edm|rave|ravolution|music festival/i.test(text)) return 'FESTIVAL';
-    if (/kịch|theater|thể nghiệm|sân khấu|play|opera|vở kịch/i.test(text)) return 'THEATER';
-    if (/workshop|hội thảo|seminar|talk|masterclass|chia sẻ/i.test(text)) return 'WORKSHOP';
-    return 'CONCERT';
-  };
-
-  const matchesCategory = (listing: ResaleListingDetailDto, category: string): boolean => {
-    if (category === 'ALL') return true;
-    const cat = (listing as any).category
-      ? String((listing as any).category).toUpperCase()
-      : inferCategory(listing.eventName, listing.organizerName);
-    return cat === category;
-  };
-
   const filteredListings = useMemo(
     () =>
       listings.filter(
-        (listing) =>
-          matchesBand(listing.resalePrice, priceBand) &&
-          matchesCategory(listing, selectedCategory)
+        (listing) => matchesBand(listing.resalePrice, priceBand)
       ),
-    [listings, priceBand, selectedCategory]
+    [listings, priceBand]
   );
 
   const handleRefresh = async () => {
@@ -141,7 +119,6 @@ export default function MarketplaceScreen() {
 
   const resetFilters = () => {
     setPriceBand('ALL');
-    setSelectedCategory('ALL');
     setKeyword('');
   };
 
@@ -251,7 +228,6 @@ export default function MarketplaceScreen() {
       <View style={styles.header}>
         <View>
           <Text style={styles.title}>Marketplace</Text>
-          <Text style={styles.subtitle}>Verified fan-to-fan resale tickets backed by escrow</Text>
         </View>
         <TouchableOpacity
           style={styles.refreshButton}
@@ -287,10 +263,7 @@ export default function MarketplaceScreen() {
         )}
       </View>
 
-            <CategoryFilterBar
-        selectedCategory={selectedCategory}
-        onSelectCategory={setSelectedCategory}
-        prependNode={
+      <View style={styles.priceFilterRow}>
           <TouchableOpacity
             style={[
               styles.priceTriggerPill,
@@ -320,8 +293,7 @@ export default function MarketplaceScreen() {
               color={priceBand !== 'ALL' ? theme.colors.onPrimary : theme.colors.textMuted}
             />
           </TouchableOpacity>
-        }
-      />
+      </View>
 
       {loading ? (
         <View style={styles.stateBox}>

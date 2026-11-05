@@ -113,9 +113,36 @@ async function fetchWithOrganizerFallback(
 }
 
 export const getMockOrganizerBaseUrl = (): string => {
-  const orgBase = getOrganizerApiBase();
-  return orgBase.replace(/\/api\/organizer$/, '');
+  try {
+    const globalObj = typeof globalThis !== 'undefined' ? (globalThis as any) : {};
+    const win = typeof window !== 'undefined' ? (window as any) : {};
+    const env = globalObj?.process?.env || win?.__ENV__ || {};
+    const envUrl =
+      env.VITE_MOCK_ORGANIZER_API_BASE_URL ||
+      env.EXPO_PUBLIC_MOCK_ORGANIZER_API_BASE_URL ||
+      env.MOCK_ORGANIZER_API_BASE_URL;
+
+    if (envUrl) {
+      return String(envUrl)
+        .replace(/\/$/, '')
+        .replace(/\/api\/organizer$/, '');
+    }
+
+    // MockOrganizer is a separate service from the AntiBot gateway. Do not
+    // derive this URL from getOrganizerApiBase(), whose default is :5006.
+    const coreApiBase = getApiBaseUrl();
+    if (coreApiBase) {
+      const parsed = new URL(coreApiBase);
+      return `${parsed.protocol}//${parsed.hostname}:${getMockOrganizerPort()}`;
+    }
+  } catch {}
+
+  return `http://localhost:${getMockOrganizerPort()}`;
 };
+
+/** Direct HTTP API exposed by MockOrganizer (:5001 by default). */
+export const getMockOrganizerApiBase = (): string =>
+  `${getMockOrganizerBaseUrl()}${ORGANIZER_API_PATH}`;
 
 export interface OrganizerBackendTier {
   id: string;

@@ -95,7 +95,7 @@ async function run() {
       switch (band) {
         case 'UNDER_1M': return price < 1000000;
         case 'FROM_1M_TO_2M': return price >= 1000000 && price <= 2000000;
-        case 'ABOVE_2M': return price > 2000000;
+        case 'OVER_2M': return price > 2000000;
         default: return true;
       }
     };
@@ -103,7 +103,7 @@ async function run() {
     assert(mockListings.filter(l => matchesBand(l.resalePrice, 'ALL')).length === 3, 'ALL band shows all listings');
     assert(mockListings.filter(l => matchesBand(l.resalePrice, 'UNDER_1M')).length === 1, 'UNDER_1M filters < 1M correctly');
     assert(mockListings.filter(l => matchesBand(l.resalePrice, 'FROM_1M_TO_2M')).length === 1, 'FROM_1M_TO_2M filters 1M-2M correctly');
-    assert(mockListings.filter(l => matchesBand(l.resalePrice, 'ABOVE_2M')).length === 1, 'ABOVE_2M filters > 2M correctly');
+    assert(mockListings.filter(l => matchesBand(l.resalePrice, 'OVER_2M')).length === 1, 'OVER_2M filters > 2M correctly');
 
     console.log(' [PASS] 1. Given khách hàng duyệt sàn vé & áp dụng bộ lọc giá [OK]');
     passed++;
@@ -124,25 +124,33 @@ async function run() {
       seatZone: 'GA Standing Zone 2',
     };
 
-    // Escrow Protection Fee: 3%
-    const escrowProtectionFee = Math.round(selectedListing.resalePrice * 0.03);
-    const totalBuyerAmount = selectedListing.resalePrice + escrowProtectionFee;
+    // The app must use the policy supplied by BE, rather than assuming a fixed
+    // percentage or a fixed minimum fee.
+    const calculateFromBackendPolicy = (price, policy) => {
+      const buyerFee = Math.round(Math.max(price * policy.buyerFeePercentage, policy.minimumBuyerFee));
+      return { buyerFee, totalBuyerAmount: Math.round(price + buyerFee) };
+    };
+    const policyA = { buyerFeePercentage: 0.03, minimumBuyerFee: 0 };
+    const policyB = { buyerFeePercentage: 0.05, minimumBuyerFee: 10000 };
+    const resultA = calculateFromBackendPolicy(selectedListing.resalePrice, policyA);
+    const resultB = calculateFromBackendPolicy(selectedListing.resalePrice, policyB);
 
-    assert(escrowProtectionFee === 1500, `Escrow Fee must be 1.500 VND, got ${escrowProtectionFee}`);
-    assert(totalBuyerAmount === 51500, `Total must be 51.500 VND, got ${totalBuyerAmount}`);
+    assert(resultA.buyerFee !== resultB.buyerFee, 'Fee preview changes when the backend policy changes');
+    assert(resultA.totalBuyerAmount === selectedListing.resalePrice + resultA.buyerFee, 'Total follows backend policy A');
+    assert(resultB.totalBuyerAmount === selectedListing.resalePrice + resultB.buyerFee, 'Total follows backend policy B');
 
-    console.log(` [PASS] 2. When chọn vé & mở Bottom-Sheet tính giá (Vé: ${selectedListing.resalePrice.toLocaleString()}đ, Phí: ${escrowProtectionFee.toLocaleString()}đ, Tổng: ${totalBuyerAmount.toLocaleString()}đ) [OK]`);
+    console.log(' [PASS] 2. When chọn vé & mở Bottom-Sheet tính giá theo fee policy từ BE [OK]');
     passed++;
   } catch (err) {
     console.error(' [FAIL] 2. Bottom-Sheet & Fee Calculation:', err.message);
   }
 
   // --------------------------------------------------------------------------
-  // TEST 3: THEN hệ thống mở Bottom-Sheet tạo lệnh giữ chỗ 5 phút
+  // TEST 3: THEN hệ thống uses the hold duration returned by BE
   // --------------------------------------------------------------------------
   total++;
   try {
-    const holdDurationSeconds = 300; // 5 minutes
+    const holdDurationSeconds = 742; // Example response value from BE; not a client policy.
     const now = Date.now();
     const unlockAt = new Date(now + holdDurationSeconds * 1000).toISOString();
 
@@ -151,13 +159,13 @@ async function run() {
       listingId: '44444444-4444-4444-4444-444444444444',
       listingStatus: 'Transacting',
       unlockAt: unlockAt,
-      holdDurationSeconds: 300,
+       holdDurationSeconds,
     };
 
     const deadline = new Date(holdData.unlockAt).getTime();
     const remainingSeconds = Math.max(0, Math.floor((deadline - now) / 1000));
 
-    assert(remainingSeconds >= 299 && remainingSeconds <= 300, `Hold duration should start at ~300s, got ${remainingSeconds}`);
+    assert(remainingSeconds >= holdData.holdDurationSeconds - 1 && remainingSeconds <= holdData.holdDurationSeconds, `Hold duration follows BE response, got ${remainingSeconds}`);
     assert(holdData.listingStatus === 'Transacting', 'Listing status transitions to Transacting upon hold');
 
     // Test countdown timer formatting: mm:ss
@@ -166,11 +174,11 @@ async function run() {
       const s = sec % 60;
       return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
     };
-    assert(formatCountdown(300) === '05:00', '300s formats to 05:00');
+    assert(formatCountdown(holdData.holdDurationSeconds) === '12:22', 'BE duration formats correctly');
     assert(formatCountdown(154) === '02:34', '154s formats to 02:34');
     assert(formatCountdown(0) === '00:00', '0s formats to 00:00');
 
-    console.log(' [PASS] 3. Then tạo lệnh giữ chỗ 5 phút & đồng hồ đếm ngược mm:ss [OK]');
+    console.log(' [PASS] 3. Then đồng hồ đếm ngược dùng hold duration từ BE [OK]');
     passed++;
   } catch (err) {
     console.error(' [FAIL] 3. 5-Min Hold & Timer:', err.message);
@@ -223,11 +231,12 @@ async function run() {
     const isPaymentSettled = (escrowStatus, listingStatus) => {
       const e = escrowStatus?.toLowerCase();
       const l = listingStatus?.toLowerCase();
-      return e === 'funded' || e === 'released' || l === 'transacting' || l === 'sold';
+      return e === 'funded' || e === 'releasing' || e === 'released' || l === 'sold';
     };
 
     assert(isPaymentSettled('funded', 'transacting') === true, 'Funded escrow detected');
     assert(isPaymentSettled('released', 'sold') === true, 'Released escrow detected');
+    assert(isPaymentSettled('pending', 'transacting') === false, 'Reserved listing is not treated as a paid ticket');
     assert(isPaymentSettled('pending', 'verified') === false, 'Pending payment not marked settled');
 
     // Success State Transition

@@ -139,34 +139,6 @@ export const resaleListingsApi = {
   },
 
   /**
-   * Demo Helper: Simulate SePay Webhook payment for fast testing/demoing.
-   * POST /webhooks/sepay
-   */
-  simulatePaymentWebhook: async (
-    paymentReference: string,
-    amount: number
-  ): Promise<any> => {
-    return httpClient<any>(`/webhooks/sepay`, {
-      method: 'POST',
-      headers: {
-        'Authorization': 'Apikey TicketShieldWebhookKey2026',
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        id: Math.floor(Math.random() * 1000000),
-        gateway: 'MBBank',
-        transactionDate: new Date().toISOString(),
-        accountNumber: '0329952127',
-        code: paymentReference,
-        content: `${paymentReference} DEMO PAYMENT`,
-        transferType: 'in',
-        transferAmount: amount,
-        referenceCode: `DEMO_${Date.now()}`,
-      }),
-    });
-  },
-
-  /**
    * Lấy biểu phí chuyển nhượng công khai (phí người mua, phí người bán / phí sàn, mức phí tối thiểu)
    * GET /resale-listings/fee-policy hoặc /fee-settings/public
    */

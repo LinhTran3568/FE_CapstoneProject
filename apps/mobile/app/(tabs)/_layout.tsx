@@ -1,11 +1,12 @@
 import React from 'react';
 import { Tabs } from 'expo-router';
-import { Home, ReceiptText, Store, Ticket, UserRound } from 'lucide-react-native';
+import { ReceiptText, ScanLine, Store, Ticket, UserRound } from 'lucide-react-native';
 import { theme, fontFamilies } from '../../src/theme';
 
 export default function TabLayout() {
   return (
     <Tabs
+      initialRouteName="marketplace"
       screenOptions={{
         tabBarStyle: {
           backgroundColor: theme.colors.surface,
@@ -33,22 +34,22 @@ export default function TabLayout() {
       }}
     >
       <Tabs.Screen
-        name="index"
-        options={{
-          title: 'Home',
-          headerShown: false,
-          tabBarIcon: ({ color, size, focused }) => (
-            <Home size={size || 22} color={color} strokeWidth={focused ? 2.4 : 1.8} />
-          ),
-        }}
-      />
-      <Tabs.Screen
         name="marketplace"
         options={{
           title: 'Marketplace',
           headerShown: false,
           tabBarIcon: ({ color, size, focused }) => (
             <Store size={size || 22} color={color} strokeWidth={focused ? 2.4 : 1.8} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="sell"
+        options={{
+          title: 'Sell Ticket',
+          headerTitle: 'Sell Ticket',
+          tabBarIcon: ({ color, size, focused }) => (
+            <ScanLine size={size || 22} color={color} strokeWidth={focused ? 2.4 : 1.8} />
           ),
         }}
       />

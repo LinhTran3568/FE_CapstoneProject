@@ -82,7 +82,7 @@ export default function RegisterScreen() {
         [
           {
             text: 'Get Started',
-            onPress: () => router.replace('/(tabs)'),
+            onPress: () => router.replace('/(tabs)/marketplace'),
           },
         ]
       );

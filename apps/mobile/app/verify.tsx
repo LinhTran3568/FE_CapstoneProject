@@ -1,11 +1,11 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import {
   View,
   ScrollView,
   TouchableOpacity,
   ActivityIndicator,
 } from 'react-native';
-import { Stack, useRouter } from 'expo-router';
+import { Stack, useFocusEffect, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   AlertTriangle,
@@ -24,8 +24,8 @@ import {
   Copy,
 } from 'lucide-react-native';
 import * as Clipboard from 'expo-clipboard';
-import { resaleApi, resaleListingsApi } from '@ticketshield/api-client';
-import type { PurchasedTicketDto } from '@ticketshield/types';
+import { bankAccountsApi, resaleApi, resaleListingsApi } from '@ticketshield/api-client';
+import type { PurchasedTicketDto, ResaleFeeConfigDto } from '@ticketshield/types';
 import { theme } from '../src/theme';
 import { Text } from '../src/components/AppText';
 import { FintechInput } from '../src/components/FintechInput';
@@ -68,8 +68,55 @@ export default function MobileVerifyTicketScreen() {
   const [isPrivateListing, setIsPrivateListing] = useState(false);
   const [publishedPrivateToken, setPublishedPrivateToken] = useState<string | null>(null);
   const [isCopied, setIsCopied] = useState(false);
+  const [feeConfig, setFeeConfig] = useState<ResaleFeeConfigDto | null>(null);
+  const [isLoadingFeeConfig, setIsLoadingFeeConfig] = useState(true);
+  const [feeConfigError, setFeeConfigError] = useState<string | null>(null);
+
+  const requirePayoutAccount = useCallback(async (): Promise<boolean> => {
+    try {
+      const accounts = await bankAccountsApi.getMyBankAccounts();
+      if (accounts.length > 0) return true;
+
+      setErrorMessage('Link a payout account before selling.');
+      router.push('/payout-accounts');
+      return false;
+    } catch {
+      setErrorMessage('Unable to check payout account. Please try again.');
+      return false;
+    }
+  }, [router]);
+
+  // A seller must configure where the escrow payout goes before starting the
+  // verification flow. The backend repeats this check as the final authority.
+  useFocusEffect(
+    useCallback(() => {
+      void requirePayoutAccount();
+    }, [requirePayoutAccount])
+  );
+
+  // Fee settings are administered by the backend. Never derive buyer or seller
+  // amounts from a client-side percentage because the policy can change at runtime.
+  const loadFeeConfig = useCallback(async () => {
+    setIsLoadingFeeConfig(true);
+    setFeeConfigError(null);
+    try {
+      setFeeConfig(await resaleListingsApi.getFeePolicy());
+    } catch {
+      setFeeConfig(null);
+      setFeeConfigError('Unable to load the current resale fee policy. Please try again.');
+    } finally {
+      setIsLoadingFeeConfig(false);
+    }
+  }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      void loadFeeConfig();
+    }, [loadFeeConfig])
+  );
 
   const [myTickets, setMyTickets] = useState<PurchasedTicketDto[]>([]);
+  const [refundedTicketCodes, setRefundedTicketCodes] = useState<Set<string>>(new Set());
   const [isLoadingTickets, setIsLoadingTickets] = useState(false);
   const [isTicketPickerOpen, setIsTicketPickerOpen] = useState(false);
 
@@ -99,7 +146,15 @@ export default function MobileVerifyTicketScreen() {
           const status = (t.status || '').trim().toUpperCase();
           return code.length > 0 && (status === 'VALID' || status === 'IN_ESCROW' || status === '');
         });
-        setMyTickets(eligible.length > 0 ? eligible : list.filter((t) => (t.ticketPassCode || t.qrCodeData || '').trim().length > 0));
+        setRefundedTicketCodes(
+          new Set(
+            list
+              .filter((t) => (t.status || '').trim().toUpperCase() === 'REFUNDED')
+              .map((t) => (t.ticketPassCode || t.qrCodeData || '').trim().toUpperCase())
+              .filter(Boolean)
+          )
+        );
+        setMyTickets(eligible);
       })
       .catch(() => {})
       .finally(() => {
@@ -128,8 +183,36 @@ export default function MobileVerifyTicketScreen() {
   const priceCeiling = verification?.priceCeiling ?? 0;
   const originalPrice = verification?.originalPrice ?? 0;
   const enteredPrice = Number(resalePriceInput) || 0;
-  const buyerFee = Math.round(enteredPrice * 0.03);
-  const totalBuyerPrice = enteredPrice + buyerFee;
+  const feePreview = useMemo(() => {
+    if (!feeConfig || enteredPrice <= 0) return null;
+
+    // Mirrors DynamicResaleFeeCalculator (.NET decimal Math.Round defaults to ToEven).
+    const roundToEven = (value: number) => {
+      const lower = Math.floor(value);
+      const fraction = value - lower;
+      if (Math.abs(fraction - 0.5) < 1e-9) return lower % 2 === 0 ? lower : lower + 1;
+      return Math.round(value);
+    };
+    const buyerFee = roundToEven(
+      Math.max(enteredPrice * feeConfig.buyerFeePercentage, feeConfig.minimumBuyerFee)
+    );
+    const sellerFee = roundToEven(
+      Math.max(enteredPrice * feeConfig.sellerFeePercentage, feeConfig.minimumSellerFee)
+    );
+
+    return {
+      buyerFee,
+      sellerFee,
+      totalBuyerPrice: roundToEven(enteredPrice + buyerFee),
+      netSellerPayout: roundToEven(enteredPrice - sellerFee),
+      buyerFeeLabel: feeConfig.minimumBuyerFee > enteredPrice * feeConfig.buyerFeePercentage
+        ? `min. ${formatPrice(feeConfig.minimumBuyerFee)}`
+        : `${Number((feeConfig.buyerFeePercentage * 100).toFixed(2))}%`,
+      sellerFeeLabel: feeConfig.minimumSellerFee > enteredPrice * feeConfig.sellerFeePercentage
+        ? `min. ${formatPrice(feeConfig.minimumSellerFee)}`
+        : `${Number((feeConfig.sellerFeePercentage * 100).toFixed(2))}%`,
+    };
+  }, [enteredPrice, feeConfig]);
 
   const resetFlow = async () => {
     if (verification?.verificationId && step !== 'ticket' && step !== 'published') {
@@ -157,6 +240,11 @@ export default function MobileVerifyTicketScreen() {
       setErrorMessage('Please enter the ticket code to verify.');
       return;
     }
+    if (refundedTicketCodes.has(code.toUpperCase())) {
+      setErrorMessage('This ticket was refunded and cannot be listed.');
+      return;
+    }
+    if (!(await requirePayoutAccount())) return;
 
     setIsSubmitting(true);
     setErrorMessage(null);
@@ -237,11 +325,21 @@ export default function MobileVerifyTicketScreen() {
       );
       return;
     }
+    if (!feeConfig) {
+      setErrorMessage('Unable to load the current resale fee policy. Please try again.');
+      return;
+    }
+    if (price < feeConfig.minimumSellerFee) {
+      setErrorMessage(`Resale price must be at least ${formatPrice(feeConfig.minimumSellerFee)}.`);
+      return;
+    }
     setErrorMessage(null);
     setStep('review');
   };
 
   const handlePublish = async () => {
+    if (!(await requirePayoutAccount())) return;
+
     if (!verification?.verificationId) return;
     const price = Number(resalePriceInput);
     if (!price || price <= 0) {
@@ -251,6 +349,14 @@ export default function MobileVerifyTicketScreen() {
     if (priceCeiling > 0 && price > priceCeiling) {
       setErrorMessage(
         `Resale price cannot exceed the organizer cap of ${formatPrice(priceCeiling)}.`
+      );
+      return;
+    }
+    if (!feeConfig || price < feeConfig.minimumSellerFee) {
+      setErrorMessage(
+        feeConfig
+          ? `Resale price must be at least ${formatPrice(feeConfig.minimumSellerFee)}.`
+          : 'Unable to load the current resale fee policy. Please try again.'
       );
       return;
     }
@@ -267,8 +373,9 @@ export default function MobileVerifyTicketScreen() {
       setPublishedPrivateToken(result.privateAccessToken ?? null);
       setStep('published');
     } catch (err) {
-      const message =
-        err instanceof Error ? err.message : 'Unable to publish listing. Please try again.';
+      const message = err instanceof Error && err.message === 'TICKET_REFUNDED'
+        ? 'This ticket was refunded and cannot be listed.'
+        : err instanceof Error ? err.message : 'Unable to publish listing. Please try again.';
       setErrorMessage(message);
     } finally {
       setIsSubmitting(false);
@@ -315,9 +422,6 @@ export default function MobileVerifyTicketScreen() {
             </View>
             <Text style={styles.headerTitle}>Organizer Escrow Verification</Text>
           </View>
-          <Text style={styles.headerSubtitle}>
-            TicketShield validates original ownership with event organizers and locks the barcode before listing to prevent fraud.
-          </Text>
         </View>
 
         <View style={styles.stepperPill}>
@@ -483,12 +587,6 @@ export default function MobileVerifyTicketScreen() {
               </View>
             )}
 
-            <View style={styles.helperRow}>
-              <ShieldCheck size={15} color={theme.colors.success} />
-              <Text style={styles.helperText}>
-                Select an existing ticket from My Tickets or enter the code manually. A verification OTP will be sent to the registered owner.
-              </Text>
-            </View>
             <FintechButton
               title="Send Verification Request"
               onPress={handleRequestOtp}
@@ -535,7 +633,6 @@ export default function MobileVerifyTicketScreen() {
                   {resendCooldown > 0 ? `Resend OTP in ${resendCooldown}s` : 'Resend OTP'}
                 </Text>
               </TouchableOpacity>
-              <Text style={styles.otpExpiryHint}>Code valid for several minutes</Text>
             </View>
 
             <FintechButton
@@ -565,9 +662,6 @@ export default function MobileVerifyTicketScreen() {
               </View>
               <View style={styles.resultTitleGroup}>
                 <Text style={styles.resultTitle}>Ticket Valid & Escrow Locked</Text>
-                <Text style={styles.resultSubtitle}>
-                  Event organizer has confirmed ownership of this ticket.
-                </Text>
               </View>
             </View>
 
@@ -596,13 +690,6 @@ export default function MobileVerifyTicketScreen() {
                   Barcode Locked & Verified
                 </Text>
               </View>
-            </View>
-
-            <View style={styles.helperRow}>
-              <ShieldCheck size={15} color={theme.colors.success} />
-              <Text style={styles.helperText}>
-                Your original barcode is temporarily locked to prevent duplicate entry. You can now set your resale listing price.
-              </Text>
             </View>
 
             <FintechButton
@@ -646,40 +733,40 @@ export default function MobileVerifyTicketScreen() {
               maxLength={12}
             />
 
-            {priceCeiling > 0 && (
-              <View style={styles.helperRow}>
-                <ShieldCheck size={15} color={theme.colors.warning} />
-                <Text style={styles.helperText}>
-                  Organizer price ceiling: {formatPrice(priceCeiling)}. Anti-scalping policy strictly enforced.
-                </Text>
-              </View>
-            )}
-
-            {enteredPrice > 0 && (
+            {enteredPrice > 0 && feePreview && (
               <View style={styles.breakdownBox}>
                 <View style={styles.breakdownRow}>
                   <Text style={styles.breakdownLabel}>Listing Price</Text>
                   <Text style={styles.breakdownValue}>{formatPrice(enteredPrice)}</Text>
                 </View>
                 <View style={styles.breakdownRow}>
-                  <Text style={styles.breakdownLabel}>Buyer Escrow Fee (3%)</Text>
-                  <Text style={styles.breakdownValue}>+{formatPrice(buyerFee)}</Text>
+                  <Text style={styles.breakdownLabel}>Buyer Escrow Fee ({feePreview.buyerFeeLabel})</Text>
+                  <Text style={styles.breakdownValue}>+{formatPrice(feePreview.buyerFee)}</Text>
                 </View>
                 <View style={styles.breakdownRow}>
                   <Text style={styles.breakdownLabel}>Total Buyer Pays</Text>
-                  <Text style={styles.breakdownValue}>{formatPrice(totalBuyerPrice)}</Text>
+                  <Text style={styles.breakdownValue}>{formatPrice(feePreview.totalBuyerPrice)}</Text>
                 </View>
                 <View style={styles.breakdownDivider} />
                 <View style={styles.breakdownRow}>
-                  <Text style={styles.breakdownLabel}>Your Net Payout (100%)</Text>
-                  <Text style={styles.breakdownHighlight}>{formatPrice(enteredPrice)}</Text>
+                  <Text style={styles.breakdownLabel}>Seller Fee ({feePreview.sellerFeeLabel})</Text>
+                  <Text style={styles.breakdownValue}>-{formatPrice(feePreview.sellerFee)}</Text>
+                </View>
+                <View style={styles.breakdownRow}>
+                  <Text style={styles.breakdownLabel}>Your Net Payout</Text>
+                  <Text style={styles.breakdownHighlight}>{formatPrice(feePreview.netSellerPayout)}</Text>
                 </View>
               </View>
+            )}
+
+            {feeConfigError && (
+              <Text style={styles.errorText}>{feeConfigError}</Text>
             )}
 
             <FintechButton
               title="Continue to Review"
               onPress={handleStep4Continue}
+              disabled={isLoadingFeeConfig || !feePreview}
               icon={<ArrowRight size={17} color={theme.colors.onPrimary} />}
             />
 
@@ -796,14 +883,22 @@ export default function MobileVerifyTicketScreen() {
                   {formatPrice(enteredPrice)}
                 </Text>
               </View>
-              <View style={styles.specRow}>
-                <Text style={styles.specLabel}>Buyer Escrow Fee (3%)</Text>
-                <Text style={styles.specValue}>{formatPrice(buyerFee)}</Text>
-              </View>
-              <View style={styles.specRow}>
-                <Text style={styles.specLabel}>Your Net Payout</Text>
-                <Text style={styles.breakdownHighlight}>{formatPrice(enteredPrice)}</Text>
-              </View>
+              {feePreview && (
+                <>
+                  <View style={styles.specRow}>
+                    <Text style={styles.specLabel}>Buyer Escrow Fee ({feePreview.buyerFeeLabel})</Text>
+                    <Text style={styles.specValue}>{formatPrice(feePreview.buyerFee)}</Text>
+                  </View>
+                  <View style={styles.specRow}>
+                    <Text style={styles.specLabel}>Seller Fee ({feePreview.sellerFeeLabel})</Text>
+                    <Text style={styles.specValue}>-{formatPrice(feePreview.sellerFee)}</Text>
+                  </View>
+                  <View style={styles.specRow}>
+                    <Text style={styles.specLabel}>Your Net Payout</Text>
+                    <Text style={styles.breakdownHighlight}>{formatPrice(feePreview.netSellerPayout)}</Text>
+                  </View>
+                </>
+              )}
               <View style={styles.specRow}>
                 <Text style={styles.specLabel}>Visibility</Text>
                 <Text
@@ -821,6 +916,7 @@ export default function MobileVerifyTicketScreen() {
               title={isPrivateListing ? 'Create Private Listing' : 'Publish to Marketplace'}
               onPress={handlePublish}
               loading={isSubmitting}
+              disabled={!feePreview || isLoadingFeeConfig}
               variant={isPrivateListing ? 'primary' : 'success'}
               icon={
                 isPrivateListing ? (
@@ -873,12 +969,6 @@ export default function MobileVerifyTicketScreen() {
                 ? 'Private Listing Created Successfully!'
                 : 'Ticket Listed on Marketplace'}
             </Text>
-            <Text style={styles.publishedText}>
-              {isPrivateListing
-                ? 'Your listing is private and hidden from public search. Share the secret link below with your buyer to complete the purchase.'
-                : 'Your listing is now active on the Marketplace. Sale proceeds will be held in escrow and disbursed to you after the buyer is admitted.'}
-            </Text>
-
             {isPrivateListing && (
               <View style={styles.secretLinkCard}>
                 <View style={styles.secretLinkHeader}>

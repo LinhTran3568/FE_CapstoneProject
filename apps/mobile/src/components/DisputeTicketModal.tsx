@@ -15,6 +15,7 @@ import {
   CheckCircle2,
   Clock,
   Check,
+  Minus,
   RotateCcw,
 } from 'lucide-react-native';
 import type { PurchasedTicketDto } from '@ticketshield/types';
@@ -214,9 +215,6 @@ export function DisputeTicketModal({
                     ? 'Report Ticket Issue'
                     : 'Escrow Dispute Progress'}
                 </Text>
-                <Text style={styles.headerSubtitle}>
-                  Buyer protection backed by TicketShield Escrow
-                </Text>
               </View>
             </View>
             <TouchableOpacity
@@ -355,11 +353,6 @@ export function DisputeTicketModal({
                   <Text style={styles.codeLabel}>Dispute ID:</Text>
                   <Text style={styles.codeValue}>{createdDispute.code}</Text>
                 </View>
-                <Text style={styles.successDesc}>
-                  Your payment is now safely frozen in TicketShield Escrow.
-                  Our resolution team will audit organizer gate turnstile logs
-                  within 24 hours to secure your refund.
-                </Text>
                 <FintechButton
                   title="Got It"
                   onPress={onClose}
@@ -425,6 +418,7 @@ export function DisputeTicketModal({
                       ).map((stepItem: DisputeTimelineStepDto, idx: number, arr: any[]) => {
                         const isDone = stepItem.state === 'DONE';
                         const isCurrent = stepItem.state === 'CURRENT';
+                        const isSkipped = stepItem.state === 'SKIPPED';
                         const isLast = idx === arr.length - 1;
 
                         return (
@@ -435,12 +429,15 @@ export function DisputeTicketModal({
                                   styles.timelineDot,
                                   isDone && styles.timelineDotDone,
                                   isCurrent && styles.timelineDotCurrent,
+                                  isSkipped && styles.timelineDotSkipped,
                                 ]}
                               >
                                 {isDone ? (
                                   <Check size={11} color="#0C0A09" />
                                 ) : isCurrent ? (
                                   <Clock size={11} color="#FFFFFF" />
+                                ) : isSkipped ? (
+                                  <Minus size={12} color={theme.colors.textMuted} />
                                 ) : null}
                               </View>
                               {!isLast && <View style={styles.timelineLine} />}
@@ -455,6 +452,8 @@ export function DisputeTicketModal({
                                   ? 'Completed'
                                   : isCurrent
                                     ? 'Cross-referencing entrance turnstile logs...'
+                                    : isSkipped
+                                      ? 'Skipped'
                                     : 'Pending resolution'}
                               </Text>
                             </View>

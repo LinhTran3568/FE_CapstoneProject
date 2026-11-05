@@ -52,5 +52,4 @@ export {
   checkGatewayHealth,
   type GatewayInfo,
 };
-export { setOrganizerApiBaseUrl, getOrganizerApiBase } from '@ticketshield/api-client';
 

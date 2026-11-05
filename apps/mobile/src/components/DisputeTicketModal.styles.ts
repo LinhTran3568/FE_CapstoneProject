@@ -339,6 +339,11 @@ export const styles = StyleSheet.create({
   timelineDotCurrent: {
     backgroundColor: theme.colors.primary,
   },
+  timelineDotSkipped: {
+    backgroundColor: theme.colors.surfaceElevated,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+  },
   timelineLine: {
     flex: 1,
     width: 2,

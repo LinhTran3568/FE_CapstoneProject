@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { X, Building2, CreditCard, User, Check, RefreshCw, ChevronDown } from 'lucide-react';
-import { bankAccountsApi, VIETNAM_BANKS } from '@ticketshield/api-client';
+import { bankAccountsApi, type BankInfo } from '@ticketshield/api-client';
 import { UserBankAccountDto } from '@ticketshield/types';
 import { useUIStore } from '../../stores/uiStore';
 import { useAuthStore } from '../../stores/authStore';
@@ -20,7 +20,9 @@ export const SellerBankAccountModal: React.FC<SellerBankAccountModalProps> = ({
   const { user } = useAuthStore();
   const { showToast } = useUIStore();
 
-  const [bankCode, setBankCode] = useState('MB');
+  const [banks, setBanks] = useState<BankInfo[]>([]);
+  const [isLoadingBanks, setIsLoadingBanks] = useState(false);
+  const [bankCode, setBankCode] = useState('');
   const [accountNumber, setAccountNumber] = useState('');
   const [accountHolderName, setAccountHolderName] = useState('');
   const [isDefault, setIsDefault] = useState(true);
@@ -31,6 +33,7 @@ export const SellerBankAccountModal: React.FC<SellerBankAccountModalProps> = ({
 
   // Bank selection dropdown state
   const [isBankDropdownOpen, setIsBankDropdownOpen] = useState(false);
+  const [bankSearch, setBankSearch] = useState('');
   const bankDropdownRef = useRef<HTMLDivElement>(null);
 
   // Lock body scroll when modal is open to eliminate background double scrollbar
@@ -61,6 +64,36 @@ export const SellerBankAccountModal: React.FC<SellerBankAccountModalProps> = ({
   const [isVerifiedName, setIsVerifiedName] = useState(false);
   const [lookupFailed, setLookupFailed] = useState(false);
 
+  useEffect(() => {
+    if (!isOpen) return;
+    let active = true;
+    setIsLoadingBanks(true);
+    bankAccountsApi.getBanks()
+      .then((directory) => {
+        if (!active) return;
+        setBanks(directory);
+        setBankCode((current) => current || directory[0]?.code || '');
+      })
+      .catch(() => active && showToast('Could not load the bank directory. Please try again.', 'error'))
+      .finally(() => active && setIsLoadingBanks(false));
+    return () => { active = false; };
+  }, [isOpen, showToast]);
+
+  const selectedBank = banks.find((bank) => bank.code === bankCode);
+  const normalizedBankSearch = bankSearch
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .trim();
+  const filteredBanks = banks.filter((bank) =>
+    [bank.name, bank.shortName, bank.code, bank.bin]
+      .join(' ')
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase()
+      .includes(normalizedBankSearch)
+  );
+
   // Effect to automatically lookup account name when bank or accountNumber changes
   useEffect(() => {
     if (!isOpen) return;
@@ -76,7 +109,7 @@ export const SellerBankAccountModal: React.FC<SellerBankAccountModalProps> = ({
       setLookupFailed(false);
       try {
         const res = await bankAccountsApi.lookupAccountHolderName(
-          bankCode,
+          selectedBank?.bin || '',
           cleanAcc,
         );
         if (res.success && res.accountName) {
@@ -97,14 +130,14 @@ export const SellerBankAccountModal: React.FC<SellerBankAccountModalProps> = ({
     }, 700);
 
     return () => clearTimeout(timer);
-  }, [bankCode, accountNumber, isOpen]);
+  }, [selectedBank?.bin, accountNumber, isOpen]);
 
   // Reset form state when modal is opened/closed
   useEffect(() => {
     if (!isOpen) {
       setAccountNumber('');
       setAccountHolderName('');
-      setBankCode('MB');
+      setBankCode('');
       setIsDefault(true);
       setIsVerifiedName(false);
       setLookupFailed(false);
@@ -119,6 +152,11 @@ export const SellerBankAccountModal: React.FC<SellerBankAccountModalProps> = ({
 
     if (!cleanAccountNumber || cleanAccountNumber.length < 6) {
       showToast('Invalid account number (minimum 6 digits required)!', 'warning');
+      return;
+    }
+
+    if (!selectedBank) {
+      showToast('Please select a bank from the available directory.', 'warning');
       return;
     }
 
@@ -155,8 +193,6 @@ export const SellerBankAccountModal: React.FC<SellerBankAccountModalProps> = ({
       setIsSubmitting(false);
     }
   };
-
-  const selectedBank = VIETNAM_BANKS.find((b) => b.code === bankCode) || VIETNAM_BANKS[0];
 
   // Guard: Không render nếu modal chưa mở
   if (!isOpen) return null;
@@ -207,13 +243,16 @@ export const SellerBankAccountModal: React.FC<SellerBankAccountModalProps> = ({
                 </label>
                 <button
                   type="button"
-                  onClick={() => setIsBankDropdownOpen((prev) => !prev)}
+                  onClick={() => {
+                    setBankSearch('');
+                    setIsBankDropdownOpen((prev) => !prev);
+                  }}
                   className={`w-full h-11 px-3.5 rounded-xl bg-[#05070A] border ${
                     isBankDropdownOpen ? 'border-[#FF5A36] ring-2 ring-[#FF5A36]/20' : 'border-white/15 hover:border-white/25'
                   } text-xs sm:text-sm text-white flex items-center justify-between transition-all cursor-pointer text-left`}
                 >
                   <span className="truncate font-medium">
-                    {selectedBank.name} ({selectedBank.code})
+                    {isLoadingBanks ? 'Loading banks...' : selectedBank ? `${selectedBank.name} (${selectedBank.code})` : 'Select a bank'}
                   </span>
                   <ChevronDown className={`w-4 h-4 text-[#8B929C] transition-transform duration-200 shrink-0 ${
                     isBankDropdownOpen ? 'rotate-180 text-[#FF5A36]' : ''
@@ -221,8 +260,20 @@ export const SellerBankAccountModal: React.FC<SellerBankAccountModalProps> = ({
                 </button>
 
                 {isBankDropdownOpen && (
-                  <div className="absolute top-full left-0 right-0 mt-1.5 bg-[#0A0D12] border border-white/15 rounded-xl shadow-2xl p-1 z-50 animate-in fade-in zoom-in-95 max-h-52 overflow-y-auto space-y-0.5">
-                    {VIETNAM_BANKS.map((bank) => {
+                  <div className="absolute top-full left-0 right-0 mt-1.5 bg-[#0A0D12] border border-white/15 rounded-xl shadow-2xl p-1 z-50 animate-in fade-in zoom-in-95">
+                    <div className="p-2 border-b border-white/10">
+                      <input
+                        autoFocus
+                        type="search"
+                        value={bankSearch}
+                        onChange={(event) => setBankSearch(event.target.value)}
+                        onKeyDown={(event) => event.stopPropagation()}
+                        placeholder="Search bank, code, or BIN..."
+                        className="w-full h-8 px-3 rounded-lg bg-[#05070A] border border-white/15 text-xs text-white placeholder-white/35 outline-none focus:border-[#FF5A36]"
+                      />
+                    </div>
+                    <div className="max-h-40 overflow-y-auto space-y-0.5 p-1 custom-scrollbar">
+                    {filteredBanks.map((bank) => {
                       const isSelected = bank.code === bankCode;
                       return (
                         <button
@@ -230,6 +281,7 @@ export const SellerBankAccountModal: React.FC<SellerBankAccountModalProps> = ({
                           type="button"
                           onClick={() => {
                             setBankCode(bank.code);
+                            setBankSearch('');
                             setIsBankDropdownOpen(false);
                           }}
                           className={`w-full px-3 py-2 rounded-lg text-left text-xs flex items-center justify-between transition-colors cursor-pointer ${
@@ -243,6 +295,10 @@ export const SellerBankAccountModal: React.FC<SellerBankAccountModalProps> = ({
                         </button>
                       );
                     })}
+                    {filteredBanks.length === 0 && (
+                      <p className="px-3 py-4 text-center text-xs text-[#8B929C]">Không tìm thấy ngân hàng phù hợp.</p>
+                    )}
+                    </div>
                   </div>
                 )}
               </div>
@@ -367,7 +423,9 @@ export const SellerBankAccountModal: React.FC<SellerBankAccountModalProps> = ({
                 <div className="space-y-2 text-xs">
                   <div>
                     <span className="text-[10px] text-[#8B929C] uppercase font-mono block">Bank</span>
-                    <span className="text-white font-bold">{selectedBank.name} ({selectedBank.code})</span>
+                    <span className="text-white font-bold">
+                      {selectedBank ? `${selectedBank.name} (${selectedBank.code})` : 'No bank selected'}
+                    </span>
                   </div>
 
                   <div>

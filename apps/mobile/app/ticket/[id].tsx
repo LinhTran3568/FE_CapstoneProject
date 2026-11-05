@@ -14,10 +14,8 @@ import {
   ShieldCheck,
   Calendar,
   MapPin,
-  RefreshCw,
   Share2,
   AlertCircle,
-  Info,
   QrCode,
   ShieldAlert,
   Clock,
@@ -25,7 +23,7 @@ import {
 import { theme } from '../../src/theme';
 import type { PurchasedTicketDto } from '@ticketshield/types';
 import { resaleListingsApi } from '@ticketshield/api-client';
-import { generateRotatingToken } from '../../src/utils/totp';
+import { expandPurchasedTickets, getIssuedQrImageUrl } from '../../src/utils/purchasedTickets';
 import { FintechButton } from '../../src/components/FintechButton';
 import { EventPoster } from '../../src/components/EventPoster';
 import { formatEventDateTime } from '../../src/utils/format';
@@ -49,8 +47,6 @@ export default function TicketDetailScreen() {
   const [ticket, setTicket] = useState<PurchasedTicketDto | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
-  const [rotatingToken, setRotatingToken] = useState('');
-  const [secondsRemaining, setSecondsRemaining] = useState(30);
   const [qrLoadFailed, setQrLoadFailed] = useState(false);
   const [isDisputeModalOpen, setIsDisputeModalOpen] = useState(false);
 
@@ -62,7 +58,7 @@ export default function TicketDetailScreen() {
     setLoading(true);
     setLoadError(null);
     try {
-      const allTickets = await resaleListingsApi.getMyPurchasedTickets();
+      const allTickets = expandPurchasedTickets(await resaleListingsApi.getMyPurchasedTickets());
       const found =
         (allTickets || []).find(
           (t) => t.ticketPassCode === id || t.listingId === id || t.escrowId === id
@@ -82,18 +78,7 @@ export default function TicketDetailScreen() {
   }, [id]);
 
   useEffect(() => {
-    if (!ticket) return;
-    setQrLoadFailed(false);
-
-    const updateToken = () => {
-      const res = generateRotatingToken(ticket.ticketPassCode);
-      setRotatingToken(res.token);
-      setSecondsRemaining(res.secondsRemaining);
-    };
-
-    updateToken();
-    const interval = setInterval(updateToken, 1000);
-    return () => clearInterval(interval);
+    if (ticket) setQrLoadFailed(false);
   }, [ticket]);
 
   const handleShare = async () => {
@@ -155,7 +140,9 @@ export default function TicketDetailScreen() {
     );
   }
 
-  const isUsable = ticket.status === 'VALID';
+  // The buyer receives the digital pass as soon as payment succeeds. Escrow
+  // protects the seller payout only, so it must not hide an issued QR pass.
+  const isUsable = ticket.status === 'VALID' || ticket.status === 'IN_ESCROW';
 
   return (
     <>
@@ -218,9 +205,7 @@ export default function TicketDetailScreen() {
               ) : (
                 <Image
                   source={{
-                    uri: `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(
-                      rotatingToken || ticket.ticketPassCode
-                    )}`,
+                    uri: getIssuedQrImageUrl(ticket),
                   }}
                   style={styles.qrImage}
                   resizeMode="contain"
@@ -229,20 +214,6 @@ export default function TicketDetailScreen() {
               )}
             </View>
 
-            <View style={styles.countdownPill}>
-              <RefreshCw size={14} color={theme.colors.primary} />
-              <Text style={styles.countdownPillText}>
-                Refreshes in <Text style={styles.countdownSeconds}>{secondsRemaining}s</Text>
-              </Text>
-            </View>
-            <View style={styles.progressTrack}>
-              <View
-                style={[
-                  styles.progressFill,
-                  { width: `${Math.max(0, Math.min(100, (secondsRemaining / 30) * 100))}%` },
-                ]}
-              />
-            </View>
           </View>
 
           <View style={styles.specsGrid}>
@@ -270,22 +241,6 @@ export default function TicketDetailScreen() {
                 {STATUS_LABELS[ticket.status] || ticket.status}
               </Text>
             </View>
-          </View>
-
-          <View style={styles.rulesCard}>
-            <View style={styles.rulesHeader}>
-              <Info size={15} color={theme.colors.textSecondary} />
-              <Text style={styles.rulesTitle}>Admission Guidelines</Text>
-            </View>
-            <Text style={styles.rulesItem}>
-              • Each dynamic QR code is valid for a single scanner check-in at the entrance.
-            </Text>
-            <Text style={styles.rulesItem}>
-              • Do not share screenshots: expired codes will be rejected by gate scanners.
-            </Text>
-            <Text style={styles.rulesItem}>
-              • Escrow settlement is finalized once you are admitted to the event.
-            </Text>
           </View>
 
           <TouchableOpacity style={styles.shareBtn} onPress={handleShare} activeOpacity={0.85}>

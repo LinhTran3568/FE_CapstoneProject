@@ -14,8 +14,8 @@ export interface BankTransferDetailsProps {
 }
 
 export const BankTransferDetails: React.FC<BankTransferDetailsProps> = ({
-  bankBin = '970422',
-  bankName = 'MB Bank (Military Commercial Joint Stock Bank)',
+  bankBin,
+  bankName = 'Bank information unavailable',
   accountNumber,
   accountName,
   amount,

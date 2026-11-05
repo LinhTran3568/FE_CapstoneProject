@@ -6,6 +6,7 @@ import {
   ActivityIndicator,
   TextInput,
   ScrollView,
+  Modal,
 } from 'react-native';
 import { Text } from '../../src/components/AppText';
 import { useRouter, useFocusEffect } from 'expo-router';
@@ -41,7 +42,7 @@ interface MobileEscrowOrder {
   seatZone: string;
   totalPaid: number;
   paymentReference: string;
-  status: 'ESCROW_HOLDING' | 'COMPLETED' | 'CANCELLED' | 'DISPUTED' | 'LISTING_ACTIVE';
+  status: 'ESCROW_HOLDING' | 'COMPLETED' | 'CANCELLED' | 'DISPUTED' | 'REFUNDED' | 'LISTING_ACTIVE';
   createdAt: string;
   ticketPassCode: string;
   disputeId?: string | null;
@@ -56,6 +57,7 @@ type OrderStatusFilter =
   | 'ESCROW_HOLDING'
   | 'COMPLETED'
   | 'DISPUTED'
+  | 'REFUNDED'
   | 'CANCELLED';
 
 interface OrderFilterItem {
@@ -71,6 +73,7 @@ const ORDER_FILTERS: OrderFilterItem[] = [
   { key: 'ESCROW_HOLDING', label: 'In Escrow', icon: Clock },
   { key: 'COMPLETED', label: 'Completed', icon: CheckCircle2 },
   { key: 'DISPUTED', label: 'Disputed', icon: ShieldAlert },
+  { key: 'REFUNDED', label: 'Refunded', icon: AlertTriangle },
   { key: 'CANCELLED', label: 'Cancelled', icon: XCircle },
 ];
 
@@ -84,6 +87,9 @@ export default function MobileOrdersScreen() {
   const [searchQuery, setSearchQuery] = useState('');
   const [isDisputeModalOpen, setIsDisputeModalOpen] = useState(false);
   const [selectedOrderTicket, setSelectedOrderTicket] = useState<PurchasedTicketDto | null>(null);
+  const [cancellingListingId, setCancellingListingId] = useState<string | null>(null);
+  const [listingToCancel, setListingToCancel] = useState<MobileEscrowOrder | null>(null);
+  const [cancelError, setCancelError] = useState<string | null>(null);
 
   const counts = useMemo(() => {
     const myListings = orders.filter((o) => o.type === 'SELL').length;
@@ -91,6 +97,7 @@ export default function MobileOrdersScreen() {
     const holding = orders.filter((o) => o.status === 'ESCROW_HOLDING').length;
     const completed = orders.filter((o) => o.status === 'COMPLETED').length;
     const disputed = orders.filter((o) => o.status === 'DISPUTED').length;
+    const refunded = orders.filter((o) => o.status === 'REFUNDED').length;
     const cancelled = orders.filter((o) => o.status === 'CANCELLED').length;
     return {
       ALL: orders.length,
@@ -99,6 +106,7 @@ export default function MobileOrdersScreen() {
       ESCROW_HOLDING: holding,
       COMPLETED: completed,
       DISPUTED: disputed,
+      REFUNDED: refunded,
       CANCELLED: cancelled,
     };
   }, [orders]);
@@ -168,6 +176,8 @@ export default function MobileOrdersScreen() {
           paymentReference: t.paymentReference || 'TS-ESCROW',
           status: isDisputed
             ? 'DISPUTED'
+            : t.status === 'REFUNDED'
+              ? 'REFUNDED'
             : t.status === 'VALID'
               ? 'COMPLETED'
               : t.status === 'CANCELLED'
@@ -277,6 +287,14 @@ export default function MobileOrdersScreen() {
         </View>
       );
     }
+    if (status === 'REFUNDED') {
+      return (
+        <View style={[styles.statusBadge, styles.statusBadgeDanger]}>
+          <AlertTriangle size={13} color={theme.colors.danger} />
+          <Text style={[styles.statusText, styles.statusTextDanger]}>Refunded</Text>
+        </View>
+      );
+    }
     return (
       <View style={[styles.statusBadge, styles.statusBadgeDanger]}>
         <XCircle size={13} color={theme.colors.danger} />
@@ -308,6 +326,27 @@ export default function MobileOrdersScreen() {
     };
     setSelectedOrderTicket(syntheticTicket);
     setIsDisputeModalOpen(true);
+  };
+
+  const handleCancelListing = (item: MobileEscrowOrder) => {
+    setCancelError(null);
+    setListingToCancel(item);
+  };
+
+  const confirmCancelListing = async () => {
+    if (!listingToCancel) return;
+
+    setCancellingListingId(listingToCancel.listingId);
+    setCancelError(null);
+    try {
+      await resaleListingsApi.cancelListing(listingToCancel.listingId);
+      await fetchOrders(true);
+      setListingToCancel(null);
+    } catch (err) {
+      setCancelError(err instanceof Error ? err.message : 'Unable to cancel listing.');
+    } finally {
+      setCancellingListingId(null);
+    }
   };
 
   const renderOrder = ({ item }: { item: MobileEscrowOrder }) => (
@@ -353,56 +392,39 @@ export default function MobileOrdersScreen() {
         </View>
       </View>
 
-      <View style={[styles.escrowNotice, item.status === 'DISPUTED' && styles.escrowNoticeDanger]}>
-        {item.status === 'DISPUTED' ? (
-          <ShieldAlert size={14} color={theme.colors.danger} />
-        ) : (
-          <ShieldCheck size={14} color={theme.colors.success} />
-        )}
-        <Text
-          style={[
-            styles.escrowNoticeText,
-            item.status === 'DISPUTED' && styles.escrowNoticeTextDanger,
-          ]}
-        >
-          {item.type === 'SELL' ? (
-            item.status === 'COMPLETED'
-              ? 'Ticket sold! Escrow payout is released upon verified event check-in.'
-              : item.status === 'ESCROW_HOLDING'
-                ? 'A buyer is currently in checkout. Payment is secured in Escrow.'
-                : item.status === 'LISTING_ACTIVE'
-                  ? 'Your ticket is live on Marketplace. Original barcode is locked with organizer.'
-                  : 'Resale listing was cancelled and ticket barcode unlocked.'
-          ) : (
-            item.status === 'DISPUTED'
-              ? 'Dispute opened. Payout is frozen in Escrow pending turnstile scan audit.'
-              : item.status === 'ESCROW_HOLDING'
-                ? 'Ticket barcode is locked for resale. Funds are held safely in Escrow.'
-                : item.status === 'COMPLETED'
-                  ? 'Admission verified. Escrow settlement successfully disbursed.'
-                  : 'Order was cancelled and any held deposit refunded.'
-          )}
-        </Text>
-      </View>
-
       <View style={styles.orderActionsRow}>
         {item.type === 'SELL' ? (
-          <TouchableOpacity
-            style={styles.viewPassBtn}
-            onPress={() => router.push('/(tabs)/marketplace')}
-            activeOpacity={0.8}
-          >
-            <Text style={styles.viewPassBtnText}>View on Marketplace</Text>
-            <ArrowRight size={14} color={theme.colors.primary} />
-          </TouchableOpacity>
-        ) : (
+          item.status === 'LISTING_ACTIVE' ? (
+            <>
+            <TouchableOpacity
+              style={styles.viewPassBtn}
+              onPress={() => router.push('/(tabs)/marketplace')}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.viewPassBtnText}>View on Marketplace</Text>
+              <ArrowRight size={14} color={theme.colors.primary} />
+            </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.reportOrderBtn}
+                onPress={() => handleCancelListing(item)}
+                disabled={cancellingListingId === item.listingId}
+                activeOpacity={0.8}
+              >
+                <XCircle size={14} color={theme.colors.danger} />
+                <Text style={styles.reportOrderBtnText}>
+                  {cancellingListingId === item.listingId ? 'Cancelling...' : 'Cancel Listing'}
+                </Text>
+              </TouchableOpacity>
+            </>
+          ) : null
+        ) : item.status !== 'REFUNDED' ? (
           <TouchableOpacity
             style={styles.viewPassBtn}
             onPress={() => router.push('/(tabs)/tickets')}
             activeOpacity={0.8}
           >
             <Text style={styles.viewPassBtnText}>
-              {item.status === 'ESCROW_HOLDING' ? 'View in Wallet (Locked)' : 'View in Wallet'}
+              View in Wallet
             </Text>
             {item.status === 'ESCROW_HOLDING' ? (
               <Lock size={13} color={theme.colors.primary} />
@@ -410,7 +432,7 @@ export default function MobileOrdersScreen() {
               <ArrowRight size={14} color={theme.colors.primary} />
             )}
           </TouchableOpacity>
-        )}
+        ) : null}
 
         {item.status === 'DISPUTED' || Boolean(item.disputeId) ? (
           <TouchableOpacity
@@ -421,7 +443,7 @@ export default function MobileOrdersScreen() {
             <Clock size={14} color={theme.colors.warning} />
             <Text style={styles.disputeProgressOrderBtnText}>View Dispute</Text>
           </TouchableOpacity>
-        ) : item.status !== 'CANCELLED' && item.type !== 'SELL' ? (
+        ) : item.status !== 'CANCELLED' && item.status !== 'REFUNDED' && item.type !== 'SELL' ? (
           <TouchableOpacity
             style={styles.reportOrderBtn}
             onPress={() => handleReportOrder(item)}
@@ -462,9 +484,6 @@ export default function MobileOrdersScreen() {
             <Receipt size={30} color={theme.colors.textMuted} />
           </View>
           <Text style={styles.emptyTitle}>No Orders Yet</Text>
-          <Text style={styles.emptyDesc}>
-            When you purchase resale tickets through Escrow, your payment tracking and receipts will appear here.
-          </Text>
           <FintechButton
             title="Browse Marketplace"
             onPress={() => router.push('/(tabs)/marketplace')}
@@ -600,6 +619,43 @@ export default function MobileOrdersScreen() {
           );
         }}
       />
+      <Modal
+        visible={Boolean(listingToCancel)}
+        transparent
+        animationType="fade"
+        onRequestClose={() => !cancellingListingId && setListingToCancel(null)}
+      >
+        <View style={styles.cancelModalOverlay}>
+          <View style={styles.cancelModalCard}>
+            <View style={styles.cancelModalIcon}>
+              <XCircle size={23} color={theme.colors.danger} />
+            </View>
+            <Text style={styles.cancelModalTitle}>Cancel listing?</Text>
+            <Text style={styles.cancelModalEvent} numberOfLines={1}>
+              {listingToCancel?.eventName}
+            </Text>
+            {cancelError && <Text style={styles.cancelModalError}>{cancelError}</Text>}
+            <View style={styles.cancelModalActions}>
+              <TouchableOpacity
+                style={styles.cancelModalKeepBtn}
+                onPress={() => setListingToCancel(null)}
+                disabled={Boolean(cancellingListingId)}
+              >
+                <Text style={styles.cancelModalKeepText}>Keep</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.cancelModalConfirmBtn}
+                onPress={confirmCancelListing}
+                disabled={Boolean(cancellingListingId)}
+              >
+                <Text style={styles.cancelModalConfirmText}>
+                  {cancellingListingId ? 'Cancelling...' : 'Cancel Listing'}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
