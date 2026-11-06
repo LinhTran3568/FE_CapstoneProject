@@ -80,6 +80,10 @@ export default function MobileVerifyTicketScreen() {
       const accounts = await bankAccountsApi.getMyBankAccounts();
       if (accounts.length > 0) {
         hasRedirectedForPayoutRef.current = false;
+        // The Sell screen remains mounted while the user opens payout setup.
+        // Clear the previous missing-account warning after the refreshed check
+        // confirms an account was linked.
+        setErrorMessage(null);
         return true;
       }
 
@@ -589,15 +593,6 @@ export default function MobileVerifyTicketScreen() {
               autoCapitalize="characters"
               autoCorrect={false}
             />
-
-            {matchedTicket && (
-              <View style={styles.selectedTicketBadge}>
-                <ShieldCheck size={13} color={theme.colors.success} />
-                <Text style={styles.selectedTicketBadgeText} numberOfLines={1}>
-                  Selected from wallet: {matchedTicket.eventName || 'Event'} ({[matchedTicket.tierName, matchedTicket.seatZone].filter(Boolean).join(', ') || 'Pass'})
-                </Text>
-              </View>
-            )}
 
             <FintechButton
               title="Send Verification Request"

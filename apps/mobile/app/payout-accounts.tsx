@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View,
   ScrollView,
@@ -34,6 +34,8 @@ export default function PayoutAccountsScreen() {
   // Danh sách tài khoản đã liên kết
   const [bankAccounts, setBankAccounts] = useState<UserBankAccountDto[]>([]);
   const [isLoadingList, setIsLoadingList] = useState(true);
+  const [isAddFormVisible, setIsAddFormVisible] = useState(false);
+  const hasLoadedAccountsRef = useRef(false);
 
   // Form liên kết tài khoản mới
   const [banks, setBanks] = useState<BankInfo[]>([]);
@@ -72,9 +74,20 @@ export default function PayoutAccountsScreen() {
     try {
       setIsLoadingList(true);
       const res = await bankAccountsApi.getMyBankAccounts();
-      setBankAccounts(res || []);
+      const accounts = res || [];
+      setBankAccounts(accounts);
+      // The first payout account is required for selling, so keep its form open.
+      // Once an account exists, the form becomes an explicit secondary action.
+      if (!hasLoadedAccountsRef.current) {
+        setIsAddFormVisible(accounts.length === 0);
+        hasLoadedAccountsRef.current = true;
+      }
     } catch (err: any) {
       console.warn('[PayoutAccounts] Error loading accounts:', err);
+      if (!hasLoadedAccountsRef.current) {
+        setIsAddFormVisible(true);
+        hasLoadedAccountsRef.current = true;
+      }
     } finally {
       setIsLoadingList(false);
     }
@@ -168,6 +181,7 @@ export default function PayoutAccountsScreen() {
       setIsVerifiedName(false);
       setLookupFailed(false);
       await fetchBankAccounts();
+      setIsAddFormVisible(false);
     } catch (err: any) {
       const msg = err?.response?.data?.message || err?.message || 'Failed to link bank account. Please try again.';
       Alert.alert('Link Account Failed', msg);
@@ -247,34 +261,61 @@ export default function PayoutAccountsScreen() {
           )}
         </View>
 
-        {/* Form liên kết tài khoản mới */}
-        <View style={styles.sectionCard}>
-          <Text style={styles.sectionTitle}>Link New Bank Account</Text>
+        {bankAccounts.length > 0 && !isLoadingList && !isAddFormVisible && (
+          <TouchableOpacity
+            style={styles.addAccountButton}
+            onPress={() => setIsAddFormVisible(true)}
+            activeOpacity={0.8}
+            accessibilityRole="button"
+            accessibilityLabel="Add bank account"
+          >
+            <Plus size={18} color={theme.colors.primary} />
+            <Text style={styles.addAccountButtonText}>Add Bank Account</Text>
+          </TouchableOpacity>
+        )}
 
-          {/* Chọn ngân hàng */}
-          <View>
-            <Text style={styles.formLabel}>Select Bank</Text>
-            <TouchableOpacity
-              style={styles.bankSelectorBtn}
-              onPress={() => {
-                setBankSearch('');
-                setIsBankModalVisible(true);
-              }}
-              activeOpacity={0.7}
-            >
-              <Text style={styles.bankSelectorText}>
-                {isLoadingBanks
-                  ? 'Loading bank directory...'
-                  : selectedBank
-                    ? `${selectedBank.shortName} (${selectedBank.code}) — ${selectedBank.name}`
-                    : 'Select a bank'}
-              </Text>
-              <ChevronDown size={18} color={theme.colors.textSecondary} />
-            </TouchableOpacity>
-          </View>
+        {/* Form liên kết tài khoản mới: only expand on demand after the first account. */}
+        {isAddFormVisible && (
+          <View style={styles.sectionCard}>
+            <View style={styles.formHeader}>
+              <Text style={styles.sectionTitle}>Link New Bank Account</Text>
+              {bankAccounts.length > 0 && (
+                <TouchableOpacity
+                  style={styles.closeFormButton}
+                  onPress={() => setIsAddFormVisible(false)}
+                  activeOpacity={0.75}
+                  accessibilityRole="button"
+                  accessibilityLabel="Close add bank account form"
+                >
+                  <X size={18} color={theme.colors.textSecondary} />
+                </TouchableOpacity>
+              )}
+            </View>
+
+            {/* Chọn ngân hàng */}
+            <View>
+              <Text style={styles.formLabel}>Select Bank</Text>
+              <TouchableOpacity
+                style={styles.bankSelectorBtn}
+                onPress={() => {
+                  setBankSearch('');
+                  setIsBankModalVisible(true);
+                }}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.bankSelectorText}>
+                  {isLoadingBanks
+                    ? 'Loading bank directory...'
+                    : selectedBank
+                      ? `${selectedBank.shortName} (${selectedBank.code}) — ${selectedBank.name}`
+                      : 'Select a bank'}
+                </Text>
+                <ChevronDown size={18} color={theme.colors.textSecondary} />
+              </TouchableOpacity>
+            </View>
 
           {/* Nhập số tài khoản */}
-          <FintechInput
+            <FintechInput
             label="Account Number"
             placeholder="e.g. 0123456789"
             value={accountNumber}
@@ -284,14 +325,14 @@ export default function PayoutAccountsScreen() {
           />
 
           {/* Trạng thái tra cứu tự động */}
-          {isSearchingName && (
+            {isSearchingName && (
             <View style={styles.verifiedCard}>
               <ActivityIndicator size="small" color={theme.colors.success} />
               <Text style={styles.verifiedText}>Verifying account with NAPAS / VietQR...</Text>
             </View>
           )}
 
-          {isVerifiedName && (
+            {isVerifiedName && (
             <View style={styles.verifiedCard}>
               <CheckCircle2 size={18} color={theme.colors.success} />
               <Text style={styles.verifiedText}>
@@ -300,7 +341,7 @@ export default function PayoutAccountsScreen() {
             </View>
           )}
 
-          {lookupFailed && (
+            {lookupFailed && (
             <View style={styles.lookupErrorCard}>
               <AlertCircle size={18} color={theme.colors.danger} />
               <Text style={styles.lookupErrorText}>
@@ -310,7 +351,7 @@ export default function PayoutAccountsScreen() {
           )}
 
           {/* Tên chủ tài khoản */}
-          <FintechInput
+            <FintechInput
             label="Account Holder Name"
             placeholder="FULL NAME (AS ON BANK ACCOUNT)"
             value={accountHolderName}
@@ -319,7 +360,7 @@ export default function PayoutAccountsScreen() {
           />
 
           {/* Checkbox đặt làm mặc định */}
-          <TouchableOpacity
+            <TouchableOpacity
             style={styles.checkboxRow}
             onPress={() => setIsDefault(!isDefault)}
             activeOpacity={0.8}
@@ -331,13 +372,14 @@ export default function PayoutAccountsScreen() {
           </TouchableOpacity>
 
           {/* Nút Submit */}
-          <FintechButton
+            <FintechButton
             title="Link Bank Account"
             onPress={handleLinkAccount}
             loading={isSubmitting}
             icon={<Plus size={18} color={theme.colors.onPrimary} />}
           />
-        </View>
+          </View>
+        )}
       </ScrollView>
 
       {/* Modal Chọn Ngân Hàng */}
