@@ -12,17 +12,23 @@ export default function TabLayout() {
           backgroundColor: theme.colors.surface,
           borderTopColor: theme.colors.border,
           borderTopWidth: 1,
-          paddingTop: 6,
-          height: 60,
+          paddingTop: 4,
+          paddingBottom: 4,
+          height: 58,
         },
         tabBarActiveTintColor: theme.colors.primary,
         tabBarInactiveTintColor: theme.colors.textMuted,
         tabBarLabelStyle: {
-          fontSize: theme.typography.sizes.xs,
+          fontSize: 9,
           fontFamily: fontFamilies.semibold,
-          letterSpacing: 0.3,
-          marginBottom: 6,
+          letterSpacing: 0,
+          lineHeight: 11,
+          marginTop: 1,
+          marginBottom: 1,
         },
+        tabBarIconStyle: { marginTop: 1 },
+        tabBarItemStyle: { paddingVertical: 1 },
+        tabBarAllowFontScaling: false,
         tabBarHideOnKeyboard: true,
         headerStyle: { backgroundColor: theme.colors.background },
         headerTintColor: theme.colors.text,
@@ -39,7 +45,7 @@ export default function TabLayout() {
           title: 'Marketplace',
           headerShown: false,
           tabBarIcon: ({ color, size, focused }) => (
-            <Store size={size || 22} color={color} strokeWidth={focused ? 2.4 : 1.8} />
+            <Store size={18} color={color} strokeWidth={focused ? 2.2 : 1.7} />
           ),
         }}
       />
@@ -49,7 +55,7 @@ export default function TabLayout() {
           title: 'Sell Ticket',
           headerTitle: 'Sell Ticket',
           tabBarIcon: ({ color, size, focused }) => (
-            <ScanLine size={size || 22} color={color} strokeWidth={focused ? 2.4 : 1.8} />
+            <ScanLine size={18} color={color} strokeWidth={focused ? 2.2 : 1.7} />
           ),
         }}
       />
@@ -59,7 +65,7 @@ export default function TabLayout() {
           title: 'My Tickets',
           headerTitle: 'My Ticket Wallet',
           tabBarIcon: ({ color, size, focused }) => (
-            <Ticket size={size || 22} color={color} strokeWidth={focused ? 2.4 : 1.8} />
+            <Ticket size={18} color={color} strokeWidth={focused ? 2.2 : 1.7} />
           ),
         }}
       />
@@ -69,7 +75,7 @@ export default function TabLayout() {
           title: 'Orders',
           headerTitle: 'Orders & Escrow',
           tabBarIcon: ({ color, size, focused }) => (
-            <ReceiptText size={size || 22} color={color} strokeWidth={focused ? 2.4 : 1.8} />
+            <ReceiptText size={18} color={color} strokeWidth={focused ? 2.2 : 1.7} />
           ),
         }}
       />
@@ -79,7 +85,7 @@ export default function TabLayout() {
           title: 'Profile',
           headerTitle: 'Account & Settings',
           tabBarIcon: ({ color, size, focused }) => (
-            <UserRound size={size || 22} color={color} strokeWidth={focused ? 2.4 : 1.8} />
+            <UserRound size={18} color={color} strokeWidth={focused ? 2.2 : 1.7} />
           ),
         }}
       />

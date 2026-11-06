@@ -585,6 +585,7 @@ export const styles = StyleSheet.create({
   priceFilterRow: {
     flexDirection: 'row',
     paddingHorizontal: theme.spacing.lg,
+    marginTop: theme.spacing.sm,
     paddingBottom: theme.spacing.sm,
   },
   priceTriggerPill: {

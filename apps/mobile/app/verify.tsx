@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import {
   View,
   ScrollView,
@@ -71,14 +71,23 @@ export default function MobileVerifyTicketScreen() {
   const [feeConfig, setFeeConfig] = useState<ResaleFeeConfigDto | null>(null);
   const [isLoadingFeeConfig, setIsLoadingFeeConfig] = useState(true);
   const [feeConfigError, setFeeConfigError] = useState<string | null>(null);
+  // A missing payout account should redirect a user when they enter Sell, but
+  // must not trap them in a Sell → Payout → Back → Payout navigation loop.
+  const hasRedirectedForPayoutRef = useRef(false);
 
-  const requirePayoutAccount = useCallback(async (): Promise<boolean> => {
+  const requirePayoutAccount = useCallback(async (redirectOnExplicitSell = false): Promise<boolean> => {
     try {
       const accounts = await bankAccountsApi.getMyBankAccounts();
-      if (accounts.length > 0) return true;
+      if (accounts.length > 0) {
+        hasRedirectedForPayoutRef.current = false;
+        return true;
+      }
 
       setErrorMessage('Link a payout account before selling.');
-      router.push('/payout-accounts');
+      if (redirectOnExplicitSell || !hasRedirectedForPayoutRef.current) {
+        hasRedirectedForPayoutRef.current = true;
+        router.push('/payout-accounts');
+      }
       return false;
     } catch {
       setErrorMessage('Unable to check payout account. Please try again.');
@@ -244,7 +253,10 @@ export default function MobileVerifyTicketScreen() {
       setErrorMessage('This ticket was refunded and cannot be listed.');
       return;
     }
-    if (!(await requirePayoutAccount())) return;
+    // Returning from Payout should not redirect again by itself. A deliberate
+    // verification request is a new sell action, so send the user back to
+    // payout setup if it is still missing.
+    if (!(await requirePayoutAccount(true))) return;
 
     setIsSubmitting(true);
     setErrorMessage(null);
@@ -338,7 +350,7 @@ export default function MobileVerifyTicketScreen() {
   };
 
   const handlePublish = async () => {
-    if (!(await requirePayoutAccount())) return;
+    if (!(await requirePayoutAccount(true))) return;
 
     if (!verification?.verificationId) return;
     const price = Number(resalePriceInput);
