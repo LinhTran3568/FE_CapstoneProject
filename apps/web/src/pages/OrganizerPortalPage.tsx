@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { Copy, RefreshCw, Plus, RotateCcw, Check, Ticket, KeyRound, Activity, Sliders, AlertCircle, Minus } from 'lucide-react';
+import { Copy, RefreshCw, Plus, RotateCcw, Check, Ticket, KeyRound, Activity, Sliders, ScanLine, AlertCircle, Minus } from 'lucide-react';
 import { useUIStore } from '../stores/uiStore';
+import GateScanTab from '../components/organizer/GateScanTab';
 import {
   getMockOrganizerApiBase,
   organizerStoreApi,
@@ -35,7 +36,7 @@ interface MockOtpDto {
 
 export const OrganizerPortalPage: React.FC = () => {
   const { showToast } = useUIStore();
-  const [activeTab, setActiveTab] = useState<'security' | 'inventory'>('security');
+  const [activeTab, setActiveTab] = useState<'security' | 'inventory' | 'gate'>('security');
 
   // Inventory state
   const [tickets, setTickets] = useState<MockTicketDto[]>([]);
@@ -189,7 +190,7 @@ export const OrganizerPortalPage: React.FC = () => {
     const interval = setInterval(() => {
       if (activeTab === 'inventory') {
         fetchInventory();
-      } else {
+      } else if (activeTab === 'security') {
         fetchAnalytics(false);
       }
     }, 3000);
@@ -367,6 +368,17 @@ export const OrganizerPortalPage: React.FC = () => {
           >
             <Ticket className="w-4 h-4" />
             <span>Ticket Inventory &amp; OTPs</span>
+          </button>
+          <button
+            onClick={() => setActiveTab('gate')}
+            className={`px-4 py-2 rounded-xl text-xs font-semibold flex items-center gap-2 transition-all cursor-pointer ${
+              activeTab === 'gate'
+                ? 'bg-[#FF5A36] text-white shadow-lg shadow-[#FF5A36]/20'
+                : 'bg-white/5 text-slate-400 hover:text-white hover:bg-white/10'
+            }`}
+          >
+            <ScanLine className="w-4 h-4" />
+            <span>Gate Check-in</span>
           </button>
         </div>
 
@@ -901,6 +913,9 @@ export const OrganizerPortalPage: React.FC = () => {
             </section>
           </div>
         )}
+
+        {/* TAB 3: GATE CHECK-IN (US-9.4) */}
+        {activeTab === 'gate' && <GateScanTab apiBase={ORGANIZER_API} />}
 
       </div>
     </div>
