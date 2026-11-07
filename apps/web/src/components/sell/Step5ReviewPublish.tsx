@@ -34,6 +34,9 @@ export interface Step5ReviewPublishProps {
   saleType?: 'combo' | 'individual';
   setSaleType?: (type: 'combo' | 'individual') => void;
   onEditTicketPrice?: (index: number) => void;
+  hasPurchasedTicketInResale?: boolean;
+  agreedWaiver?: boolean;
+  setAgreedWaiver?: (val: boolean) => void;
 }
 
 export const Step5ReviewPublish: React.FC<Step5ReviewPublishProps> = ({
@@ -57,6 +60,9 @@ export const Step5ReviewPublish: React.FC<Step5ReviewPublishProps> = ({
   saleType = 'combo',
   setSaleType,
   onEditTicketPrice,
+  hasPurchasedTicketInResale = false,
+  agreedWaiver = false,
+  setAgreedWaiver,
 }) => {
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState<boolean>(false);
   const { sellerFeePercent, minSellerFee, calcSellerFee } = useResaleFeeConfig();
@@ -528,11 +534,26 @@ export const Step5ReviewPublish: React.FC<Step5ReviewPublishProps> = ({
           </span>
         </label>
 
+        {/* 6b. Secondary Resale Dispute Waiver Checkbox (BR-L06 Recorded Consent) */}
+        {hasPurchasedTicketInResale && (
+          <label className="flex items-start gap-2.5 text-xs text-amber-200/90 cursor-pointer pt-1 group">
+            <input
+              type="checkbox"
+              checked={Boolean(agreedWaiver)}
+              onChange={(e) => setAgreedWaiver?.(e.target.checked)}
+              className="mt-0.5 rounded border-amber-600/60 bg-black text-[#FF5A36] focus:ring-0 w-4 h-4 cursor-pointer"
+            />
+            <span className="group-hover:text-amber-100 transition-colors leading-relaxed">
+              I confirm the ticket received is valid and agree to waive dispute rights on the previous purchase transaction to finalize seller payout.
+            </span>
+          </label>
+        )}
+
         {/* 7. Publish Button */}
         <button
           type="button"
           onClick={() => setIsConfirmModalOpen(true)}
-          disabled={isPublishing || !agreedTerms}
+          disabled={isPublishing || !agreedTerms || Boolean(hasPurchasedTicketInResale && !agreedWaiver)}
           className="w-full py-3.5 bg-[#FF5A36] hover:bg-[#FF7252] disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold font-display uppercase tracking-wider text-xs rounded-xl shadow-md transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer mt-2"
         >
           {isPublishing ? (

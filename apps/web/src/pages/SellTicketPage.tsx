@@ -313,8 +313,15 @@ const DRAFT_STORAGE_KEY = 'ticketshield_sell_draft';
     });
   }, [sessions, ticketPrices, allPurchasedTickets]);
 
+  const hasPurchasedTicketInResale = useMemo(() => {
+    return sessions.some((s) =>
+      allPurchasedTickets.some((t) => purchasedPassCode(t).toUpperCase() === s.code.toUpperCase())
+    );
+  }, [sessions, allPurchasedTickets]);
+
   // Step 5 Confirmation state
   const [agreedTerms, setAgreedTerms] = useState(true);
+  const [agreedWaiver, setAgreedWaiver] = useState(false);
   const [isPrivateListing, setIsPrivateListing] = useState(false);
   const [isPublishing, setIsPublishing] = useState(false);
   const [publishedListingId, setPublishedListingId] = useState<string>('');
@@ -699,6 +706,11 @@ const DRAFT_STORAGE_KEY = 'ticketshield_sell_draft';
   const handlePublishListing = async () => {
     if (!agreedTerms) {
       showToast('Please agree to the authentic ticket listing terms!', 'warning');
+      return;
+    }
+
+    if (hasPurchasedTicketInResale && !agreedWaiver) {
+      showToast('Please confirm the waiver of dispute rights for previously purchased tickets.', 'warning');
       return;
     }
 
@@ -1133,6 +1145,9 @@ const DRAFT_STORAGE_KEY = 'ticketshield_sell_draft';
             setIsPrivateListing={setIsPrivateListing}
             agreedTerms={agreedTerms}
             setAgreedTerms={setAgreedTerms}
+            hasPurchasedTicketInResale={hasPurchasedTicketInResale}
+            agreedWaiver={agreedWaiver}
+            setAgreedWaiver={setAgreedWaiver}
             handlePublishListing={handlePublishListing}
             isPublishing={isPublishing}
             activeFeeTooltip={activeFeeTooltip}
