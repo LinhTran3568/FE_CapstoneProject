@@ -529,7 +529,7 @@ export default function MobileTicketsScreen() {
                   </TouchableOpacity>
                 </View>
 
-                {Boolean(selectedTicket.escrowId) && (
+                {Boolean(selectedTicket.escrowId) && !selectedTicket.disputeWaived && (
                   <TouchableOpacity
                     style={[
                       styles.disputeActionBtn,

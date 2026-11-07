@@ -286,6 +286,8 @@ export interface PurchasedTicketDto {
   purchasedAt: string;
   /** Only set for the buyer who paid; empty for a recipient who got the ticket by email */
   disputeId?: string | null;
+  /** True if buyer listed this ticket for resale, waiving dispute rights */
+  disputeWaived?: boolean;
 
   bundleId?: string | null;
   bundleTotalTickets?: number | null;

@@ -266,6 +266,8 @@ export const VIETNAMESE_TO_ENGLISH_ERRORS: Record<string, string> = {
   'Bạn phải đăng nhập để thực hiện thao tác này.': 'You must be signed in to perform this action.',
   'Không tìm thấy người dùng.': 'User not found.',
   'Đã xảy ra lỗi không xác định.': 'An unexpected error occurred.',
+  'TICKET_DISPUTED': 'This ticket is currently involved in an active dispute and cannot be listed for resale.',
+  'Vé này đã được đăng bán lại, quyền khiếu nại đã chấm dứt.': 'This ticket has been listed for resale. Dispute rights have been waived.',
 };
 
 export const normalizeErrorMessage = (msg?: string, defaultMessage = 'An unexpected error occurred.'): string => {

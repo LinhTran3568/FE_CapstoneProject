@@ -248,7 +248,7 @@ export default function TicketDetailScreen() {
             <Text style={styles.shareBtnText}>Share Pass Details</Text>
           </TouchableOpacity>
 
-          {Boolean(ticket.escrowId) && (
+          {Boolean(ticket.escrowId) && !ticket.disputeWaived && (
             <TouchableOpacity
               style={[
                 styles.disputeBtn,

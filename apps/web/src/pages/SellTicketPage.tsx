@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useUIStore } from '../stores/uiStore';
-import { resaleApi, bankAccountsApi, SellerListingDto } from '@ticketshield/api-client';
+import { resaleApi, bankAccountsApi, SellerListingDto, normalizeErrorMessage } from '@ticketshield/api-client';
 import { UserBankAccountDto, PurchasedTicketDto } from '@ticketshield/types';
 import { useMyTickets } from '../hooks/useMyTickets';
 import { useOrganizers } from '../hooks/useOrganizers';
@@ -484,7 +484,13 @@ const DRAFT_STORAGE_KEY = 'ticketshield_sell_draft';
     } catch (err: any) {
       // Hoàn tác phần đã tạo: không vé nào được giữ ở trạng thái chờ OTP.
       await Promise.allSettled(created.map((s) => resaleApi.closeVerification(s.verificationId)));
-      const msg = err?.response?.data?.message || err?.message || 'Verification failed. Please check the ticket code and try again.';
+      const rawCode = err?.response?.data?.message || err?.message || '';
+      let msg = 'Verification failed. Please check the ticket code and try again.';
+      if (rawCode.includes('TICKET_DISPUTED')) {
+        msg = 'This ticket is currently involved in an active dispute and cannot be listed for resale.';
+      } else if (rawCode) {
+        msg = normalizeErrorMessage(rawCode, msg);
+      }
       showToast(msg, 'error');
       return false;
     } finally {

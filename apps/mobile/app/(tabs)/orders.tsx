@@ -47,6 +47,7 @@ interface MobileEscrowOrder {
   ticketPassCode: string;
   disputeId?: string | null;
   escrowId?: string | null;
+  disputeWaived?: boolean;
   type?: 'BUY' | 'SELL';
 }
 
@@ -187,6 +188,7 @@ export default function MobileOrdersScreen() {
           ticketPassCode: t.ticketPassCode,
           disputeId: t.disputeId || null,
           escrowId: t.escrowId || null,
+          disputeWaived: Boolean(t.disputeWaived),
           type: 'BUY',
         };
       });
@@ -443,7 +445,7 @@ export default function MobileOrdersScreen() {
             <Clock size={14} color={theme.colors.warning} />
             <Text style={styles.disputeProgressOrderBtnText}>View Dispute</Text>
           </TouchableOpacity>
-        ) : item.status !== 'CANCELLED' && item.status !== 'REFUNDED' && item.type !== 'SELL' ? (
+        ) : item.status !== 'CANCELLED' && item.status !== 'REFUNDED' && item.type !== 'SELL' && !item.disputeWaived ? (
           <TouchableOpacity
             style={styles.reportOrderBtn}
             onPress={() => handleReportOrder(item)}
