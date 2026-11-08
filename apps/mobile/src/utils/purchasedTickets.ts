@@ -9,6 +9,7 @@ export const expandPurchasedTickets = (tickets: PurchasedTicketDto[]): Purchased
       ...ticket,
       listingId: item.listingId || ticket.listingId,
       ticketPassCode: item.ticketCode || item.qrCodeData || ticket.ticketPassCode,
+      status: item.status || ticket.status,
       seatZone: item.seatZone || ticket.seatZone,
       qrCodeData: item.qrCodeData || ticket.qrCodeData,
       qrCodeImageUrl: item.qrCodeImageUrl || ticket.qrCodeImageUrl,

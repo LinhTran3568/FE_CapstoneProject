@@ -260,6 +260,8 @@ export interface MyPayoutDto {
 export interface PurchasedTicketItemDto {
   listingId: string;
   ticketCode: string;
+  /** Live organizer status for this individual pass, including USED after gate entry. */
+  status?: string;
   seatZone: string;
   qrCodeData: string;
   qrCodeImageUrl: string;

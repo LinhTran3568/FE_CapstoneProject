@@ -19,6 +19,32 @@ const isValidEntryPass = (ticket: MockTicketDto) =>
 
 export const mockTicketsApi = {
   /**
+   * Resolves the live gate status for issued pass codes. The Organizer owns
+   * admission state, whereas the Core API owns the escrow lifecycle.
+   */
+  getTicketStatuses: async (ticketCodes: string[]): Promise<Map<string, string>> => {
+    const uniqueCodes = [...new Set(ticketCodes.map((code) => code.trim()).filter(Boolean))];
+    const results = await Promise.all(
+      uniqueCodes.map(async (ticketCode) => {
+        try {
+          const response = await fetch(
+            `${getMockTicketsApiBase()}/mock-tickets/${encodeURIComponent(ticketCode)}`
+          );
+          if (!response.ok) return null;
+          const body = (await response.json()) as { data?: MockTicketDto };
+          const status = body.data?.status?.trim().toUpperCase();
+          return status ? [ticketCode, status] as const : null;
+        } catch {
+          // Keep the Core response when the Organizer cannot be reached.
+          return null;
+        }
+      })
+    );
+
+    return new Map(results.filter((result): result is readonly [string, string] => result !== null));
+  },
+
+  /**
    * Buyer tickets issued by MockOrganizer.
    * GET /api/v1/mock-tickets/my-tickets?email=&status=VALID
    * Hits :5001 directly — Gateway does not proxy MockOrganizer.

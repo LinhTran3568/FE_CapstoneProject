@@ -39,7 +39,7 @@ const isBase64Image = (value: string) => value.startsWith('data:image/');
 
 const canShowEntryQr = (ticket: PurchasedTicketDto) => {
   const status = (ticket.status || '').trim().toUpperCase();
-  if (status === 'PENDING_PAYMENT' || status === 'REFUNDED' || status === 'REFUNDQUEUED') {
+  if (status === 'PENDING_PAYMENT' || status === 'REFUNDED' || status === 'REFUNDQUEUED' || status === 'USED') {
     return false;
   }
   return Boolean(ticket.qrCodeImageUrl || ticket.qrCodeData || ticket.ticketPassCode);
@@ -47,6 +47,13 @@ const canShowEntryQr = (ticket: PurchasedTicketDto) => {
 
 const getDisputeStatusBadge = (ticket: PurchasedTicketDto) => {
   const status = (ticket.status || '').trim().toUpperCase();
+  if (status === 'USED') {
+    return {
+      label: 'CHECKED IN',
+      classes: 'bg-black/80 text-amber-300 border border-amber-500/50 backdrop-blur-md shadow-sm',
+      dotClass: 'bg-amber-400',
+    };
+  }
   if (status === 'DISPUTED') {
     return {
       label: 'DISPUTED',
@@ -448,6 +455,7 @@ const OfficialTicketPassCard: React.FC<OfficialTicketPassCardProps> = ({ ticket,
   const disputeBadge = getDisputeStatusBadge(ticket);
   const zoneStyle = getZoneStyle(ticket.seatZone || ticket.tierName || '');
   const hasQr = canShowEntryQr(ticket);
+  const isUsed = (ticket.status || '').trim().toUpperCase() === 'USED';
   const isRefunded = (ticket.status || '').trim().toUpperCase() === 'REFUNDED';
   const hasDispute = Boolean(ticket.disputeId);
   const code = ticket.ticketPassCode || (hasQr ? entryPayload(ticket) : '');
@@ -680,7 +688,15 @@ const OfficialTicketPassCard: React.FC<OfficialTicketPassCardProps> = ({ ticket,
 
         {/* Stub Bottom: Action Buttons */}
         <div className="space-y-1.5">
-          {hasQr ? (
+          {isUsed ? (
+            <div
+              title="This ticket has already been checked in and its entry QR is locked."
+              className="w-full min-h-9 py-2 px-1 bg-amber-100 border border-amber-400/60 text-amber-900 rounded-xl font-bold text-[9px] sm:text-[10px] tracking-wide uppercase flex items-center justify-center gap-1 whitespace-nowrap select-none"
+            >
+              <Check className="w-3.5 h-3.5 shrink-0" />
+              <span>Checked In</span>
+            </div>
+          ) : hasQr ? (
             <button
               type="button"
               onClick={(e) => {

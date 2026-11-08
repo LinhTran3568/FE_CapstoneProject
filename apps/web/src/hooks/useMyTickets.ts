@@ -1,6 +1,6 @@
 import { useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { resaleListingsApi } from '@ticketshield/api-client';
+import { mockTicketsApi, resaleListingsApi } from '@ticketshield/api-client';
 import type { PurchasedTicketDto } from '@ticketshield/types';
 import { useAuthStore } from '../stores/authStore';
 
@@ -39,7 +39,27 @@ export const useMyTickets = ({ includeDisputeHistory = false }: UseMyTicketsOpti
 
   return useQuery<PurchasedTicketDto[], Error, PurchasedTicketDto[]>({
     queryKey: myPurchasedTicketsQueryKey,
-    queryFn: async () => (await resaleListingsApi.getMyPurchasedTickets()) ?? [],
+    queryFn: async () => {
+      const tickets = (await resaleListingsApi.getMyPurchasedTickets()) ?? [];
+      const ticketCodes = tickets.flatMap((ticket) => [
+        ticket.ticketPassCode,
+        ...(ticket.bundleItems || []).map((item) => item.ticketCode),
+      ]);
+      const liveStatuses = await mockTicketsApi.getTicketStatuses(ticketCodes);
+
+      return tickets.map((ticket) => {
+        const bundleItems = ticket.bundleItems?.map((item) => ({
+          ...item,
+          status: liveStatuses.get(item.ticketCode) || item.status,
+        }));
+        const organizerStatus = liveStatuses.get(ticket.ticketPassCode);
+        return {
+          ...ticket,
+          status: organizerStatus || ticket.status,
+          bundleItems,
+        };
+      });
+    },
     select,
     refetchInterval: 5000,
     refetchOnWindowFocus: true,

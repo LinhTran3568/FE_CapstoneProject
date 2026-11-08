@@ -28,7 +28,7 @@ import {
 } from 'lucide-react-native';
 import { theme, fontFamilies } from '../../src/theme';
 import type { PurchasedTicketDto } from '@ticketshield/types';
-import { resaleListingsApi } from '@ticketshield/api-client';
+import { mockTicketsApi, resaleListingsApi } from '@ticketshield/api-client';
 import { expandPurchasedTickets, getIssuedQrImageUrl } from '../../src/utils/purchasedTickets';
 import { FintechButton } from '../../src/components/FintechButton';
 import { EventPoster } from '../../src/components/EventPoster';
@@ -123,7 +123,16 @@ export default function MobileTicketsScreen() {
     setError(null);
     try {
       const data = await resaleListingsApi.getMyPurchasedTickets();
-      setTickets(expandPurchasedTickets(data));
+      const passes = expandPurchasedTickets(data);
+      const liveStatuses = await mockTicketsApi.getTicketStatuses(
+        passes.map((ticket) => ticket.ticketPassCode)
+      );
+      setTickets(
+        passes.map((ticket) => {
+          const organizerStatus = liveStatuses.get(ticket.ticketPassCode);
+          return organizerStatus ? { ...ticket, status: organizerStatus } : ticket;
+        })
+      );
     } catch (err) {
       const message =
         err instanceof Error ? err.message : 'Unable to sync tickets. Please try again.';
@@ -277,7 +286,7 @@ export default function MobileTicketsScreen() {
               {item.seatZone}
             </Text>
           </View>
-          <Text style={styles.ticketCode}>•••• {item.ticketPassCode.slice(-4)}</Text>
+          <Text style={styles.ticketCode} numberOfLines={1}>{item.ticketPassCode}</Text>
         </View>
       </View>
       </TouchableOpacity>

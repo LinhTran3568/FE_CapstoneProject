@@ -1,36 +1,48 @@
-import React from 'react';
+import React, { lazy, Suspense } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
-import { HomePage } from '../pages/HomePage';
-import { LoginPage } from '../pages/LoginPage';
-import { RegisterPage } from '../pages/RegisterPage';
-import { ForgotPasswordPage } from '../pages/ForgotPasswordPage';
-import { ResetPasswordPage } from '../pages/ResetPasswordPage';
-import { DashboardPage } from '../pages/DashboardPage';
-import { ProfilePage } from '../pages/ProfilePage';
-import { MarketplacePage } from '../pages/MarketplacePage';
-import { SellTicketPage } from '../pages/SellTicketPage';
-import { MyListingsPage } from '../pages/MyListingsPage';
-import { RevenuePreviewPage } from '../pages/RevenuePreviewPage';
-import { MyTicketsPage } from '../pages/MyTicketsPage';
-import { OrganizerPortalPage } from '../pages/OrganizerPortalPage';
-import { PayoutAccountsPage } from '../pages/PayoutAccountsPage';
-import { PrivateListingPage } from '../pages/PrivateListingPage';
-import { DisputeConsolePage } from '../pages/DisputeConsolePage';
-import { AdminConfigPage } from '../pages/AdminConfigPage';
-import { AdminDashboardPage } from '../pages/AdminDashboardPage';
-import { AdminUsersPage } from '../pages/AdminUsersPage';
-import { AdminProfilePage } from '../pages/AdminProfilePage';
-import { StorefrontDiscoveryPage } from '../pages/storefront/StorefrontDiscoveryPage';
-import { StorefrontEventDetailPage } from '../pages/storefront/StorefrontEventDetailPage';
-import { StorefrontTicketSelectPage } from '../pages/storefront/StorefrontTicketSelectPage';
-import { StorefrontCheckoutPage } from '../pages/storefront/StorefrontCheckoutPage';
-import { StorefrontEventListPage } from '../pages/storefront/StorefrontEventListPage';
-import { OGTicketStorePage } from '../pages/storefront/OGTicketStorePage';
-import { AdminOrganizersPage } from '../pages/AdminOrganizersPage';
-import { AdminLayout } from '../components/admin/layout/AdminLayout';
 import { ProtectedRoute, GuestRoute, StaffRoute, AdminRoute, UserRoute } from './ProtectedRoute';
 import { useAuthStore } from '../stores/authStore';
 import { isAdminRole } from '../utils/staffRole';
+
+const lazyNamed = (loader: () => Promise<any>, exportName: string) =>
+  lazy(async () => ({ default: (await loader())[exportName] }));
+
+// Pages are intentionally split by route. Loading every portal, chart, camera,
+// QR and 3D dependency on the first public page made the initial bundle 1.65 MB.
+const HomePage = lazyNamed(() => import('../pages/HomePage'), 'HomePage');
+const LoginPage = lazyNamed(() => import('../pages/LoginPage'), 'LoginPage');
+const RegisterPage = lazyNamed(() => import('../pages/RegisterPage'), 'RegisterPage');
+const ForgotPasswordPage = lazyNamed(() => import('../pages/ForgotPasswordPage'), 'ForgotPasswordPage');
+const ResetPasswordPage = lazyNamed(() => import('../pages/ResetPasswordPage'), 'ResetPasswordPage');
+const DashboardPage = lazyNamed(() => import('../pages/DashboardPage'), 'DashboardPage');
+const ProfilePage = lazyNamed(() => import('../pages/ProfilePage'), 'ProfilePage');
+const MarketplacePage = lazyNamed(() => import('../pages/MarketplacePage'), 'MarketplacePage');
+const SellTicketPage = lazyNamed(() => import('../pages/SellTicketPage'), 'SellTicketPage');
+const MyListingsPage = lazyNamed(() => import('../pages/MyListingsPage'), 'MyListingsPage');
+const RevenuePreviewPage = lazyNamed(() => import('../pages/RevenuePreviewPage'), 'RevenuePreviewPage');
+const MyTicketsPage = lazyNamed(() => import('../pages/MyTicketsPage'), 'MyTicketsPage');
+const OrganizerPortalPage = lazyNamed(() => import('../pages/OrganizerPortalPage'), 'OrganizerPortalPage');
+const PayoutAccountsPage = lazyNamed(() => import('../pages/PayoutAccountsPage'), 'PayoutAccountsPage');
+const PrivateListingPage = lazyNamed(() => import('../pages/PrivateListingPage'), 'PrivateListingPage');
+const DisputeConsolePage = lazyNamed(() => import('../pages/DisputeConsolePage'), 'DisputeConsolePage');
+const AdminConfigPage = lazyNamed(() => import('../pages/AdminConfigPage'), 'AdminConfigPage');
+const AdminDashboardPage = lazyNamed(() => import('../pages/AdminDashboardPage'), 'AdminDashboardPage');
+const AdminUsersPage = lazyNamed(() => import('../pages/AdminUsersPage'), 'AdminUsersPage');
+const AdminProfilePage = lazyNamed(() => import('../pages/AdminProfilePage'), 'AdminProfilePage');
+const AdminOrganizersPage = lazyNamed(() => import('../pages/AdminOrganizersPage'), 'AdminOrganizersPage');
+const StorefrontDiscoveryPage = lazyNamed(() => import('../pages/storefront/StorefrontDiscoveryPage'), 'StorefrontDiscoveryPage');
+const StorefrontEventDetailPage = lazyNamed(() => import('../pages/storefront/StorefrontEventDetailPage'), 'StorefrontEventDetailPage');
+const StorefrontTicketSelectPage = lazyNamed(() => import('../pages/storefront/StorefrontTicketSelectPage'), 'StorefrontTicketSelectPage');
+const StorefrontCheckoutPage = lazyNamed(() => import('../pages/storefront/StorefrontCheckoutPage'), 'StorefrontCheckoutPage');
+const StorefrontEventListPage = lazyNamed(() => import('../pages/storefront/StorefrontEventListPage'), 'StorefrontEventListPage');
+const OGTicketStorePage = lazyNamed(() => import('../pages/storefront/OGTicketStorePage'), 'OGTicketStorePage');
+const AdminLayout = lazyNamed(() => import('../components/admin/layout/AdminLayout'), 'AdminLayout');
+
+const RouteLoading: React.FC = () => (
+  <div className="min-h-[40vh] flex items-center justify-center" role="status" aria-label="Loading page">
+    <div className="w-8 h-8 rounded-full border-2 border-[#FF5A36]/25 border-t-[#FF5A36] animate-spin" />
+  </div>
+);
 
 const FallbackRoute: React.FC = () => {
   const { user, isAuthenticated } = useAuthStore();
@@ -42,7 +54,8 @@ const FallbackRoute: React.FC = () => {
 
 export const AppRoutes: React.FC = () => {
   return (
-    <Routes>
+    <Suspense fallback={<RouteLoading />}>
+      <Routes>
       {/* Public & Customer User Pages (Admin is strictly blocked and redirected to /admin/dashboard) */}
       <Route element={<UserRoute />}>
         <Route path="/" element={<HomePage />} />
@@ -110,6 +123,7 @@ export const AppRoutes: React.FC = () => {
 
       {/* Fallback */}
       <Route path="*" element={<FallbackRoute />} />
-    </Routes>
+      </Routes>
+    </Suspense>
   );
 };
