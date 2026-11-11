@@ -1,5 +1,5 @@
 import React from 'react';
-import { Building2, User, CreditCard, DollarSign, AlertCircle } from 'lucide-react';
+import { Building2, User, CreditCard, Coins, AlertCircle } from 'lucide-react';
 import { CopyButton } from '../../ui/CopyButton';
 
 export interface BankTransferDetailsProps {
@@ -109,7 +109,7 @@ export const BankTransferDetails: React.FC<BankTransferDetailsProps> = ({
         <div className="flex items-center justify-between gap-2.5 p-2 rounded-lg bg-[#121824] border border-[#28354D]">
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-1.5 text-[11px] font-medium text-zinc-400 uppercase tracking-wider mb-0.5">
-              <DollarSign className="w-3 h-3 text-[#ff5722] shrink-0" />
+              <Coins className="w-3 h-3 text-[#ff5722] shrink-0" />
               <span>Amount</span>
             </div>
             <div className="flex items-baseline gap-1">

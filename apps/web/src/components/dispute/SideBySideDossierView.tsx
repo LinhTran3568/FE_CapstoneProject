@@ -21,7 +21,7 @@ import {
   Loader2,
   ArrowRight,
   Lock,
-  DollarSign
+  Coins
 } from 'lucide-react';
 
 interface SideBySideDossierViewProps {
@@ -249,7 +249,7 @@ export const SideBySideDossierView: React.FC<SideBySideDossierViewProps> = ({ do
             <div>
               <span className="text-slate-400 block mb-0.5">Frozen Escrow Value:</span>
               <div className="font-mono font-bold text-emerald-400 text-sm flex items-center gap-1">
-                <DollarSign className="w-3.5 h-3.5 text-emerald-400" />
+                <Coins className="w-3.5 h-3.5 text-emerald-400" />
                 <span>{dossier.totalBuyerPaid ? dossier.totalBuyerPaid.toLocaleString('en-US') : '0'} ₫</span>
               </div>
               <span className="text-[11px] text-slate-400 block mt-0.5">Seller: {dossier.sellerName}</span>

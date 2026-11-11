@@ -270,6 +270,7 @@ export const LoginPage: React.FC = () => {
                 size="large"
                 width="360"
                 text="continue_with"
+                locale="en"
               />
             )}
           </div>

@@ -9,8 +9,7 @@ import {
   Loader2,
   CheckCircle2,
   AlertTriangle,
-  Info,
-  DollarSign
+  Info
 } from 'lucide-react';
 
 export const FeeSettingsControlPanel: React.FC = () => {

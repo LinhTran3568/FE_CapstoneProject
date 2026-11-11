@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { UserBankAccountDto } from '@ticketshield/types';
-import { Ticket, Globe, Lock, Check, AlertCircle, Loader2, X, Layers, Split, ChevronDown, ChevronUp, AlertTriangle } from 'lucide-react';
+import { Ticket, Globe, Lock, Check, AlertCircle, Loader2, X, Layers, Split, ChevronDown, ChevronUp, AlertTriangle, Building2 } from 'lucide-react';
 import { useResaleFeeConfig } from '../../hooks/useResaleFeeConfig';
 
 export interface Step5ReviewPublishProps {
@@ -29,6 +29,7 @@ export interface Step5ReviewPublishProps {
   activeFeeTooltip: 'seller' | 'buyer' | null;
   setActiveFeeTooltip: React.Dispatch<React.SetStateAction<'seller' | 'buyer' | null>>;
   onManageBankAccounts: () => void;
+  onAddBankAccount?: () => void;
   eventName?: string;
   eventVenue?: string;
   saleType?: 'combo' | 'individual';
@@ -55,6 +56,7 @@ export const Step5ReviewPublish: React.FC<Step5ReviewPublishProps> = ({
   activeFeeTooltip,
   setActiveFeeTooltip,
   onManageBankAccounts,
+  onAddBankAccount,
   eventName = 'Live Concert Event',
   eventVenue = 'National Stadium',
   saleType = 'combo',
@@ -85,7 +87,7 @@ export const Step5ReviewPublish: React.FC<Step5ReviewPublishProps> = ({
   const [expandFeeDetails, setExpandFeeDetails] = useState<boolean>(false);
 
   return (
-    <div key={5} className="animate-fade-in-up max-w-[640px] mx-auto space-y-5 pt-2">
+    <div key={5} className="animate-fade-in-up max-w-[640px] mx-auto space-y-5 pt-2 pb-24 sm:pb-0">
       <div className="space-y-1 text-center">
         <h2 className="text-2xl font-bold font-display text-white">
           Review &amp; Confirm Listing
@@ -519,6 +521,69 @@ export const Step5ReviewPublish: React.FC<Step5ReviewPublishProps> = ({
           </div>
         </div>
 
+        {/* 4. Payout Destination */}
+        <div className="bg-[#05070A] border border-white/10 p-4 sm:p-5 rounded-2xl space-y-3 text-left">
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider block font-mono">
+              Payout Destination
+            </span>
+            {bankAccounts.length > 0 && (
+              <button
+                type="button"
+                onClick={onAddBankAccount || onManageBankAccounts}
+                className="text-[11px] text-[#FF5A36] hover:text-[#FF7252] font-medium transition-colors cursor-pointer"
+              >
+                Change account
+              </button>
+            )}
+          </div>
+
+          {bankAccounts.length > 0 ? (
+            <div className="flex items-center justify-between p-3 rounded-xl bg-white/[0.03] border border-white/10">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="p-2 rounded-lg bg-emerald-500/10 text-emerald-400 shrink-0">
+                  <Building2 className="w-4 h-4" />
+                </div>
+                <div className="min-w-0">
+                  <div className="text-xs font-semibold text-white truncate">
+                    {bankAccounts[0].bankCode} • {bankAccounts[0].bankAccountNumber}
+                  </div>
+                  {bankAccounts[0].accountHolderName && (
+                    <div className="text-[10px] text-zinc-400 truncate uppercase">
+                      {bankAccounts[0].accountHolderName}
+                    </div>
+                  )}
+                </div>
+              </div>
+              <span className="text-[10px] text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded font-medium">
+                Ready
+              </span>
+            </div>
+          ) : (
+            <div className="p-3.5 rounded-xl bg-amber-500/5 border border-amber-500/20 space-y-3">
+              <div className="flex items-start gap-2.5">
+                <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+                <div className="space-y-0.5">
+                  <div className="text-xs font-semibold text-amber-200">
+                    Bank account required
+                  </div>
+                  <p className="text-[11px] text-zinc-400 leading-relaxed">
+                    Link a bank account to receive payout when your ticket is sold.
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={onAddBankAccount || onManageBankAccounts}
+                className="w-full py-2 px-3 rounded-lg bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/30 text-amber-300 text-xs font-semibold transition-all cursor-pointer flex items-center justify-center gap-1.5"
+              >
+                <Building2 className="w-3.5 h-3.5" />
+                <span>Link Bank Account</span>
+              </button>
+            </div>
+          )}
+        </div>
+
         {/* 6. Terms Checkbox */}
         <label className="flex items-center gap-2.5 text-xs text-gray-300 cursor-pointer pt-2 group">
           <input
@@ -550,21 +615,36 @@ export const Step5ReviewPublish: React.FC<Step5ReviewPublishProps> = ({
         )}
 
         {/* 7. Publish Button */}
-        <button
-          type="button"
-          onClick={() => setIsConfirmModalOpen(true)}
-          disabled={isPublishing || !agreedTerms || Boolean(hasPurchasedTicketInResale && !agreedWaiver)}
-          className="w-full py-3.5 bg-[#FF5A36] hover:bg-[#FF7252] disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold font-display uppercase tracking-wider text-xs rounded-xl shadow-md transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer mt-2"
-        >
-          {isPublishing ? (
-            <>
-              <Loader2 className="w-4 h-4 animate-spin" />
-              <span>Publishing...</span>
-            </>
-          ) : (
-            <span>Publish</span>
-          )}
-        </button>
+        <div className="fixed sm:static bottom-0 left-0 right-0 z-40 p-3.5 sm:p-0 bg-[#05070A]/95 sm:bg-transparent backdrop-blur-xl sm:backdrop-blur-none border-t sm:border-t-0 border-white/10 shadow-2xl sm:shadow-none">
+          <div className="max-w-[640px] mx-auto">
+            {bankAccounts.length === 0 ? (
+              <button
+                type="button"
+                onClick={onAddBankAccount || onManageBankAccounts}
+                className="w-full py-3.5 bg-amber-500 hover:bg-amber-600 text-black font-bold font-display uppercase tracking-wider text-xs rounded-xl shadow-md transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer mt-0 sm:mt-2"
+              >
+                <Building2 className="w-4 h-4" />
+                <span>Link Bank Account to Publish</span>
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setIsConfirmModalOpen(true)}
+                disabled={isPublishing || !agreedTerms || Boolean(hasPurchasedTicketInResale && !agreedWaiver)}
+                className="w-full py-3.5 bg-[#FF5A36] hover:bg-[#FF7252] disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold font-display uppercase tracking-wider text-xs rounded-xl shadow-md transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer mt-0 sm:mt-2"
+              >
+                {isPublishing ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span>Publishing...</span>
+                  </>
+                ) : (
+                  <span>Publish</span>
+                )}
+              </button>
+            )}
+          </div>
+        </div>
       </div>
 
       {/* CONFIRM MODAL TRƯỚC KHI XUẤT BẢN LÊN SÀN */}
@@ -703,10 +783,12 @@ export const Step5ReviewPublish: React.FC<Step5ReviewPublishProps> = ({
 
                   <div className="flex justify-between items-center gap-2">
                     <span className="text-zinc-400">Payout bank account:</span>
-                    <span className="text-zinc-200 text-right truncate max-w-[200px]">
+                    <span className={`text-right truncate max-w-[200px] ${
+                      bankAccounts.length > 0 ? 'text-zinc-200' : 'text-amber-400 font-medium'
+                    }`}>
                       {bankAccounts.length > 0
                         ? `${bankAccounts[0].bankCode} • ${bankAccounts[0].bankAccountNumber}`
-                        : 'Not set yet (can add later)'}
+                        : 'Not linked'}
                     </span>
                   </div>
                 </div>
@@ -726,7 +808,7 @@ export const Step5ReviewPublish: React.FC<Step5ReviewPublishProps> = ({
                 <button
                   type="button"
                   onClick={handlePublishListing}
-                  disabled={isPublishing}
+                  disabled={isPublishing || bankAccounts.length === 0}
                   className="flex-1 py-3 px-4 rounded-xl bg-[#FF5A36] hover:bg-[#FF7252] text-white text-xs font-bold font-display uppercase tracking-wider transition-all shadow-md shadow-[#FF5A36]/30 active:scale-[0.98] flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
                 >
                   {isPublishing ? (

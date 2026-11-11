@@ -40,6 +40,7 @@ interface BuyTicketModalProps {
   onClose: () => void;
   onSuccess: (orderData: any) => void;
   allListings?: MarketplaceListingDto[];
+  isIndividualPurchase?: boolean;
 }
 
 export const BuyTicketModal: React.FC<BuyTicketModalProps> = ({
@@ -48,6 +49,7 @@ export const BuyTicketModal: React.FC<BuyTicketModalProps> = ({
   onClose,
   onSuccess,
   allListings = [],
+  isIndividualPurchase = false,
 }) => {
   const queryClient = useQueryClient();
   const { user } = useAuthStore();
@@ -189,9 +191,8 @@ export const BuyTicketModal: React.FC<BuyTicketModalProps> = ({
   if (!isOpen || !listing) return null;
 
   // FE-5.2.6: Bundle Combo & Multi-ticket detection for checkout modal.
-  // Chỉ dựng danh sách vé từ listing THẬT cùng bundleId. Không suy diễn vé từ
-  // seatZone hay từ BundleTotalTickets vì sẽ tạo ra vé/mã không tồn tại.
-  const matchedBundleListings: MarketplaceListingDto[] = (allListings && listing.bundleId)
+  // Khi buyer chọn mua lẻ từng vé (isIndividualPurchase = true), không gộp các vé khác trong bundle.
+  const matchedBundleListings: MarketplaceListingDto[] = (!isIndividualPurchase && allListings && listing.bundleId)
     ? allListings.filter((l) => l.bundleId === listing.bundleId)
     : [];
 
@@ -199,38 +200,41 @@ export const BuyTicketModal: React.FC<BuyTicketModalProps> = ({
     matchedBundleListings.length > 1 ? matchedBundleListings : [listing];
 
   const isBundle =
-    effectiveBundleListings.length > 1 ||
-    Boolean(listing.bundleTotalTickets && listing.bundleTotalTickets >= 2) ||
-    Boolean(listing.bundleId);
-  const bundleCount =
-    listing.bundleTotalTickets && listing.bundleTotalTickets >= 2
-      ? listing.bundleTotalTickets
-      : effectiveBundleListings.length;
+    !isIndividualPurchase &&
+    (effectiveBundleListings.length > 1 ||
+      Boolean(listing.bundleTotalTickets && listing.bundleTotalTickets >= 2) ||
+      Boolean(listing.bundleId));
+
+  const bundleCount = isBundle
+    ? (listing.bundleTotalTickets && listing.bundleTotalTickets >= 2
+        ? listing.bundleTotalTickets
+        : effectiveBundleListings.length)
+    : 1;
+
   const isOwner = Boolean(
     user?.id && (
       listing.sellerId?.toLowerCase() === user.id.toLowerCase() ||
       effectiveBundleListings.some((b) => b.sellerId?.toLowerCase() === user.id.toLowerCase())
     )
   );
-  // Tổng tiền tính trên đúng N listing thật của gói.
-  const baseTicketPrice = effectiveBundleListings.length > 1
+
+  // Tổng tiền tính trên đúng N listing thật của gói (hoặc 1 vé lẻ nếu mua lẻ).
+  const baseTicketPrice = isBundle && effectiveBundleListings.length > 1
     ? effectiveBundleListings.reduce((sum, l) => sum + l.resalePrice, 0)
-    : (listing.bundleTotalTickets && listing.bundleTotalTickets >= 2)
+    : (isBundle && listing.bundleTotalTickets && listing.bundleTotalTickets >= 2)
       ? listing.resalePrice * listing.bundleTotalTickets
       : listing.resalePrice;
 
   // Dynamic Fee Calculation from System Resale Fee Config
-  // BE tính phí theo từng vé trong gói (HoldListingForPurchaseCommandHandler.cs:413):
-  // mỗi vé riêng áp dụng max(price * buyerFeeRate, minBuyerFee)
-  const estimatedBuyerFee = effectiveBundleListings.length > 1
+  const estimatedBuyerFee = isBundle && effectiveBundleListings.length > 1
     ? effectiveBundleListings.reduce((sum, l) => sum + calcBuyerFee(l.resalePrice).buyerFee, 0)
-    : (listing.bundleTotalTickets && listing.bundleTotalTickets >= 2)
+    : (isBundle && listing.bundleTotalTickets && listing.bundleTotalTickets >= 2)
       ? calcBuyerFee(listing.resalePrice).buyerFee * listing.bundleTotalTickets
       : calcBuyerFee(baseTicketPrice).buyerFee;
 
-  const isMinBuyerFeeApplied = effectiveBundleListings.length > 1
+  const isMinBuyerFeeApplied = isBundle && effectiveBundleListings.length > 1
     ? effectiveBundleListings.some((l) => calcBuyerFee(l.resalePrice).isMinimumApplied)
-    : (listing.bundleTotalTickets && listing.bundleTotalTickets >= 2)
+    : (isBundle && listing.bundleTotalTickets && listing.bundleTotalTickets >= 2)
       ? calcBuyerFee(listing.resalePrice).isMinimumApplied
       : calcBuyerFee(baseTicketPrice).isMinimumApplied;
 
@@ -281,6 +285,7 @@ export const BuyTicketModal: React.FC<BuyTicketModalProps> = ({
         recipientEmail: email,
         recipientIdCard: idCard || undefined,
         privateAccessToken: (listing as any).privateAccessToken || undefined,
+        buyAsBundle: !isIndividualPurchase,
       });
 
       setHoldData(response);
@@ -336,7 +341,7 @@ export const BuyTicketModal: React.FC<BuyTicketModalProps> = ({
         role="dialog"
         aria-modal="true"
         aria-labelledby="checkout-modal-title"
-        className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-3 sm:p-5 md:p-6 overflow-y-auto"
+        className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-5 md:p-6 overflow-y-auto"
         onClick={(e) => {
           if (e.target === e.currentTarget) {
             handleCancelAndClose();
@@ -345,14 +350,17 @@ export const BuyTicketModal: React.FC<BuyTicketModalProps> = ({
       >
         <motion.div
           id="buy-ticket-modal-content"
-          initial={{ opacity: 0, scale: 0.98 }}
-          animate={{ opacity: 1, scale: 1 }}
-          exit={{ opacity: 0, scale: 0.98 }}
-          transition={{ duration: 0.16, ease: 'easeOut' }}
-          className="relative w-full max-w-[840px] bg-[#121824] border border-[#28354D] rounded-2xl shadow-2xl shadow-black/80 overflow-hidden my-auto text-zinc-100 flex flex-col max-h-[90vh]"
+          initial={{ opacity: 0, y: 24, scale: 0.98 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          exit={{ opacity: 0, y: 24, scale: 0.98 }}
+          transition={{ duration: 0.2, ease: 'easeOut' }}
+          className="relative w-full sm:max-w-[840px] bg-[#121824] border-t sm:border border-[#28354D] rounded-t-3xl sm:rounded-2xl shadow-2xl shadow-black/80 overflow-hidden my-0 sm:my-auto text-zinc-100 flex flex-col max-h-[92vh] sm:max-h-[90vh]"
         >
+          {/* Mobile pull-handle */}
+          <div className="w-10 h-1 bg-white/20 rounded-full mx-auto mt-2.5 mb-1 sm:hidden shrink-0" />
+
           {/* 1. MINIMAL REFINED HEADER */}
-          <div className="flex items-center justify-between px-6 py-2.5 border-b border-[#28354D] bg-[#121824] shrink-0 h-11">
+          <div className="flex items-center justify-between px-4 sm:px-6 py-2 border-b border-[#28354D] bg-[#121824] shrink-0 h-11">
             <div />
             <button
               type="button"

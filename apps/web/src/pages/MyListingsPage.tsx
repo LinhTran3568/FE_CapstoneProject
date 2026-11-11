@@ -18,7 +18,6 @@ import {
   XCircle,
   Clock,
   CheckCircle2,
-  DollarSign,
   CreditCard,
   Receipt,
   ArrowDownRight,

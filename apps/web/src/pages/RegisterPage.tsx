@@ -293,6 +293,7 @@ export const RegisterPage: React.FC = () => {
                 size="large"
                 width="360"
                 text="signup_with"
+                locale="en"
               />
             )}
           </div>

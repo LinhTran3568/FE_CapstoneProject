@@ -159,7 +159,7 @@ export const Step4SetPrice: React.FC<Step4SetPriceProps> = ({
   const isCurrentDeepDiscount = resalePrice > 0 && currentDiff / faceValue >= 0.7;
 
   return (
-    <div key="step-4-pricing" className="animate-fade-in-up max-w-xl mx-auto space-y-4 pt-1">
+    <div key="step-4-pricing" className="animate-fade-in-up max-w-xl mx-auto space-y-4 pt-1 pb-24 sm:pb-0">
       <div className="space-y-1 text-center">
         <h2 className="text-2xl sm:text-3xl font-bold font-display text-white tracking-tight">
           Set Resale Price
@@ -482,93 +482,95 @@ export const Step4SetPrice: React.FC<Step4SetPriceProps> = ({
         )}
 
         {/* Nút điều hướng chuyển vé hoặc Tiếp tục sang Chốt giá / Step 5 */}
-        <div className="space-y-2 pt-2">
-          {isCombo ? (
-            activeTicketIndex < tickets.length - 1 ? (
-              <div className="flex items-center gap-3">
-                {activeTicketIndex > 0 && (
+        <div className="fixed sm:static bottom-0 left-0 right-0 z-40 p-3.5 sm:p-0 bg-[#0A0D12]/95 sm:bg-transparent backdrop-blur-xl sm:backdrop-blur-none border-t sm:border-t-0 border-white/10 shadow-2xl sm:shadow-none">
+          <div className="max-w-xl mx-auto space-y-2 pt-1 sm:pt-2">
+            {isCombo ? (
+              activeTicketIndex < tickets.length - 1 ? (
+                <div className="flex items-center gap-3">
+                  {activeTicketIndex > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => setActiveTicketIndex(activeTicketIndex - 1)}
+                      className="px-4 py-4 rounded-xl bg-white/5 hover:bg-white/10 text-white border border-white/10 transition-all flex items-center gap-1.5 cursor-pointer font-mono text-xs"
+                    >
+                      <ArrowLeft className="w-4 h-4" />
+                      <span>Ticket #{activeTicketIndex}</span>
+                    </button>
+                  )}
+
                   <button
                     type="button"
-                    onClick={() => setActiveTicketIndex(activeTicketIndex - 1)}
-                    className="px-4 py-4 rounded-xl bg-white/5 hover:bg-white/10 text-white border border-white/10 transition-all flex items-center gap-1.5 cursor-pointer font-mono text-xs"
+                    onClick={() => setActiveTicketIndex(activeTicketIndex + 1)}
+                    disabled={!isCurrentTicketValid}
+                    className={`flex-1 py-4 font-bold font-display uppercase tracking-widest text-xs rounded-xl transition-all duration-200 flex items-center justify-center gap-2 ${
+                      !isCurrentTicketValid
+                        ? 'bg-white/5 text-white/30 border border-white/5 cursor-not-allowed opacity-50'
+                        : 'bg-[#FF5A36] hover:bg-[#FF7252] text-white shadow-lg shadow-[#FF5A36]/30 hover:shadow-xl hover:shadow-[#FF5A36]/50 cursor-pointer'
+                    }`}
                   >
-                    <ArrowLeft className="w-4 h-4" />
-                    <span>Ticket #{activeTicketIndex}</span>
+                    <span>Next: Set price for Ticket {activeTicketIndex + 2}/{tickets.length}</span>
+                    <ArrowRight className="w-4 h-4" />
                   </button>
-                )}
+                </div>
+              ) : (
+                <div className="flex items-center gap-3">
+                  {activeTicketIndex > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => setActiveTicketIndex(activeTicketIndex - 1)}
+                      className="px-4 py-4 rounded-xl bg-white/5 hover:bg-white/10 text-white border border-white/10 transition-all flex items-center gap-1.5 cursor-pointer font-mono text-xs"
+                    >
+                      <ArrowLeft className="w-4 h-4" />
+                      <span>Ticket #{activeTicketIndex}</span>
+                    </button>
+                  )}
 
-                <button
-                  type="button"
-                  onClick={() => setActiveTicketIndex(activeTicketIndex + 1)}
-                  disabled={!isCurrentTicketValid}
-                  className={`flex-1 py-4 font-bold font-display uppercase tracking-widest text-xs rounded-xl transition-all duration-200 flex items-center justify-center gap-2 ${
-                    !isCurrentTicketValid
-                      ? 'bg-white/5 text-white/30 border border-white/5 cursor-not-allowed opacity-50'
-                      : 'bg-[#FF5A36] hover:bg-[#FF7252] text-white shadow-lg shadow-[#FF5A36]/30 hover:shadow-xl hover:shadow-[#FF5A36]/50 cursor-pointer'
-                  }`}
-                >
-                  <span>Next: Set price for Ticket {activeTicketIndex + 2}/{tickets.length}</span>
-                  <ArrowRight className="w-4 h-4" />
-                </button>
-              </div>
+                  <button
+                    type="button"
+                    onClick={onContinue}
+                    disabled={!allTicketsValid}
+                    className={`flex-1 py-4 font-bold font-display uppercase tracking-widest text-xs rounded-xl transition-all duration-200 flex items-center justify-center gap-2 ${
+                      !allTicketsValid
+                        ? 'bg-white/5 text-white/30 border border-white/5 cursor-not-allowed opacity-50'
+                        : 'bg-[#FF5A36] hover:bg-[#FF7252] text-white shadow-lg shadow-[#FF5A36]/30 hover:shadow-xl hover:shadow-[#FF5A36]/50 hover:-translate-y-0.5 active:translate-y-0 cursor-pointer'
+                    }`}
+                  >
+                    <span>Continue: Review &amp; Publish</span>
+                    <ArrowRight className="w-4 h-4" />
+                  </button>
+                </div>
+              )
             ) : (
-              <div className="flex items-center gap-3">
-                {activeTicketIndex > 0 && (
-                  <button
-                    type="button"
-                    onClick={() => setActiveTicketIndex(activeTicketIndex - 1)}
-                    className="px-4 py-4 rounded-xl bg-white/5 hover:bg-white/10 text-white border border-white/10 transition-all flex items-center gap-1.5 cursor-pointer font-mono text-xs"
-                  >
-                    <ArrowLeft className="w-4 h-4" />
-                    <span>Ticket #{activeTicketIndex}</span>
-                  </button>
-                )}
-
-                <button
-                  type="button"
-                  onClick={onContinue}
-                  disabled={!allTicketsValid}
-                  className={`flex-1 py-4 font-bold font-display uppercase tracking-widest text-xs rounded-xl transition-all duration-200 flex items-center justify-center gap-2 ${
-                    !allTicketsValid
-                      ? 'bg-white/5 text-white/30 border border-white/5 cursor-not-allowed opacity-50'
-                      : 'bg-[#FF5A36] hover:bg-[#FF7252] text-white shadow-lg shadow-[#FF5A36]/30 hover:shadow-xl hover:shadow-[#FF5A36]/50 hover:-translate-y-0.5 active:translate-y-0 cursor-pointer'
-                  }`}
-                >
-                  <span>Continue: Review &amp; Publish</span>
-                  <ArrowRight className="w-4 h-4" />
-                </button>
-              </div>
-            )
-          ) : (
-            <button
-              type="button"
-              onClick={onContinue}
-              disabled={!allTicketsValid}
-              className={`w-full py-4 font-bold font-display uppercase tracking-widest text-xs rounded-xl transition-all duration-200 flex items-center justify-center gap-2 ${
-                !allTicketsValid
-                  ? 'bg-white/5 text-white/30 border border-white/5 cursor-not-allowed opacity-50'
-                  : 'bg-[#FF5A36] hover:bg-[#FF7252] text-white shadow-lg shadow-[#FF5A36]/30 hover:shadow-xl hover:shadow-[#FF5A36]/50 hover:-translate-y-0.5 active:translate-y-0 cursor-pointer'
-              }`}
-            >
-              <span>Continue: Review &amp; Publish</span>
-              <ArrowRight className="w-4 h-4" />
-            </button>
-          )}
-
-          {/* Nút hủy phiên mở khóa vé ở Bước 4 */}
-          {onCancel && (
-            <div className="text-center pt-2">
               <button
                 type="button"
-                onClick={onCancel}
-                disabled={isCancelling}
-                className="text-xs sm:text-sm font-medium text-white/50 hover:text-rose-400 transition-colors inline-flex items-center gap-2 cursor-pointer disabled:opacity-30 py-1.5 px-3 rounded-lg hover:bg-rose-500/10 hover:border hover:border-rose-500/20"
+                onClick={onContinue}
+                disabled={!allTicketsValid}
+                className={`w-full py-4 font-bold font-display uppercase tracking-widest text-xs rounded-xl transition-all duration-200 flex items-center justify-center gap-2 ${
+                  !allTicketsValid
+                    ? 'bg-white/5 text-white/30 border border-white/5 cursor-not-allowed opacity-50'
+                    : 'bg-[#FF5A36] hover:bg-[#FF7252] text-white shadow-lg shadow-[#FF5A36]/30 hover:shadow-xl hover:shadow-[#FF5A36]/50 hover:-translate-y-0.5 active:translate-y-0 cursor-pointer'
+                }`}
               >
-                <XCircle className="w-4 h-4" />
-                <span>{isCancelling ? 'Cancelling...' : 'Cancel Listing'}</span>
+                <span>Continue: Review &amp; Publish</span>
+                <ArrowRight className="w-4 h-4" />
               </button>
-            </div>
-          )}
+            )}
+
+            {/* Nút hủy phiên mở khóa vé ở Bước 4 */}
+            {onCancel && (
+              <div className="text-center pt-2">
+                <button
+                  type="button"
+                  onClick={onCancel}
+                  disabled={isCancelling}
+                  className="text-xs sm:text-sm font-medium text-white/50 hover:text-rose-400 transition-colors inline-flex items-center gap-2 cursor-pointer disabled:opacity-30 py-1.5 px-3 rounded-lg hover:bg-rose-500/10 hover:border hover:border-rose-500/20"
+                >
+                  <XCircle className="w-4 h-4" />
+                  <span>{isCancelling ? 'Cancelling...' : 'Cancel Listing'}</span>
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </motion.div>
     </div>

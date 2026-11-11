@@ -229,6 +229,7 @@ export const MarketplacePage: React.FC = () => {
 
   // Modals inherited from user design
   const [buyingListing, setBuyingListing] = useState<MarketplaceListingDto | null>(null);
+  const [isIndividualPurchase, setIsIndividualPurchase] = useState<boolean>(false);
   const [inspectingListing, setInspectingListing] = useState<MarketplaceListingDto | null>(null);
   const [isStageMapOpen, setIsStageMapOpen] = useState(false);
 
@@ -257,7 +258,7 @@ export const MarketplacePage: React.FC = () => {
     }
   }, [searchParams, isAuthenticated, listings, user]);
 
-  const handleBuy = (listing: MarketplaceListingDto) => {
+  const handleBuy = (listing: MarketplaceListingDto, isIndividual = false) => {
     const rawStatus = (listing.listingStatus || '').toLowerCase();
     if (rawStatus === 'transacting') {
       showToast('This ticket is currently in a checkout session. Please choose another ticket or check back later!', 'warning');
@@ -288,6 +289,7 @@ export const MarketplacePage: React.FC = () => {
       });
       return;
     }
+    setIsIndividualPurchase(isIndividual);
     setBuyingListing(listing);
   };
 
@@ -721,9 +723,14 @@ export const MarketplacePage: React.FC = () => {
         listing={buyingListing}
         allListings={listings}
         isOpen={Boolean(buyingListing)}
-        onClose={() => setBuyingListing(null)}
+        isIndividualPurchase={isIndividualPurchase}
+        onClose={() => {
+          setBuyingListing(null);
+          setIsIndividualPurchase(false);
+        }}
         onSuccess={(orderData) => {
           setBuyingListing(null);
+          setIsIndividualPurchase(false);
           queryClient.invalidateQueries({ queryKey: ['resale-listings'] });
           refetch();
           showToast(
@@ -749,9 +756,9 @@ export const MarketplacePage: React.FC = () => {
         listing={inspectingListing}
         isOpen={Boolean(inspectingListing)}
         onClose={() => setInspectingListing(null)}
-        onBuy={(target) => {
+        onBuy={(target, isIndividual) => {
           setInspectingListing(null);
-          handleBuy(target);
+          handleBuy(target, isIndividual);
         }}
         bundleListings={
           inspectingListing?.bundleId

@@ -719,6 +719,12 @@ const DRAFT_STORAGE_KEY = 'ticketshield_sell_draft';
       return;
     }
 
+    if (bankAccounts.length === 0) {
+      showToast('Please link a payout bank account before listing tickets.', 'warning');
+      setIsAddBankModalOpen(true);
+      return;
+    }
+
     if (!sessions.every((s) => s.locked)) {
       showToast('Every ticket must pass its own OTP check before listing.', 'warning');
       return;
@@ -793,6 +799,14 @@ const DRAFT_STORAGE_KEY = 'ticketshield_sell_draft';
       setCurrentStep(6);
     } catch (err: any) {
       const rawMsg = err?.response?.data?.message || err?.message || '';
+      const errorCode = err?.response?.data?.errors?.[0] || err?.response?.data?.code || rawMsg;
+
+      if (errorCode === 'PAYOUT_ACCOUNT_REQUIRED' || rawMsg.includes('PAYOUT_ACCOUNT_REQUIRED')) {
+        showToast('A payout bank account is required to receive funds. Please link your account.', 'warning');
+        setIsAddBankModalOpen(true);
+        return;
+      }
+
       const isExpiredSession =
         err?.response?.status === 409 ||
         rawMsg.includes('INVALID_VERIFICATION_STATE') ||
@@ -1153,6 +1167,7 @@ const DRAFT_STORAGE_KEY = 'ticketshield_sell_draft';
             activeFeeTooltip={activeFeeTooltip}
             setActiveFeeTooltip={setActiveFeeTooltip}
             onManageBankAccounts={() => navigate('/payout-accounts?returnUrl=/sell-ticket')}
+            onAddBankAccount={() => setIsAddBankModalOpen(true)}
             saleType={saleType}
             setSaleType={setSaleType}
             onEditTicketPrice={(idx) => {
