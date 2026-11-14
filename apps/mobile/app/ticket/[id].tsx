@@ -19,10 +19,11 @@ import {
   QrCode,
   ShieldAlert,
   Clock,
+  Check,
 } from 'lucide-react-native';
 import { theme } from '../../src/theme';
 import type { PurchasedTicketDto } from '@ticketshield/types';
-import { resaleListingsApi } from '@ticketshield/api-client';
+import { mockTicketsApi, resaleListingsApi } from '@ticketshield/api-client';
 import { expandPurchasedTickets, getIssuedQrImageUrl } from '../../src/utils/purchasedTickets';
 import { FintechButton } from '../../src/components/FintechButton';
 import { EventPoster } from '../../src/components/EventPoster';
@@ -32,7 +33,7 @@ import { DisputeTicketModal } from '../../src/components/DisputeTicketModal';
 
 const STATUS_LABELS: Record<string, string> = {
   VALID: 'Valid — Ready for Admission',
-  USED: 'Checked In',
+  USED: 'Checked In · Completed',
   EXPIRED: 'Expired',
   CANCELLED: 'Cancelled',
   TRANSFERRED: 'Transferred',
@@ -63,6 +64,13 @@ export default function TicketDetailScreen() {
         (allTickets || []).find(
           (t) => t.ticketPassCode === id || t.listingId === id || t.escrowId === id
         ) || null;
+      if (found?.ticketPassCode) {
+        const liveStatuses = await mockTicketsApi.getTicketStatuses([found.ticketPassCode]);
+        const organizerStatus = liveStatuses.get(found.ticketPassCode);
+        if (organizerStatus) {
+          found.status = organizerStatus;
+        }
+      }
       setTicket(found);
     } catch (error) {
       setLoadError(
@@ -249,31 +257,48 @@ export default function TicketDetailScreen() {
           </TouchableOpacity>
 
           {Boolean(ticket.escrowId) && !ticket.disputeWaived && (
-            <TouchableOpacity
-              style={[
-                styles.disputeBtn,
-                Boolean(ticket.disputeId || ticket.status === 'DISPUTED') &&
-                  styles.disputeBtnActive,
-              ]}
-              onPress={() => setIsDisputeModalOpen(true)}
-              activeOpacity={0.85}
-            >
-              {ticket.disputeId || ticket.status === 'DISPUTED' ? (
-                <>
-                  <Clock size={16} color={theme.colors.warning} />
-                  <Text style={styles.disputeBtnTextActive}>
-                    View Dispute Progress
-                  </Text>
-                </>
-              ) : (
-                <>
-                  <ShieldAlert size={16} color={theme.colors.danger} />
-                  <Text style={styles.disputeBtnText}>
-                    Report Ticket Issue (Escrow)
-                  </Text>
-                </>
-              )}
-            </TouchableOpacity>
+            ticket.status === 'USED' ? (
+              <View
+                style={[
+                  styles.disputeBtn,
+                  { backgroundColor: 'rgba(16, 185, 129, 0.15)', borderColor: 'rgba(16, 185, 129, 0.4)' },
+                ]}
+              >
+                <Check size={16} color="#10B981" />
+                <Text style={[styles.disputeBtnText, { color: '#10B981' }]}>
+                  Checked In · Cycle Completed
+                </Text>
+              </View>
+            ) : (
+              <TouchableOpacity
+                style={[
+                  styles.disputeBtn,
+                  Boolean(ticket.disputeId || ticket.status === 'DISPUTED') &&
+                    styles.disputeBtnActive,
+                ]}
+                onPress={() => {
+                  if (ticket.status === 'USED') return;
+                  setIsDisputeModalOpen(true);
+                }}
+                activeOpacity={0.85}
+              >
+                {ticket.disputeId || ticket.status === 'DISPUTED' ? (
+                  <>
+                    <Clock size={16} color={theme.colors.warning} />
+                    <Text style={styles.disputeBtnTextActive}>
+                      View Dispute Progress
+                    </Text>
+                  </>
+                ) : (
+                  <>
+                    <ShieldAlert size={16} color={theme.colors.danger} />
+                    <Text style={styles.disputeBtnText}>
+                      Report Ticket Issue (Escrow)
+                    </Text>
+                  </>
+                )}
+              </TouchableOpacity>
+            )
           )}
 
           <DisputeTicketModal

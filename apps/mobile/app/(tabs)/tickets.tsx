@@ -25,6 +25,7 @@ import {
   ShieldAlert,
   Clock,
   Lock,
+  Check,
 } from 'lucide-react-native';
 import { theme, fontFamilies } from '../../src/theme';
 import type { PurchasedTicketDto } from '@ticketshield/types';
@@ -39,7 +40,7 @@ import { DisputeTicketModal } from '../../src/components/DisputeTicketModal';
 const STATUS_LABELS: Record<string, string> = {
   VALID: 'Valid for Entry',
   IN_ESCROW: 'Pass Issued · Escrow Active',
-  USED: 'Checked In',
+  USED: 'Checked In · Completed',
   EXPIRED: 'Expired',
   CANCELLED: 'Cancelled',
   TRANSFERRED: 'Transferred',
@@ -175,6 +176,16 @@ export default function MobileTicketsScreen() {
   };
 
   const renderStatusBadge = (status: string) => {
+    if (status === 'USED') {
+      return (
+        <View style={[styles.statusBadge, { backgroundColor: 'rgba(16, 185, 129, 0.15)', borderColor: 'rgba(16, 185, 129, 0.4)' }]}>
+          <Check size={13} color="#10B981" />
+          <Text style={[styles.statusText, { color: '#10B981', fontFamily: fontFamilies.bold }]}>
+            Checked In · Completed
+          </Text>
+        </View>
+      );
+    }
     if (status === 'DISPUTED') {
       return (
         <View style={[styles.statusBadge, { backgroundColor: theme.colors.dangerLight, borderColor: theme.colors.dangerBorder }]}>
@@ -224,10 +235,9 @@ export default function MobileTicketsScreen() {
     const isValid = canOpenPass(item);
     return (
       <TouchableOpacity
-        style={[styles.ticketCard, !isValid && { opacity: 0.75 }]}
-        onPress={() => isValid && setSelectedTicket(item)}
-        activeOpacity={isValid ? 0.9 : 1}
-        disabled={!isValid}
+        style={[styles.ticketCard, !isValid && item.status !== 'USED' && { opacity: 0.75 }]}
+        onPress={() => setSelectedTicket(item)}
+        activeOpacity={0.9}
       >
         <View style={styles.posterWrap}>
           <EventPoster seed={item.eventId || item.ticketPassCode} height={104} />
@@ -539,34 +549,49 @@ export default function MobileTicketsScreen() {
                 </View>
 
                 {Boolean(selectedTicket.escrowId) && !selectedTicket.disputeWaived && (
-                  <TouchableOpacity
-                    style={[
-                      styles.disputeActionBtn,
-                      Boolean(selectedTicket.disputeId || selectedTicket.status === 'DISPUTED') &&
-                        styles.disputeActionBtnActive,
-                    ]}
-                    onPress={() => {
-                      setDisputeModalTicket(selectedTicket);
-                      setIsDisputeModalOpen(true);
-                    }}
-                    activeOpacity={0.85}
-                  >
-                    {selectedTicket.disputeId || selectedTicket.status === 'DISPUTED' ? (
-                      <>
-                        <Clock size={16} color={theme.colors.warning} />
-                        <Text style={styles.disputeActionTextActive}>
-                          View Dispute Progress
-                        </Text>
-                      </>
-                    ) : (
-                      <>
-                        <ShieldAlert size={16} color={theme.colors.danger} />
-                        <Text style={styles.disputeActionText}>
-                          Report Ticket Issue (Escrow)
-                        </Text>
-                      </>
-                    )}
-                  </TouchableOpacity>
+                  selectedTicket.status === 'USED' ? (
+                    <View
+                      style={[
+                        styles.disputeActionBtn,
+                        { backgroundColor: 'rgba(16, 185, 129, 0.15)', borderColor: 'rgba(16, 185, 129, 0.4)' },
+                      ]}
+                    >
+                      <Check size={16} color="#10B981" />
+                      <Text style={[styles.disputeActionText, { color: '#10B981' }]}>
+                        Checked In · Cycle Completed
+                      </Text>
+                    </View>
+                  ) : (
+                    <TouchableOpacity
+                      style={[
+                        styles.disputeActionBtn,
+                        Boolean(selectedTicket.disputeId || selectedTicket.status === 'DISPUTED') &&
+                          styles.disputeActionBtnActive,
+                      ]}
+                      onPress={() => {
+                        if (selectedTicket.status === 'USED') return;
+                        setDisputeModalTicket(selectedTicket);
+                        setIsDisputeModalOpen(true);
+                      }}
+                      activeOpacity={0.85}
+                    >
+                      {selectedTicket.disputeId || selectedTicket.status === 'DISPUTED' ? (
+                        <>
+                          <Clock size={16} color={theme.colors.warning} />
+                          <Text style={styles.disputeActionTextActive}>
+                            View Dispute Progress
+                          </Text>
+                        </>
+                      ) : (
+                        <>
+                          <ShieldAlert size={16} color={theme.colors.danger} />
+                          <Text style={styles.disputeActionText}>
+                            Report Ticket Issue (Escrow)
+                          </Text>
+                        </>
+                      )}
+                    </TouchableOpacity>
+                  )
                 )}
               </ScrollView>
             )}
