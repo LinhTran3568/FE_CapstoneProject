@@ -42,6 +42,9 @@ export const AdminDashboardPage: React.FC = () => {
   const [range, setRange] = useState<DashboardRange>('All');
   const [rangeAnchor, setRangeAnchor] = useState<Date>(() => new Date());
   const analytics = useAdminAnalytics(range, rangeAnchor);
+  // BE đếm người mua, người bán theo khoảng ngày, nên khối kho vé và người dùng luôn đọc bản All.
+  // Khi đang chọn All thì 2 query trùng key, React Query chỉ gọi 1 lần.
+  const allTimeAnalytics = useAdminAnalytics('All', rangeAnchor);
   const changeRange = (next: DashboardRange) => {
     setRange(next);
     setRangeAnchor(new Date());
@@ -148,6 +151,7 @@ export const AdminDashboardPage: React.FC = () => {
             onClick={() => {
               fetchDashboardData();
               void analytics.refetch();
+              if (range !== 'All') void allTimeAnalytics.refetch();
             }}
             className="px-3 py-1.5 rounded-lg bg-white border border-[#E5EAF0] text-[#101722] hover:bg-slate-50 text-xs font-medium flex items-center gap-1.5 transition-colors shadow-2xs cursor-pointer"
           >
@@ -356,7 +360,13 @@ export const AdminDashboardPage: React.FC = () => {
       </div>
 
       {/* ── Revenue by Event, Inventory, Users, Events Table (SCRUM-339) ── */}
-      <DashboardAnalyticsPanels data={analytics.data} range={range} />
+      <DashboardAnalyticsPanels
+        data={analytics.data}
+        allTimeData={allTimeAnalytics.data}
+        allTimeFailed={allTimeAnalytics.isError && !allTimeAnalytics.data}
+        onRetryAllTime={() => void allTimeAnalytics.refetch()}
+        range={range}
+      />
 
       {/* ── Two-Column Operational Split Grid ── */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">

@@ -133,8 +133,8 @@ export const AdminListingsPage: React.FC = () => {
 
       {/* Số toàn sàn, không theo bộ lọc. */}
       <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3.5">
-        <StatCard allTime label="Total listings" value={summary ? summary.totalListings : '—'} />
-        <StatCard allTime label="Single tickets" value={summary ? summary.totalSingleTickets : '—'} />
+        <StatCard allTime label="Listings" value={summary ? summary.totalListings : '—'} />
+        <StatCard allTime label="Singles" value={summary ? summary.totalSingleTickets : '—'} />
         <StatCard allTime label="Combos" value={summary ? summary.totalBundles : '—'} />
         <StatCard allTime label="On sale" value={summary ? summary.totalActiveListings : '—'} />
         <StatCard allTime label="Sold" value={summary ? summary.totalSoldListings : '—'} />
@@ -186,13 +186,13 @@ export const AdminListingsPage: React.FC = () => {
       <TableShell
         head={
           <tr>
-            <th className="py-3 px-4 min-w-[120px]">Listed</th>
-            <th className="py-3 px-4 min-w-[200px]">Event · Tier · Zone</th>
-            <th className="py-3 px-4 min-w-[150px]">Ticket</th>
-            <th className="py-3 px-4 min-w-[140px]">Seller</th>
-            <th className="py-3 px-4 text-right min-w-[190px]">Original → Resale</th>
-            <th className="py-3 px-4 min-w-[170px]">Markup vs cap</th>
-            <th className="py-3 px-4 min-w-[110px]">Status</th>
+            <th className="py-3 px-3 min-w-[96px]">Listed</th>
+            <th className="py-3 px-3 min-w-[170px]">Event · Tier · Zone</th>
+            <th className="py-3 px-3 min-w-[120px]">Ticket</th>
+            <th className="py-3 px-3 min-w-[110px]">Seller</th>
+            <th className="py-3 px-3 text-right min-w-[120px]">Original → Resale</th>
+            <th className="py-3 px-3 min-w-[150px]">Markup vs cap</th>
+            <th className="py-3 px-3 min-w-[96px]">Status</th>
           </tr>
         }
       >
@@ -229,32 +229,33 @@ export const AdminListingsPage: React.FC = () => {
                 }}
                 className="hover:bg-slate-50/70 focus:bg-slate-50 focus:outline-none cursor-pointer align-top"
               >
-                <td className="py-3 px-4 font-mono text-[#667085] whitespace-nowrap">{formatEventDateTime(l.createdAt)}</td>
-                <td className="py-3 px-4">
-                  <p className="font-semibold text-[#101722] truncate max-w-[240px]">{l.eventName || '—'}</p>
+                <td className="py-3 px-3 font-mono text-[#667085]">{formatEventDateTime(l.createdAt)}</td>
+                <td className="py-3 px-3">
+                  <p className="font-semibold text-[#101722] truncate max-w-[220px]">{l.eventName || '—'}</p>
                   <p className="text-[11px] text-[#667085]">
                     {l.tierName || '—'}
                     {l.seatZone ? ` · ${l.seatZone}` : ''}
                   </p>
                 </td>
-                <td className="py-3 px-4">
-                  <p className="font-mono text-[11px] text-[#101722]">{l.maskedTicketCode}</p>
+                <td className="py-3 px-3">
+                  <p className="font-mono text-[11px] text-[#101722] truncate max-w-[140px]" title={l.maskedTicketCode}>
+                    {l.maskedTicketCode}
+                  </p>
                   {combo && (
                     <div className="mt-1">
                       <Pill tone="slate">{combo}</Pill>
                     </div>
                   )}
                 </td>
-                <td className="py-3 px-4 text-[#101722] truncate max-w-[160px]">{l.sellerName || '—'}</td>
-                <td className="py-3 px-4 text-right font-mono tabular-nums whitespace-nowrap">
-                  <span className="text-[#667085]">{formatMoney(l.originalPrice)}</span>
-                  <span className="text-[#667085]"> → </span>
-                  <span className="font-semibold text-[#101722]">{formatMoney(l.resalePrice)}</span>
+                <td className="py-3 px-3 text-[#101722] truncate max-w-[160px]">{l.sellerName || '—'}</td>
+                <td className="py-3 px-3 text-right font-mono tabular-nums whitespace-nowrap">
+                  <p className="text-[11px] text-[#667085]">{formatMoney(l.originalPrice)} →</p>
+                  <p className="font-semibold text-[#101722]">{formatMoney(l.resalePrice)}</p>
                 </td>
-                <td className="py-3 px-4">
+                <td className="py-3 px-3">
                   <MarkupBar listing={l} />
                 </td>
-                <td className="py-3 px-4">
+                <td className="py-3 px-3">
                   <div className="flex items-center gap-1.5">
                     <Pill tone={listingTone(l.listingStatus)}>{listingStatusLabel(l.listingStatus)}</Pill>
                     {l.isPrivate && <Lock className="h-3.5 w-3.5 text-[#667085]" aria-label="Private listing" />}

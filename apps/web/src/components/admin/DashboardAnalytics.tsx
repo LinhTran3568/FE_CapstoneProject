@@ -111,25 +111,34 @@ const Panel: React.FC<{ title: string; icon: React.ReactNode; badge?: string; ac
 const openListings = (navigate: ReturnType<typeof useNavigate>, eventId: string) =>
   navigate(`/admin/listings?eventId=${encodeURIComponent(eventId)}`);
 
-/** Biểu đồ theo sự kiện, kho vé và người dùng, bảng sự kiện. Chỉ hiện khi đã có dữ liệu thống kê. */
-export const DashboardAnalyticsPanels: React.FC<{ data: AdminPlatformAnalyticsDto | undefined; range: DashboardRange }> = ({
-  data,
-  range,
-}) => {
+/**
+ * Biểu đồ theo sự kiện, kho vé và người dùng, bảng sự kiện. Chỉ hiện khi đã có dữ liệu thống kê.
+ * Kho vé và người dùng đọc `allTimeData` (bản All), vì BE đếm người mua, người bán theo khoảng ngày.
+ */
+export const DashboardAnalyticsPanels: React.FC<{
+  data: AdminPlatformAnalyticsDto | undefined;
+  allTimeData: AdminPlatformAnalyticsDto | undefined;
+  allTimeFailed: boolean;
+  onRetryAllTime: () => void;
+  range: DashboardRange;
+}> = ({ data, allTimeData, allTimeFailed, onRetryAllTime, range }) => {
   const navigate = useNavigate();
   const [metric, setMetric] = useState<EventMetric>('revenue');
   if (!data) return null;
 
   const top = topEvents(data.eventTransactions, metric);
   const max = top[0]?.value ?? 0;
-  const { inventory, users } = data;
-  const inventoryRows = [
-    { label: 'Valid', value: inventory.validTickets },
-    { label: 'Locked for resale', value: inventory.lockedForResaleTickets },
-    { label: 'Transferred', value: inventory.transferredTickets },
-    { label: 'Used', value: inventory.usedTickets },
-    { label: 'Cancelled', value: inventory.cancelledTickets },
-  ];
+  const inventory = allTimeData?.inventory;
+  const users = allTimeData?.users;
+  const inventoryRows = inventory
+    ? [
+        { label: 'Valid', value: inventory.validTickets },
+        { label: 'Locked for resale', value: inventory.lockedForResaleTickets },
+        { label: 'Transferred', value: inventory.transferredTickets },
+        { label: 'Used', value: inventory.usedTickets },
+        { label: 'Cancelled', value: inventory.cancelledTickets },
+      ]
+    : [];
   const events = [...data.eventTransactions].sort((a, b) => b.totalPlatformRevenue - a.totalPlatformRevenue);
 
   return (
@@ -196,6 +205,19 @@ export const DashboardAnalyticsPanels: React.FC<{ data: AdminPlatformAnalyticsDt
         </div>
 
         <div className="lg:col-span-5 space-y-5">
+          {!inventory || !users ? (
+            allTimeFailed ? (
+              <div role="alert" className="bg-rose-50 border border-rose-200 rounded-xl p-4 flex items-center justify-between gap-3 text-xs text-rose-800">
+                <span>Inventory and user totals unavailable.</span>
+                <RetryButton onClick={onRetryAllTime} />
+              </div>
+            ) : (
+              <div className="bg-white border border-[#E5EAF0] rounded-xl p-5 flex items-center gap-2 text-xs text-[#667085] font-mono">
+                <Loader2 className="w-4 h-4 animate-spin text-[#F45135]" /> Loading inventory and users...
+              </div>
+            )
+          ) : (
+            <>
           <Panel title="Ticket inventory" icon={<Boxes className="w-4 h-4 text-[#F45135]" />} badge="All time">
             <p className="text-xs text-[#667085]">
               <span className="text-lg font-bold font-mono text-[#101722] tabular-nums">{inventory.totalTicketsInInventory}</span> tickets
@@ -235,6 +257,8 @@ export const DashboardAnalyticsPanels: React.FC<{ data: AdminPlatformAnalyticsDt
               ))}
             </div>
           </Panel>
+            </>
+          )}
         </div>
       </div>
 

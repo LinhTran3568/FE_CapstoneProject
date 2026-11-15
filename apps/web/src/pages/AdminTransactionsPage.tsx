@@ -129,14 +129,14 @@ export const AdminTransactionsPage: React.FC = () => {
       <TableShell
         head={
           <tr>
-            <th className="py-3 px-4 min-w-[120px]">Created</th>
-            <th className="py-3 px-4 min-w-[200px]">Event / Ticket</th>
-            <th className="py-3 px-4 min-w-[180px]">Buyer → Seller</th>
-            <th className="py-3 px-4 text-right min-w-[120px]">Buyer paid</th>
-            <th className="py-3 px-4 text-right min-w-[120px]">Seller gets</th>
-            <th className="py-3 px-4 min-w-[120px]">Escrow</th>
-            <th className="py-3 px-4 min-w-[130px]">Unlocks</th>
-            <th className="py-3 px-4 min-w-[110px]">Payout</th>
+            <th className="py-3 px-3 min-w-[104px]">Created</th>
+            <th className="py-3 px-3 min-w-[180px]">Event / Ticket</th>
+            <th className="py-3 px-3 min-w-[150px]">Buyer → Seller</th>
+            <th className="py-3 px-3 text-right min-w-[100px]">Buyer paid</th>
+            <th className="py-3 px-3 text-right min-w-[100px]">Seller gets</th>
+            <th className="py-3 px-3 min-w-[96px]">Escrow</th>
+            <th className="py-3 px-3 min-w-[110px]">Unlocks</th>
+            <th className="py-3 px-3 min-w-[84px]">Payout</th>
           </tr>
         }
       >
@@ -171,8 +171,8 @@ export const AdminTransactionsPage: React.FC = () => {
               }}
               className="hover:bg-slate-50/70 focus:bg-slate-50 focus:outline-none cursor-pointer"
             >
-              <td className="py-3 px-4 font-mono text-[#667085] whitespace-nowrap">{formatEventDateTime(tx.createdAt)}</td>
-              <td className="py-3 px-4">
+              <td className="py-3 px-3 font-mono text-[#667085] whitespace-nowrap">{formatEventDateTime(tx.createdAt)}</td>
+              <td className="py-3 px-3">
                 <p className="font-semibold text-[#101722] truncate max-w-[240px]">{tx.eventName || '—'}</p>
                 <div className="mt-0.5 flex items-center gap-1.5">
                   <span className="font-mono text-[11px] text-[#667085] truncate max-w-[170px]" title={tx.newTicketCode || tx.originalTicketCode}>
@@ -181,18 +181,18 @@ export const AdminTransactionsPage: React.FC = () => {
                   {tx.bundleId && <Pill tone="slate">COMBO</Pill>}
                 </div>
               </td>
-              <td className="py-3 px-4 text-[#101722]">
+              <td className="py-3 px-3 text-[#101722]">
                 <span className="truncate">{tx.buyerName || '—'}</span>
                 <span className="text-[#667085]"> → </span>
                 <span className="truncate">{tx.sellerName || '—'}</span>
               </td>
-              <td className="py-3 px-4 text-right font-mono tabular-nums whitespace-nowrap">{formatMoney(tx.totalBuyerPaid)}</td>
-              <td className="py-3 px-4 text-right font-mono tabular-nums whitespace-nowrap">{formatMoney(tx.netSellerPayout)}</td>
-              <td className="py-3 px-4">
+              <td className="py-3 px-3 text-right font-mono tabular-nums whitespace-nowrap">{formatMoney(tx.totalBuyerPaid)}</td>
+              <td className="py-3 px-3 text-right font-mono tabular-nums whitespace-nowrap">{formatMoney(tx.netSellerPayout)}</td>
+              <td className="py-3 px-3">
                 <Pill tone={escrowTone(tx.status)}>{labelOf(ESCROW_STATUS_LABEL, tx.status)}</Pill>
               </td>
-              <td className="py-3 px-4 font-mono text-[#667085] whitespace-nowrap">{unlockLabel(tx, now)}</td>
-              <td className="py-3 px-4">
+              <td className="py-3 px-3 font-mono text-[#667085] whitespace-nowrap">{unlockLabel(tx, now)}</td>
+              <td className="py-3 px-3">
                 {tx.payoutStatus ? (
                   <Pill tone={payoutTone(tx.payoutStatus)}>{labelOf(PAYOUT_STATUS_LABEL, tx.payoutStatus)}</Pill>
                 ) : (
