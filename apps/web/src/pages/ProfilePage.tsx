@@ -21,15 +21,17 @@ import {
   Loader2,
   AlertTriangle,
 } from 'lucide-react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { authApi, bankAccountsApi, type BankInfo } from '@ticketshield/api-client';
 import type { UserBankAccountDto } from '@ticketshield/types';
 import { SellerBankAccountModal } from '../components/profile/SellerBankAccountModal';
 import { useMyListings } from '../hooks/useMyListings';
 import { useMyTickets } from '../hooks/useMyTickets';
 import { formatEventDateTime, formatVND } from '../utils/formatters';
+import { readProfileTab, type ProfileTab } from '../utils/buyerOrders';
+import { OrderHistoryTab } from '../components/orders/OrderHistoryTab';
 
-type TabId = 'account' | 'tickets' | 'listings';
+type TabId = ProfileTab;
 
 const STATUS_STYLES: Record<string, string> = {
   Verified:    'bg-emerald-500/20 text-emerald-400',
@@ -44,7 +46,20 @@ export const ProfilePage: React.FC = () => {
   const { showToast } = useUIStore();
   const navigate = useNavigate();
 
-  const [activeTab, setActiveTab] = useState<TabId>('account');
+  // Tab nằm trên URL (?tab=orders) để link từ menu mở đúng tab và tải lại trang vẫn giữ tab.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const activeTab: TabId = readProfileTab(searchParams.get('tab'));
+  const setActiveTab = (tab: TabId) => {
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev);
+        if (tab === 'account') next.delete('tab');
+        else next.set('tab', tab);
+        return next;
+      },
+      { replace: true }
+    );
+  };
   const [fullName, setFullName] = useState(user?.fullName || '');
   const [phoneNumber, setPhoneNumber] = useState(user?.phoneNumber || '');
   const [isSaving, setIsSaving] = useState(false);
@@ -156,6 +171,7 @@ export const ProfilePage: React.FC = () => {
     { id: 'account',  label: 'Account Details' },
     { id: 'tickets',  label: 'My Tickets',  badge: myTickets.length || undefined },
     { id: 'listings', label: 'My Listings', badge: myListings.filter(l => l.listingStatus === 'Verified').length || undefined },
+    { id: 'orders',   label: 'Orders' },
   ];
 
   return (
@@ -594,6 +610,9 @@ export const ProfilePage: React.FC = () => {
             )}
           </div>
         )}
+
+        {/* ── TAB: Orders (SCRUM-342) ── */}
+        {activeTab === 'orders' && <OrderHistoryTab />}
 
       </div>
 
