@@ -125,6 +125,15 @@ export const maskAccountNumber = (accountNumber?: string | null): string => {
 
 export type CeilingVerdict = 'UNDER' | 'AT_CAP' | 'OVER';
 
+export const VERDICT_LABEL: Record<CeilingVerdict, string> = {
+  UNDER: 'Under cap',
+  AT_CAP: 'At cap',
+  OVER: 'Over cap',
+};
+
+/** Phần trăm làm tròn 1 chữ số lẻ, bỏ số 0 thừa. */
+export const formatPercent = (value: number): string => `${Number.isFinite(value) ? +value.toFixed(1) : 0}%`;
+
 /** Đọc cờ BE (BE làm tròn xuống giá trần). Vượt trần thắng bằng trần. */
 export const ceilingVerdict = (
   listing: Pick<AdminListingDto, 'isAtPriceCeiling' | 'isPriceCeilingExceeded'>

@@ -235,6 +235,17 @@ test('tran su kien bang 0 (tin thieu su kien) khong bao Cap changed', () => {
   assert.equal(ops().capChanged(listing({ appliedMarkupPercentage: 15, eventMaxMarkupPercentage: 0 })), false);
 });
 
+test('nhan xep loai tran gia', () => {
+  assert.deepEqual(ops().VERDICT_LABEL, { UNDER: 'Under cap', AT_CAP: 'At cap', OVER: 'Over cap' });
+});
+
+test('phan tram lam tron 1 so le, so am giu dau, so hong ra 0%', () => {
+  assert.equal(ops().formatPercent(15), '15%');
+  assert.equal(ops().formatPercent(12.34), '12.3%');
+  assert.equal(ops().formatPercent(-10), '-10%');
+  assert.equal(ops().formatPercent(NaN), '0%');
+});
+
 // 4.6 Nhan combo
 test('nhan combo chep dieu kien cua web', () => {
   assert.equal(ops().comboLabel(listing()), null);
