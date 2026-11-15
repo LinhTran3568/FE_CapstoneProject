@@ -20,7 +20,7 @@ import {
   Search,
   Building2,
   Sliders,
-  Receipt
+  ReceiptText
 } from 'lucide-react';
 
 export const Navbar: React.FC = () => {
@@ -310,7 +310,7 @@ export const Navbar: React.FC = () => {
                         onClick={() => setUserDropdownOpen(false)}
                         className="w-full px-3 py-2.5 rounded-xl text-xs font-mono text-[#CBD5E1] hover:text-white hover:bg-white/10 flex items-center gap-2.5 transition-colors"
                       >
-                        <Receipt className="w-4 h-4 text-[#FF5A36]" />
+                        <ReceiptText className="w-4 h-4 text-[#FF5A36]" />
                         <span>My Orders</span>
                       </Link>
 
@@ -495,7 +495,7 @@ export const Navbar: React.FC = () => {
                     onClick={() => setMobileMenuOpen(false)}
                     className="px-4 py-2.5 rounded-xl text-xs font-mono font-bold uppercase text-white hover:bg-white/10 flex items-center gap-2"
                   >
-                    <Receipt className="w-4 h-4 text-[#FF5A36]" />
+                    <ReceiptText className="w-4 h-4 text-[#FF5A36]" />
                     <span>My Orders</span>
                   </Link>
                   <Link

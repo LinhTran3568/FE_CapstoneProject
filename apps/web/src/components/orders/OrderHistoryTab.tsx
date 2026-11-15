@@ -8,7 +8,7 @@ import {
   ChevronRight,
   Loader2,
   MapPin,
-  Receipt,
+  ReceiptText,
   RefreshCw,
   RotateCcw,
   Search,
@@ -76,7 +76,7 @@ const OrderCard: React.FC<{ order: BuyerOrderDto; onOpen: () => void }> = ({ ord
       }`}
     >
       <div className="hidden sm:block p-3 rounded-xl bg-[#FF5A36]/10 text-[#FF5A36] shrink-0">
-        <Receipt className="w-5 h-5" />
+        <ReceiptText className="w-5 h-5" />
       </div>
       <div className="flex-1 min-w-0 space-y-1">
         <p className="font-bold text-white text-sm truncate">{order.eventName || '—'}</p>
@@ -154,7 +154,7 @@ export const OrderHistoryTab: React.FC = () => {
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <h3 className="text-lg font-bold font-display text-white flex items-center gap-2">
-            <Receipt className="w-[18px] h-[18px] text-[#FF5A36]" /> Orders
+            <ReceiptText className="w-[18px] h-[18px] text-[#FF5A36]" /> Orders
           </h3>
           <p className="text-xs text-[#8B929C] mt-0.5">
             Every ticket purchase you made, with the VietQR amount and SePay reference.
@@ -244,7 +244,7 @@ export const OrderHistoryTab: React.FC = () => {
         </div>
       ) : rows.length === 0 ? (
         <div className="py-12 text-center space-y-3">
-          <Receipt className="w-10 h-10 text-zinc-600 mx-auto" />
+          <ReceiptText className="w-10 h-10 text-zinc-600 mx-auto" />
           {hasFilters ? (
             <>
               <p className="text-sm font-semibold text-zinc-400">No orders match these filters.</p>
