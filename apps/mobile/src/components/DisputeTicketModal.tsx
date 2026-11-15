@@ -138,6 +138,10 @@ export function DisputeTicketModal({
       setErrorMsg('This ticket does not have a valid Escrow ID.');
       return;
     }
+    if (ticket.status === 'USED') {
+      setErrorMsg('This ticket has already been checked in. Disputes are locked.');
+      return;
+    }
 
     setIsSubmitting(true);
     setErrorMsg(null);

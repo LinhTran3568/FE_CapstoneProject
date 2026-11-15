@@ -26,9 +26,30 @@ import {
   ArrowUpRight,
   Shield,
   CreditCard,
+  ArrowLeftRight,
+  Tags,
 } from 'lucide-react';
+import {
+  DashboardAnalyticsPanels,
+  DashboardMoneyRow,
+  DashboardRangePicker,
+} from '../components/admin/DashboardAnalytics';
+import { useAdminAnalytics } from '../hooks/useAdminAnalytics';
+import type { DashboardRange } from '../utils/adminOps';
 
 export const AdminDashboardPage: React.FC = () => {
+  // Thống kê sàn (SCRUM-339) chạy riêng với dữ liệu cũ, nên lỗi thống kê không làm hỏng các thẻ vận hành.
+  const [range, setRange] = useState<DashboardRange>('All');
+  const [rangeAnchor, setRangeAnchor] = useState<Date>(() => new Date());
+  const analytics = useAdminAnalytics(range, rangeAnchor);
+  // BE đếm người mua, người bán theo khoảng ngày, nên khối kho vé và người dùng luôn đọc bản All.
+  // Khi đang chọn All thì 2 query trùng key, React Query chỉ gọi 1 lần.
+  const allTimeAnalytics = useAdminAnalytics('All', rangeAnchor);
+  const changeRange = (next: DashboardRange) => {
+    setRange(next);
+    setRangeAnchor(new Date());
+  };
+
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [lastRefreshed, setLastRefreshed] = useState<Date | null>(null);
@@ -118,7 +139,8 @@ export const AdminDashboardPage: React.FC = () => {
           </div>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 flex-wrap">
+          <DashboardRangePicker value={range} onChange={changeRange} />
           {lastRefreshed && (
             <span className="text-[11px] font-mono text-[#667085] hidden md:inline">
               Updated {lastRefreshed.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
@@ -126,7 +148,11 @@ export const AdminDashboardPage: React.FC = () => {
           )}
           <button
             type="button"
-            onClick={fetchDashboardData}
+            onClick={() => {
+              fetchDashboardData();
+              void analytics.refetch();
+              if (range !== 'All') void allTimeAnalytics.refetch();
+            }}
             className="px-3 py-1.5 rounded-lg bg-white border border-[#E5EAF0] text-[#101722] hover:bg-slate-50 text-xs font-medium flex items-center gap-1.5 transition-colors shadow-2xs cursor-pointer"
           >
             <RefreshCw className="w-3.5 h-3.5 text-[#667085]" />
@@ -141,6 +167,19 @@ export const AdminDashboardPage: React.FC = () => {
           <span>{error}</span>
         </div>
       )}
+
+      {/* ── Platform Money (SCRUM-339) ── */}
+      <DashboardMoneyRow
+        range={range}
+        analytics={{
+          data: analytics.data,
+          isPending: analytics.isPending,
+          isError: analytics.isError,
+          isFetching: analytics.isFetching,
+          error: analytics.error,
+          refetch: () => void analytics.refetch(),
+        }}
+      />
 
       {/* ── Operational KPI Cards Grid (4 Columns) ── */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -320,6 +359,15 @@ export const AdminDashboardPage: React.FC = () => {
         </div>
       </div>
 
+      {/* ── Revenue by Event, Inventory, Users, Events Table (SCRUM-339) ── */}
+      <DashboardAnalyticsPanels
+        data={analytics.data}
+        allTimeData={allTimeAnalytics.data}
+        allTimeFailed={allTimeAnalytics.isError && !allTimeAnalytics.data}
+        onRetryAllTime={() => void allTimeAnalytics.refetch()}
+        range={range}
+      />
+
       {/* ── Two-Column Operational Split Grid ── */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
         {/* Left Column: Pending Disputes (7 cols) */}
@@ -432,7 +480,39 @@ export const AdminDashboardPage: React.FC = () => {
       </div>
 
       {/* ── Admin Fast Navigation Deck ── */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <Link
+          to="/admin/transactions"
+          className="p-4 rounded-xl bg-white border border-[#E5EAF0] hover:border-[#F45135] transition-all shadow-2xs group flex items-start justify-between"
+        >
+          <div className="space-y-1">
+            <div className="flex items-center gap-2">
+              <ArrowLeftRight className="w-4 h-4 text-[#F45135]" />
+              <h3 className="text-xs font-bold text-[#101722] group-hover:text-[#F45135] transition-colors">
+                Transactions
+              </h3>
+            </div>
+            <p className="text-[11px] text-[#667085]">Escrow holds, payouts & refunds</p>
+          </div>
+          <ArrowUpRight className="w-4 h-4 text-[#667085] group-hover:text-[#F45135] transition-colors shrink-0" />
+        </Link>
+
+        <Link
+          to="/admin/listings"
+          className="p-4 rounded-xl bg-white border border-[#E5EAF0] hover:border-[#F45135] transition-all shadow-2xs group flex items-start justify-between"
+        >
+          <div className="space-y-1">
+            <div className="flex items-center gap-2">
+              <Tags className="w-4 h-4 text-[#F45135]" />
+              <h3 className="text-xs font-bold text-[#101722] group-hover:text-[#F45135] transition-colors">
+                Listings
+              </h3>
+            </div>
+            <p className="text-[11px] text-[#667085]">Resale tickets, combos & price caps</p>
+          </div>
+          <ArrowUpRight className="w-4 h-4 text-[#667085] group-hover:text-[#F45135] transition-colors shrink-0" />
+        </Link>
+
         <Link
           to="/admin/organizers"
           className="p-4 rounded-xl bg-white border border-[#E5EAF0] hover:border-[#F45135] transition-all shadow-2xs group flex items-start justify-between"

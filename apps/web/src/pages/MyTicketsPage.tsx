@@ -49,9 +49,9 @@ const getDisputeStatusBadge = (ticket: PurchasedTicketDto) => {
   const status = (ticket.status || '').trim().toUpperCase();
   if (status === 'USED') {
     return {
-      label: 'CHECKED IN',
-      classes: 'bg-black/80 text-amber-300 border border-amber-500/50 backdrop-blur-md shadow-sm',
-      dotClass: 'bg-amber-400',
+      label: 'CHECKED IN · COMPLETED',
+      classes: 'bg-black/80 text-emerald-300 border border-emerald-500/50 backdrop-blur-md shadow-sm',
+      dotClass: 'bg-emerald-400',
     };
   }
   if (status === 'DISPUTED') {
@@ -350,7 +350,10 @@ export const MyTicketsPage: React.FC = () => {
                 key={ticket.escrowId || ticket.listingId}
                 ticket={ticket}
                 onViewQr={() => setQrTicket(ticket)}
-                onOpenDispute={() => setDisputeTicket(ticket)}
+                onOpenDispute={() => {
+                  if ((ticket.status || '').trim().toUpperCase() === 'USED') return;
+                  setDisputeTicket(ticket);
+                }}
                 onOpenProgress={() => {
                   if (!ticket.disputeId) return;
                   setProgressTarget({
@@ -371,7 +374,7 @@ export const MyTicketsPage: React.FC = () => {
       )}
 
       {/* Dispute Submission Modal */}
-      {disputeTicket && (
+      {disputeTicket && (disputeTicket.status || '').trim().toUpperCase() !== 'USED' && (
         <DisputeSubmissionModal ticket={disputeTicket} onClose={() => setDisputeTicket(null)} />
       )}
 
@@ -737,17 +740,27 @@ const OfficialTicketPassCard: React.FC<OfficialTicketPassCardProps> = ({ ticket,
               <ShieldAlert className="w-3 h-3 text-amber-700 shrink-0" />
               <span>Buyer Disputed</span>
             </div>
+          ) : ticket.status === 'USED' || isUsed ? (
+            <div
+              className="w-full py-1 px-1.5 bg-emerald-100 border border-emerald-500/50 text-emerald-800 font-bold text-[9.5px] sm:text-[10px] tracking-tight rounded-lg flex items-center justify-center gap-1 text-center select-none"
+              title="Ticket checked in at gate. Transaction cycle completed."
+            >
+              <Check className="w-3 h-3 text-emerald-700 shrink-0" />
+              <span>CHECKED IN · CYCLE COMPLETED</span>
+            </div>
           ) : ticket.disputeWaived ? (
             <div className="w-full py-1 px-1.5 bg-slate-100 border border-slate-300 text-slate-500 font-bold text-[9.5px] sm:text-[10px] tracking-tight rounded-lg flex items-center justify-center gap-1 text-center select-none" title="This ticket was listed for resale. Dispute rights are waived.">
               <span>RESOLD — DISPUTE WAIVED</span>
             </div>
           ) : (
             ticket.escrowId &&
+            ticket.status !== 'USED' &&
             (ticket.status === 'IN_ESCROW' || ticket.status === 'LOCKED') && (
               <button
                 type="button"
                 onClick={(e) => {
                   e.stopPropagation();
+                  if (isUsed || ticket.status === 'USED') return;
                   onOpenDispute();
                 }}
                 className="w-full py-1 px-1.5 bg-slate-800/10 hover:bg-rose-500/15 border border-slate-400/40 hover:border-rose-500/40 text-slate-700 hover:text-rose-700 font-bold text-[9.5px] sm:text-[10px] tracking-tight rounded-lg flex items-center justify-center gap-1 transition-all cursor-pointer"

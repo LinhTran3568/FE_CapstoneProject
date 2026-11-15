@@ -21,6 +21,8 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   User,
+  ArrowLeftRight,
+  Tags,
 } from 'lucide-react';
 import { TicketShieldLogo } from '../../ui/TicketShieldLogo';
 
@@ -93,6 +95,22 @@ export const AdminLayout: React.FC = () => {
       adminOnly: true,
     },
     {
+      to: '/admin/transactions',
+      aliases: ['/admin/transactions'],
+      label: 'Transactions',
+      icon: ArrowLeftRight,
+      badge: null,
+      adminOnly: true,
+    },
+    {
+      to: '/admin/listings',
+      aliases: ['/admin/listings'],
+      label: 'Listings',
+      icon: Tags,
+      badge: null,
+      adminOnly: true,
+    },
+    {
       to: '/admin/disputes',
       aliases: ['/admin/disputes', '/disputes/console'],
       label: 'Dispute Console',
@@ -148,6 +166,18 @@ export const AdminLayout: React.FC = () => {
     const portalPrefix = isAdmin ? 'Admin' : 'Moderation';
     const portalHome = isAdmin ? '/admin/dashboard' : '/admin/disputes';
 
+    if (p.startsWith('/admin/transactions')) {
+      return [
+        { label: portalPrefix, to: portalHome },
+        { label: 'Transactions', to: '/admin/transactions' }
+      ];
+    }
+    if (p.startsWith('/admin/listings')) {
+      return [
+        { label: portalPrefix, to: portalHome },
+        { label: 'Listings', to: '/admin/listings' }
+      ];
+    }
     if (p.startsWith('/admin/organizers')) {
       return [
         { label: portalPrefix, to: portalHome },

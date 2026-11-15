@@ -250,7 +250,7 @@ export const SideBySideDossierView: React.FC<SideBySideDossierViewProps> = ({ do
               <span className="text-slate-400 block mb-0.5">Frozen Escrow Value:</span>
               <div className="font-mono font-bold text-emerald-400 text-sm flex items-center gap-1">
                 <Coins className="w-3.5 h-3.5 text-emerald-400" />
-                <span>{dossier.totalBuyerPaid ? dossier.totalBuyerPaid.toLocaleString('en-US') : '0'} ₫</span>
+                <span>{dossier.totalBuyerPaid ? dossier.totalBuyerPaid.toLocaleString('en-US') : '0'} VNĐ</span>
               </div>
               <span className="text-[11px] text-slate-400 block mt-0.5">Seller: {dossier.sellerName}</span>
             </div>
@@ -489,7 +489,7 @@ export const SideBySideDossierView: React.FC<SideBySideDossierViewProps> = ({ do
               
               {verdictModal.decision === 'Approve' ? (
                 <div className="p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-emerald-300">
-                  This command will refund <strong>{dossier.totalBuyerPaid ? dossier.totalBuyerPaid.toLocaleString('en-US') : '0'} ₫</strong> from Escrow back to the buyer and cancel this transaction.
+                  This command will refund <strong>{dossier.totalBuyerPaid ? dossier.totalBuyerPaid.toLocaleString('en-US') : '0'} VNĐ</strong> from Escrow back to the buyer and cancel this transaction.
                 </div>
               ) : (
                 <div className="p-3 rounded-lg bg-rose-500/10 border border-rose-500/30 text-rose-300">

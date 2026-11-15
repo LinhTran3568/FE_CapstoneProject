@@ -20,7 +20,7 @@ export const BankTransferDetails: React.FC<BankTransferDetailsProps> = ({
   accountName,
   amount,
   paymentReference,
-  currency = '₫',
+  currency = 'VNĐ',
   className = '',
 }) => {
   const formattedAmount = amount ? amount.toLocaleString('en-US') : '0';

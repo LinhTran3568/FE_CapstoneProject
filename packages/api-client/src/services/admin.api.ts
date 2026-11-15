@@ -1,4 +1,16 @@
+import type { PaginatedList } from '@ticketshield/types';
 import { httpClient } from './client';
+
+/** Dựng query string, bỏ giá trị rỗng và cờ `false` (BE coi như không lọc). */
+const buildQuery = (params: object): string => {
+  const search = new URLSearchParams();
+  Object.entries(params).forEach(([key, value]) => {
+    if (value === undefined || value === null || value === '' || value === false) return;
+    search.append(key, String(value));
+  });
+  const qs = search.toString();
+  return qs ? `?${qs}` : '';
+};
 
 export interface ResaleFeeConfigDto {
   buyerFeePercentage: number;
@@ -164,7 +176,232 @@ export const adminApi = {
       method: 'POST',
     });
   },
+
+  /**
+   * GET /admin/transactions (SCRUM-334): giao dịch ký quỹ kèm sổ giải ngân, phân trang.
+   * `summary` là số toàn sàn, không theo bộ lọc.
+   */
+  getTransactions: async (params: AdminTransactionsParams = {}): Promise<AdminTransactionsResponse> => {
+    return await httpClient<AdminTransactionsResponse>(`/admin/transactions${buildQuery(params)}`);
+  },
+
+  /**
+   * GET /admin/listings (SCRUM-336): tin bán lại và vé trong combo, kèm soát trần giá.
+   * Mỗi vé một dòng. Lọc `bundleId` để lấy đủ vé của một combo.
+   */
+  getListings: async (params: AdminListingsParams = {}): Promise<AdminListingsResponse> => {
+    return await httpClient<AdminListingsResponse>(`/admin/listings${buildQuery(params)}`);
+  },
+
+  /**
+   * GET /admin/analytics/platform-revenue-inventory (SCRUM-338).
+   * Khoảng ngày chỉ áp cho doanh thu và bảng sự kiện, kho vé và người dùng luôn tính toàn bộ.
+   */
+  getPlatformAnalytics: async (params: AdminAnalyticsParams = {}): Promise<AdminPlatformAnalyticsDto> => {
+    return await httpClient<AdminPlatformAnalyticsDto>(
+      `/admin/analytics/platform-revenue-inventory${buildQuery(params)}`
+    );
+  },
 };
+
+// ── Epic-11: Admin Operations (SCRUM-333) ──
+// Trạng thái là union chữ cộng string: giá trị lạ từ BE vẫn qua được kiểu và hiện nguyên văn.
+
+export type AdminEscrowStatus =
+  | 'Pending' | 'Locked' | 'Releasing' | 'Released' | 'Refunded'
+  | 'Disputed' | 'RefundQueued' | 'Expired' | 'Cancelled' | (string & {});
+export type AdminPayoutStatus = 'Pending' | 'Processing' | 'Success' | 'Failed' | (string & {});
+export type AdminDisputeStatus = 'Open' | 'UnderReview' | 'Resolved' | 'Rejected' | (string & {});
+export type AdminListingStatus =
+  | 'Draft' | 'Verified' | 'Transacting' | 'Sold' | 'Cancelled' | 'Expired' | (string & {});
+export type AdminVerificationStatus = 'PendingOtp' | 'Verified' | 'Rejected' | (string & {});
+
+export interface AdminTransactionsParams {
+  page?: number;
+  size?: number;
+  status?: AdminEscrowStatus;
+  payoutStatus?: AdminPayoutStatus;
+  inSettlementBufferOnly?: boolean;
+  keyword?: string;
+  fromDate?: string;
+  toDate?: string;
+}
+
+export interface AdminTransactionDto {
+  escrowId: string;
+  listingId: string;
+  bundleId: string | null;
+  eventId: string;
+  eventName: string;
+  originalTicketCode: string;
+  newTicketCode: string | null;
+  buyerId: string;
+  buyerName: string;
+  buyerEmail: string;
+  buyerPhone: string | null;
+  sellerId: string;
+  sellerName: string;
+  sellerEmail: string;
+  sellerPhone: string | null;
+  originalTicketPrice: number;
+  buyerFee: number;
+  sellerFee: number;
+  totalBuyerPaid: number;
+  netSellerPayout: number;
+  paymentReference: string | null;
+  bankTransactionReference: string | null;
+  status: AdminEscrowStatus;
+  inSettlementBuffer: boolean;
+  transferredAt: string | null;
+  unlockAt: string | null;
+  disputeDeadline: string | null;
+  disputeWaived: boolean;
+  disputeWaivedAt: string | null;
+  refundedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+  payoutId: string | null;
+  payoutCode: string | null;
+  payoutStatus: AdminPayoutStatus | null;
+  payoutAmount: number | null;
+  recipientBankCode: string | null;
+  recipientAccountNumber: string | null;
+  recipientAccountName: string | null;
+  bankReferenceCode: string | null;
+  payoutProcessedAt: string | null;
+  payoutErrorMessage: string | null;
+  payoutRetryCount: number;
+  disputeId: string | null;
+  disputeStatus: AdminDisputeStatus | null;
+}
+
+export interface AdminTransactionsSummaryDto {
+  totalEscrowLockedAmount: number;
+  totalLockedCount: number;
+  totalPayoutCompletedAmount: number;
+  totalRefundedAmount: number;
+  totalDisputedCount: number;
+}
+
+export interface AdminTransactionsResponse {
+  transactions: PaginatedList<AdminTransactionDto>;
+  summary: AdminTransactionsSummaryDto;
+}
+
+export interface AdminListingsParams {
+  page?: number;
+  size?: number;
+  status?: AdminListingStatus;
+  verificationStatus?: AdminVerificationStatus;
+  isBundleOnly?: boolean;
+  isSingleOnly?: boolean;
+  isAtPriceCeilingOnly?: boolean;
+  eventId?: string;
+  sellerId?: string;
+  bundleId?: string;
+  keyword?: string;
+  fromDate?: string;
+  toDate?: string;
+}
+
+export interface AdminListingDto {
+  listingId: string;
+  bundleId: string | null;
+  isBundle: boolean;
+  isBundleAllOrNothing: boolean;
+  bundleTotalTickets: number;
+  eventId: string;
+  eventName: string;
+  tierId: string;
+  tierName: string;
+  originalTicketCode: string;
+  maskedTicketCode: string;
+  seatZone: string | null;
+  ticketId: string | null;
+  sellerId: string;
+  sellerName: string;
+  sellerEmail: string;
+  sellerPhone: string | null;
+  originalPrice: number;
+  resalePrice: number;
+  appliedMarkupPercentage: number;
+  eventMaxMarkupPercentage: number;
+  maxAllowedPrice: number;
+  actualMarkupPercentage: number;
+  isAtPriceCeiling: boolean;
+  isPriceCeilingExceeded: boolean;
+  discountAmount: number;
+  discountPercentage: number;
+  listingStatus: AdminListingStatus;
+  verificationStatus: AdminVerificationStatus;
+  isPrivate: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface AdminListingsSummaryDto {
+  totalListings: number;
+  totalSingleTickets: number;
+  totalBundles: number;
+  totalActiveListings: number;
+  totalSoldListings: number;
+  totalAtCeilingListings: number;
+}
+
+export interface AdminListingsResponse {
+  listings: PaginatedList<AdminListingDto>;
+  summary: AdminListingsSummaryDto;
+}
+
+export interface AdminAnalyticsParams {
+  fromDate?: string;
+  toDate?: string;
+}
+
+export interface PlatformRevenueStatsDto {
+  totalNetRevenue: number;
+  totalBuyerFees: number;
+  totalSellerFees: number;
+  totalGmv: number;
+  pendingFeesInEscrow: number;
+  totalRefundedAmount: number;
+}
+
+export interface PlatformUserAnalyticsDto {
+  totalUsers: number;
+  totalBuyers: number;
+  totalSellers: number;
+  dualRoleUsers: number;
+  activeUsers: number;
+}
+
+export interface TicketInventoryAnalyticsDto {
+  totalTicketsInInventory: number;
+  validTickets: number;
+  lockedForResaleTickets: number;
+  transferredTickets: number;
+  usedTickets: number;
+  cancelledTickets: number;
+}
+
+export interface EventTransactionAnalyticsDto {
+  eventId: string;
+  eventName: string;
+  venue: string;
+  eventStartAt: string;
+  totalListings: number;
+  totalTicketsSold: number;
+  totalTicketsAvailable: number;
+  totalTransactionVolume: number;
+  totalPlatformRevenue: number;
+}
+
+export interface AdminPlatformAnalyticsDto {
+  revenue: PlatformRevenueStatsDto;
+  users: PlatformUserAnalyticsDto;
+  inventory: TicketInventoryAnalyticsDto;
+  eventTransactions: EventTransactionAnalyticsDto[];
+}
 
 export interface AdminUserDto {
   id: string;
