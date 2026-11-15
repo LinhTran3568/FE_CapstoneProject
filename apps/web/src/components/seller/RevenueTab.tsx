@@ -4,30 +4,7 @@ import type { MyPayoutDto, SellerListingDto } from '@ticketshield/types';
 import { listingsFailedBeforeAnyData, useMyListings } from '../../hooks/useMyListings';
 import { useMyPayouts } from '../../hooks/useMyPayouts';
 import { formatEventDateTime, formatVND } from '../../utils/formatters';
-
-const PAYOUT_STATUS_LABEL: Record<string, string> = {
-  Pending: 'Pending',
-  Processing: 'Sending',
-  Success: 'Sent',
-  Failed: 'Could not send',
-};
-
-const ESCROW_STATUS_LABEL: Record<string, string> = {
-  Pending: 'Awaiting payment',
-  Locked: 'On hold',
-  Releasing: 'Awaiting receipt',
-  Released: 'Paid out',
-  Refunded: 'Refunded',
-  Disputed: 'In dispute',
-  RefundQueued: 'Refunding',
-  Expired: 'Expired',
-  Cancelled: 'Cancelled',
-};
-
-const labelOf = (map: Record<string, string>, value?: string | null) => {
-  if (!value) return '—';
-  return map[value] ?? value;
-};
+import { ESCROW_STATUS_LABEL, PAYOUT_STATUS_LABEL, labelOf } from '../../utils/moneyStatus';
 
 export function selectHoldingListings(listings: SellerListingDto[]): SellerListingDto[] {
   return listings
