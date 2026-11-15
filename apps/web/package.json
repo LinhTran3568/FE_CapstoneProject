@@ -10,7 +10,8 @@
     "typecheck": "tsc --noEmit",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "test:bot": "node e2e/webdriver-puppeteer.mjs && node e2e/webdriver-selenium.mjs",
-    "test:gate": "npx tsx src/__tests__/run-gate-scan-test.cjs"
+    "test:gate": "npx tsx src/__tests__/run-gate-scan-test.cjs",
+    "test:admin": "npx tsx src/__tests__/run-admin-ops-test.cjs"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.3.4",

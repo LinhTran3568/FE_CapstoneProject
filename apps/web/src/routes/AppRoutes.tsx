@@ -30,6 +30,8 @@ const AdminDashboardPage = lazyNamed(() => import('../pages/AdminDashboardPage')
 const AdminUsersPage = lazyNamed(() => import('../pages/AdminUsersPage'), 'AdminUsersPage');
 const AdminProfilePage = lazyNamed(() => import('../pages/AdminProfilePage'), 'AdminProfilePage');
 const AdminOrganizersPage = lazyNamed(() => import('../pages/AdminOrganizersPage'), 'AdminOrganizersPage');
+const AdminTransactionsPage = lazyNamed(() => import('../pages/AdminTransactionsPage'), 'AdminTransactionsPage');
+const AdminListingsPage = lazyNamed(() => import('../pages/AdminListingsPage'), 'AdminListingsPage');
 const StorefrontDiscoveryPage = lazyNamed(() => import('../pages/storefront/StorefrontDiscoveryPage'), 'StorefrontDiscoveryPage');
 const StorefrontEventDetailPage = lazyNamed(() => import('../pages/storefront/StorefrontEventDetailPage'), 'StorefrontEventDetailPage');
 const StorefrontTicketSelectPage = lazyNamed(() => import('../pages/storefront/StorefrontTicketSelectPage'), 'StorefrontTicketSelectPage');
@@ -112,7 +114,8 @@ export const AppRoutes: React.FC = () => {
           <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />
           <Route path="/admin/dashboard" element={<AdminDashboardPage />} />
           <Route path="/admin/events" element={<Navigate to="/admin/config?tab=markup" replace />} />
-          <Route path="/admin/transactions" element={<Navigate to="/admin/config?tab=buffer" replace />} />
+          <Route path="/admin/transactions" element={<AdminTransactionsPage />} />
+          <Route path="/admin/listings" element={<AdminListingsPage />} />
           <Route path="/admin/config" element={<AdminConfigPage />} />
           <Route path="/admin/fees" element={<Navigate to="/admin/config?tab=fees" replace />} />
           <Route path="/admin/fee-settings" element={<Navigate to="/admin/config?tab=fees" replace />} />
