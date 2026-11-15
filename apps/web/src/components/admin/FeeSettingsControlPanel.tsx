@@ -9,7 +9,8 @@ import {
   Loader2,
   CheckCircle2,
   AlertTriangle,
-  Info
+  Info,
+  Coins
 } from 'lucide-react';
 
 export const FeeSettingsControlPanel: React.FC = () => {
@@ -24,7 +25,7 @@ export const FeeSettingsControlPanel: React.FC = () => {
 
   // Form input states (percentages in 0-100 format for display/input)
   const [buyerFeePercent, setBuyerFeePercent] = useState<number>(5.0);
-  const [sellerFeePercent, setSellerFeePercent] = useState<number>(3.0);
+  const [sellerFeePercent, setSellerFeePercent] = useState<number>(5.0);
   const [minBuyerFee, setMinBuyerFee] = useState<number>(10000);
   const [minSellerFee, setMinSellerFee] = useState<number>(5000);
 
@@ -121,7 +122,7 @@ export const FeeSettingsControlPanel: React.FC = () => {
   const platformRevenue = calculatedBuyerFee + calculatedSellerFee;
 
   const formatVND = (amount: number) => {
-    return (amount || 0).toLocaleString('en-US') + ' ₫';
+    return (amount || 0).toLocaleString('en-US') + ' VNĐ';
   };
 
   return (
@@ -217,8 +218,9 @@ export const FeeSettingsControlPanel: React.FC = () => {
               </div>
 
               <div className="space-y-1 pt-1 border-t border-[#E5EAF0]/60">
-                <label className="block text-xs font-semibold text-[#101722]">
-                  Minimum Fee (VND)
+                <label className="block text-xs font-semibold text-[#101722] flex items-center gap-1.5">
+                  <Coins className="w-3.5 h-3.5 text-[#F45135]" />
+                  <span>Minimum Fee (VNĐ)</span>
                 </label>
                 <div className="relative">
                   <input
@@ -227,9 +229,9 @@ export const FeeSettingsControlPanel: React.FC = () => {
                     min="0"
                     value={minBuyerFee}
                     onChange={(e) => setMinBuyerFee(parseInt(e.target.value, 10) || 0)}
-                    className="w-full bg-white border border-[#E5EAF0] rounded-lg px-3 py-1.5 text-xs font-mono font-bold text-[#101722] focus:outline-none focus:border-[#F45135] pr-8"
+                    className="w-full bg-white border border-[#E5EAF0] rounded-lg px-3 py-1.5 text-xs font-mono font-bold text-[#101722] focus:outline-none focus:border-[#F45135] pr-12"
                   />
-                  <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs font-mono text-[#667085]">₫</span>
+                  <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs font-mono text-[#667085]">VNĐ</span>
                 </div>
                 <p className="text-[10px] text-[#667085]">Applied when percentage fee is lower than this minimum</p>
               </div>
@@ -266,8 +268,9 @@ export const FeeSettingsControlPanel: React.FC = () => {
               </div>
 
               <div className="space-y-1 pt-1 border-t border-[#E5EAF0]/60">
-                <label className="block text-xs font-semibold text-[#101722]">
-                  Minimum Fee (VND)
+                <label className="block text-xs font-semibold text-[#101722] flex items-center gap-1.5">
+                  <Coins className="w-3.5 h-3.5 text-[#F45135]" />
+                  <span>Minimum Fee (VNĐ)</span>
                 </label>
                 <div className="relative">
                   <input
@@ -276,9 +279,9 @@ export const FeeSettingsControlPanel: React.FC = () => {
                     min="0"
                     value={minSellerFee}
                     onChange={(e) => setMinSellerFee(parseInt(e.target.value, 10) || 0)}
-                    className="w-full bg-white border border-[#E5EAF0] rounded-lg px-3 py-1.5 text-xs font-mono font-bold text-[#101722] focus:outline-none focus:border-[#F45135] pr-8"
+                    className="w-full bg-white border border-[#E5EAF0] rounded-lg px-3 py-1.5 text-xs font-mono font-bold text-[#101722] focus:outline-none focus:border-[#F45135] pr-12"
                   />
-                  <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs font-mono text-[#667085]">₫</span>
+                  <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs font-mono text-[#667085]">VNĐ</span>
                 </div>
                 <p className="text-[10px] text-[#667085]">Applied when percentage fee is lower than this minimum</p>
               </div>
@@ -334,8 +337,9 @@ export const FeeSettingsControlPanel: React.FC = () => {
 
           {/* Simulated Price Input */}
           <div className="space-y-1.5">
-            <label className="block text-xs font-semibold text-[#101722]">
-              Sample Listing Price (VND)
+            <label className="block text-xs font-semibold text-[#101722] flex items-center gap-1.5">
+              <Coins className="w-3.5 h-3.5 text-[#F45135]" />
+              Sample Listing Price (VNĐ)
             </label>
             <div className="relative">
               <input
@@ -344,9 +348,9 @@ export const FeeSettingsControlPanel: React.FC = () => {
                 min="10000"
                 value={simulatedPrice}
                 onChange={(e) => setSimulatedPrice(parseInt(e.target.value, 10) || 0)}
-                className="w-full bg-[#F4F6F9] border border-[#E5EAF0] rounded-lg px-3 py-2 text-xs font-mono font-bold text-[#101722] focus:outline-none focus:border-[#F45135] pr-10"
+                className="w-full bg-[#F4F6F9] border border-[#E5EAF0] rounded-lg px-3 py-2 text-xs font-mono font-bold text-[#101722] focus:outline-none focus:border-[#F45135] pr-12"
               />
-              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-mono text-[#667085]">₫</span>
+              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-mono text-[#667085]">VNĐ</span>
             </div>
 
             {/* Quick Price Chips */}
