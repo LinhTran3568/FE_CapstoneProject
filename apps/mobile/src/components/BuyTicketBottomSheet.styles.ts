@@ -649,4 +649,34 @@ export const styles = StyleSheet.create({
     fontFamily: fontFamilies.bold,
     color: theme.colors.primary,
   },
+  retailNotice: {
+    backgroundColor: 'rgba(255, 90, 54, 0.08)',
+    borderRadius: theme.radii.sm,
+    paddingHorizontal: 8,
+    paddingVertical: 5,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 90, 54, 0.2)',
+  },
+  retailNoticeText: {
+    fontSize: 11,
+    fontFamily: fontFamilies.medium,
+    color: '#FF8A65',
+  },
+  bundleItemRowSelected: {
+    borderColor: theme.colors.primary,
+    backgroundColor: 'rgba(255, 90, 54, 0.08)',
+  },
+  checkCircle: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    borderWidth: 1.5,
+    borderColor: theme.colors.border,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  checkCircleSelected: {
+    backgroundColor: theme.colors.primary,
+    borderColor: theme.colors.primary,
+  },
 });

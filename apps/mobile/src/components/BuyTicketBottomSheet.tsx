@@ -254,79 +254,80 @@ export const BuyTicketBottomSheet: React.FC<BuyTicketBottomSheetProps> = ({
     Boolean(listing?.bundleTotalTickets && listing.bundleTotalTickets >= 2) ||
     Boolean(listing?.bundleId && (listing?.bundleTotalTickets ?? 0) > 1);
 
+  const isRetailAllowed = isBundle && listing?.isBundleAllOrNothing === false;
+
   const bundleCount =
     listing?.bundleTotalTickets && listing.bundleTotalTickets >= 2
       ? listing.bundleTotalTickets
       : effectiveBundleItems.length;
 
-  const totalBundleResalePrice = useMemo(() => {
-    if (!listing) return 0;
-    if (isBundle && effectiveBundleItems.length > 1) {
-      return effectiveBundleItems.reduce((sum, b) => sum + (b.resalePrice || 0), 0);
-    }
-    if (listing.bundleTotalTickets && listing.bundleTotalTickets >= 2) {
-      return listing.resalePrice * listing.bundleTotalTickets;
-    }
-    return listing.resalePrice;
-  }, [listing, isBundle, effectiveBundleItems]);
+  // Selection state for individual retail sale tickets when seller allows "Separately"
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
 
-  const totalBundleOriginalPrice = useMemo(() => {
-    if (!listing) return 0;
-    if (isBundle && effectiveBundleItems.length > 1) {
-      return effectiveBundleItems.reduce((sum, b) => sum + (b.originalPrice || 0), 0);
+  useEffect(() => {
+    if (visible && listing) {
+      if (effectiveBundleItems.length > 0) {
+        setSelectedIds(effectiveBundleItems.map((b) => b.listingId));
+      } else {
+        setSelectedIds([listing.listingId]);
+      }
     }
-    if (listing.bundleTotalTickets && listing.bundleTotalTickets >= 2) {
-      return listing.originalPrice * listing.bundleTotalTickets;
-    }
-    return listing.originalPrice;
-  }, [listing, isBundle, effectiveBundleItems]);
+  }, [visible, listing, effectiveBundleItems]);
 
-  const hasDiscount = totalBundleOriginalPrice > totalBundleResalePrice;
+  const handleToggleTicket = (ticketId: string) => {
+    if (!isRetailAllowed) return;
+    setSelectedIds((prev) =>
+      prev.includes(ticketId)
+        ? prev.filter((id) => id !== ticketId)
+        : [...prev, ticketId]
+    );
+  };
+
+  const activeSelectedTickets = useMemo(() => {
+    if (!isRetailAllowed) return effectiveBundleItems;
+    return effectiveBundleItems.filter((b) => selectedIds.includes(b.listingId));
+  }, [isRetailAllowed, effectiveBundleItems, selectedIds]);
+
+  const currentSelectedCount = activeSelectedTickets.length;
+  const isBuyingAsBundle = activeSelectedTickets.length > 1;
+
+  const activeResalePrice = useMemo(() => {
+    return activeSelectedTickets.reduce((sum, b) => sum + (b.resalePrice || 0), 0);
+  }, [activeSelectedTickets]);
+
+  const activeOriginalPrice = useMemo(() => {
+    return activeSelectedTickets.reduce((sum, b) => sum + (b.originalPrice || 0), 0);
+  }, [activeSelectedTickets]);
+
+  const hasDiscount = activeOriginalPrice > activeResalePrice;
   const calculatedDiscountPercent = hasDiscount
-    ? Math.round(((totalBundleOriginalPrice - totalBundleResalePrice) / totalBundleOriginalPrice) * 100)
+    ? Math.round(((activeOriginalPrice - activeResalePrice) / activeOriginalPrice) * 100)
     : 0;
-  const discountPercentage =
-    listing?.discountPercentage && listing.discountPercentage > 0
-      ? listing.discountPercentage
-      : calculatedDiscountPercent;
+  const discountPercentage = calculatedDiscountPercent;
 
   // Mirrors DynamicResaleFeeCalculator on the backend for the review screen.
   const feePreview = useMemo(() => {
-    if (!listing || !feeConfig) return null;
+    if (!listing || !feeConfig || activeSelectedTickets.length === 0) return null;
 
     let buyerFee = 0;
     let isMinimumApplied = false;
 
-    if (isBundle && effectiveBundleItems.length > 1) {
-      for (const item of effectiveBundleItems) {
-        const itemFee = item.resalePrice * feeConfig.buyerFeePercentage;
-        const finalItemFee = Math.max(itemFee, feeConfig.minimumBuyerFee);
-        if (feeConfig.minimumBuyerFee > 0 && itemFee < feeConfig.minimumBuyerFee) {
-          isMinimumApplied = true;
-        }
-        buyerFee += roundToEven(finalItemFee);
-      }
-    } else if (isBundle && listing.bundleTotalTickets && listing.bundleTotalTickets >= 2) {
-      const singleItemFee = listing.resalePrice * feeConfig.buyerFeePercentage;
-      const finalItemFee = Math.max(singleItemFee, feeConfig.minimumBuyerFee);
-      if (feeConfig.minimumBuyerFee > 0 && singleItemFee < feeConfig.minimumBuyerFee) {
+    for (const item of activeSelectedTickets) {
+      const itemFee = item.resalePrice * feeConfig.buyerFeePercentage;
+      const finalItemFee = Math.max(itemFee, feeConfig.minimumBuyerFee);
+      if (feeConfig.minimumBuyerFee > 0 && itemFee < feeConfig.minimumBuyerFee) {
         isMinimumApplied = true;
       }
-      buyerFee = roundToEven(finalItemFee) * listing.bundleTotalTickets;
-    } else {
-      const percentageFee = listing.resalePrice * feeConfig.buyerFeePercentage;
-      const rawBuyerFee = Math.max(percentageFee, feeConfig.minimumBuyerFee);
-      isMinimumApplied = feeConfig.minimumBuyerFee > 0 && percentageFee < feeConfig.minimumBuyerFee;
-      buyerFee = roundToEven(rawBuyerFee);
+      buyerFee += roundToEven(finalItemFee);
     }
 
     return {
       buyerFee,
-      totalBuyerPaid: roundToEven(totalBundleResalePrice + buyerFee),
+      totalBuyerPaid: roundToEven(activeResalePrice + buyerFee),
       isMinimumApplied,
       percentageLabel: `${Number((feeConfig.buyerFeePercentage * 100).toFixed(2))}%`,
     };
-  }, [listing, feeConfig, isBundle, effectiveBundleItems, totalBundleResalePrice]);
+  }, [listing, feeConfig, activeSelectedTickets, activeResalePrice]);
 
   const isOwner = Boolean(
     user?.id &&
@@ -365,6 +366,11 @@ export const BuyTicketBottomSheet: React.FC<BuyTicketBottomSheetProps> = ({
   const handleHoldListing = async () => {
     if (!listing) return;
 
+    if (activeSelectedTickets.length === 0) {
+      setHoldError('Please select at least 1 ticket to proceed.');
+      return;
+    }
+
     if (isOwner) {
       setHoldError('You cannot purchase your own resale listing.');
       return;
@@ -376,11 +382,15 @@ export const BuyTicketBottomSheet: React.FC<BuyTicketBottomSheetProps> = ({
     setHoldError(null);
 
     try {
-      const response = await resaleListingsApi.holdListing(listing.listingId, {
+      const targetListingId = isBuyingAsBundle
+        ? listing.listingId
+        : (activeSelectedTickets[0]?.listingId || listing.listingId);
+
+      const response = await resaleListingsApi.holdListing(targetListingId, {
         recipientName: recipientName.trim(),
         recipientEmail: recipientEmail.trim(),
         recipientIdCard: recipientIdCard.trim() || undefined,
-        buyAsBundle: isBundle ? true : undefined,
+        buyAsBundle: isBuyingAsBundle ? true : false,
       });
 
       setHoldData(response);
@@ -577,9 +587,9 @@ export const BuyTicketBottomSheet: React.FC<BuyTicketBottomSheetProps> = ({
                       {listing.eventName}
                     </Text>
                     <Text style={styles.sheetEventMeta} numberOfLines={1}>
-                      {isBundle
-                        ? `Combo (${bundleCount} tickets) • ${listing.tierName}`
-                        : `${listing.tierName} • ${listing.seatZone || 'General Admission'}`}
+                      {currentSelectedCount > 1
+                        ? `${currentSelectedCount} Tickets • ${listing.tierName}`
+                        : `${listing.tierName} • ${activeSelectedTickets[0]?.seatZone || listing.seatZone || 'General Admission'}`}
                     </Text>
                     <Text style={styles.sheetEventMeta} numberOfLines={1}>
                       {formatEventDateTime(listing.eventStartAt)}
@@ -621,28 +631,50 @@ export const BuyTicketBottomSheet: React.FC<BuyTicketBottomSheetProps> = ({
                           <View style={styles.bundleHeader}>
                             <Layers size={14} color="#FF5A36" />
                             <Text style={styles.bundleTitle}>
-                              Combo Package ({bundleCount} Tickets)
+                              {isRetailAllowed
+                                ? `Choose Tickets (${currentSelectedCount}/${effectiveBundleItems.length} Selected)`
+                                : `Combo Package (${bundleCount} Tickets)`}
                             </Text>
                           </View>
+
                           <View style={styles.bundleItemsList}>
-                            {effectiveBundleItems.map((bItem, idx) => (
-                              <View key={bItem.listingId || idx} style={styles.bundleItemRow}>
-                                <View style={styles.bundleItemBullet}>
-                                  <Text style={styles.bundleItemIndex}>#{idx + 1}</Text>
-                                </View>
-                                <View style={styles.bundleItemDetails}>
-                                  <Text style={styles.bundleItemName}>
-                                    {bItem.tierName} • {bItem.seatZone || 'General Admission'}
+                            {effectiveBundleItems.map((bItem, idx) => {
+                              const isSelected = selectedIds.includes(bItem.listingId);
+                              return (
+                                <TouchableOpacity
+                                  key={bItem.listingId || idx}
+                                  style={[
+                                    styles.bundleItemRow,
+                                    isRetailAllowed && isSelected && styles.bundleItemRowSelected,
+                                  ]}
+                                  activeOpacity={isRetailAllowed ? 0.7 : 1}
+                                  onPress={() => handleToggleTicket(bItem.listingId)}
+                                  disabled={!isRetailAllowed}
+                                >
+                                  {isRetailAllowed && (
+                                    <View
+                                      style={[
+                                        styles.checkCircle,
+                                        isSelected && styles.checkCircleSelected,
+                                      ]}
+                                    >
+                                      {isSelected && <Check size={12} color="#FFF" />}
+                                    </View>
+                                  )}
+                                  <View style={styles.bundleItemDetails}>
+                                    <Text style={styles.bundleItemName}>
+                                      {bItem.tierName} • {bItem.seatZone || 'General Admission'}
+                                    </Text>
+                                    <Text style={styles.bundleItemCode}>
+                                      Pass #{bItem.maskedTicketCode || 'AT*********93'}
+                                    </Text>
+                                  </View>
+                                  <Text style={styles.bundleItemPrice}>
+                                    {formatPrice(bItem.resalePrice)}
                                   </Text>
-                                  <Text style={styles.bundleItemCode}>
-                                    Pass #{bItem.maskedTicketCode || 'AT*********93'}
-                                  </Text>
-                                </View>
-                                <Text style={styles.bundleItemPrice}>
-                                  {formatPrice(bItem.resalePrice)}
-                                </Text>
-                              </View>
-                            ))}
+                                </TouchableOpacity>
+                              );
+                            })}
                           </View>
                         </View>
                       )}
@@ -658,7 +690,7 @@ export const BuyTicketBottomSheet: React.FC<BuyTicketBottomSheetProps> = ({
                           </View>
                           <View style={styles.sheetCeilingBadge}>
                             <Text style={styles.sheetCeilingBadgeText}>
-                              {totalBundleResalePrice <= totalBundleOriginalPrice ? 'PROTECTED' : 'VERIFIED'}
+                              {activeResalePrice <= activeOriginalPrice ? 'PROTECTED' : 'VERIFIED'}
                             </Text>
                           </View>
                         </View>
@@ -672,14 +704,14 @@ export const BuyTicketBottomSheet: React.FC<BuyTicketBottomSheetProps> = ({
                                 discountPercentage > 0 && styles.sheetCeilingStrikethrough,
                               ]}
                             >
-                              {formatPrice(totalBundleOriginalPrice)}
+                              {formatPrice(activeOriginalPrice)}
                             </Text>
                           </View>
                           <View style={styles.sheetCeilingDivider} />
                           <View style={styles.sheetCeilingCol}>
                             <Text style={styles.sheetCeilingLabel}>Resale Price</Text>
                             <Text style={[styles.sheetCeilingValue, { color: theme.colors.primary }]}>
-                              {formatPrice(totalBundleResalePrice)}
+                              {formatPrice(activeResalePrice)}
                             </Text>
                           </View>
                           {discountPercentage > 0 && (
@@ -696,10 +728,12 @@ export const BuyTicketBottomSheet: React.FC<BuyTicketBottomSheetProps> = ({
                       <View style={styles.pricePanel}>
                         <View style={styles.pricePanelRow}>
                           <Text style={styles.pricePanelLabel}>
-                            {isBundle ? `Listing Price (${bundleCount} tickets)` : 'Listing Price'}
+                            {currentSelectedCount > 1
+                              ? `Listing Price (${currentSelectedCount} tickets)`
+                              : 'Listing Price'}
                           </Text>
                           <Text style={styles.pricePanelValue}>
-                            {formatPrice(totalBundleResalePrice)}
+                            {formatPrice(activeResalePrice)}
                           </Text>
                         </View>
                         <View style={styles.pricePanelRow}>
@@ -743,12 +777,18 @@ export const BuyTicketBottomSheet: React.FC<BuyTicketBottomSheetProps> = ({
                         title={
                           isLoadingFeeConfig
                             ? 'Loading payment fee...'
-                            : isBundle
-                              ? `Buy Combo (${bundleCount} Tickets)`
-                              : 'Buy Ticket'
+                            : isRetailAllowed
+                              ? currentSelectedCount === 0
+                                ? 'Please select a ticket'
+                                : currentSelectedCount === 1
+                                  ? `Buy Selected Ticket (${formatPrice(feePreview?.totalBuyerPaid ?? activeResalePrice)})`
+                                  : `Buy All ${currentSelectedCount} Tickets (${formatPrice(feePreview?.totalBuyerPaid ?? activeResalePrice)})`
+                              : isBundle
+                                ? `Buy Combo (${bundleCount} Tickets)`
+                                : 'Buy Ticket'
                         }
                         onPress={() => setCheckoutStep('RECIPIENT')}
-                        disabled={!feePreview}
+                        disabled={!feePreview || currentSelectedCount === 0}
                         icon={<ArrowRight size={16} color={theme.colors.onPrimary} />}
                       />
                     </>
@@ -761,15 +801,15 @@ export const BuyTicketBottomSheet: React.FC<BuyTicketBottomSheetProps> = ({
                             {listing.eventName}
                           </Text>
                           <Text style={styles.compactSummaryMeta} numberOfLines={1}>
-                            {isBundle
-                              ? `Combo (${bundleCount} tickets) • ${listing.tierName}`
-                              : `${listing.tierName} • ${listing.seatZone || 'General Admission'}`}
+                            {currentSelectedCount > 1
+                              ? `${currentSelectedCount} Tickets • ${listing.tierName}`
+                              : `${listing.tierName} • ${activeSelectedTickets[0]?.seatZone || listing.seatZone || 'General Admission'}`}
                           </Text>
                         </View>
                         <View style={styles.compactSummaryTotalBlock}>
                           <Text style={styles.compactSummaryTotalLabel}>Total</Text>
                           <Text style={styles.compactSummaryTotal}>
-                            {formatPrice(feePreview?.totalBuyerPaid ?? totalBundleResalePrice)}
+                            {formatPrice(feePreview?.totalBuyerPaid ?? activeResalePrice)}
                           </Text>
                         </View>
                       </View>

@@ -199,10 +199,24 @@ export default function MarketplaceScreen() {
       )
     );
 
+    const cleanSeatName = (seat?: string | null) => {
+      if (!seat) return 'GA';
+      if (!item.tierName) return seat;
+      const stripped = seat.replace(new RegExp(`^${item.tierName}\\s*[-–•:]\\s*`, 'i'), '').trim();
+      return stripped || seat;
+    };
+
+    const isRetailAllowed = isBundle && item.isBundleAllOrNothing === false;
+
+    const minTicketPrice =
+      isBundle && bundleItems.length > 1
+        ? Math.min(...bundleItems.map((b) => b.resalePrice || 0))
+        : item.resalePrice;
+
     const seatDisplay = isBundle
       ? bundleItems.length > 1
-        ? bundleItems.map((b) => b.seatZone || 'GA').join(', ')
-        : `${item.seatZone || 'General Admission'} (x${bundleCount})`
+        ? bundleItems.map((b) => cleanSeatName(b.seatZone)).join(', ')
+        : `${cleanSeatName(item.seatZone)} (x${bundleCount})`
       : item.seatZone || 'General Admission';
 
     return (
@@ -242,21 +256,50 @@ export default function MarketplaceScreen() {
             </Text>
           </View>
 
-          <View style={styles.seatRow}>
-            <View style={styles.seatChip}>
-              <Text style={styles.seatLabel}>Tier</Text>
-              <Text style={styles.seatValue} numberOfLines={1}>
-                {item.tierName}
-              </Text>
+          {isBundle && bundleItems.length > 1 ? (
+            <View style={styles.cardBundleList}>
+              <View style={styles.cardBundleHeader}>
+                <Text style={styles.cardBundleTitle}>
+                  {isRetailAllowed ? 'Tickets Available (Sold Separately)' : `Combo Package (${bundleCount} Tickets)`}
+                </Text>
+              </View>
+              {bundleItems.map((b, idx) => (
+                <View key={b.listingId || idx} style={styles.cardBundleItemRow}>
+                  <View style={styles.cardBundleItemLeft}>
+                    <View>
+                      <Text style={styles.cardBundleSeatText} numberOfLines={1}>
+                        {cleanSeatName(b.seatZone)}
+                      </Text>
+                      <Text style={styles.cardBundleTierText}>
+                        {b.tierName}
+                      </Text>
+                    </View>
+                  </View>
+                  <Text style={styles.cardBundlePriceText}>
+                    {formatPrice(b.resalePrice)}
+                  </Text>
+                </View>
+              ))}
             </View>
-            <View style={styles.seatDivider} />
-            <View style={styles.seatChip}>
-              <Text style={styles.seatLabel}>Zone / Seat</Text>
-              <Text style={styles.seatValue} numberOfLines={1}>
-                {seatDisplay}
-              </Text>
+          ) : (
+            <View style={styles.seatRow}>
+              <View style={styles.seatChip}>
+                <Text style={styles.seatLabel}>Tier</Text>
+                <Text style={styles.seatValue} numberOfLines={1}>
+                  {item.tierName}
+                </Text>
+              </View>
+              <View style={styles.seatDivider} />
+              <View style={[styles.seatChip, isBundle && { flex: 1.4 }]}>
+                <Text style={styles.seatLabel}>
+                  {isBundle ? `Seats (${bundleCount})` : 'Zone / Seat'}
+                </Text>
+                <Text style={styles.seatValue} numberOfLines={2}>
+                  {seatDisplay}
+                </Text>
+              </View>
             </View>
-          </View>
+          )}
 
           <View style={styles.priceRow}>
             <View style={styles.sellerRow}>
@@ -271,14 +314,22 @@ export default function MarketplaceScreen() {
               )}
               <Text style={styles.resalePrice}>{formatPrice(totalBundleResalePrice)}</Text>
               {isBundle && (
-                <Text style={styles.perTicketPrice}>({formatPrice(perTicketPrice)}/ticket)</Text>
+                <Text style={styles.perTicketPrice}>
+                  {isRetailAllowed
+                    ? `(from ${formatPrice(minTicketPrice)}/ticket)`
+                    : `(${formatPrice(perTicketPrice)}/ticket)`}
+                </Text>
               )}
             </View>
           </View>
 
           <View style={[styles.cardCta, isOwnListing && styles.cardCtaDisabled]}>
             <Text style={[styles.cardCtaText, isOwnListing && styles.cardCtaDisabledText]}>
-              {isBundle ? `Buy Combo (${bundleCount} Tickets)` : 'Buy Ticket'}
+              {isRetailAllowed
+                ? `Select Tickets (from ${formatPrice(minTicketPrice)})`
+                : isBundle
+                  ? `Buy Combo (${bundleCount} Tickets)`
+                  : 'Buy Ticket'}
             </Text>
             {isOwnListing ? (
               <Lock size={15} color={theme.colors.textMuted} />
