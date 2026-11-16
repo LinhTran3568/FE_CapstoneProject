@@ -176,16 +176,6 @@ export default function MobileTicketsScreen() {
   };
 
   const renderStatusBadge = (status: string) => {
-    if (status === 'USED') {
-      return (
-        <View style={[styles.statusBadge, { backgroundColor: 'rgba(16, 185, 129, 0.15)', borderColor: 'rgba(16, 185, 129, 0.4)' }]}>
-          <Check size={13} color="#10B981" />
-          <Text style={[styles.statusText, { color: '#10B981', fontFamily: fontFamilies.bold }]}>
-            Checked In · Completed
-          </Text>
-        </View>
-      );
-    }
     if (status === 'DISPUTED') {
       return (
         <View style={[styles.statusBadge, { backgroundColor: theme.colors.dangerLight, borderColor: theme.colors.dangerBorder }]}>
@@ -242,7 +232,7 @@ export default function MobileTicketsScreen() {
         <View style={styles.posterWrap}>
           <EventPoster seed={item.eventId || item.ticketPassCode} height={104} />
           <View style={styles.posterOverlay}>
-            {renderStatusBadge(item.status)}
+            {item.status !== 'USED' && renderStatusBadge(item.status)}
             <View style={[styles.openQrPill, !isValid && styles.lockedQrPill]}>
               {isValid ? (
                 <>

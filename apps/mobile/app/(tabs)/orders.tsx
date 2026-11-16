@@ -48,6 +48,8 @@ interface MobileEscrowOrder {
   disputeId?: string | null;
   escrowId?: string | null;
   disputeWaived?: boolean;
+  /** The pass was accepted at the gate; its escrow payout has been initiated. */
+  isCheckedIn?: boolean;
   type?: 'BUY' | 'SELL';
 }
 
@@ -167,6 +169,7 @@ export default function MobileOrdersScreen() {
 
       const buyOrders: MobileEscrowOrder[] = safeTickets.map((t) => {
         const isDisputed = t.status === 'DISPUTED' || Boolean(t.disputeId);
+        const isCheckedIn = t.status === 'USED';
         return {
           orderId: t.escrowId ? `ORD-${t.escrowId.slice(-8).toUpperCase()}` : `ORD-${t.ticketPassCode}`,
           listingId: t.listingId,
@@ -179,7 +182,7 @@ export default function MobileOrdersScreen() {
             ? 'DISPUTED'
             : t.status === 'REFUNDED'
               ? 'REFUNDED'
-            : t.status === 'VALID'
+            : t.status === 'VALID' || isCheckedIn
               ? 'COMPLETED'
               : t.status === 'CANCELLED'
                 ? 'CANCELLED'
@@ -189,6 +192,7 @@ export default function MobileOrdersScreen() {
           disputeId: t.disputeId || null,
           escrowId: t.escrowId || null,
           disputeWaived: Boolean(t.disputeWaived),
+          isCheckedIn,
           type: 'BUY',
         };
       });
@@ -253,6 +257,16 @@ export default function MobileOrdersScreen() {
 
   const getStatusBadge = (order: MobileEscrowOrder) => {
     const { status, type } = order;
+    if (order.isCheckedIn) {
+      return (
+        <View style={[styles.statusBadge, styles.statusBadgeSuccess]}>
+          <CheckCircle2 size={13} color={theme.colors.success} />
+          <Text style={[styles.statusText, styles.statusTextSuccess]}>
+            Checked In
+          </Text>
+        </View>
+      );
+    }
     if (status === 'DISPUTED') {
       return (
         <View style={[styles.statusBadge, styles.statusBadgeDisputed]}>
@@ -306,6 +320,10 @@ export default function MobileOrdersScreen() {
   };
 
   const handleReportOrder = (item: MobileEscrowOrder) => {
+    // The API rejects this as well, but keep the client from opening a dispute
+    // form after the pass has already been accepted at the gate.
+    if (item.isCheckedIn) return;
+
     const isDisputed = item.status === 'DISPUTED' || Boolean(item.disputeId);
     const syntheticTicket: PurchasedTicketDto = {
       escrowId: item.escrowId || item.orderId.replace('ORD-', ''),
@@ -318,7 +336,7 @@ export default function MobileOrdersScreen() {
       seatZone: item.seatZone,
       ticketPassCode: item.ticketPassCode,
       totalAmountPaid: item.totalPaid,
-      status: isDisputed ? 'DISPUTED' : item.status === 'COMPLETED' ? 'VALID' : 'IN_ESCROW',
+      status: isDisputed ? 'DISPUTED' : item.isCheckedIn ? 'USED' : item.status === 'COMPLETED' ? 'VALID' : 'IN_ESCROW',
       disputeId: item.disputeId || null,
       recipientName: 'Ticket Holder',
       recipientEmail: '',
@@ -445,7 +463,11 @@ export default function MobileOrdersScreen() {
             <Clock size={14} color={theme.colors.warning} />
             <Text style={styles.disputeProgressOrderBtnText}>View Dispute</Text>
           </TouchableOpacity>
-        ) : item.status !== 'CANCELLED' && item.status !== 'REFUNDED' && item.type !== 'SELL' && !item.disputeWaived ? (
+        ) : item.status !== 'CANCELLED' &&
+          item.status !== 'REFUNDED' &&
+          item.type !== 'SELL' &&
+          !item.disputeWaived &&
+          !item.isCheckedIn ? (
           <TouchableOpacity
             style={styles.reportOrderBtn}
             onPress={() => handleReportOrder(item)}
