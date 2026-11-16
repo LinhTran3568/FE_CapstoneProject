@@ -13,7 +13,6 @@ import { useSafeAreaInsets, SafeAreaView } from 'react-native-safe-area-context'
 import {
   Search,
   X,
-  ShieldCheck,
   Calendar,
   MapPin,
   Tag,
@@ -26,6 +25,7 @@ import {
   SlidersHorizontal,
   ChevronDown,
   Lock,
+  Layers,
 } from 'lucide-react-native';
 import { useAuthStore } from '../../src/stores/authStore';
 import type { ResaleListingDetailDto } from '@ticketshield/types';
@@ -33,7 +33,6 @@ import { resaleListingsApi } from '@ticketshield/api-client';
 import { theme } from '../../src/theme';
 import { EventPoster } from '../../src/components/EventPoster';
 import { FintechButton } from '../../src/components/FintechButton';
-import { FairPriceBadge } from '../../src/components/FairPriceBadge';
 import { BuyTicketBottomSheet } from '../../src/components/BuyTicketBottomSheet';
 import { formatPrice, formatEventDateTime } from '../../src/utils/format';
 import { styles } from '../../src/styles/marketplace.styles';
@@ -69,6 +68,7 @@ export default function MarketplaceScreen() {
   const [error, setError] = useState<string | null>(null);
 
   const [selectedListing, setSelectedListing] = useState<ResaleListingDetailDto | null>(null);
+  const [selectedBundleItems, setSelectedBundleItems] = useState<ResaleListingDetailDto[]>([]);
 
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedKeyword(keyword.trim()), 350);
@@ -103,13 +103,41 @@ export default function MarketplaceScreen() {
     }, [debouncedKeyword, loadListings])
   );
 
-  const filteredListings = useMemo(
-    () =>
-      listings.filter(
-        (listing) => matchesBand(listing.resalePrice, priceBand)
-      ),
-    [listings, priceBand]
-  );
+  // Group listings by bundleId to combine bundle/combo packages
+  const bundleMap = useMemo(() => {
+    const map = new Map<string, ResaleListingDetailDto[]>();
+    for (const item of listings) {
+      if (item.bundleId) {
+        const group = map.get(item.bundleId) || [];
+        group.push(item);
+        map.set(item.bundleId, group);
+      }
+    }
+    return map;
+  }, [listings]);
+
+  // Dedup bundle combos so only 1 representative card is displayed in the list
+  const dedupedListings = useMemo(() => {
+    const seenBundleIds = new Set<string>();
+    return listings
+      .filter((item) => {
+        if (item.bundleId && (item.bundleTotalTickets ?? 0) > 1) {
+          if (seenBundleIds.has(item.bundleId)) return false;
+          seenBundleIds.add(item.bundleId);
+        }
+        return true;
+      })
+      .filter((item) => {
+        const bundleItems = item.bundleId ? bundleMap.get(item.bundleId) || [item] : [item];
+        const totalPrice =
+          bundleItems.length > 1
+            ? bundleItems.reduce((sum, b) => sum + (b.resalePrice || 0), 0)
+            : item.bundleTotalTickets && item.bundleTotalTickets >= 2
+              ? item.resalePrice * item.bundleTotalTickets
+              : item.resalePrice;
+        return matchesBand(totalPrice, priceBand);
+      });
+  }, [listings, priceBand, bundleMap]);
 
   const handleRefresh = async () => {
     setRefreshing(true);
@@ -122,38 +150,75 @@ export default function MarketplaceScreen() {
     setKeyword('');
   };
 
-
-
   const renderListing = ({ item }: { item: ResaleListingDetailDto }) => {
-    const hasDiscount = item.discountPercentage > 0;
+    const bundleItems = item.bundleId ? bundleMap.get(item.bundleId) || [item] : [item];
+    const isBundle =
+      bundleItems.length > 1 ||
+      Boolean(item.bundleTotalTickets && item.bundleTotalTickets >= 2) ||
+      Boolean(item.bundleId && (item.bundleTotalTickets ?? 0) > 1);
+
+    const bundleCount =
+      item.bundleTotalTickets && item.bundleTotalTickets >= 2
+        ? item.bundleTotalTickets
+        : bundleItems.length;
+
+    const totalBundleResalePrice =
+      isBundle && bundleItems.length > 1
+        ? bundleItems.reduce((sum, b) => sum + (b.resalePrice || 0), 0)
+        : item.bundleTotalTickets && item.bundleTotalTickets >= 2 && bundleItems.length === 1
+          ? item.resalePrice * item.bundleTotalTickets
+          : item.resalePrice;
+
+    const totalBundleOriginalPrice =
+      isBundle && bundleItems.length > 1
+        ? bundleItems.reduce((sum, b) => sum + (b.originalPrice || 0), 0)
+        : item.bundleTotalTickets && item.bundleTotalTickets >= 2 && bundleItems.length === 1
+          ? item.originalPrice * item.bundleTotalTickets
+          : item.originalPrice;
+
+    const hasDiscount = totalBundleOriginalPrice > totalBundleResalePrice;
+    const calculatedDiscountPercent = hasDiscount
+      ? Math.round(((totalBundleOriginalPrice - totalBundleResalePrice) / totalBundleOriginalPrice) * 100)
+      : 0;
+    const discountPercentage =
+      item.discountPercentage > 0 ? item.discountPercentage : calculatedDiscountPercent;
+
+    const perTicketPrice = Math.round(totalBundleResalePrice / (bundleCount || 1));
+
     const isOwnListing = Boolean(
       user && (
         (item.sellerId && user.id && item.sellerId.toLowerCase() === user.id.toLowerCase()) ||
         (item.sellerFullName && user.fullName && item.sellerFullName.trim().toLowerCase() === user.fullName.trim().toLowerCase()) ||
-        ((item as any).userId && user.id && (item as any).userId.toLowerCase() === user.id.toLowerCase())
+        ((item as any).userId && user.id && (item as any).userId.toLowerCase() === user.id.toLowerCase()) ||
+        bundleItems.some(
+          (b) =>
+            (b.sellerId && user.id && b.sellerId.toLowerCase() === user.id.toLowerCase()) ||
+            (b.sellerFullName && user.fullName && b.sellerFullName.trim().toLowerCase() === user.fullName.trim().toLowerCase()) ||
+            ((b as any).userId && user.id && (b as any).userId.toLowerCase() === user.id.toLowerCase())
+        )
       )
     );
+
+    const seatDisplay = isBundle
+      ? bundleItems.length > 1
+        ? bundleItems.map((b) => b.seatZone || 'GA').join(', ')
+        : `${item.seatZone || 'General Admission'} (x${bundleCount})`
+      : item.seatZone || 'General Admission';
 
     return (
       <TouchableOpacity
         style={styles.card}
         activeOpacity={isOwnListing ? 1 : 0.92}
         disabled={isOwnListing}
-        onPress={() => !isOwnListing && setSelectedListing(item)}
+        onPress={() => {
+          if (!isOwnListing) {
+            setSelectedListing(item);
+            setSelectedBundleItems(bundleItems);
+          }
+        }}
       >
         <View style={styles.posterWrap}>
           <EventPoster seed={`${item.eventId}-${item.listingId}`} height={148} />
-          <View style={styles.badgeRow}>
-            <View style={styles.verifiedBadge}>
-              <ShieldCheck size={12} color={theme.colors.success} />
-              <Text style={styles.verifiedBadgeText}>VERIFIED ESCROW</Text>
-            </View>
-            <FairPriceBadge
-              resalePrice={item.resalePrice}
-              originalPrice={item.originalPrice}
-              discountPercentage={item.discountPercentage}
-            />
-          </View>
         </View>
 
         <View style={styles.cardBody}>
@@ -188,7 +253,7 @@ export default function MarketplaceScreen() {
             <View style={styles.seatChip}>
               <Text style={styles.seatLabel}>Zone / Seat</Text>
               <Text style={styles.seatValue} numberOfLines={1}>
-                {item.seatZone || 'General Admission'}
+                {seatDisplay}
               </Text>
             </View>
           </View>
@@ -202,15 +267,18 @@ export default function MarketplaceScreen() {
             </View>
             <View style={styles.priceBlock}>
               {hasDiscount && (
-                <Text style={styles.originalPrice}>{formatPrice(item.originalPrice)}</Text>
+                <Text style={styles.originalPrice}>{formatPrice(totalBundleOriginalPrice)}</Text>
               )}
-              <Text style={styles.resalePrice}>{formatPrice(item.resalePrice)}</Text>
+              <Text style={styles.resalePrice}>{formatPrice(totalBundleResalePrice)}</Text>
+              {isBundle && (
+                <Text style={styles.perTicketPrice}>({formatPrice(perTicketPrice)}/ticket)</Text>
+              )}
             </View>
           </View>
 
           <View style={[styles.cardCta, isOwnListing && styles.cardCtaDisabled]}>
             <Text style={[styles.cardCtaText, isOwnListing && styles.cardCtaDisabledText]}>
-              Buy Ticket
+              {isBundle ? `Buy Combo (${bundleCount} Tickets)` : 'Buy Ticket'}
             </Text>
             {isOwnListing ? (
               <Lock size={15} color={theme.colors.textMuted} />
@@ -264,35 +332,35 @@ export default function MarketplaceScreen() {
       </View>
 
       <View style={styles.priceFilterRow}>
-          <TouchableOpacity
+        <TouchableOpacity
+          style={[
+            styles.priceTriggerPill,
+            priceBand !== 'ALL' && styles.priceTriggerPillActive,
+          ]}
+          onPress={() => setIsPriceModalOpen(true)}
+          activeOpacity={0.8}
+          accessibilityRole="button"
+          accessibilityLabel="Filter by price"
+        >
+          <SlidersHorizontal
+            size={13}
+            color={priceBand !== 'ALL' ? theme.colors.onPrimary : theme.colors.primary}
+          />
+          <Text
             style={[
-              styles.priceTriggerPill,
-              priceBand !== 'ALL' && styles.priceTriggerPillActive,
+              styles.priceTriggerText,
+              priceBand !== 'ALL' && styles.priceTriggerTextActive,
             ]}
-            onPress={() => setIsPriceModalOpen(true)}
-            activeOpacity={0.8}
-            accessibilityRole="button"
-            accessibilityLabel="Filter by price"
           >
-            <SlidersHorizontal
-              size={13}
-              color={priceBand !== 'ALL' ? theme.colors.onPrimary : theme.colors.primary}
-            />
-            <Text
-              style={[
-                styles.priceTriggerText,
-                priceBand !== 'ALL' && styles.priceTriggerTextActive,
-              ]}
-            >
-              {priceBand === 'ALL'
-                ? 'Price'
-                : PRICE_BANDS.find((b) => b.key === priceBand)?.label || 'Price'}
-            </Text>
-            <ChevronDown
-              size={13}
-              color={priceBand !== 'ALL' ? theme.colors.onPrimary : theme.colors.textMuted}
-            />
-          </TouchableOpacity>
+            {priceBand === 'ALL'
+              ? 'Price'
+              : PRICE_BANDS.find((b) => b.key === priceBand)?.label || 'Price'}
+          </Text>
+          <ChevronDown
+            size={13}
+            color={priceBand !== 'ALL' ? theme.colors.onPrimary : theme.colors.textMuted}
+          />
+        </TouchableOpacity>
       </View>
 
       {loading ? (
@@ -317,7 +385,7 @@ export default function MarketplaceScreen() {
         </View>
       ) : (
         <FlatList
-          data={filteredListings}
+          data={dedupedListings}
           keyExtractor={(item) => item.listingId}
           renderItem={renderListing}
           contentContainerStyle={styles.listContent}
@@ -327,7 +395,7 @@ export default function MarketplaceScreen() {
           ListHeaderComponent={
             <View style={styles.listHeader}>
               <Text style={styles.resultCount}>
-                {filteredListings.length} {filteredListings.length === 1 ? 'listing' : 'listings'} available
+                {dedupedListings.length} {dedupedListings.length === 1 ? 'listing' : 'listings'} available
               </Text>
             </View>
           }
@@ -424,7 +492,11 @@ export default function MarketplaceScreen() {
       <BuyTicketBottomSheet
         visible={!!selectedListing}
         listing={selectedListing}
-        onClose={() => setSelectedListing(null)}
+        bundleItems={selectedBundleItems}
+        onClose={() => {
+          setSelectedListing(null);
+          setSelectedBundleItems([]);
+        }}
       />
     </SafeAreaView>
   );

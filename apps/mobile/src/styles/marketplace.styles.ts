@@ -158,6 +158,23 @@ export const styles = StyleSheet.create({
     fontFamily: fontFamilies.bold,
     color: theme.colors.onPrimary,
   },
+  comboBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: theme.radii.sm,
+    backgroundColor: 'rgba(255, 90, 54, 0.15)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 90, 54, 0.4)',
+  },
+  comboBadgeText: {
+    fontSize: 10,
+    fontFamily: fontFamilies.bold,
+    color: '#FF5A36',
+    letterSpacing: 0.5,
+  },
   cardBody: {
     padding: theme.spacing.lg,
     gap: theme.spacing.xs,
@@ -246,6 +263,12 @@ export const styles = StyleSheet.create({
     fontSize: theme.typography.sizes.xl,
     fontWeight: theme.typography.weights.extrabold,
     color: theme.colors.primary,
+  },
+  perTicketPrice: {
+    fontSize: 10,
+    fontFamily: fontFamilies.medium,
+    color: theme.colors.textMuted,
+    marginTop: 2,
   },
   cardCta: {
     flexDirection: 'row',

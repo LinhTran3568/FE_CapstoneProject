@@ -583,4 +583,70 @@ export const styles = StyleSheet.create({
     color: theme.colors.textMuted,
     textAlign: 'center',
   },
+
+  // Bundle / Combo card styles
+  bundleCard: {
+    backgroundColor: theme.colors.surfaceElevated,
+    borderRadius: theme.radii.lg,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 90, 54, 0.25)',
+    padding: theme.spacing.md,
+    gap: theme.spacing.sm,
+  },
+  bundleHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  bundleTitle: {
+    fontSize: theme.typography.sizes.xs,
+    fontFamily: fontFamilies.bold,
+    color: '#FF5A36',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  bundleItemsList: {
+    gap: 8,
+  },
+  bundleItemRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: theme.colors.surface,
+    padding: 10,
+    borderRadius: theme.radii.md,
+    borderWidth: 1,
+    borderColor: theme.colors.borderSubtle,
+    gap: 10,
+  },
+  bundleItemBullet: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: 'rgba(255, 90, 54, 0.12)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  bundleItemIndex: {
+    fontSize: 10,
+    fontFamily: fontFamilies.bold,
+    color: '#FF5A36',
+  },
+  bundleItemDetails: {
+    flex: 1,
+  },
+  bundleItemName: {
+    fontSize: theme.typography.sizes.xs,
+    fontFamily: fontFamilies.bold,
+    color: theme.colors.text,
+  },
+  bundleItemCode: {
+    fontSize: 10,
+    color: theme.colors.textMuted,
+    marginTop: 2,
+  },
+  bundleItemPrice: {
+    fontSize: theme.typography.sizes.xs,
+    fontFamily: fontFamilies.bold,
+    color: theme.colors.primary,
+  },
 });

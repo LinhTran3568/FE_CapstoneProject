@@ -27,6 +27,7 @@ import {
   ShieldCheck,
   User,
   X,
+  Layers,
 } from 'lucide-react-native';
 import type {
   ResaleListingDetailDto,
@@ -51,6 +52,7 @@ import { styles } from './BuyTicketBottomSheet.styles';
 export interface BuyTicketBottomSheetProps {
   visible: boolean;
   listing: ResaleListingDetailDto | null;
+  bundleItems?: ResaleListingDetailDto[];
   onClose: () => void;
   onSuccess?: (orderData?: any) => void;
 }
@@ -67,6 +69,7 @@ const roundToEven = (value: number): number => {
 export const BuyTicketBottomSheet: React.FC<BuyTicketBottomSheetProps> = ({
   visible,
   listing,
+  bundleItems,
   onClose,
   onSuccess,
 }) => {
@@ -241,23 +244,101 @@ export const BuyTicketBottomSheet: React.FC<BuyTicketBottomSheetProps> = ({
     };
   }, [holdData, purchaseSuccess, secondsLeft, listing, recipientName, recipientEmail, onSuccess]);
 
+  const effectiveBundleItems = useMemo(
+    () => (bundleItems && bundleItems.length > 0 ? bundleItems : listing ? [listing] : []),
+    [bundleItems, listing]
+  );
+
+  const isBundle =
+    effectiveBundleItems.length > 1 ||
+    Boolean(listing?.bundleTotalTickets && listing.bundleTotalTickets >= 2) ||
+    Boolean(listing?.bundleId && (listing?.bundleTotalTickets ?? 0) > 1);
+
+  const bundleCount =
+    listing?.bundleTotalTickets && listing.bundleTotalTickets >= 2
+      ? listing.bundleTotalTickets
+      : effectiveBundleItems.length;
+
+  const totalBundleResalePrice = useMemo(() => {
+    if (!listing) return 0;
+    if (isBundle && effectiveBundleItems.length > 1) {
+      return effectiveBundleItems.reduce((sum, b) => sum + (b.resalePrice || 0), 0);
+    }
+    if (listing.bundleTotalTickets && listing.bundleTotalTickets >= 2) {
+      return listing.resalePrice * listing.bundleTotalTickets;
+    }
+    return listing.resalePrice;
+  }, [listing, isBundle, effectiveBundleItems]);
+
+  const totalBundleOriginalPrice = useMemo(() => {
+    if (!listing) return 0;
+    if (isBundle && effectiveBundleItems.length > 1) {
+      return effectiveBundleItems.reduce((sum, b) => sum + (b.originalPrice || 0), 0);
+    }
+    if (listing.bundleTotalTickets && listing.bundleTotalTickets >= 2) {
+      return listing.originalPrice * listing.bundleTotalTickets;
+    }
+    return listing.originalPrice;
+  }, [listing, isBundle, effectiveBundleItems]);
+
+  const hasDiscount = totalBundleOriginalPrice > totalBundleResalePrice;
+  const calculatedDiscountPercent = hasDiscount
+    ? Math.round(((totalBundleOriginalPrice - totalBundleResalePrice) / totalBundleOriginalPrice) * 100)
+    : 0;
+  const discountPercentage =
+    listing?.discountPercentage && listing.discountPercentage > 0
+      ? listing.discountPercentage
+      : calculatedDiscountPercent;
+
   // Mirrors DynamicResaleFeeCalculator on the backend for the review screen.
   const feePreview = useMemo(() => {
     if (!listing || !feeConfig) return null;
-    const percentageFee = listing.resalePrice * feeConfig.buyerFeePercentage;
-    const rawBuyerFee = Math.max(percentageFee, feeConfig.minimumBuyerFee);
-    const isMinimumApplied = feeConfig.minimumBuyerFee > 0 && percentageFee < feeConfig.minimumBuyerFee;
-    const buyerFee = roundToEven(rawBuyerFee);
+
+    let buyerFee = 0;
+    let isMinimumApplied = false;
+
+    if (isBundle && effectiveBundleItems.length > 1) {
+      for (const item of effectiveBundleItems) {
+        const itemFee = item.resalePrice * feeConfig.buyerFeePercentage;
+        const finalItemFee = Math.max(itemFee, feeConfig.minimumBuyerFee);
+        if (feeConfig.minimumBuyerFee > 0 && itemFee < feeConfig.minimumBuyerFee) {
+          isMinimumApplied = true;
+        }
+        buyerFee += roundToEven(finalItemFee);
+      }
+    } else if (isBundle && listing.bundleTotalTickets && listing.bundleTotalTickets >= 2) {
+      const singleItemFee = listing.resalePrice * feeConfig.buyerFeePercentage;
+      const finalItemFee = Math.max(singleItemFee, feeConfig.minimumBuyerFee);
+      if (feeConfig.minimumBuyerFee > 0 && singleItemFee < feeConfig.minimumBuyerFee) {
+        isMinimumApplied = true;
+      }
+      buyerFee = roundToEven(finalItemFee) * listing.bundleTotalTickets;
+    } else {
+      const percentageFee = listing.resalePrice * feeConfig.buyerFeePercentage;
+      const rawBuyerFee = Math.max(percentageFee, feeConfig.minimumBuyerFee);
+      isMinimumApplied = feeConfig.minimumBuyerFee > 0 && percentageFee < feeConfig.minimumBuyerFee;
+      buyerFee = roundToEven(rawBuyerFee);
+    }
 
     return {
       buyerFee,
-      totalBuyerPaid: roundToEven(listing.resalePrice + buyerFee),
+      totalBuyerPaid: roundToEven(totalBundleResalePrice + buyerFee),
       isMinimumApplied,
       percentageLabel: `${Number((feeConfig.buyerFeePercentage * 100).toFixed(2))}%`,
     };
-  }, [listing, feeConfig]);
+  }, [listing, feeConfig, isBundle, effectiveBundleItems, totalBundleResalePrice]);
 
-  const isOwner = Boolean(user?.id && listing && (listing.sellerId === user.id || (listing as any).userId === user.id));
+  const isOwner = Boolean(
+    user?.id &&
+      listing &&
+      (listing.sellerId?.toLowerCase() === user.id.toLowerCase() ||
+        (listing as any).userId?.toLowerCase() === user.id.toLowerCase() ||
+        effectiveBundleItems.some(
+          (b) =>
+            b.sellerId?.toLowerCase() === user.id.toLowerCase() ||
+            (b as any).userId?.toLowerCase() === user.id.toLowerCase()
+        ))
+  );
 
   // Validate form fields
   const validateForm = (): boolean => {
@@ -299,6 +380,7 @@ export const BuyTicketBottomSheet: React.FC<BuyTicketBottomSheetProps> = ({
         recipientName: recipientName.trim(),
         recipientEmail: recipientEmail.trim(),
         recipientIdCard: recipientIdCard.trim() || undefined,
+        buyAsBundle: isBundle ? true : undefined,
       });
 
       setHoldData(response);
@@ -495,7 +577,9 @@ export const BuyTicketBottomSheet: React.FC<BuyTicketBottomSheetProps> = ({
                       {listing.eventName}
                     </Text>
                     <Text style={styles.sheetEventMeta} numberOfLines={1}>
-                      {listing.tierName} • {listing.seatZone || 'General Admission'}
+                      {isBundle
+                        ? `Combo (${bundleCount} tickets) • ${listing.tierName}`
+                        : `${listing.tierName} • ${listing.seatZone || 'General Admission'}`}
                     </Text>
                     <Text style={styles.sheetEventMeta} numberOfLines={1}>
                       {formatEventDateTime(listing.eventStartAt)}
@@ -531,6 +615,38 @@ export const BuyTicketBottomSheet: React.FC<BuyTicketBottomSheetProps> = ({
                         </View>
                       </View>
 
+                      {/* Bundle Breakdown Card */}
+                      {isBundle && (
+                        <View style={styles.bundleCard}>
+                          <View style={styles.bundleHeader}>
+                            <Layers size={14} color="#FF5A36" />
+                            <Text style={styles.bundleTitle}>
+                              Combo Package ({bundleCount} Tickets)
+                            </Text>
+                          </View>
+                          <View style={styles.bundleItemsList}>
+                            {effectiveBundleItems.map((bItem, idx) => (
+                              <View key={bItem.listingId || idx} style={styles.bundleItemRow}>
+                                <View style={styles.bundleItemBullet}>
+                                  <Text style={styles.bundleItemIndex}>#{idx + 1}</Text>
+                                </View>
+                                <View style={styles.bundleItemDetails}>
+                                  <Text style={styles.bundleItemName}>
+                                    {bItem.tierName} • {bItem.seatZone || 'General Admission'}
+                                  </Text>
+                                  <Text style={styles.bundleItemCode}>
+                                    Pass #{bItem.maskedTicketCode || 'AT*********93'}
+                                  </Text>
+                                </View>
+                                <Text style={styles.bundleItemPrice}>
+                                  {formatPrice(bItem.resalePrice)}
+                                </Text>
+                              </View>
+                            ))}
+                          </View>
+                        </View>
+                      )}
+
                       {/* Face-Value Price Cap Guarantee Card */}
                       <View style={styles.sheetCeilingCard}>
                         <View style={styles.sheetCeilingHeader}>
@@ -542,7 +658,7 @@ export const BuyTicketBottomSheet: React.FC<BuyTicketBottomSheetProps> = ({
                           </View>
                           <View style={styles.sheetCeilingBadge}>
                             <Text style={styles.sheetCeilingBadgeText}>
-                              {listing.resalePrice <= listing.originalPrice ? 'PROTECTED' : 'VERIFIED'}
+                              {totalBundleResalePrice <= totalBundleOriginalPrice ? 'PROTECTED' : 'VERIFIED'}
                             </Text>
                           </View>
                         </View>
@@ -553,23 +669,23 @@ export const BuyTicketBottomSheet: React.FC<BuyTicketBottomSheetProps> = ({
                             <Text
                               style={[
                                 styles.sheetCeilingValue,
-                                listing.discountPercentage > 0 && styles.sheetCeilingStrikethrough,
+                                discountPercentage > 0 && styles.sheetCeilingStrikethrough,
                               ]}
                             >
-                              {formatPrice(listing.originalPrice)}
+                              {formatPrice(totalBundleOriginalPrice)}
                             </Text>
                           </View>
                           <View style={styles.sheetCeilingDivider} />
                           <View style={styles.sheetCeilingCol}>
                             <Text style={styles.sheetCeilingLabel}>Resale Price</Text>
                             <Text style={[styles.sheetCeilingValue, { color: theme.colors.primary }]}>
-                              {formatPrice(listing.resalePrice)}
+                              {formatPrice(totalBundleResalePrice)}
                             </Text>
                           </View>
-                          {listing.discountPercentage > 0 && (
+                          {discountPercentage > 0 && (
                             <View style={styles.sheetDiscountBadge}>
                               <Text style={styles.sheetDiscountBadgeText}>
-                                -{Math.round(listing.discountPercentage)}% OFF
+                                -{Math.round(discountPercentage)}% OFF
                               </Text>
                             </View>
                           )}
@@ -579,9 +695,11 @@ export const BuyTicketBottomSheet: React.FC<BuyTicketBottomSheetProps> = ({
                       {/* Price Breakdown Panel */}
                       <View style={styles.pricePanel}>
                         <View style={styles.pricePanelRow}>
-                          <Text style={styles.pricePanelLabel}>Listing Price</Text>
+                          <Text style={styles.pricePanelLabel}>
+                            {isBundle ? `Listing Price (${bundleCount} tickets)` : 'Listing Price'}
+                          </Text>
                           <Text style={styles.pricePanelValue}>
-                            {formatPrice(listing.resalePrice)}
+                            {formatPrice(totalBundleResalePrice)}
                           </Text>
                         </View>
                         <View style={styles.pricePanelRow}>
@@ -589,7 +707,7 @@ export const BuyTicketBottomSheet: React.FC<BuyTicketBottomSheetProps> = ({
                             {feePreview
                               ? `Escrow Protection Fee ${
                                   feePreview.isMinimumApplied
-                                    ? `(min. ${formatPrice(feeConfig!.minimumBuyerFee)})`
+                                    ? `(min. applied)`
                                     : `(${feePreview.percentageLabel})`
                                 }`
                               : 'Escrow Protection Fee'}
@@ -622,7 +740,13 @@ export const BuyTicketBottomSheet: React.FC<BuyTicketBottomSheetProps> = ({
                       )}
 
                       <FintechButton
-                        title={isLoadingFeeConfig ? 'Loading payment fee...' : 'Buy Ticket'}
+                        title={
+                          isLoadingFeeConfig
+                            ? 'Loading payment fee...'
+                            : isBundle
+                              ? `Buy Combo (${bundleCount} Tickets)`
+                              : 'Buy Ticket'
+                        }
                         onPress={() => setCheckoutStep('RECIPIENT')}
                         disabled={!feePreview}
                         icon={<ArrowRight size={16} color={theme.colors.onPrimary} />}
@@ -637,13 +761,15 @@ export const BuyTicketBottomSheet: React.FC<BuyTicketBottomSheetProps> = ({
                             {listing.eventName}
                           </Text>
                           <Text style={styles.compactSummaryMeta} numberOfLines={1}>
-                            {listing.tierName} • {listing.seatZone || 'General Admission'}
+                            {isBundle
+                              ? `Combo (${bundleCount} tickets) • ${listing.tierName}`
+                              : `${listing.tierName} • ${listing.seatZone || 'General Admission'}`}
                           </Text>
                         </View>
                         <View style={styles.compactSummaryTotalBlock}>
                           <Text style={styles.compactSummaryTotalLabel}>Total</Text>
                           <Text style={styles.compactSummaryTotal}>
-                            {formatPrice(feePreview?.totalBuyerPaid ?? listing.resalePrice)}
+                            {formatPrice(feePreview?.totalBuyerPaid ?? totalBundleResalePrice)}
                           </Text>
                         </View>
                       </View>
