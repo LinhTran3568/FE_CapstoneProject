@@ -133,12 +133,12 @@ export const AdminListingsPage: React.FC = () => {
 
       {/* Số toàn sàn, không theo bộ lọc. */}
       <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3.5">
-        <StatCard allTime label="Listings" value={summary ? summary.totalListings : '—'} />
-        <StatCard allTime label="Singles" value={summary ? summary.totalSingleTickets : '—'} />
-        <StatCard allTime label="Combos" value={summary ? summary.totalBundles : '—'} />
-        <StatCard allTime label="On sale" value={summary ? summary.totalActiveListings : '—'} />
-        <StatCard allTime label="Sold" value={summary ? summary.totalSoldListings : '—'} />
-        <StatCard allTime label="At cap" value={summary ? summary.totalAtCeilingListings : '—'} />
+        <StatCard label="Listings" value={summary ? summary.totalListings : '—'} />
+        <StatCard label="Singles" value={summary ? summary.totalSingleTickets : '—'} />
+        <StatCard label="Combos" value={summary ? summary.totalBundles : '—'} />
+        <StatCard label="On sale" value={summary ? summary.totalActiveListings : '—'} />
+        <StatCard label="Sold" value={summary ? summary.totalSoldListings : '—'} />
+        <StatCard label="At cap" value={summary ? summary.totalAtCeilingListings : '—'} />
       </div>
 
       <FilterBar>

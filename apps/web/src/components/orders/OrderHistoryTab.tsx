@@ -173,8 +173,7 @@ export const OrderHistoryTab: React.FC = () => {
       </div>
 
       {/* Ô tổng do BE tính trên mọi đơn, không theo bộ lọc. */}
-      <div className="space-y-2">
-        <p className="text-[10px] font-mono font-bold uppercase tracking-wider text-[#8B929C]">All time</p>
+      <div>
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
           <SummaryCard label="Orders" value={summary ? summary.totalOrders : '—'} />
           <SummaryCard label="Spent" value={summary ? formatVND(summary.totalSpent) : '—'} />

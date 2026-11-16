@@ -11,12 +11,6 @@ import { formatEventDateTime } from '../../utils/formatters';
 /** Màu duy nhất của thanh (slot 1 bảng màu mẫu, đã qua kiểm tra tương phản trên nền sáng). */
 const BAR_COLOR = '#2a78d6';
 
-const RANGE_HINT: Record<DashboardRange, string> = {
-  '7d': 'Last 7 days',
-  '30d': 'Last 30 days',
-  All: 'All time',
-};
-
 interface AnalyticsState {
   data: AdminPlatformAnalyticsDto | undefined;
   isPending: boolean;
@@ -143,7 +137,6 @@ export const DashboardAnalyticsPanels: React.FC<{
           <Panel
             title={metric === 'revenue' ? 'Revenue by event' : 'GMV by event'}
             icon={<BarChart3 className="w-4 h-4 text-[#F45135]" />}
-            badge={RANGE_HINT[range]}
             action={
               <div role="group" aria-label="Chart metric" className="inline-flex rounded-lg border border-[#E5EAF0] bg-slate-50 p-0.5">
                 {(
@@ -213,7 +206,7 @@ export const DashboardAnalyticsPanels: React.FC<{
             )
           ) : (
             <>
-          <Panel title="Ticket inventory" icon={<Boxes className="w-4 h-4 text-[#F45135]" />} badge="All time">
+          <Panel title="Ticket inventory" icon={<Boxes className="w-4 h-4 text-[#F45135]" />}>
             <p className="text-xs text-[#667085]">
               <span className="text-lg font-bold font-mono text-[#101722] tabular-nums">{inventory.totalTicketsInInventory}</span> tickets
             </p>
@@ -236,7 +229,7 @@ export const DashboardAnalyticsPanels: React.FC<{
             </ul>
           </Panel>
 
-          <Panel title="Users" icon={<Users className="w-4 h-4 text-[#F45135]" />} badge="All time">
+          <Panel title="Users" icon={<Users className="w-4 h-4 text-[#F45135]" />}>
             <div className="grid grid-cols-3 gap-3 text-xs">
               {[
                 ['Total', users.totalUsers],
@@ -257,7 +250,7 @@ export const DashboardAnalyticsPanels: React.FC<{
         </div>
       </div>
 
-      <Panel title="Events" icon={<BarChart3 className="w-4 h-4 text-[#F45135]" />} badge={RANGE_HINT[range]}>
+      <Panel title="Events" icon={<BarChart3 className="w-4 h-4 text-[#F45135]" />}>
         {events.length === 0 ? (
           <p className="py-6 text-center text-xs text-[#667085]">No events yet.</p>
         ) : (

@@ -89,14 +89,13 @@ export const AdminTransactionsPage: React.FC = () => {
       {/* Số toàn sàn, không theo bộ lọc. */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5">
         <StatCard
-          allTime
           label="Held in escrow"
           value={summary ? formatMoney(summary.totalEscrowLockedAmount) : '—'}
           hint={summary ? `${summary.totalLockedCount} transactions on hold` : undefined}
         />
-        <StatCard allTime label="Paid out" value={summary ? formatMoney(summary.totalPayoutCompletedAmount) : '—'} />
-        <StatCard allTime label="Refunded" value={summary ? formatMoney(summary.totalRefundedAmount) : '—'} />
-        <StatCard allTime label="In dispute" value={summary ? summary.totalDisputedCount : '—'} />
+        <StatCard label="Paid out" value={summary ? formatMoney(summary.totalPayoutCompletedAmount) : '—'} />
+        <StatCard label="Refunded" value={summary ? formatMoney(summary.totalRefundedAmount) : '—'} />
+        <StatCard label="In dispute" value={summary ? summary.totalDisputedCount : '—'} />
       </div>
 
       <FilterBar>
