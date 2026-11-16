@@ -183,8 +183,6 @@ export default function MarketplaceScreen() {
     const discountPercentage =
       item.discountPercentage > 0 ? item.discountPercentage : calculatedDiscountPercent;
 
-    const perTicketPrice = Math.round(totalBundleResalePrice / (bundleCount || 1));
-
     const isOwnListing = Boolean(
       user && (
         (item.sellerId && user.id && item.sellerId.toLowerCase() === user.id.toLowerCase()) ||
@@ -207,11 +205,6 @@ export default function MarketplaceScreen() {
     };
 
     const isRetailAllowed = isBundle && item.isBundleAllOrNothing === false;
-
-    const minTicketPrice =
-      isBundle && bundleItems.length > 1
-        ? Math.min(...bundleItems.map((b) => b.resalePrice || 0))
-        : item.resalePrice;
 
     const seatDisplay = isBundle
       ? bundleItems.length > 1
@@ -313,20 +306,13 @@ export default function MarketplaceScreen() {
                 <Text style={styles.originalPrice}>{formatPrice(totalBundleOriginalPrice)}</Text>
               )}
               <Text style={styles.resalePrice}>{formatPrice(totalBundleResalePrice)}</Text>
-              {isBundle && (
-                <Text style={styles.perTicketPrice}>
-                  {isRetailAllowed
-                    ? `(from ${formatPrice(minTicketPrice)}/ticket)`
-                    : `(${formatPrice(perTicketPrice)}/ticket)`}
-                </Text>
-              )}
             </View>
           </View>
 
           <View style={[styles.cardCta, isOwnListing && styles.cardCtaDisabled]}>
             <Text style={[styles.cardCtaText, isOwnListing && styles.cardCtaDisabledText]}>
               {isRetailAllowed
-                ? `Select Tickets (from ${formatPrice(minTicketPrice)})`
+                ? 'Select Tickets'
                 : isBundle
                   ? `Buy Combo (${bundleCount} Tickets)`
                   : 'Buy Ticket'}
