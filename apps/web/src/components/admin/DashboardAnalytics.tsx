@@ -69,17 +69,12 @@ export const DashboardMoneyRow: React.FC<{ analytics: AnalyticsState; range: Das
   if (!data) return null;
 
   const { revenue } = data;
-  const hint = RANGE_HINT[range];
   return (
     <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5">
-      <StatCard
-        label="Platform revenue"
-        value={formatMoney(revenue.totalNetRevenue)}
-        hint={`Buyer fees ${formatMoney(revenue.totalBuyerFees)} · Seller fees ${formatMoney(revenue.totalSellerFees)}`}
-      />
-      <StatCard label="GMV (total traded)" value={formatMoney(revenue.totalGmv)} hint={hint} />
-      <StatCard label="Fees still in escrow" value={formatMoney(revenue.pendingFeesInEscrow)} hint={hint} />
-      <StatCard label="Refunded" value={formatMoney(revenue.totalRefundedAmount)} hint={hint} />
+      <StatCard label="Platform revenue" value={formatMoney(revenue.totalNetRevenue)} />
+      <StatCard label="GMV (total traded)" value={formatMoney(revenue.totalGmv)} />
+      <StatCard label="Fees still in escrow" value={formatMoney(revenue.pendingFeesInEscrow)} />
+      <StatCard label="Refunded" value={formatMoney(revenue.totalRefundedAmount)} />
     </div>
   );
 };
