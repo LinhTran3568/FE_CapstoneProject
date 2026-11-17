@@ -29,7 +29,8 @@ import {
 } from 'lucide-react-native';
 import { useAuthStore } from '../../src/stores/authStore';
 import type { ResaleListingDetailDto } from '@ticketshield/types';
-import { resaleListingsApi } from '@ticketshield/api-client';
+import { API_CONFIG, resaleListingsApi } from '@ticketshield/api-client';
+import * as signalR from '@microsoft/signalr';
 import { theme } from '../../src/theme';
 import { EventPoster } from '../../src/components/EventPoster';
 import { FintechButton } from '../../src/components/FintechButton';
@@ -102,6 +103,20 @@ export default function MarketplaceScreen() {
       loadListings(debouncedKeyword, true);
     }, [debouncedKeyword, loadListings])
   );
+
+  useEffect(() => {
+    const connection = new signalR.HubConnectionBuilder()
+      .withUrl(`${API_CONFIG.baseURL.replace(/\/api\/v1\/?$/, '')}/hubs/payment`, {
+        // Hermes/whatwg-fetch cannot represent Android's network status 0
+        // during SignalR Long Polling. Marketplace realtime is WebSocket-only.
+        transport: signalR.HttpTransportType.WebSockets,
+      })
+      .withAutomaticReconnect()
+      .build();
+    connection.on('MarketplaceListingChanged', () => { void loadListings(debouncedKeyword, true); });
+    void connection.start().then(() => connection.invoke('JoinMarketplace')).catch(() => {});
+    return () => { void connection.stop(); };
+  }, [loadListings, debouncedKeyword]);
 
   // Group listings by bundleId to combine bundle/combo packages
   const bundleMap = useMemo(() => {

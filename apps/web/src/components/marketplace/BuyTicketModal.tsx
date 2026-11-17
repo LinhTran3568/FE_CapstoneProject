@@ -101,6 +101,7 @@ export const BuyTicketModal: React.FC<BuyTicketModalProps> = ({
     enabled: Boolean(holdData) && !paidHandledRef.current,
     onExpire: handleTimerExpire,
     listingId: listing?.listingId,
+    serverNow: holdData?.serverNow,
   });
 
   // SignalR Realtime Payment Notification Handler
@@ -251,7 +252,7 @@ export const BuyTicketModal: React.FC<BuyTicketModalProps> = ({
     if (holdData && !countdown.isExpired && !paidHandledRef.current && listing) {
       try {
         await resaleListingsApi.releaseHold(listing.listingId);
-        queryClient.invalidateQueries({ queryKey: ['resale-listings'] });
+        void queryClient.invalidateQueries({ queryKey: ['resale-listings'] });
         showToast('Hold released. Ticket is now unlocked on the marketplace.', 'info');
       } catch {
         // Silently ignore if already released or expired
@@ -289,6 +290,7 @@ export const BuyTicketModal: React.FC<BuyTicketModalProps> = ({
       });
 
       setHoldData(response);
+      void queryClient.invalidateQueries({ queryKey: ['resale-listings'] });
       showToast('Ticket reserved for 10 minutes! Please scan the VietQR code to pay.', 'success');
     } catch (err: any) {
       const msg = err?.message || 'Unable to hold ticket at this moment. Please try again later.';

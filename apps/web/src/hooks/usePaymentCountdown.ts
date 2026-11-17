@@ -6,6 +6,8 @@ export interface UsePaymentCountdownOptions {
   onExpire?: () => void;
   enabled?: boolean;
   listingId?: string;
+  /** Server timestamp returned with the same payload as unlockAt. */
+  serverNow?: string | null;
 }
 
 export interface UsePaymentCountdownResult {
@@ -24,6 +26,7 @@ export const usePaymentCountdown = ({
   onExpire,
   enabled = true,
   listingId,
+  serverNow,
 }: UsePaymentCountdownOptions): UsePaymentCountdownResult => {
   const totalDurationMsRef = useRef(durationSeconds * 1000);
   const targetTimeRef = useRef<number | null>(null);
@@ -33,45 +36,50 @@ export const usePaymentCountdown = ({
   const [timeLeft, setTimeLeft] = useState(durationSeconds);
   const [progressPercentage, setProgressPercentage] = useState(100);
   const [isExpired, setIsExpired] = useState(false);
+  const serverClockSampleRef = useRef<string | null>(null);
+  const serverClockOffsetRef = useRef(0);
+  if (serverNow && serverClockSampleRef.current !== serverNow) {
+    const parsed = new Date(serverNow).getTime();
+    if (!Number.isNaN(parsed)) {
+      // Capture the offset once when this payload arrives. Recomputing it on
+      // every render would incorrectly treat elapsed time as clock skew.
+      serverClockOffsetRef.current = parsed - Date.now();
+      serverClockSampleRef.current = serverNow;
+    }
+  }
+  const nowFromServerClock = useCallback(() => Date.now() + serverClockOffsetRef.current, []);
 
   // Initialize or re-anchor the target timestamp
   const calculateTargetTime = useCallback(() => {
     totalDurationMsRef.current = (durationSeconds || 600) * 1000;
     
-    // 1. Prioritize explicit unlockAt timestamp from backend
-    if (unlockAt) {
-      const parsed = new Date(unlockAt).getTime();
-      if (!Number.isNaN(parsed) && parsed > 0) {
-        if (listingId && typeof window !== 'undefined') {
-          sessionStorage.setItem(`ticket_hold_target_${listingId}`, parsed.toString());
-        }
-        return parsed;
+    const explicitTarget = unlockAt ? new Date(unlockAt).getTime() : NaN;
+
+    // The server-issued expiry is authoritative, including when checkout was
+    // opened from a different client (mobile/emulator).
+    if (!Number.isNaN(explicitTarget) && explicitTarget > 0) {
+      if (listingId && typeof window !== 'undefined') {
+        sessionStorage.setItem(`ticket_hold_target_${listingId}`, explicitTarget.toString());
       }
+      return explicitTarget;
     }
 
-    // 2. Fallback to sessionStorage persisted timestamp to prevent reset on page navigation
     if (listingId && typeof window !== 'undefined') {
-      const saved = sessionStorage.getItem(`ticket_hold_target_${listingId}`);
-      if (saved) {
-        const parsedSaved = parseInt(saved, 10);
-        if (!Number.isNaN(parsedSaved) && parsedSaved > Date.now() - 60000) {
-          return parsedSaved;
-        }
-      }
+      const saved = Number.parseInt(sessionStorage.getItem(`ticket_hold_target_${listingId}`) || '', 10);
+      if (!Number.isNaN(saved) && saved > nowFromServerClock() - 60_000) return saved;
     }
 
-    // 3. Generate new target time and persist if listingId is available
-    const target = Date.now() + totalDurationMsRef.current;
+    const target = nowFromServerClock() + totalDurationMsRef.current;
     if (listingId && typeof window !== 'undefined') {
       sessionStorage.setItem(`ticket_hold_target_${listingId}`, target.toString());
     }
     return target;
-  }, [unlockAt, durationSeconds, listingId]);
+  }, [unlockAt, durationSeconds, listingId, serverNow, nowFromServerClock]);
 
   const resetTimer = useCallback(() => {
     targetTimeRef.current = calculateTargetTime();
-    const remainingMs = Math.max(0, targetTimeRef.current - Date.now());
-    const remainingSecs = Math.ceil(remainingMs / 1000);
+    const remainingMs = Math.max(0, targetTimeRef.current - nowFromServerClock());
+    const remainingSecs = Math.floor(remainingMs / 1000);
     setTimeLeft(remainingSecs);
     setProgressPercentage(Math.min(100, Math.max(0, (remainingMs / totalDurationMsRef.current) * 100)));
     setIsExpired(remainingSecs <= 0);
@@ -88,9 +96,9 @@ export const usePaymentCountdown = ({
     const updateCountdown = () => {
       if (!targetTimeRef.current) return;
 
-      const now = Date.now();
+      const now = nowFromServerClock();
       const remainingMs = Math.max(0, targetTimeRef.current - now);
-      const remainingSecs = Math.max(0, Math.ceil(remainingMs / 1000));
+      const remainingSecs = Math.max(0, Math.floor(remainingMs / 1000));
 
       setTimeLeft(remainingSecs);
       const percent = Math.min(100, Math.max(0, (remainingMs / totalDurationMsRef.current) * 100));
@@ -124,7 +132,7 @@ export const usePaymentCountdown = ({
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       window.removeEventListener('focus', handleVisibilityChange);
     };
-  }, [enabled, calculateTargetTime]);
+  }, [enabled, calculateTargetTime, nowFromServerClock]);
 
   const mins = Math.floor(timeLeft / 60);
   const secs = timeLeft % 60;

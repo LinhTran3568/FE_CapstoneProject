@@ -9,6 +9,5 @@ export const useMarketplaceListings = (params?: { keyword?: string; eventId?: st
     queryKey: marketplaceListingsQueryKey(params),
     queryFn: () => resaleListingsApi.getMarketplaceListings(params),
     staleTime: 4_000,
-    refetchInterval: 5_000,
   });
 

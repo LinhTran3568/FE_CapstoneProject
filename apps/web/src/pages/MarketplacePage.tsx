@@ -23,9 +23,22 @@ import { BuyTicketModal } from '../components/marketplace/BuyTicketModal';
 import { TicketDetailModal } from '../components/marketplace/TicketDetailModal';
 import { StageMapModal } from '../components/marketplace/StageMapModal';
 import { MarketplaceListingDto } from '@ticketshield/types';
+import { API_CONFIG } from '@ticketshield/api-client';
+import * as signalR from '@microsoft/signalr';
 
 export const MarketplacePage: React.FC = () => {
   const queryClient = useQueryClient();
+  useEffect(() => {
+    const connection = new signalR.HubConnectionBuilder()
+      .withUrl(`${API_CONFIG.baseURL.replace(/\/api\/v1\/?$/, '')}/hubs/payment`)
+      .withAutomaticReconnect()
+      .build();
+    connection.on('MarketplaceListingChanged', () => {
+      void queryClient.invalidateQueries({ queryKey: ['resale-listings', 'marketplace'] });
+    });
+    void connection.start().then(() => connection.invoke('JoinMarketplace')).catch(() => {});
+    return () => { void connection.stop(); };
+  }, [queryClient]);
   const { showToast } = useUIStore();
   const { isAuthenticated, user } = useAuthStore();
   const navigate = useNavigate();

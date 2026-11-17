@@ -132,6 +132,8 @@ export const BuyTicketBottomSheet: React.FC<BuyTicketBottomSheetProps> = ({
         clearInterval(timerRef.current);
         timerRef.current = null;
       }
+      setHoldData(null);
+      setSecondsLeft(0);
     }
   }, [visible, listing, user]);
 
@@ -180,9 +182,11 @@ export const BuyTicketBottomSheet: React.FC<BuyTicketBottomSheetProps> = ({
     const unlockTime = holdData.unlockAt
       ? new Date(holdData.unlockAt).getTime()
       : Date.now() + duration * 1000;
+    const serverNow = holdData.serverNow ? new Date(holdData.serverNow).getTime() : NaN;
+    const clockOffset = Number.isNaN(serverNow) ? 0 : serverNow - Date.now();
 
     const tick = () => {
-      const now = Date.now();
+      const now = Date.now() + clockOffset;
       const remaining = Math.max(0, Math.floor((unlockTime - now) / 1000));
       setSecondsLeft(remaining);
       if (remaining <= 0 && timerRef.current) {
@@ -204,7 +208,7 @@ export const BuyTicketBottomSheet: React.FC<BuyTicketBottomSheetProps> = ({
 
   // Auto-polling payment status every 3 seconds while hold session is active (FE-MOB-9.3.4)
   useEffect(() => {
-    if (!holdData || purchaseSuccess || secondsLeft === 0) return;
+    if (!visible || !holdData || purchaseSuccess || secondsLeft === 0) return;
 
     let isPolling = true;
     const pollInterval = setInterval(async () => {
@@ -235,14 +239,24 @@ export const BuyTicketBottomSheet: React.FC<BuyTicketBottomSheetProps> = ({
             recipientEmail,
           });
         }
-      } catch {}
+      } catch (err: any) {
+        // Development data can be reset while this sheet remains open. A
+        // missing listing is a closed/stale checkout session, not a retryable
+        // payment failure; stop polling so it does not keep producing 404s.
+        if (err?.status === 404) {
+          isPolling = false;
+          clearInterval(pollInterval);
+          setSecondsLeft(0);
+          setHoldError('This checkout session is no longer available. Please start a new purchase.');
+        }
+      }
     }, 3000);
 
     return () => {
       isPolling = false;
       clearInterval(pollInterval);
     };
-  }, [holdData, purchaseSuccess, secondsLeft, listing, recipientName, recipientEmail, onSuccess]);
+  }, [visible, holdData, purchaseSuccess, secondsLeft, listing, recipientName, recipientEmail, onSuccess]);
 
   const effectiveBundleItems = useMemo(
     () => (bundleItems && bundleItems.length > 0 ? bundleItems : listing ? [listing] : []),

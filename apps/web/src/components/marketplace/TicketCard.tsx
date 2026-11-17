@@ -43,6 +43,7 @@ export const TicketCard: React.FC<TicketCardProps> = ({
     durationSeconds: 600,
     enabled: rawStatus === 'transacting',
     listingId: listing.listingId,
+    serverNow: listing.serverNow,
     onExpire: handleCountdownExpire,
   });
 

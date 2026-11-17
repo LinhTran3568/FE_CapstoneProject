@@ -344,6 +344,7 @@ export interface ResaleListingDetailDto {
   sellerId: string;
   sellerFullName: string;
   unlockAt?: string | null;
+  serverNow?: string;
   createdAt: string;
 
   // Bundle support (FE-5.2.6 / BE-CORE-5.2.2)
@@ -379,6 +380,7 @@ export interface HoldListingForPurchaseResponse {
   netSellerPayout: number;
   unlockAt: string;
   holdDurationSeconds: number;
+  serverNow?: string;
 
   // Bundle support (FE-5.2.6 / BE-CORE-5.2.3)
   bundleId?: string | null;
