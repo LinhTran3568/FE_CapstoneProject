@@ -183,11 +183,17 @@ export const MarketplacePage: React.FC = () => {
     });
 
     // 5. Dedup bundle combos: chỉ giữ 1 card đại diện cho mỗi bundleId
-    const seenBundleIds = new Set<string>();
+    const bundleRepresentatives = new Map<string, MarketplaceListingDto>();
+    sorted.forEach((item) => {
+      if (!item.bundleId || (item.bundleTotalTickets ?? 0) <= 1) return;
+      const current = bundleRepresentatives.get(item.bundleId);
+      if (!current || (item.listingStatus || '').toLowerCase() === 'transacting') {
+        bundleRepresentatives.set(item.bundleId, item);
+      }
+    });
     return sorted.filter((item) => {
       if (item.bundleId && (item.bundleTotalTickets ?? 0) > 1) {
-        if (seenBundleIds.has(item.bundleId)) return false; // bỏ qua vé thứ 2, 3...
-        seenBundleIds.add(item.bundleId);
+        return bundleRepresentatives.get(item.bundleId)?.listingId === item.listingId;
       }
       return true;
     });

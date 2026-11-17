@@ -47,29 +47,18 @@ export const TicketDetailModal: React.FC<TicketDetailModalProps> = ({
         ? listing.bundleItems
         : [listing];
 
-  const isBundle =
-    effectiveBundleListings.length > 1 ||
-    Boolean(listing.bundleTotalTickets && listing.bundleTotalTickets >= 2) ||
-    Boolean(listing.bundleId);
-
-  const bundleCount =
-    listing.bundleTotalTickets && listing.bundleTotalTickets >= 2
-      ? listing.bundleTotalTickets
-      : effectiveBundleListings.length;
+  const isBundle = effectiveBundleListings.length > 1;
+  const bundleCount = effectiveBundleListings.length;
 
   const totalResalePrice =
-    isBundle && effectiveBundleListings.length > 1
+    isBundle
       ? effectiveBundleListings.reduce((sum, item) => sum + (item.resalePrice || 0), 0)
-      : listing.bundleTotalTickets && listing.bundleTotalTickets >= 2 && effectiveBundleListings.length === 1
-        ? listing.resalePrice * listing.bundleTotalTickets
-        : listing.resalePrice;
+      : listing.resalePrice;
 
   const totalOriginalPrice =
-    isBundle && effectiveBundleListings.length > 1
+    isBundle
       ? effectiveBundleListings.reduce((sum, item) => sum + (item.originalPrice || 0), 0)
-      : listing.bundleTotalTickets && listing.bundleTotalTickets >= 2 && effectiveBundleListings.length === 1
-        ? listing.originalPrice * listing.bundleTotalTickets
-        : listing.originalPrice;
+      : listing.originalPrice;
 
   const perTicketResalePrice = Math.round(totalResalePrice / (bundleCount || 1));
 
@@ -106,32 +95,6 @@ export const TicketDetailModal: React.FC<TicketDetailModalProps> = ({
         originalPrice: item.originalPrice || perTicketOriginalPrice,
         price: item.resalePrice || perTicketResalePrice,
         code: item.maskedTicketCode || `AT*******${String(idx + 1).padStart(2, '0')}`,
-      }));
-    }
-
-    if (isBundle && bundleCount >= 2) {
-      if (adjacency.seatNumbers.length >= bundleCount) {
-        return adjacency.seatNumbers.slice(0, bundleCount).map((sn, idx) => ({
-          id: `seat-${sn}-${idx}`,
-          ticketIndex: idx + 1,
-          tierName: listing.tierName || 'VIP ZONE A',
-          seatZone: adjacency.commonRow ? `Row ${adjacency.commonRow} · Seat ${sn}` : `Seat ${sn}`,
-          originalPrice: perTicketOriginalPrice,
-          price: perTicketResalePrice,
-          code: listing.maskedTicketCode
-            ? `${listing.maskedTicketCode.slice(0, -2)}${String(idx + 1).padStart(2, '0')}`
-            : `AT*******${String(idx + 1).padStart(2, '0')}`,
-        }));
-      }
-
-      return Array.from({ length: bundleCount }, (_, idx) => ({
-        id: `ticket-${idx}`,
-        ticketIndex: idx + 1,
-        tierName: listing.tierName || 'VIP ZONE A',
-        seatZone: listing.seatZone ? `${listing.seatZone} (Ticket #${idx + 1})` : `Seat #${idx + 1}`,
-        originalPrice: perTicketOriginalPrice,
-        price: perTicketResalePrice,
-        code: listing.maskedTicketCode || `AT*******${String(idx + 1).padStart(2, '0')}`,
       }));
     }
 

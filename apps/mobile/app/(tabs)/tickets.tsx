@@ -274,19 +274,21 @@ export default function MobileTicketsScreen() {
         </View>
 
         <View style={styles.ticketDetailsRow}>
-          <View style={styles.detailCol}>
+          <View style={[styles.detailCol, styles.tierDetailCol]}>
             <Text style={styles.detailLabel}>Tier</Text>
             <Text style={styles.detailValue} numberOfLines={1}>
               {item.tierName}
             </Text>
           </View>
-          <View style={styles.detailCol}>
+          <View style={[styles.detailCol, styles.seatDetailCol]}>
             <Text style={styles.detailLabel}>Zone / Seat</Text>
             <Text style={styles.detailValue} numberOfLines={1}>
               {item.seatZone}
             </Text>
           </View>
-          <Text style={styles.ticketCode} numberOfLines={1}>{item.ticketPassCode}</Text>
+          <Text style={styles.ticketCode} numberOfLines={1} ellipsizeMode="tail">
+            {item.ticketPassCode}
+          </Text>
         </View>
       </View>
       </TouchableOpacity>

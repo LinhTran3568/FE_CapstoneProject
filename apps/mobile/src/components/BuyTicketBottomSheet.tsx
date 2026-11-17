@@ -280,13 +280,16 @@ export const BuyTicketBottomSheet: React.FC<BuyTicketBottomSheetProps> = ({
 
   useEffect(() => {
     if (visible && listing) {
-      if (effectiveBundleItems.length > 0) {
+      if (isRetailAllowed) {
+        // A bundle sold separately starts with the tapped ticket only.
+        setSelectedIds([listing.listingId]);
+      } else if (effectiveBundleItems.length > 0) {
         setSelectedIds(effectiveBundleItems.map((b) => b.listingId));
       } else {
         setSelectedIds([listing.listingId]);
       }
     }
-  }, [visible, listing, effectiveBundleItems]);
+  }, [visible, listing, effectiveBundleItems, isRetailAllowed]);
 
   const handleToggleTicket = (ticketId: string) => {
     if (!isRetailAllowed) return;
@@ -435,7 +438,7 @@ export const BuyTicketBottomSheet: React.FC<BuyTicketBottomSheetProps> = ({
     setHoldError(null);
 
     try {
-      const status = await resaleListingsApi.getPaymentStatus(listing.listingId);
+      const status = await resaleListingsApi.getPaymentStatus(holdData.listingId);
       const escrowStatus = status?.escrowStatus?.toLowerCase();
       const listingStatus = status?.listingStatus?.toLowerCase();
 
@@ -478,7 +481,7 @@ export const BuyTicketBottomSheet: React.FC<BuyTicketBottomSheetProps> = ({
     if (!listing || !holdData) return;
     setIsCheckingTransfer(true);
     try {
-      await resaleListingsApi.simulatePaymentSuccess(listing.listingId);
+      await resaleListingsApi.simulatePaymentSuccess(holdData.listingId);
       setPurchaseSuccess(true);
       onSuccess?.({
         orderId: holdData.paymentReference,
@@ -500,9 +503,9 @@ export const BuyTicketBottomSheet: React.FC<BuyTicketBottomSheetProps> = ({
   // Safely release hold if user closes while ticket is locked
   const handleClose = async () => {
     if (isCheckingTransfer || isHolding) return;
-    if (holdData && !purchaseSuccess && secondsLeft > 0 && listing) {
+    if (holdData && !purchaseSuccess && secondsLeft > 0) {
       try {
-        await resaleListingsApi.releaseHold(listing.listingId);
+        await resaleListingsApi.releaseHold(holdData.listingId);
       } catch {}
     }
     onClose();

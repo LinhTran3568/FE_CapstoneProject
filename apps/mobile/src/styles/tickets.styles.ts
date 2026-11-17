@@ -166,10 +166,17 @@ export const styles = StyleSheet.create({
   ticketDetailsRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    gap: theme.spacing.sm,
   },
   detailCol: {
     gap: 2,
+    minWidth: 0,
+  },
+  tierDetailCol: {
+    flex: 0.7,
+  },
+  seatDetailCol: {
+    flex: 1.35,
   },
   detailLabel: {
     fontSize: 10,
@@ -182,10 +189,13 @@ export const styles = StyleSheet.create({
     color: theme.colors.text,
   },
   ticketCode: {
-    fontSize: theme.typography.sizes.xs,
+    flex: 1.15,
+    minWidth: 0,
+    fontSize: 10,
     fontFamily: fontFamilies.mono,
     color: theme.colors.primary,
     fontWeight: theme.typography.weights.bold,
+    textAlign: 'right',
   },
   modalOverlay: {
     flex: 1,

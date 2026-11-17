@@ -133,12 +133,18 @@ export default function MarketplaceScreen() {
 
   // Dedup bundle combos so only 1 representative card is displayed in the list
   const dedupedListings = useMemo(() => {
-    const seenBundleIds = new Set<string>();
+    const bundleRepresentatives = new Map<string, ResaleListingDetailDto>();
+    listings.forEach((item) => {
+      if (!item.bundleId || (item.bundleTotalTickets ?? 0) <= 1) return;
+      const current = bundleRepresentatives.get(item.bundleId);
+      if (!current || (item.listingStatus || '').toLowerCase() === 'transacting') {
+        bundleRepresentatives.set(item.bundleId, item);
+      }
+    });
     return listings
       .filter((item) => {
         if (item.bundleId && (item.bundleTotalTickets ?? 0) > 1) {
-          if (seenBundleIds.has(item.bundleId)) return false;
-          seenBundleIds.add(item.bundleId);
+          return bundleRepresentatives.get(item.bundleId)?.listingId === item.listingId;
         }
         return true;
       })
@@ -147,9 +153,7 @@ export default function MarketplaceScreen() {
         const totalPrice =
           bundleItems.length > 1
             ? bundleItems.reduce((sum, b) => sum + (b.resalePrice || 0), 0)
-            : item.bundleTotalTickets && item.bundleTotalTickets >= 2
-              ? item.resalePrice * item.bundleTotalTickets
-              : item.resalePrice;
+            : item.resalePrice;
         return matchesBand(totalPrice, priceBand);
       });
   }, [listings, priceBand, bundleMap]);
@@ -167,29 +171,21 @@ export default function MarketplaceScreen() {
 
   const renderListing = ({ item }: { item: ResaleListingDetailDto }) => {
     const bundleItems = item.bundleId ? bundleMap.get(item.bundleId) || [item] : [item];
-    const isBundle =
-      bundleItems.length > 1 ||
-      Boolean(item.bundleTotalTickets && item.bundleTotalTickets >= 2) ||
-      Boolean(item.bundleId && (item.bundleTotalTickets ?? 0) > 1);
-
-    const bundleCount =
-      item.bundleTotalTickets && item.bundleTotalTickets >= 2
-        ? item.bundleTotalTickets
-        : bundleItems.length;
+    // `bundleTotalTickets` is historical package metadata. Once one ticket
+    // is sold separately, display and price only the listings still returned
+    // by the marketplace query.
+    const isBundle = bundleItems.length > 1;
+    const bundleCount = bundleItems.length;
 
     const totalBundleResalePrice =
-      isBundle && bundleItems.length > 1
+      isBundle
         ? bundleItems.reduce((sum, b) => sum + (b.resalePrice || 0), 0)
-        : item.bundleTotalTickets && item.bundleTotalTickets >= 2 && bundleItems.length === 1
-          ? item.resalePrice * item.bundleTotalTickets
-          : item.resalePrice;
+        : item.resalePrice;
 
     const totalBundleOriginalPrice =
-      isBundle && bundleItems.length > 1
+      isBundle
         ? bundleItems.reduce((sum, b) => sum + (b.originalPrice || 0), 0)
-        : item.bundleTotalTickets && item.bundleTotalTickets >= 2 && bundleItems.length === 1
-          ? item.originalPrice * item.bundleTotalTickets
-          : item.originalPrice;
+        : item.originalPrice;
 
     const hasDiscount = totalBundleOriginalPrice > totalBundleResalePrice;
     const calculatedDiscountPercent = hasDiscount

@@ -67,27 +67,18 @@ export const TicketCard: React.FC<TicketCardProps> = ({
     ? bundleListings
     : [listing];
 
-  const isBundle =
-    effectiveBundleListings.length > 1 ||
-    Boolean(listing.bundleTotalTickets && listing.bundleTotalTickets >= 2) ||
-    Boolean(listing.bundleId);
+  // Package metadata can outlive a separately sold sibling. Render only the
+  // listings that are still present in the marketplace response.
+  const isBundle = effectiveBundleListings.length > 1;
+  const bundleCount = effectiveBundleListings.length;
 
-  const bundleCount =
-    listing.bundleTotalTickets && listing.bundleTotalTickets >= 2
-      ? listing.bundleTotalTickets
-      : effectiveBundleListings.length;
-
-  const totalBundleResalePrice = isBundle && effectiveBundleListings.length > 1
+  const totalBundleResalePrice = isBundle
     ? effectiveBundleListings.reduce((sum, item) => sum + (item.resalePrice || 0), 0)
-    : (listing.bundleTotalTickets && listing.bundleTotalTickets >= 2 && effectiveBundleListings.length === 1)
-      ? listing.resalePrice * listing.bundleTotalTickets
-      : listing.resalePrice;
+    : listing.resalePrice;
 
-  const totalBundleOriginalPrice = isBundle && effectiveBundleListings.length > 1
+  const totalBundleOriginalPrice = isBundle
     ? effectiveBundleListings.reduce((sum, item) => sum + (item.originalPrice || 0), 0)
-    : (listing.bundleTotalTickets && listing.bundleTotalTickets >= 2 && effectiveBundleListings.length === 1)
-      ? listing.originalPrice * listing.bundleTotalTickets
-      : listing.originalPrice;
+    : listing.originalPrice;
 
   const formattedPrice = new Intl.NumberFormat('vi-VN').format(totalBundleResalePrice);
   const formattedOriginalPrice = new Intl.NumberFormat('vi-VN').format(totalBundleOriginalPrice);
