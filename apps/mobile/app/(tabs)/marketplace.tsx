@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   View,
   FlatList,
@@ -58,6 +58,7 @@ export default function MarketplaceScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const user = useAuthStore((state) => state.user);
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
 
   const [keyword, setKeyword] = useState('');
   const [debouncedKeyword, setDebouncedKeyword] = useState('');
@@ -70,11 +71,16 @@ export default function MarketplaceScreen() {
 
   const [selectedListing, setSelectedListing] = useState<ResaleListingDetailDto | null>(null);
   const [selectedBundleItems, setSelectedBundleItems] = useState<ResaleListingDetailDto[]>([]);
+  const latestSearchTerm = useRef('');
 
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedKeyword(keyword.trim()), 350);
     return () => clearTimeout(timer);
   }, [keyword]);
+
+  useEffect(() => {
+    latestSearchTerm.current = debouncedKeyword;
+  }, [debouncedKeyword]);
 
   const loadListings = useCallback(async (term: string, silent = false) => {
     if (!silent) setLoading(true);
@@ -105,6 +111,9 @@ export default function MarketplaceScreen() {
   );
 
   useEffect(() => {
+    if (!isAuthenticated) return;
+
+    let disposed = false;
     const connection = new signalR.HubConnectionBuilder()
       .withUrl(`${API_CONFIG.baseURL.replace(/\/api\/v1\/?$/, '')}/hubs/payment`, {
         // Hermes/whatwg-fetch cannot represent Android's network status 0
@@ -113,10 +122,37 @@ export default function MarketplaceScreen() {
       })
       .withAutomaticReconnect()
       .build();
-    connection.on('MarketplaceListingChanged', () => { void loadListings(debouncedKeyword, true); });
-    void connection.start().then(() => connection.invoke('JoinMarketplace')).catch(() => {});
-    return () => { void connection.stop(); };
-  }, [loadListings, debouncedKeyword]);
+    const onMarketplaceListingChanged = () => {
+      void loadListings(latestSearchTerm.current, true);
+    };
+    connection.on('MarketplaceListingChanged', onMarketplaceListingChanged);
+
+    void connection.start()
+      .then(async () => {
+        // The auth coordinator can redirect while WebSocket negotiation is in flight.
+        // Do not join a group for a screen that has already been disposed.
+        if (disposed) {
+          await connection.stop();
+          return;
+        }
+        await connection.invoke('JoinMarketplace');
+      })
+      .catch((error) => {
+        if (!disposed) {
+          console.warn('[Marketplace realtime] Unable to connect:', error);
+        }
+      });
+
+    return () => {
+      disposed = true;
+      connection.off('MarketplaceListingChanged', onMarketplaceListingChanged);
+      // Calling stop while start() is still negotiating produces SignalR's misleading
+      // "Failed to start ... before stop()" error. The start continuation above closes it.
+      if (connection.state !== signalR.HubConnectionState.Connecting) {
+        void connection.stop().catch(() => {});
+      }
+    };
+  }, [isAuthenticated, loadListings]);
 
   // Group listings by bundleId to combine bundle/combo packages
   const bundleMap = useMemo(() => {

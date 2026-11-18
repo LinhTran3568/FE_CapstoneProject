@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState, useMemo } from 'react';
+import React, { useCallback, useEffect, useState, useMemo, useRef } from 'react';
 import {
   View,
   FlatList,
@@ -27,12 +27,14 @@ import {
   Ticket,
 } from 'lucide-react-native';
 import { theme } from '../../src/theme';
-import { resaleListingsApi } from '@ticketshield/api-client';
+import { API_CONFIG, resaleListingsApi } from '@ticketshield/api-client';
+import * as signalR from '@microsoft/signalr';
 import { FintechButton } from '../../src/components/FintechButton';
 import { formatPrice, formatEventDateTime } from '../../src/utils/format';
 import { styles } from '../../src/styles/orders.styles';
 import type { PurchasedTicketDto } from '@ticketshield/types';
 import { DisputeTicketModal } from '../../src/components/DisputeTicketModal';
+import { useAuthStore } from '../../src/stores/authStore';
 
 interface MobileEscrowOrder {
   orderId: string;
@@ -82,6 +84,7 @@ const ORDER_FILTERS: OrderFilterItem[] = [
 
 export default function MobileOrdersScreen() {
   const router = useRouter();
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   const [orders, setOrders] = useState<MobileEscrowOrder[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -93,6 +96,12 @@ export default function MobileOrdersScreen() {
   const [cancellingListingId, setCancellingListingId] = useState<string | null>(null);
   const [listingToCancel, setListingToCancel] = useState<MobileEscrowOrder | null>(null);
   const [cancelError, setCancelError] = useState<string | null>(null);
+  const ordersRef = useRef<MobileEscrowOrder[]>([]);
+  const connectionRef = useRef<signalR.HubConnection | null>(null);
+
+  useEffect(() => {
+    ordersRef.current = orders;
+  }, [orders]);
 
   const counts = useMemo(() => {
     const myListings = orders.filter((o) => o.type === 'SELL').length;
@@ -230,6 +239,15 @@ export default function MobileOrdersScreen() {
       });
 
       setOrders(combined);
+      ordersRef.current = combined;
+
+      // The order screen receives settlement events per listing. Subscribe to
+      // every purchased listing after each refresh, including a newly paid pass.
+      const connection = connectionRef.current;
+      if (connection?.state === signalR.HubConnectionState.Connected) {
+        const listingIds = [...new Set(combined.filter((order) => order.type === 'BUY').map((order) => order.listingId))];
+        await Promise.all(listingIds.map((listingId) => connection.invoke('JoinListing', listingId).catch(() => {})));
+      }
     } catch (err) {
       const message =
         err instanceof Error ? err.message : 'Unable to load orders. Please try again.';
@@ -248,6 +266,50 @@ export default function MobileOrdersScreen() {
       fetchOrders(true);
     }, [fetchOrders])
   );
+
+  useEffect(() => {
+    if (!isAuthenticated) return;
+
+    let disposed = false;
+    const connection = new signalR.HubConnectionBuilder()
+      .withUrl(`${API_CONFIG.baseURL.replace(/\/api\/v1\/?$/, '')}/hubs/payment`, {
+        transport: signalR.HttpTransportType.WebSockets,
+      })
+      .withAutomaticReconnect()
+      .configureLogging(signalR.LogLevel.Warning)
+      .build();
+    connectionRef.current = connection;
+
+    const refreshFromRealtime = () => { void fetchOrders(true); };
+    connection.on('PaymentApproved', refreshFromRealtime);
+    connection.on('OrderSettled', refreshFromRealtime);
+    connection.on('PayoutCompleted', refreshFromRealtime);
+
+    void connection.start()
+      .then(async () => {
+        if (disposed) {
+          await connection.stop();
+          return;
+        }
+
+        const listingIds = [...new Set(ordersRef.current
+          .filter((order) => order.type === 'BUY')
+          .map((order) => order.listingId))];
+        await Promise.all(listingIds.map((listingId) => connection.invoke('JoinListing', listingId).catch(() => {})));
+      })
+      .catch(() => {});
+
+    return () => {
+      disposed = true;
+      connection.off('PaymentApproved', refreshFromRealtime);
+      connection.off('OrderSettled', refreshFromRealtime);
+      connection.off('PayoutCompleted', refreshFromRealtime);
+      connectionRef.current = null;
+      if (connection.state !== signalR.HubConnectionState.Connecting) {
+        void connection.stop().catch(() => {});
+      }
+    };
+  }, [fetchOrders, isAuthenticated]);
 
   const handleRefresh = async () => {
     setRefreshing(true);
