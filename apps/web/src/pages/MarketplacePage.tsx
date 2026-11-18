@@ -249,6 +249,7 @@ export const MarketplacePage: React.FC = () => {
   // Modals inherited from user design
   const [buyingListing, setBuyingListing] = useState<MarketplaceListingDto | null>(null);
   const [isIndividualPurchase, setIsIndividualPurchase] = useState<boolean>(false);
+  const [selectedListingIds, setSelectedListingIds] = useState<string[]>([]);
   const [inspectingListing, setInspectingListing] = useState<MarketplaceListingDto | null>(null);
   const [isStageMapOpen, setIsStageMapOpen] = useState(false);
 
@@ -277,7 +278,7 @@ export const MarketplacePage: React.FC = () => {
     }
   }, [searchParams, isAuthenticated, listings, user]);
 
-  const handleBuy = (listing: MarketplaceListingDto, isIndividual = false) => {
+  const handleBuy = (listing: MarketplaceListingDto, isIndividual = false, selectedIds: string[] = []) => {
     const rawStatus = (listing.listingStatus || '').toLowerCase();
     if (rawStatus === 'transacting') {
       showToast('This ticket is currently in a checkout session. Please choose another ticket or check back later!', 'warning');
@@ -309,6 +310,7 @@ export const MarketplacePage: React.FC = () => {
       return;
     }
     setIsIndividualPurchase(isIndividual);
+    setSelectedListingIds(selectedIds);
     setBuyingListing(listing);
   };
 
@@ -743,13 +745,16 @@ export const MarketplacePage: React.FC = () => {
         allListings={listings}
         isOpen={Boolean(buyingListing)}
         isIndividualPurchase={isIndividualPurchase}
+        selectedListingIds={selectedListingIds}
         onClose={() => {
           setBuyingListing(null);
           setIsIndividualPurchase(false);
+          setSelectedListingIds([]);
         }}
         onSuccess={(orderData) => {
           setBuyingListing(null);
           setIsIndividualPurchase(false);
+          setSelectedListingIds([]);
           queryClient.invalidateQueries({ queryKey: ['resale-listings'] });
           refetch();
           showToast(
@@ -775,9 +780,9 @@ export const MarketplacePage: React.FC = () => {
         listing={inspectingListing}
         isOpen={Boolean(inspectingListing)}
         onClose={() => setInspectingListing(null)}
-        onBuy={(target, isIndividual) => {
+        onBuy={(target, isIndividual, selectedIds) => {
           setInspectingListing(null);
-          handleBuy(target, isIndividual);
+          handleBuy(target, isIndividual, selectedIds);
         }}
         bundleListings={
           inspectingListing?.bundleId

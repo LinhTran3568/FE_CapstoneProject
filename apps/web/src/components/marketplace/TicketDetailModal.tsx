@@ -19,7 +19,7 @@ interface TicketDetailModalProps {
   listing: MarketplaceListingDto | null;
   isOpen: boolean;
   onClose: () => void;
-  onBuy: (listing: MarketplaceListingDto, isIndividual?: boolean) => void;
+  onBuy: (listing: MarketplaceListingDto, isIndividual?: boolean, selectedListingIds?: string[]) => void;
   /** Danh sách toàn bộ các vé con trong cùng bundle (nếu là vé combo) */
   bundleListings?: MarketplaceListingDto[];
   isOwner?: boolean;
@@ -604,17 +604,12 @@ export const TicketDetailModal: React.FC<TicketDetailModalProps> = ({
                 onClick={() => {
                   onClose();
                   if (isRetailAllowed && isBundle) {
-                    if (currentSelectedCount === 1) {
-                      const selectedTicket = activeSelectedTickets[0];
-                      const matchedItem =
-                        effectiveBundleListings.find((l) => l.listingId === selectedTicket.id) ||
-                        effectiveBundleListings[selectedTicket.ticketIndex - 1] ||
-                        listing;
-                      onBuy(matchedItem, true);
-                    } else {
-                      const anchor = effectiveBundleListings[0] || listing;
-                      onBuy(anchor, false);
-                    }
+                    // The checkout must receive the exact subset selected here.
+                    // Passing only the bundle anchor used to make a 2/3 selection
+                    // expand back to all listings in the bundle.
+                    const selectedListingIds = activeSelectedTickets.map((ticket) => ticket.id);
+                    const anchor = effectiveBundleListings.find((item) => item.listingId === selectedListingIds[0]) || listing;
+                    onBuy(anchor, true, selectedListingIds);
                   } else {
                     const target = effectiveBundleListings[0] || listing;
                     onBuy(target, false);

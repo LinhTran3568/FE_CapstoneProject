@@ -34,6 +34,11 @@ import { BankTransferDetails } from './checkout/BankTransferDetails';
 import { CheckoutSkeleton } from './checkout/CheckoutSkeleton';
 import { PaymentStatusView } from './checkout/PaymentStatusView';
 
+const compactMaskedTicketCode = (code?: string, fallback = 'Ticket'): string => {
+  const value = (code || fallback).trim();
+  return value.length > 14 ? `${value.slice(0, 3)}••••${value.slice(-3)}` : value;
+};
+
 interface BuyTicketModalProps {
   listing: MarketplaceListingDto | null;
   isOpen: boolean;
@@ -41,6 +46,8 @@ interface BuyTicketModalProps {
   onSuccess: (orderData: any) => void;
   allListings?: MarketplaceListingDto[];
   isIndividualPurchase?: boolean;
+  /** Exact items selected from an individual-sale bundle. */
+  selectedListingIds?: string[];
 }
 
 export const BuyTicketModal: React.FC<BuyTicketModalProps> = ({
@@ -50,6 +57,7 @@ export const BuyTicketModal: React.FC<BuyTicketModalProps> = ({
   onSuccess,
   allListings = [],
   isIndividualPurchase = false,
+  selectedListingIds = [],
 }) => {
   const queryClient = useQueryClient();
   const { user } = useAuthStore();
@@ -191,26 +199,39 @@ export const BuyTicketModal: React.FC<BuyTicketModalProps> = ({
 
   if (!isOpen || !listing) return null;
 
-  // FE-5.2.6: Bundle Combo & Multi-ticket detection for checkout modal.
-  // Khi buyer chọn mua lẻ từng vé (isIndividualPurchase = true), không gộp các vé khác trong bundle.
+  // An individual-sale bundle can contain a buyer-selected subset. That explicit
+  // selection takes precedence over the full bundle in every checkout calculation.
+  const explicitlySelectedListings = selectedListingIds.length > 0
+    ? selectedListingIds
+        .map((id) => allListings.find((item) => item.listingId === id))
+        .filter((item): item is MarketplaceListingDto => Boolean(item))
+    : [];
   const matchedBundleListings: MarketplaceListingDto[] = (!isIndividualPurchase && allListings && listing.bundleId)
     ? allListings.filter((l) => l.bundleId === listing.bundleId)
     : [];
 
   const effectiveBundleListings: MarketplaceListingDto[] =
-    matchedBundleListings.length > 1 ? matchedBundleListings : [listing];
+    explicitlySelectedListings.length > 0
+      ? explicitlySelectedListings
+      : matchedBundleListings.length > 1 ? matchedBundleListings : [listing];
 
   const isBundle =
-    !isIndividualPurchase &&
-    (effectiveBundleListings.length > 1 ||
-      Boolean(listing.bundleTotalTickets && listing.bundleTotalTickets >= 2) ||
-      Boolean(listing.bundleId));
+    effectiveBundleListings.length > 1 ||
+    (!isIndividualPurchase &&
+      (Boolean(listing.bundleTotalTickets && listing.bundleTotalTickets >= 2) || Boolean(listing.bundleId)));
 
   const bundleCount = isBundle
-    ? (listing.bundleTotalTickets && listing.bundleTotalTickets >= 2
+    ? (explicitlySelectedListings.length > 0
+        ? explicitlySelectedListings.length
+        : listing.bundleTotalTickets && listing.bundleTotalTickets >= 2
         ? listing.bundleTotalTickets
         : effectiveBundleListings.length)
     : 1;
+
+  const isPartialIndividualSelection =
+    isIndividualPurchase &&
+    explicitlySelectedListings.length > 0 &&
+    Boolean(listing.bundleTotalTickets && explicitlySelectedListings.length < listing.bundleTotalTickets);
 
   const isOwner = Boolean(
     user?.id && (
@@ -417,7 +438,7 @@ export const BuyTicketModal: React.FC<BuyTicketModalProps> = ({
                         {isBundle && (
                           <span className="text-[11px] font-mono font-bold text-orange-300 px-2.5 py-0.5 rounded bg-[#ff5722]/15 border border-[#ff5722]/40 uppercase tracking-wide flex items-center gap-1.5 shadow-sm">
                             <Layers className="w-3.5 h-3.5 text-[#ff5722]" />
-                            COMBO · {bundleCount} {bundleCount > 1 ? 'TICKETS' : 'TICKET'}
+                            {isPartialIndividualSelection ? 'SELECTED' : 'COMBO'} · {bundleCount} {bundleCount > 1 ? 'TICKETS' : 'TICKET'}
                           </span>
                         )}
                         {!isBundle && (
@@ -452,7 +473,7 @@ export const BuyTicketModal: React.FC<BuyTicketModalProps> = ({
                         <div className="flex items-center gap-1.5 min-w-0">
                           <Layers className="w-4 h-4 text-[#ff5722] shrink-0" />
                           <span className="text-xs sm:text-sm font-extrabold text-white tracking-wide uppercase truncate">
-                            Combo Package · {bundleCount} Tickets
+                            {isPartialIndividualSelection ? 'Selected Tickets' : 'Combo Package'} · {bundleCount} Tickets
                           </span>
 
                           {/* Info (i) icon with interactive hover tooltip */}
@@ -465,8 +486,12 @@ export const BuyTicketModal: React.FC<BuyTicketModalProps> = ({
                               <Info className="w-3.5 h-3.5" />
                             </button>
                             <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-1.5 hidden group-hover/info:block z-50 w-64 p-2.5 bg-[#0B0F17] border border-white/15 rounded-xl shadow-xl text-[11px] text-zinc-200 leading-relaxed pointer-events-none backdrop-blur-md">
-                              <span className="font-semibold text-[#ff8a65] block mb-0.5">All-or-Nothing Combo</span>
-                              All {bundleCount} tickets in this package are reserved simultaneously and paid via 1 single VietQR transaction.
+                              <span className="font-semibold text-[#ff8a65] block mb-0.5">
+                                {isPartialIndividualSelection ? 'Individual Ticket Selection' : 'All-or-Nothing Combo'}
+                              </span>
+                              {isPartialIndividualSelection
+                                ? `Only the ${bundleCount} ticket${bundleCount > 1 ? 's' : ''} you selected will be reserved and paid in this transaction.`
+                                : `All ${bundleCount} tickets in this package are reserved simultaneously and paid via 1 single VietQR transaction.`}
                               <div className="absolute left-1/2 -translate-x-1/2 -bottom-1 w-2 h-2 bg-[#0B0F17] border-r border-b border-white/15 rotate-45" />
                             </div>
                           </div>
@@ -487,10 +512,13 @@ export const BuyTicketModal: React.FC<BuyTicketModalProps> = ({
                                 className="px-3.5 py-2.5 rounded-xl bg-[#090C12] border border-white/10 flex items-center justify-between gap-3 text-xs shadow-sm hover:border-[#ff5722]/40 transition-colors"
                               >
                                 <div className="flex items-center gap-2.5 min-w-0 flex-1">
-                                  <span className="font-mono text-[11px] font-extrabold text-[#ff5722] bg-[#ff5722]/15 px-2 py-0.5 rounded-md border border-[#ff5722]/30 shrink-0">
-                                    {bl.maskedTicketCode || `Ticket #${idx + 1}`}
+                                  <span
+                                    className="max-w-[112px] truncate font-mono text-[11px] font-extrabold text-[#ff5722] bg-[#ff5722]/15 px-2 py-0.5 rounded-md border border-[#ff5722]/30 shrink-0"
+                                    title={bl.maskedTicketCode || `Ticket #${idx + 1}`}
+                                  >
+                                    {compactMaskedTicketCode(bl.maskedTicketCode, `Ticket #${idx + 1}`)}
                                   </span>
-                                  <span className="text-[12px] font-bold text-white whitespace-normal leading-tight">
+                                  <span className="min-w-0 flex-1 text-[12px] font-bold text-white leading-tight line-clamp-2">
                                     {bl.seatZone || bl.tierName || `Seat #${idx + 1}`}
                                   </span>
                                 </div>
