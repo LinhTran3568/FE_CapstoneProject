@@ -22,6 +22,7 @@ import {
   Globe,
   Share2,
   Copy,
+  X,
 } from 'lucide-react-native';
 import * as Clipboard from 'expo-clipboard';
 import { bankAccountsApi, resaleApi, resaleListingsApi } from '@ticketshield/api-client';
@@ -35,6 +36,15 @@ import { styles } from '../src/styles/verify.styles';
 
 type Verification = Awaited<ReturnType<typeof resaleApi.requestVerificationOtp>>;
 type Step = 'ticket' | 'otp' | 'confirm' | 'pricing' | 'review' | 'published';
+type SaleType = 'combo' | 'individual';
+
+type VerifiedTicket = {
+  code: string;
+  verification: Verification;
+  resalePrice: string;
+};
+
+const MAX_BUNDLE_TICKETS = 3;
 
 const STEPS: { key: Step; label: string; stepTitle: string }[] = [
   { key: 'ticket', label: 'Ticket Code', stepTitle: 'Step 1: Enter Ticket Code' },
@@ -58,6 +68,10 @@ export default function MobileVerifyTicketScreen() {
 
   const [step, setStep] = useState<Step>('ticket');
   const [ticketCode, setTicketCode] = useState('');
+  const [selectedTicketCodes, setSelectedTicketCodes] = useState<string[]>([]);
+  const [verifiedTickets, setVerifiedTickets] = useState<VerifiedTicket[]>([]);
+  const [activeTicketIndex, setActiveTicketIndex] = useState(0);
+  const [saleType, setSaleType] = useState<SaleType>('combo');
   const [otp, setOtp] = useState('');
   const [verification, setVerification] = useState<Verification | null>(null);
   const [resalePriceInput, setResalePriceInput] = useState('');
@@ -74,6 +88,22 @@ export default function MobileVerifyTicketScreen() {
   // A missing payout account should redirect a user when they enter Sell, but
   // must not trap them in a Sell → Payout → Back → Payout navigation loop.
   const hasRedirectedForPayoutRef = useRef(false);
+  const activeVerificationIdsRef = useRef<string[]>([]);
+
+  useEffect(() => {
+    activeVerificationIdsRef.current = step === 'published'
+      ? []
+      : [...new Set([
+        ...verifiedTickets.map((item) => item.verification.verificationId),
+        verification?.verificationId,
+      ].filter(Boolean) as string[])];
+  }, [step, verifiedTickets, verification]);
+
+  // A seller may leave through the tab bar or Android back button rather than
+  // the explicit cancel action. Release every verified ticket in the combo.
+  useEffect(() => () => {
+    activeVerificationIdsRef.current.forEach((id) => resaleApi.closeVerificationBeacon(id));
+  }, []);
 
   const requirePayoutAccount = useCallback(async (redirectOnExplicitSell = false): Promise<boolean> => {
     try {
@@ -178,12 +208,13 @@ export default function MobileVerifyTicketScreen() {
     };
   }, []);
 
-  const matchedTicket = useMemo(() => {
-    if (!ticketCode.trim()) return null;
-    return myTickets.find(
-      (t) => (t.ticketPassCode || t.qrCodeData || '').trim().toUpperCase() === ticketCode.trim().toUpperCase()
-    );
-  }, [ticketCode, myTickets]);
+  const selectedCodesPreview = useMemo(
+    () => [...new Set([
+      ...selectedTicketCodes,
+      ...ticketCode.split(',').map((code) => code.trim().toUpperCase()).filter(Boolean),
+    ])],
+    [selectedTicketCodes, ticketCode]
+  );
 
   useEffect(() => {
     if (resendCooldown <= 0) return;
@@ -228,14 +259,19 @@ export default function MobileVerifyTicketScreen() {
   }, [enteredPrice, feeConfig]);
 
   const resetFlow = async () => {
-    if (verification?.verificationId && step !== 'ticket' && step !== 'published') {
-      try {
-        await resaleApi.closeVerification(verification.verificationId);
-      } catch {
-        // Do not block user on cleanup error
-      }
+    const verificationIds = new Set(
+      [...verifiedTickets.map((item) => item.verification.verificationId), verification?.verificationId]
+        .filter(Boolean) as string[]
+    );
+    if (step !== 'published') {
+      await Promise.allSettled([...verificationIds].map((id) => resaleApi.closeVerification(id)));
     }
     setStep('ticket');
+    setTicketCode('');
+    setSelectedTicketCodes([]);
+    setVerifiedTickets([]);
+    setActiveTicketIndex(0);
+    setSaleType('combo');
     setVerification(null);
     setOtp('');
     setResalePriceInput('');
@@ -248,12 +284,16 @@ export default function MobileVerifyTicketScreen() {
   };
 
   const handleRequestOtp = async () => {
-    const code = ticketCode.trim();
-    if (!code) {
+    const codes = selectedCodesPreview;
+    if (codes.length === 0) {
       setErrorMessage('Please enter the ticket code to verify.');
       return;
     }
-    if (refundedTicketCodes.has(code.toUpperCase())) {
+    if (codes.length > MAX_BUNDLE_TICKETS) {
+      setErrorMessage(`You can list up to ${MAX_BUNDLE_TICKETS} tickets in one combo.`);
+      return;
+    }
+    if (codes.some((code) => refundedTicketCodes.has(code))) {
       setErrorMessage('This ticket was refunded and cannot be listed.');
       return;
     }
@@ -262,6 +302,9 @@ export default function MobileVerifyTicketScreen() {
     // payout setup if it is still missing.
     if (!(await requirePayoutAccount(true))) return;
 
+    const code = codes[activeTicketIndex] || codes[0];
+    setSelectedTicketCodes(codes);
+    setTicketCode(code);
     setIsSubmitting(true);
     setErrorMessage(null);
     try {
@@ -311,15 +354,33 @@ export default function MobileVerifyTicketScreen() {
     try {
       const currentVId = verification.verificationId;
       const result = await resaleApi.confirmVerificationOtp(currentVId, cleanOtp);
-      setVerification({
+      const lockedVerification = {
         ...verification,
         ...result,
         verificationId: result.verificationId || currentVId,
-      });
-      if (result.priceCeiling && !resalePriceInput) {
-        setResalePriceInput(String(result.priceCeiling));
+      };
+      const lockedTicket: VerifiedTicket = {
+        code: ticketCode.trim(),
+        verification: lockedVerification,
+        resalePrice: String(lockedVerification.priceCeiling || lockedVerification.originalPrice || ''),
+      };
+      setVerifiedTickets((current) => [...current, lockedTicket]);
+
+      const nextIndex = activeTicketIndex + 1;
+      if (nextIndex < selectedTicketCodes.length) {
+        setActiveTicketIndex(nextIndex);
+        setTicketCode(selectedTicketCodes[nextIndex]);
+        setVerification(null);
+        setOtp('');
+        setResendCooldown(0);
+        setStep('otp');
+      } else {
+        setVerification(lockedVerification);
+        setActiveTicketIndex(0);
+        setTicketCode(lockedTicket.code);
+        setResalePriceInput(lockedTicket.resalePrice);
+        setStep('confirm');
       }
-      setStep('confirm');
     } catch (err) {
       const message =
         err instanceof Error ? err.message : 'Invalid OTP. Please check the code and try again.';
@@ -349,6 +410,22 @@ export default function MobileVerifyTicketScreen() {
       setErrorMessage(`Resale price must be at least ${formatPrice(feeConfig.minimumSellerFee)}.`);
       return;
     }
+    const currentCode = verifiedTickets[activeTicketIndex]?.code;
+    setVerifiedTickets((current) => current.map((item, index) =>
+      index === activeTicketIndex ? { ...item, resalePrice: resalePriceInput } : item
+    ));
+    const nextIndex = activeTicketIndex + 1;
+    if (nextIndex < verifiedTickets.length) {
+      const next = verifiedTickets[nextIndex];
+      setActiveTicketIndex(nextIndex);
+      setVerification(next.verification);
+      setTicketCode(next.code);
+      setResalePriceInput(next.resalePrice || String(next.verification.priceCeiling || next.verification.originalPrice || ''));
+      setErrorMessage(null);
+      return;
+    }
+    // Keep the current price in state while React applies the session update.
+    if (!currentCode) return;
     setErrorMessage(null);
     setStep('review');
   };
@@ -356,37 +433,42 @@ export default function MobileVerifyTicketScreen() {
   const handlePublish = async () => {
     if (!(await requirePayoutAccount(true))) return;
 
-    if (!verification?.verificationId) return;
-    const price = Number(resalePriceInput);
-    if (!price || price <= 0) {
-      setErrorMessage('Please enter a valid resale price.');
-      return;
-    }
-    if (priceCeiling > 0 && price > priceCeiling) {
-      setErrorMessage(
-        `Resale price cannot exceed the organizer cap of ${formatPrice(priceCeiling)}.`
-      );
-      return;
-    }
-    if (!feeConfig || price < feeConfig.minimumSellerFee) {
-      setErrorMessage(
-        feeConfig
-          ? `Resale price must be at least ${formatPrice(feeConfig.minimumSellerFee)}.`
-          : 'Unable to load the current resale fee policy. Please try again.'
-      );
+    const ticketsToPublish = verifiedTickets.map((item, index) =>
+      index === activeTicketIndex ? { ...item, resalePrice: resalePriceInput } : item
+    );
+    if (!feeConfig || ticketsToPublish.length === 0 || ticketsToPublish.some((item) => {
+      const price = Number(item.resalePrice);
+      const ceiling = item.verification.priceCeiling || 0;
+      return !price || price < feeConfig.minimumSellerFee || (ceiling > 0 && price > ceiling);
+    })) {
+      setErrorMessage('Review every ticket price and the current organizer cap before publishing.');
       return;
     }
 
     setIsSubmitting(true);
     setErrorMessage(null);
     try {
-      const result = await resaleApi.publishListing(
-        verification.verificationId,
-        price,
-        isPrivateListing
-      );
-      setPublishedListingId(result.listingId ?? verification.listingId ?? 'published');
-      setPublishedPrivateToken(result.privateAccessToken ?? null);
+      if (ticketsToPublish.length === 1) {
+        const item = ticketsToPublish[0];
+        const result = await resaleApi.publishListing(
+          item.verification.verificationId,
+          Number(item.resalePrice),
+          isPrivateListing
+        );
+        setPublishedListingId(result.listingId ?? item.verification.listingId ?? 'published');
+        setPublishedPrivateToken(result.privateAccessToken ?? null);
+      } else {
+        const result = await resaleApi.bulkPublishListing(
+          ticketsToPublish.map((item) => ({
+            verificationId: item.verification.verificationId,
+            resalePrice: Number(item.resalePrice),
+            isPrivate: isPrivateListing,
+          })),
+          saleType === 'combo'
+        );
+        setPublishedListingId(result.listings?.[0]?.listingId ?? result.bundleId ?? 'published');
+        setPublishedPrivateToken((result as any).privateAccessToken ?? null);
+      }
       setStep('published');
     } catch (err) {
       const message = err instanceof Error && err.message === 'TICKET_REFUNDED'
@@ -509,7 +591,9 @@ export default function MobileVerifyTicketScreen() {
         {step === 'ticket' && (
           <View style={styles.formCard}>
             <View style={styles.ticketInputHeaderRow}>
-              <Text style={styles.inputSectionLabel}>Electronic Ticket Code</Text>
+              <Text style={styles.inputSectionLabel}>
+                Tickets ({selectedCodesPreview.length}/3)
+              </Text>
               <TouchableOpacity
                 onPress={() => setIsTicketPickerOpen((prev) => !prev)}
                 style={[
@@ -550,15 +634,22 @@ export default function MobileVerifyTicketScreen() {
                   ) : (
                     myTickets.map((t, idx) => {
                       const code = (t.ticketPassCode || t.qrCodeData || '').trim();
-                      const isSelected = ticketCode.trim().toUpperCase() === code.toUpperCase();
+                      const isSelected = selectedTicketCodes.includes(code.toUpperCase());
                       return (
                         <TouchableOpacity
                           key={`${code}-${idx}`}
                           style={[styles.dropdownItem, isSelected && styles.dropdownItemActive]}
                           onPress={() => {
-                            setTicketCode(code);
+                            const normalizedCode = code.toUpperCase();
+                            if (isSelected) {
+                              setSelectedTicketCodes((current) => current.filter((item) => item !== normalizedCode));
+                            } else if (selectedTicketCodes.length < MAX_BUNDLE_TICKETS) {
+                              setSelectedTicketCodes((current) => [...current, normalizedCode]);
+                            } else {
+                              setErrorMessage(`You can select up to ${MAX_BUNDLE_TICKETS} tickets.`);
+                              return;
+                            }
                             setErrorMessage(null);
-                            setIsTicketPickerOpen(false);
                           }}
                         >
                           <View style={styles.dropdownItemLeft}>
@@ -583,8 +674,37 @@ export default function MobileVerifyTicketScreen() {
               </View>
             )}
 
+            {selectedCodesPreview.length > 0 && (
+              <View style={styles.selectedTicketsBox}>
+                <Text style={styles.selectedTicketsLabel}>Selected tickets</Text>
+                {selectedCodesPreview.map((code, index) => (
+                  <View style={styles.selectedTicketRow} key={code}>
+                    <Text style={styles.selectedTicketCode} numberOfLines={1}>
+                      Ticket {index + 1}: {code}
+                    </Text>
+                    <TouchableOpacity
+                      onPress={() => {
+                        setSelectedTicketCodes((current) => current.filter((item) => item !== code));
+                        setTicketCode((current) => current
+                          .split(',')
+                          .map((item) => item.trim())
+                          .filter((item) => item && item.toUpperCase() !== code)
+                          .join(', '));
+                        setErrorMessage(null);
+                      }}
+                      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                      accessibilityLabel={`Remove ${code}`}
+                    >
+                      <X size={15} color={theme.colors.textMuted} />
+                    </TouchableOpacity>
+                  </View>
+                ))}
+              </View>
+            )}
+
             <FintechInput
-              placeholder="e.g. ATSH-VIP-882109"
+              label="Ticket code (optional)"
+              placeholder="One code, or comma-separated codes"
               value={ticketCode}
               onChangeText={(value) => {
                 setTicketCode(value);
@@ -595,7 +715,7 @@ export default function MobileVerifyTicketScreen() {
             />
 
             <FintechButton
-              title="Send Verification Request"
+              title={selectedCodesPreview.length > 1 ? `Verify ${selectedCodesPreview.length} Tickets` : 'Send Verification Request'}
               onPress={handleRequestOtp}
               loading={isSubmitting}
               icon={<Send size={17} color={theme.colors.onPrimary} />}
@@ -604,50 +724,63 @@ export default function MobileVerifyTicketScreen() {
         )}
 
         {/* STEP 2: VERIFY OTP */}
-        {step === 'otp' && verification && (
+        {step === 'otp' && (
           <View style={styles.formCard}>
             <View style={styles.ticketChip}>
-              <Text style={styles.ticketChipLabel}>Verifying Ticket</Text>
+              <Text style={styles.ticketChipLabel}>
+                Verifying Ticket {activeTicketIndex + 1} of {selectedTicketCodes.length}
+              </Text>
               <Text style={styles.ticketChipValue} numberOfLines={1}>
                 {ticketCode.trim()}
               </Text>
             </View>
 
-            <FintechInput
-              label="Organizer Verification Code (OTP)"
-              placeholder="Enter 6-digit OTP"
-              value={otp}
-              onChangeText={(value) => {
-                setOtp(value);
-                setErrorMessage(null);
-              }}
-              keyboardType="number-pad"
-              maxLength={8}
-            />
+            {!verification ? (
+              <FintechButton
+                title={`Send OTP for Ticket ${activeTicketIndex + 1}`}
+                onPress={handleRequestOtp}
+                loading={isSubmitting}
+                icon={<Send size={17} color={theme.colors.onPrimary} />}
+              />
+            ) : (
+              <>
+                <FintechInput
+                  label="Organizer Verification Code (OTP)"
+                  placeholder="Enter 6-digit OTP"
+                  value={otp}
+                  onChangeText={(value) => {
+                    setOtp(value);
+                    setErrorMessage(null);
+                  }}
+                  keyboardType="number-pad"
+                  maxLength={8}
+                />
 
-            <View style={styles.resendRow}>
-              <TouchableOpacity
-                onPress={handleResendOtp}
-                disabled={resendCooldown > 0 || isSubmitting}
-                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-              >
-                <Text
-                  style={[
-                    styles.resendText,
-                    (resendCooldown > 0 || isSubmitting) && styles.resendTextDisabled,
-                  ]}
-                >
-                  {resendCooldown > 0 ? `Resend OTP in ${resendCooldown}s` : 'Resend OTP'}
-                </Text>
-              </TouchableOpacity>
-            </View>
+                <View style={styles.resendRow}>
+                  <TouchableOpacity
+                    onPress={handleResendOtp}
+                    disabled={resendCooldown > 0 || isSubmitting}
+                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                  >
+                    <Text
+                      style={[
+                        styles.resendText,
+                        (resendCooldown > 0 || isSubmitting) && styles.resendTextDisabled,
+                      ]}
+                    >
+                      {resendCooldown > 0 ? `Resend OTP in ${resendCooldown}s` : 'Resend OTP'}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
 
-            <FintechButton
-              title="Confirm OTP Code"
-              onPress={handleConfirmOtp}
-              loading={isSubmitting}
-              icon={<ShieldCheck size={17} color={theme.colors.onPrimary} />}
-            />
+                <FintechButton
+                  title={activeTicketIndex + 1 < selectedTicketCodes.length ? 'Confirm & Verify Next Ticket' : 'Confirm OTP Code'}
+                  onPress={handleConfirmOtp}
+                  loading={isSubmitting}
+                  icon={<ShieldCheck size={17} color={theme.colors.onPrimary} />}
+                />
+              </>
+            )}
 
             <TouchableOpacity
               style={styles.cancelLink}
@@ -668,7 +801,11 @@ export default function MobileVerifyTicketScreen() {
                 <CheckCircle2 size={26} color={theme.colors.success} />
               </View>
               <View style={styles.resultTitleGroup}>
-                <Text style={styles.resultTitle}>Ticket Valid & Escrow Locked</Text>
+                <Text style={styles.resultTitle}>
+                  {verifiedTickets.length > 1
+                    ? `${verifiedTickets.length} Tickets Valid & Escrow Locked`
+                    : 'Ticket Valid & Escrow Locked'}
+                </Text>
               </View>
             </View>
 
@@ -702,7 +839,13 @@ export default function MobileVerifyTicketScreen() {
             <FintechButton
               title="Continue to Set Price"
               onPress={() => {
+                const firstTicket = verifiedTickets[0];
+                if (!firstTicket) return;
                 setErrorMessage(null);
+                setActiveTicketIndex(0);
+                setVerification(firstTicket.verification);
+                setTicketCode(firstTicket.code);
+                setResalePriceInput(firstTicket.resalePrice);
                 setStep('pricing');
               }}
               icon={<ArrowRight size={17} color={theme.colors.onPrimary} />}
@@ -722,7 +865,9 @@ export default function MobileVerifyTicketScreen() {
         {step === 'pricing' && verification && (
           <View style={styles.formCard}>
             <View style={styles.ticketChip}>
-              <Text style={styles.ticketChipLabel}>Ticket Code</Text>
+              <Text style={styles.ticketChipLabel}>
+                Ticket {activeTicketIndex + 1} of {verifiedTickets.length}
+              </Text>
               <Text style={styles.ticketChipValue} numberOfLines={1}>
                 {ticketCode.trim()}
               </Text>
@@ -771,7 +916,7 @@ export default function MobileVerifyTicketScreen() {
             )}
 
             <FintechButton
-              title="Continue to Review"
+              title={activeTicketIndex + 1 < verifiedTickets.length ? 'Save Price & Set Next Ticket' : 'Continue to Review'}
               onPress={handleStep4Continue}
               disabled={isLoadingFeeConfig || !feePreview}
               icon={<ArrowRight size={17} color={theme.colors.onPrimary} />}
@@ -871,26 +1016,74 @@ export default function MobileVerifyTicketScreen() {
               </Text>
             </View>
 
-            <View style={styles.resultSpecs}>
-              <View style={styles.specRow}>
-                <Text style={styles.specLabel}>Ticket Code</Text>
-                <Text style={styles.specValueMono} numberOfLines={1}>
-                  {ticketCode.trim()}
+            {verifiedTickets.length > 1 && (
+              <View style={styles.visibilityCard}>
+                <Text style={styles.visibilityTitle}>How buyers can purchase</Text>
+                <View style={styles.visibilityRow}>
+                  <TouchableOpacity
+                    style={[styles.visibilityOption, saleType === 'combo' && styles.visibilityOptionPublicActive]}
+                    onPress={() => setSaleType('combo')}
+                    activeOpacity={0.8}
+                  >
+                    <View style={[styles.visibilityIconBox, saleType === 'combo' ? styles.visibilityIconBoxPublicActive : styles.visibilityIconBoxInactive]}>
+                      <Ticket size={18} color={saleType === 'combo' ? '#FFFFFF' : '#9CA3AF'} />
+                    </View>
+                    <View style={styles.visibilityTextCol}>
+                      <Text style={styles.visibilityOptionLabel} numberOfLines={1}>Together</Text>
+                      <Text style={styles.visibilityOptionSub} numberOfLines={1}>All tickets</Text>
+                    </View>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.visibilityOption, saleType === 'individual' && styles.visibilityOptionPublicActive]}
+                    onPress={() => setSaleType('individual')}
+                    activeOpacity={0.8}
+                  >
+                    <View style={[styles.visibilityIconBox, saleType === 'individual' ? styles.visibilityIconBoxPublicActive : styles.visibilityIconBoxInactive]}>
+                      <Check size={18} color={saleType === 'individual' ? '#FFFFFF' : '#9CA3AF'} />
+                    </View>
+                    <View style={styles.visibilityTextCol}>
+                      <Text style={styles.visibilityOptionLabel} numberOfLines={1}>Separate</Text>
+                      <Text style={styles.visibilityOptionSub} numberOfLines={1}>Buyer chooses</Text>
+                    </View>
+                  </TouchableOpacity>
+                </View>
+                <Text style={styles.visibilityDesc}>
+                  {saleType === 'combo'
+                    ? 'Buyers must purchase every ticket in this combo together.'
+                    : 'Buyers can select one or more tickets from this listing.'}
                 </Text>
               </View>
-              {originalPrice > 0 && (
+            )}
+
+            <View style={styles.resultSpecs}>
+              {verifiedTickets.map((item, index) => (
+                <View style={styles.ticketPriceRow} key={item.code}>
+                  <View style={styles.ticketPriceIdentity}>
+                    <Text style={styles.specLabel} numberOfLines={1}>
+                      {verifiedTickets.length > 1 ? `Ticket ${index + 1}` : 'Ticket Code'}
+                    </Text>
+                    <Text style={styles.ticketPriceCode} numberOfLines={1}>{item.code}</Text>
+                  </View>
+                  <Text style={styles.ticketPriceValue} numberOfLines={1}>
+                    {formatPrice(Number(item.resalePrice))}
+                  </Text>
+                </View>
+              ))}
+              {verifiedTickets.length === 1 && originalPrice > 0 && (
                 <View style={styles.specRow}>
                   <Text style={styles.specLabel}>Original Face Value</Text>
                   <Text style={styles.specValue}>{formatPrice(originalPrice)}</Text>
                 </View>
               )}
               <View style={styles.specRow}>
-                <Text style={styles.specLabel}>Listing Resale Price</Text>
+                <Text style={styles.specLabel}>
+                  {verifiedTickets.length > 1 ? 'Total Listing Price' : 'Listing Resale Price'}
+                </Text>
                 <Text style={[styles.specValue, { color: theme.colors.primary, fontWeight: 'bold' }]}>
-                  {formatPrice(enteredPrice)}
+                  {formatPrice(verifiedTickets.reduce((total, item) => total + Number(item.resalePrice || 0), 0))}
                 </Text>
               </View>
-              {feePreview && (
+              {verifiedTickets.length === 1 && feePreview && (
                 <>
                   <View style={styles.specRow}>
                     <Text style={styles.specLabel}>Buyer Escrow Fee ({feePreview.buyerFeeLabel})</Text>

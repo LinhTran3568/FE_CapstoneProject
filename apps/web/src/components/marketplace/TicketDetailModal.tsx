@@ -317,6 +317,11 @@ export const TicketDetailModal: React.FC<TicketDetailModalProps> = ({
               <div className="space-y-3">
                 {displayTickets.map((t) => {
                   const isSelected = isRetailAllowed && isBundle ? selectedIds.includes(t.id) : true;
+                  // A backend masked code can contain an arbitrary number of `*`.
+                  // Keep the stub readable and bounded regardless of that input.
+                  const compactCode = t.code.length > 14
+                    ? `${t.code.slice(0, 3)}••••${t.code.slice(-3)}`
+                    : t.code;
                   return (
                     <div
                       key={t.id}
@@ -405,10 +410,10 @@ export const TicketDetailModal: React.FC<TicketDetailModalProps> = ({
                         <div className="relative w-[35%] h-full bg-[#e2e8f0] rounded-r-2xl overflow-hidden flex flex-col justify-between p-2.5 sm:p-3 text-slate-900 paper-texture shadow-inner">
                           <div className="absolute top-0 bottom-0 left-0 w-3 bg-gradient-to-r from-black/10 to-transparent pointer-events-none" />
 
-                          <div className="flex items-center justify-between">
-                            <div className="px-1.5 py-0.5 rounded bg-slate-300/80 border border-slate-400/50">
-                              <span className="font-mono text-[10px] sm:text-[11px] font-bold tracking-wider text-slate-800">
-                                {t.code}
+                          <div className="flex items-center justify-between gap-1.5 min-w-0">
+                            <div className="min-w-0 max-w-full px-1.5 py-0.5 rounded bg-slate-300/80 border border-slate-400/50 overflow-hidden">
+                              <span className="block truncate font-mono text-[10px] sm:text-[11px] font-bold tracking-wider text-slate-800">
+                                {compactCode}
                               </span>
                             </div>
 
