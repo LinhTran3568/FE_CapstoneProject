@@ -361,6 +361,7 @@ export interface HoldListingForPurchaseRequest {
   recipientIdCard?: string;
   privateAccessToken?: string;
   buyAsBundle?: boolean;
+  selectedListingIds?: string[];
 }
 
 export interface HoldListingForPurchaseResponse {

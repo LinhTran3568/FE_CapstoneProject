@@ -287,6 +287,7 @@ export const BuyTicketModal: React.FC<BuyTicketModalProps> = ({
         recipientIdCard: idCard || undefined,
         privateAccessToken: (listing as any).privateAccessToken || undefined,
         buyAsBundle: !isIndividualPurchase,
+        selectedListingIds: effectiveBundleListings.map((l) => l.listingId),
       });
 
       setHoldData(response);

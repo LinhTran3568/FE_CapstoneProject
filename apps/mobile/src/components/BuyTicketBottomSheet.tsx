@@ -408,6 +408,7 @@ export const BuyTicketBottomSheet: React.FC<BuyTicketBottomSheetProps> = ({
         recipientEmail: recipientEmail.trim(),
         recipientIdCard: recipientIdCard.trim() || undefined,
         buyAsBundle: isBuyingAsBundle ? true : false,
+        selectedListingIds: activeSelectedTickets.map((ticket) => ticket.listingId),
       });
 
       setHoldData(response);
