@@ -252,6 +252,9 @@ export default function MarketplaceScreen() {
     };
 
     const isRetailAllowed = isBundle && item.isBundleAllOrNothing === false;
+    const isReserved = [item, ...bundleItems].some(
+      (listing) => (listing.listingStatus || '').toLowerCase() === 'transacting'
+    );
 
     const seatDisplay = isBundle
       ? bundleItems.length > 1
@@ -262,10 +265,10 @@ export default function MarketplaceScreen() {
     return (
       <TouchableOpacity
         style={styles.card}
-        activeOpacity={isOwnListing ? 1 : 0.92}
-        disabled={isOwnListing}
+        activeOpacity={isOwnListing || isReserved ? 1 : 0.92}
+        disabled={isOwnListing || isReserved}
         onPress={() => {
-          if (!isOwnListing) {
+          if (!isOwnListing && !isReserved) {
             setSelectedListing(item);
             setSelectedBundleItems(bundleItems);
           }
@@ -282,6 +285,13 @@ export default function MarketplaceScreen() {
           <Text style={styles.eventName} numberOfLines={2}>
             {item.eventName}
           </Text>
+
+          {isReserved && (
+            <View style={styles.reservedBadge}>
+              <Lock size={12} color={theme.colors.warning} />
+              <Text style={styles.reservedBadgeText}>Reserved by another buyer</Text>
+            </View>
+          )}
 
           <View style={styles.metaRow}>
             <Calendar size={14} color={theme.colors.textMuted} />
@@ -356,15 +366,17 @@ export default function MarketplaceScreen() {
             </View>
           </View>
 
-          <View style={[styles.cardCta, isOwnListing && styles.cardCtaDisabled]}>
-            <Text style={[styles.cardCtaText, isOwnListing && styles.cardCtaDisabledText]}>
-              {isRetailAllowed
+          <View style={[styles.cardCta, (isOwnListing || isReserved) && styles.cardCtaDisabled]}>
+            <Text style={[styles.cardCtaText, (isOwnListing || isReserved) && styles.cardCtaDisabledText]}>
+              {isReserved
+                ? 'Reserved · Checkout in progress'
+                : isRetailAllowed
                 ? 'Select Tickets'
                 : isBundle
                   ? `Buy Combo (${bundleCount} Tickets)`
                   : 'Buy Ticket'}
             </Text>
-            {isOwnListing ? (
+            {isOwnListing || isReserved ? (
               <Lock size={15} color={theme.colors.textMuted} />
             ) : (
               <ArrowRight size={16} color={theme.colors.primary} />
