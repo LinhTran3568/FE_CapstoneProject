@@ -51,6 +51,33 @@ export const styles = StyleSheet.create({
     paddingBottom: theme.spacing['4xl'],
     gap: theme.spacing.lg,
   },
+  pagination: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: theme.spacing.md,
+    paddingTop: theme.spacing.sm,
+  },
+  pageButton: {
+    width: 36,
+    height: 36,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: theme.radii.md,
+    backgroundColor: theme.colors.surface,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+  },
+  pageButtonDisabled: {
+    opacity: 0.45,
+  },
+  pageText: {
+    minWidth: 76,
+    textAlign: 'center',
+    fontSize: theme.typography.sizes.xs,
+    fontFamily: fontFamilies.bold,
+    color: theme.colors.textSecondary,
+  },
   ticketCard: {
     minHeight: 174,
     flexDirection: 'row',

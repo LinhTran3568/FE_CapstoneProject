@@ -22,6 +22,8 @@ import {
   Check,
   SlidersHorizontal,
   ChevronDown,
+  ChevronLeft,
+  ChevronRight,
   Lock,
 } from 'lucide-react-native';
 import { useAuthStore } from '../../src/stores/authStore';
@@ -35,6 +37,7 @@ import { formatPriceAmount, formatEventDateTime } from '../../src/utils/format';
 import { styles } from '../../src/styles/marketplace.styles';
 
 type PriceBand = 'ALL' | 'UNDER_1M' | 'FROM_1M_TO_2M' | 'OVER_2M';
+const LISTINGS_PER_PAGE = 6;
 
 const PRICE_BANDS: { key: PriceBand; label: string; fullLabel: string }[] = [
   { key: 'ALL', label: 'All Prices', fullLabel: 'All Prices' },
@@ -64,6 +67,7 @@ export default function MarketplaceScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
 
   const [selectedListing, setSelectedListing] = useState<ResaleListingDetailDto | null>(null);
   const [selectedBundleItems, setSelectedBundleItems] = useState<ResaleListingDetailDto[]>([]);
@@ -189,6 +193,20 @@ export default function MarketplaceScreen() {
         return matchesBand(totalPrice, priceBand);
       });
   }, [listings, priceBand, bundleMap]);
+
+  const totalPages = Math.max(1, Math.ceil(dedupedListings.length / LISTINGS_PER_PAGE));
+  const pagedListings = useMemo(() => {
+    const start = (currentPage - 1) * LISTINGS_PER_PAGE;
+    return dedupedListings.slice(start, start + LISTINGS_PER_PAGE);
+  }, [currentPage, dedupedListings]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [debouncedKeyword, priceBand]);
+
+  useEffect(() => {
+    setCurrentPage((page) => Math.min(page, totalPages));
+  }, [totalPages]);
 
   const handleRefresh = async () => {
     setRefreshing(true);
@@ -417,7 +435,7 @@ export default function MarketplaceScreen() {
         </View>
       ) : (
         <FlatList
-          data={dedupedListings}
+          data={pagedListings}
           keyExtractor={(item) => item.listingId}
           renderItem={renderListing}
           contentContainerStyle={styles.listContent}
@@ -430,6 +448,31 @@ export default function MarketplaceScreen() {
                 {dedupedListings.length} {dedupedListings.length === 1 ? 'listing' : 'listings'} available
               </Text>
             </View>
+          }
+          ListFooterComponent={
+            totalPages > 1 ? (
+              <View style={styles.pagination}>
+                <TouchableOpacity
+                  style={[styles.pageButton, currentPage === 1 && styles.pageButtonDisabled]}
+                  onPress={() => setCurrentPage((page) => Math.max(1, page - 1))}
+                  disabled={currentPage === 1}
+                  accessibilityRole="button"
+                  accessibilityLabel="Previous marketplace page"
+                >
+                  <ChevronLeft size={16} color={currentPage === 1 ? theme.colors.textMuted : theme.colors.text} />
+                </TouchableOpacity>
+                <Text style={styles.pageText}>Page {currentPage} / {totalPages}</Text>
+                <TouchableOpacity
+                  style={[styles.pageButton, currentPage === totalPages && styles.pageButtonDisabled]}
+                  onPress={() => setCurrentPage((page) => Math.min(totalPages, page + 1))}
+                  disabled={currentPage === totalPages}
+                  accessibilityRole="button"
+                  accessibilityLabel="Next marketplace page"
+                >
+                  <ChevronRight size={16} color={currentPage === totalPages ? theme.colors.textMuted : theme.colors.text} />
+                </TouchableOpacity>
+              </View>
+            ) : null
           }
           ListEmptyComponent={
             <View style={styles.stateBox}>

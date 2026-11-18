@@ -25,6 +25,8 @@ import {
   Tag,
   Lock,
   Ticket,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react-native';
 import { theme } from '../../src/theme';
 import { API_CONFIG, resaleListingsApi } from '@ticketshield/api-client';
@@ -64,6 +66,7 @@ type OrderStatusFilter =
   | 'DISPUTED'
   | 'REFUNDED'
   | 'CANCELLED';
+const ORDERS_PER_PAGE = 6;
 
 interface OrderFilterItem {
   key: OrderStatusFilter;
@@ -91,6 +94,7 @@ export default function MobileOrdersScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [selectedStatus, setSelectedStatus] = useState<OrderStatusFilter>('ALL');
   const [searchQuery, setSearchQuery] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
   const [isDisputeModalOpen, setIsDisputeModalOpen] = useState(false);
   const [selectedOrderTicket, setSelectedOrderTicket] = useState<PurchasedTicketDto | null>(null);
   const [cancellingListingId, setCancellingListingId] = useState<string | null>(null);
@@ -153,6 +157,20 @@ export default function MobileOrdersScreen() {
       return true;
     });
   }, [orders, selectedStatus, searchQuery]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredOrders.length / ORDERS_PER_PAGE));
+  const pagedOrders = useMemo(() => {
+    const start = (currentPage - 1) * ORDERS_PER_PAGE;
+    return filteredOrders.slice(start, start + ORDERS_PER_PAGE);
+  }, [currentPage, filteredOrders]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [selectedStatus, searchQuery]);
+
+  useEffect(() => {
+    setCurrentPage((page) => Math.min(page, totalPages));
+  }, [totalPages]);
 
   const fetchOrders = useCallback(async (silent = false) => {
     if (!silent) setLoading(true);
@@ -651,7 +669,7 @@ export default function MobileOrdersScreen() {
           </View>
 
           <FlatList
-            data={filteredOrders}
+            data={pagedOrders}
             keyExtractor={(item) => item.orderId}
             renderItem={renderOrder}
             contentContainerStyle={[
@@ -680,6 +698,31 @@ export default function MobileOrdersScreen() {
                   style={styles.emptyBtn}
                 />
               </View>
+            }
+            ListFooterComponent={
+              totalPages > 1 ? (
+                <View style={styles.pagination}>
+                  <TouchableOpacity
+                    style={[styles.pageButton, currentPage === 1 && styles.pageButtonDisabled]}
+                    onPress={() => setCurrentPage((page) => Math.max(1, page - 1))}
+                    disabled={currentPage === 1}
+                    accessibilityRole="button"
+                    accessibilityLabel="Previous orders page"
+                  >
+                    <ChevronLeft size={16} color={currentPage === 1 ? theme.colors.textMuted : theme.colors.text} />
+                  </TouchableOpacity>
+                  <Text style={styles.pageText}>Page {currentPage} / {totalPages}</Text>
+                  <TouchableOpacity
+                    style={[styles.pageButton, currentPage === totalPages && styles.pageButtonDisabled]}
+                    onPress={() => setCurrentPage((page) => Math.min(totalPages, page + 1))}
+                    disabled={currentPage === totalPages}
+                    accessibilityRole="button"
+                    accessibilityLabel="Next orders page"
+                  >
+                    <ChevronRight size={16} color={currentPage === totalPages ? theme.colors.textMuted : theme.colors.text} />
+                  </TouchableOpacity>
+                </View>
+              ) : null
             }
           />
         </>

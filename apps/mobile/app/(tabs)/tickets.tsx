@@ -26,6 +26,8 @@ import {
   Clock,
   Lock,
   Check,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react-native';
 import { theme, fontFamilies } from '../../src/theme';
 import type { PurchasedTicketDto } from '@ticketshield/types';
@@ -54,6 +56,7 @@ const canOpenPass = (ticket: PurchasedTicketDto) =>
   Boolean(ticket.qrCodeData?.trim() || ticket.qrCodeImageUrl?.trim() || ticket.ticketPassCode?.trim());
 
 type TicketStatusFilter = 'ALL' | 'VALID' | 'USED' | 'EXPIRED';
+const TICKETS_PER_PAGE = 6;
 
 interface TicketFilterItem {
   key: TicketStatusFilter;
@@ -79,6 +82,7 @@ export default function MobileTicketsScreen() {
   const [qrLoadFailed, setQrLoadFailed] = useState(false);
   const [selectedStatus, setSelectedStatus] = useState<TicketStatusFilter>('ALL');
   const [searchQuery, setSearchQuery] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
   const [isDisputeModalOpen, setIsDisputeModalOpen] = useState(false);
   const [disputeModalTicket, setDisputeModalTicket] = useState<PurchasedTicketDto | null>(null);
 
@@ -117,6 +121,20 @@ export default function MobileTicketsScreen() {
       return true;
     });
   }, [tickets, selectedStatus, searchQuery]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredTickets.length / TICKETS_PER_PAGE));
+  const pagedTickets = useMemo(() => {
+    const start = (currentPage - 1) * TICKETS_PER_PAGE;
+    return filteredTickets.slice(start, start + TICKETS_PER_PAGE);
+  }, [currentPage, filteredTickets]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [selectedStatus, searchQuery]);
+
+  useEffect(() => {
+    setCurrentPage((page) => Math.min(page, totalPages));
+  }, [totalPages]);
 
   const fetchTickets = useCallback(async (silent = false) => {
     if (!silent) setLoading(true);
@@ -379,7 +397,7 @@ export default function MobileTicketsScreen() {
           </View>
 
           <FlatList
-            data={filteredTickets}
+            data={pagedTickets}
             keyExtractor={(item, index) => `${item.ticketPassCode || 'ticket'}-${index}`}
             renderItem={renderTicket}
             contentContainerStyle={[
@@ -408,6 +426,31 @@ export default function MobileTicketsScreen() {
                   style={styles.exploreBtn}
                 />
               </View>
+            }
+            ListFooterComponent={
+              totalPages > 1 ? (
+                <View style={styles.pagination}>
+                  <TouchableOpacity
+                    style={[styles.pageButton, currentPage === 1 && styles.pageButtonDisabled]}
+                    onPress={() => setCurrentPage((page) => Math.max(1, page - 1))}
+                    disabled={currentPage === 1}
+                    accessibilityRole="button"
+                    accessibilityLabel="Previous ticket page"
+                  >
+                    <ChevronLeft size={16} color={currentPage === 1 ? theme.colors.textMuted : theme.colors.text} />
+                  </TouchableOpacity>
+                  <Text style={styles.pageText}>Page {currentPage} / {totalPages}</Text>
+                  <TouchableOpacity
+                    style={[styles.pageButton, currentPage === totalPages && styles.pageButtonDisabled]}
+                    onPress={() => setCurrentPage((page) => Math.min(totalPages, page + 1))}
+                    disabled={currentPage === totalPages}
+                    accessibilityRole="button"
+                    accessibilityLabel="Next ticket page"
+                  >
+                    <ChevronRight size={16} color={currentPage === totalPages ? theme.colors.textMuted : theme.colors.text} />
+                  </TouchableOpacity>
+                </View>
+              ) : null
             }
           />
         </>

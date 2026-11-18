@@ -162,6 +162,7 @@ export const Step1EnterTicketCode: React.FC<Step1EnterTicketCodeProps> = ({
 
   // Open wallet modal to add
   const handleOpenWalletModalForAdd = () => {
+    if (eligibleTickets.length === 0) return;
     setWalletModalMode('add');
     setTargetReplaceCode(null);
     setTempSelectedWalletCodes([...selectedCodes]);
@@ -172,6 +173,7 @@ export const Step1EnterTicketCode: React.FC<Step1EnterTicketCodeProps> = ({
 
   // Open wallet modal to replace
   const handleOpenWalletModalForReplace = (codeToReplace: string) => {
+    if (eligibleTickets.length === 0) return;
     setWalletModalMode('replace');
     setTargetReplaceCode(codeToReplace);
     setTempSelectedWalletCodes([]);
@@ -500,9 +502,10 @@ export const Step1EnterTicketCode: React.FC<Step1EnterTicketCodeProps> = ({
                       {/* Wallet button */}
                       <button
                         type="button"
+                        disabled={eligibleTickets.length === 0}
                         onClick={() => handleOpenWalletModalForReplace(code)}
-                        className="h-9 px-3 rounded-xl flex items-center gap-1.5 text-xs font-semibold shrink-0 transition-all cursor-pointer bg-[#151921] hover:bg-[#1C222C] text-zinc-200 hover:text-white border border-white/10"
-                        title="Select ticket from wallet to replace this code"
+                        className="h-9 px-3 rounded-xl flex items-center gap-1.5 text-xs font-semibold shrink-0 transition-all cursor-pointer bg-[#151921] hover:bg-[#1C222C] text-zinc-200 hover:text-white border border-white/10 disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:bg-[#151921] disabled:hover:text-zinc-200"
+                        title={eligibleTickets.length === 0 ? 'No eligible tickets in your wallet' : 'Select ticket from wallet to replace this code'}
                       >
                         <span className="whitespace-nowrap">
                           My Tickets {eligibleTickets.length > 0 ? `(${eligibleTickets.length})` : '(0)'}
@@ -650,9 +653,10 @@ export const Step1EnterTicketCode: React.FC<Step1EnterTicketCodeProps> = ({
                 {/* Wallet Button */}
                 <button
                   type="button"
-                  disabled={Boolean(editingCode)}
+                  disabled={Boolean(editingCode) || eligibleTickets.length === 0}
                   onClick={handleOpenWalletModalForAdd}
-                  className="h-9 px-3 rounded-xl flex items-center gap-1.5 text-xs font-semibold shrink-0 transition-all cursor-pointer bg-[#151921] hover:bg-[#1C222C] text-zinc-200 hover:text-white border border-white/10 disabled:cursor-not-allowed"
+                  className="h-9 px-3 rounded-xl flex items-center gap-1.5 text-xs font-semibold shrink-0 transition-all cursor-pointer bg-[#151921] hover:bg-[#1C222C] text-zinc-200 hover:text-white border border-white/10 disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:bg-[#151921] disabled:hover:text-zinc-200"
+                  title={eligibleTickets.length === 0 ? 'No eligible tickets in your wallet. Enter a ticket code manually.' : 'Select tickets from your wallet'}
                 >
                   <span className="whitespace-nowrap">
                     My Tickets {eligibleTickets.length > 0 ? `(${eligibleTickets.length})` : '(0)'}
