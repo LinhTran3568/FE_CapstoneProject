@@ -31,7 +31,7 @@ import * as signalR from '@microsoft/signalr';
 import { theme } from '../../src/theme';
 import { FintechButton } from '../../src/components/FintechButton';
 import { BuyTicketBottomSheet } from '../../src/components/BuyTicketBottomSheet';
-import { formatPrice, formatEventDateTime } from '../../src/utils/format';
+import { formatPriceAmount, formatEventDateTime } from '../../src/utils/format';
 import { styles } from '../../src/styles/marketplace.styles';
 
 type PriceBand = 'ALL' | 'UNDER_1M' | 'FROM_1M_TO_2M' | 'OVER_2M';
@@ -307,10 +307,9 @@ export default function MarketplaceScreen() {
         </View>
 
         <View style={styles.ticketPricePanel}>
-          <Text style={styles.ticketCode} numberOfLines={1}>{item.maskedTicketCode || 'AT********'}</Text>
           <Text style={styles.ticketPriceLabel}>{isBundle ? `Combo (${bundleCount})` : 'Price'}</Text>
-          {hasDiscount && <Text style={styles.ticketOriginalPrice}>{formatPrice(totalBundleOriginalPrice)}</Text>}
-          <Text style={styles.ticketPriceValue} numberOfLines={1}>{formatPrice(totalBundleResalePrice)}</Text>
+          {hasDiscount && <Text style={styles.ticketOriginalPrice}>{formatPriceAmount(totalBundleOriginalPrice)}</Text>}
+          <Text style={styles.ticketPriceValue} numberOfLines={1}>{formatPriceAmount(totalBundleResalePrice)}</Text>
           <Text style={styles.ticketPriceCurrency}>VND</Text>
           <View style={[styles.ticketCta, (isOwnListing || isReserved) && styles.ticketCtaDisabled]}>
             {isOwnListing || isReserved ? <Lock size={13} color={theme.colors.textMuted} /> : null}

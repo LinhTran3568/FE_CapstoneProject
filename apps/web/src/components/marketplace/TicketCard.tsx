@@ -127,7 +127,12 @@ export const TicketCard: React.FC<TicketCardProps> = ({
   };
 
   const zoneStyle = getZoneStyle(listing.tierName);
-  const passCode = listing.maskedTicketCode || 'AT*********93';
+  const rawPassCode = listing.maskedTicketCode || 'AT*********93';
+  // Backend masks can contain one asterisk for every hidden character. The
+  // ticket stub has a fixed width, so keep only a compact, consistent mask.
+  const passCode = rawPassCode.length > 14
+    ? `${rawPassCode.slice(0, 2)}********${rawPassCode.slice(-2)}`
+    : rawPassCode;
 
   // Realistic stage/event photo background with reliable local fallbacks
   const getEventBackdrop = (name: string): string => {
@@ -461,7 +466,10 @@ export const TicketCard: React.FC<TicketCardProps> = ({
             </div>
           ) : (
             <div className="px-1.5 py-0.5 rounded bg-slate-300/80 border border-slate-400/50">
-              <span className="font-mono-code text-[10px] sm:text-[11px] font-bold tracking-wider text-slate-800">
+              <span
+                className="font-mono-code text-[10px] sm:text-[11px] font-bold tracking-wider text-slate-800"
+                title={rawPassCode}
+              >
                 {passCode}
               </span>
             </div>

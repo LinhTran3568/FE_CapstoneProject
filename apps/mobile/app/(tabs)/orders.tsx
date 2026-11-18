@@ -470,7 +470,7 @@ export default function MobileOrdersScreen() {
         </View>
         <View style={styles.priceCol}>
           <Text style={styles.infoLabel}>{item.type === 'SELL' ? 'Listing Price' : 'Total Paid'}</Text>
-          <Text style={styles.priceValue}>{formatPrice(item.totalPaid)}</Text>
+          <Text style={styles.priceValue} numberOfLines={1} ellipsizeMode="tail">{formatPrice(item.totalPaid)}</Text>
         </View>
       </View>
 

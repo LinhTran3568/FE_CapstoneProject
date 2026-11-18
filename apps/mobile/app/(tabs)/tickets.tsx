@@ -222,6 +222,9 @@ export default function MobileTicketsScreen() {
 
   const renderTicket = ({ item }: { item: PurchasedTicketDto }) => {
     const isValid = canOpenPass(item);
+    // Escrow protects the seller payout after a successful transfer. It must
+    // not make an issued buyer pass look unavailable in the wallet.
+    const badgeStatus = item.status === 'IN_ESCROW' && isValid ? 'VALID' : item.status;
     return (
       <TouchableOpacity
         style={[styles.ticketCard, !isValid && item.status !== 'USED' && { opacity: 0.75 }]}
@@ -230,7 +233,7 @@ export default function MobileTicketsScreen() {
       >
         <View style={styles.walletInfoPanel}>
           <View style={styles.walletTopRow}>
-            {renderStatusBadge(item.status)}
+            {renderStatusBadge(badgeStatus)}
             <Text style={styles.walletTierChip} numberOfLines={1}>{item.tierName}</Text>
           </View>
           <Text style={styles.walletEventName} numberOfLines={2}>{item.eventName}</Text>

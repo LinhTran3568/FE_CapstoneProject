@@ -176,7 +176,7 @@ export const Step6ListingSuccess: React.FC<Step6ListingSuccessProps> = ({
                 </div>
               </div>
 
-              {/* Ticket Meta Grid: Codes & Listing ID & Sale Format */}
+              {/* Ticket Meta: sale format and ticket codes */}
               <div className="pt-3 border-t border-[#27272A] text-left space-y-3">
                 {isCombo && (
                   <div className="space-y-0.5">
@@ -205,14 +205,6 @@ export const Step6ListingSuccess: React.FC<Step6ListingSuccessProps> = ({
                     ))}
                   </ul>
                 </div>
-                <div className="space-y-0.5">
-                  <span className="text-[9px] text-[#8F96A3] font-mono font-bold uppercase tracking-wider block">
-                    {isCombo ? 'BUNDLE ID' : 'LISTING ID'}
-                  </span>
-                  <p className="font-mono font-bold text-xs text-[#A3A8B3] truncate">
-                    {publishedListingId || '—'}
-                  </p>
-                </div>
               </div>
 
               {/* Price Row: Face Value vs Resale Price */}
@@ -227,16 +219,11 @@ export const Step6ListingSuccess: React.FC<Step6ListingSuccessProps> = ({
                 </div>
                 <div className="text-right">
                   <span className="text-[9px] text-emerald-400 font-mono font-bold uppercase tracking-wider block">
-                    {isCombo ? 'RESALE PRICE (PER TICKET)' : 'RESALE PRICE'}
+                    {isCombo ? 'TOTAL RESALE PRICE' : 'RESALE PRICE'}
                   </span>
                   <span className="text-lg sm:text-xl font-extrabold font-display text-emerald-400">
-                    {resalePrice.toLocaleString('en-US')} ₫
+                    {(isCombo ? totalResalePrice : resalePrice).toLocaleString('en-US')} ₫
                   </span>
-                  {isCombo && (
-                    <span className="block text-[10px] font-mono text-[#8F96A3] mt-0.5">
-                      Total {totalResalePrice.toLocaleString('en-US')} ₫
-                    </span>
-                  )}
                 </div>
               </div>
             </div>

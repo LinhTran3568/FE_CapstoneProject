@@ -126,8 +126,12 @@ export const styles = StyleSheet.create({
   },
   infoCol: {
     flex: 1,
+    minWidth: 0,
+    marginRight: theme.spacing.sm,
   },
   priceCol: {
+    width: 104,
+    flexShrink: 0,
     alignItems: 'flex-end',
   },
   infoLabel: {
@@ -146,6 +150,7 @@ export const styles = StyleSheet.create({
     fontWeight: theme.typography.weights.bold,
     color: theme.colors.primary,
     marginTop: 2,
+    maxWidth: '100%',
   },
   escrowNotice: {
     flexDirection: 'row',

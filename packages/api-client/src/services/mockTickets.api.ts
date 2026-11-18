@@ -17,6 +17,14 @@ const getMockTicketsApiBase = (): string => {
 const isValidEntryPass = (ticket: MockTicketDto) =>
   (ticket.status || '').trim().toUpperCase() === 'VALID';
 
+// These are admission states owned by the organizer. Listing lifecycle states
+// such as LOCKED_FOR_RESALE and TRANSFERRED belong to the seller's old ticket
+// and must never replace a buyer pass status in the wallet.
+type GatePassStatus = 'VALID' | 'USED' | 'EXPIRED';
+
+const isGatePassStatus = (status: string): status is GatePassStatus =>
+  status === 'VALID' || status === 'USED' || status === 'EXPIRED';
+
 export const mockTicketsApi = {
   /**
    * Resolves the live gate status for issued pass codes. The Organizer owns
@@ -24,7 +32,7 @@ export const mockTicketsApi = {
    */
   getTicketStatuses: async (ticketCodes: string[]): Promise<Map<string, string>> => {
     const uniqueCodes = [...new Set(ticketCodes.map((code) => code.trim()).filter(Boolean))];
-    const results = await Promise.all(
+    const results: Array<readonly [string, string] | null> = await Promise.all(
       uniqueCodes.map(async (ticketCode) => {
         try {
           const response = await fetch(
@@ -33,7 +41,7 @@ export const mockTicketsApi = {
           if (!response.ok) return null;
           const body = (await response.json()) as { data?: MockTicketDto };
           const status = body.data?.status?.trim().toUpperCase();
-          return status ? [ticketCode, status] as const : null;
+          return status && isGatePassStatus(status) ? [ticketCode, status] as const : null;
         } catch {
           // Keep the Core response when the Organizer cannot be reached.
           return null;
@@ -41,7 +49,7 @@ export const mockTicketsApi = {
       })
     );
 
-    return new Map(results.filter((result): result is readonly [string, string] => result !== null));
+    return new Map<string, string>(results.filter((result): result is readonly [string, string] => result !== null));
   },
 
   /**

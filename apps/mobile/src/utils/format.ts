@@ -6,6 +6,15 @@ export function formatPrice(value: number): string {
   }).format(value);
 }
 
+// Compact ticket cards render the currency separately as "VND". Keeping the
+// numeric amount here prevents the Vietnamese currency glyph from being
+// truncated in the narrow price panel.
+export function formatPriceAmount(value: number): string {
+  return new Intl.NumberFormat('vi-VN', {
+    maximumFractionDigits: 0,
+  }).format(value);
+}
+
 export function formatEventDate(
   iso: string,
   options: Intl.DateTimeFormatOptions = {

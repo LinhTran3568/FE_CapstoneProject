@@ -263,17 +263,14 @@ export const BuyTicketBottomSheet: React.FC<BuyTicketBottomSheetProps> = ({
     [bundleItems, listing]
   );
 
-  const isBundle =
-    effectiveBundleItems.length > 1 ||
-    Boolean(listing?.bundleTotalTickets && listing.bundleTotalTickets >= 2) ||
-    Boolean(listing?.bundleId && (listing?.bundleTotalTickets ?? 0) > 1);
+  // `bundleTotalTickets` is the original bundle size. After a sell-separately
+  // purchase it can still be 3 while only one listing remains for sale, so the
+  // checkout UI must derive its shape from the listings currently returned.
+  const isBundle = effectiveBundleItems.length > 1;
 
   const isRetailAllowed = isBundle && listing?.isBundleAllOrNothing === false;
 
-  const bundleCount =
-    listing?.bundleTotalTickets && listing.bundleTotalTickets >= 2
-      ? listing.bundleTotalTickets
-      : effectiveBundleItems.length;
+  const bundleCount = effectiveBundleItems.length;
 
   // Selection state for individual retail sale tickets when seller allows "Separately"
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
