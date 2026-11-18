@@ -15,8 +15,6 @@ import {
   X,
   Calendar,
   MapPin,
-  Tag,
-  UserRound,
   ArrowRight,
   AlertTriangle,
   RefreshCw,
@@ -25,14 +23,12 @@ import {
   SlidersHorizontal,
   ChevronDown,
   Lock,
-  Layers,
 } from 'lucide-react-native';
 import { useAuthStore } from '../../src/stores/authStore';
 import type { ResaleListingDetailDto } from '@ticketshield/types';
 import { API_CONFIG, resaleListingsApi } from '@ticketshield/api-client';
 import * as signalR from '@microsoft/signalr';
 import { theme } from '../../src/theme';
-import { EventPoster } from '../../src/components/EventPoster';
 import { FintechButton } from '../../src/components/FintechButton';
 import { BuyTicketBottomSheet } from '../../src/components/BuyTicketBottomSheet';
 import { formatPrice, formatEventDateTime } from '../../src/utils/format';
@@ -274,113 +270,54 @@ export default function MarketplaceScreen() {
           }
         }}
       >
-        <View style={styles.posterWrap}>
-          <EventPoster seed={`${item.eventId}-${item.listingId}`} height={148} />
-        </View>
+        <View style={styles.ticketInfoPanel}>
+          <View style={styles.ticketTierChip}>
+            <View style={styles.ticketTierDot} />
+            <Text style={styles.ticketTierText} numberOfLines={1}>{item.tierName || 'General Admission'}</Text>
+          </View>
+          <Text style={styles.ticketEventName} numberOfLines={2}>{item.eventName}</Text>
 
-        <View style={styles.cardBody}>
-          <Text style={styles.organizer} numberOfLines={1}>
-            {item.organizerName || 'Verified Organizer'}
-          </Text>
-          <Text style={styles.eventName} numberOfLines={2}>
-            {item.eventName}
-          </Text>
+          <View style={styles.ticketDetailRow}>
+            <Ticket size={13} color={theme.colors.warning} />
+            <Text style={styles.ticketDetailEmphasis} numberOfLines={1}>
+              {isBundle ? `${bundleCount} tickets${isRetailAllowed ? ' · individual sale' : ' · combo'}` : seatDisplay}
+            </Text>
+          </View>
+          <View style={styles.ticketDetailRow}>
+            <Calendar size={13} color={theme.colors.textMuted} />
+            <Text style={styles.ticketDetailText} numberOfLines={1}>{formatEventDateTime(item.eventStartAt)}</Text>
+          </View>
+          <View style={styles.ticketDetailRow}>
+            <MapPin size={13} color={theme.colors.textMuted} />
+            <Text style={styles.ticketDetailText} numberOfLines={1}>{item.eventVenue}</Text>
+          </View>
+          <Text style={styles.ticketSellerText} numberOfLines={1}>Seller: {item.sellerFullName || 'Verified seller'}</Text>
 
           {isReserved && (
             <View style={styles.reservedBadge}>
-              <Lock size={12} color={theme.colors.warning} />
+              <Lock size={11} color={theme.colors.warning} />
               <Text style={styles.reservedBadgeText}>Reserved by another buyer</Text>
             </View>
           )}
+        </View>
 
-          <View style={styles.metaRow}>
-            <Calendar size={14} color={theme.colors.textMuted} />
-            <Text style={styles.metaText} numberOfLines={1}>
-              {formatEventDateTime(item.eventStartAt)}
+        <View style={styles.ticketDivider}>
+          <View style={styles.ticketNotchTop} />
+          <View style={styles.ticketNotchBottom} />
+        </View>
+
+        <View style={styles.ticketPricePanel}>
+          <Text style={styles.ticketCode} numberOfLines={1}>{item.maskedTicketCode || 'AT********'}</Text>
+          <Text style={styles.ticketPriceLabel}>{isBundle ? `Combo (${bundleCount})` : 'Price'}</Text>
+          {hasDiscount && <Text style={styles.ticketOriginalPrice}>{formatPrice(totalBundleOriginalPrice)}</Text>}
+          <Text style={styles.ticketPriceValue} numberOfLines={1}>{formatPrice(totalBundleResalePrice)}</Text>
+          <Text style={styles.ticketPriceCurrency}>VND</Text>
+          <View style={[styles.ticketCta, (isOwnListing || isReserved) && styles.ticketCtaDisabled]}>
+            {isOwnListing || isReserved ? <Lock size={13} color={theme.colors.textMuted} /> : null}
+            <Text style={[styles.ticketCtaText, (isOwnListing || isReserved) && styles.ticketCtaDisabledText]} numberOfLines={1}>
+              {isReserved ? 'Reserved' : isOwnListing ? 'Your ticket' : isBundle ? 'Choose' : 'Buy'}
             </Text>
-          </View>
-          <View style={styles.metaRow}>
-            <MapPin size={14} color={theme.colors.textMuted} />
-            <Text style={styles.metaText} numberOfLines={1}>
-              {item.eventVenue}
-            </Text>
-          </View>
-
-          {isBundle && bundleItems.length > 1 ? (
-            <View style={styles.cardBundleList}>
-              <View style={styles.cardBundleHeader}>
-                <Text style={styles.cardBundleTitle}>
-                  {isRetailAllowed ? 'Tickets Available (Sold Separately)' : `Combo Package (${bundleCount} Tickets)`}
-                </Text>
-              </View>
-              {bundleItems.map((b, idx) => (
-                <View key={b.listingId || idx} style={styles.cardBundleItemRow}>
-                  <View style={styles.cardBundleItemLeft}>
-                    <View>
-                      <Text style={styles.cardBundleSeatText} numberOfLines={1}>
-                        {cleanSeatName(b.seatZone)}
-                      </Text>
-                      <Text style={styles.cardBundleTierText}>
-                        {b.tierName}
-                      </Text>
-                    </View>
-                  </View>
-                  <Text style={styles.cardBundlePriceText}>
-                    {formatPrice(b.resalePrice)}
-                  </Text>
-                </View>
-              ))}
-            </View>
-          ) : (
-            <View style={styles.seatRow}>
-              <View style={styles.seatChip}>
-                <Text style={styles.seatLabel}>Tier</Text>
-                <Text style={styles.seatValue} numberOfLines={1}>
-                  {item.tierName}
-                </Text>
-              </View>
-              <View style={styles.seatDivider} />
-              <View style={[styles.seatChip, isBundle && { flex: 1.4 }]}>
-                <Text style={styles.seatLabel}>
-                  {isBundle ? `Seats (${bundleCount})` : 'Zone / Seat'}
-                </Text>
-                <Text style={styles.seatValue} numberOfLines={2}>
-                  {seatDisplay}
-                </Text>
-              </View>
-            </View>
-          )}
-
-          <View style={styles.priceRow}>
-            <View style={styles.sellerRow}>
-              <UserRound size={14} color={theme.colors.textMuted} />
-              <Text style={styles.sellerName} numberOfLines={1}>
-                {item.sellerFullName}
-              </Text>
-            </View>
-            <View style={styles.priceBlock}>
-              {hasDiscount && (
-                <Text style={styles.originalPrice}>{formatPrice(totalBundleOriginalPrice)}</Text>
-              )}
-              <Text style={styles.resalePrice}>{formatPrice(totalBundleResalePrice)}</Text>
-            </View>
-          </View>
-
-          <View style={[styles.cardCta, (isOwnListing || isReserved) && styles.cardCtaDisabled]}>
-            <Text style={[styles.cardCtaText, (isOwnListing || isReserved) && styles.cardCtaDisabledText]}>
-              {isReserved
-                ? 'Reserved · Checkout in progress'
-                : isRetailAllowed
-                ? 'Select Tickets'
-                : isBundle
-                  ? `Buy Combo (${bundleCount} Tickets)`
-                  : 'Buy Ticket'}
-            </Text>
-            {isOwnListing || isReserved ? (
-              <Lock size={15} color={theme.colors.textMuted} />
-            ) : (
-              <ArrowRight size={16} color={theme.colors.primary} />
-            )}
+            {!isOwnListing && !isReserved && <ArrowRight size={14} color={theme.colors.onPrimary} />}
           </View>
         </View>
       </TouchableOpacity>

@@ -32,7 +32,6 @@ import type { PurchasedTicketDto } from '@ticketshield/types';
 import { mockTicketsApi, resaleListingsApi } from '@ticketshield/api-client';
 import { expandPurchasedTickets, getIssuedQrImageUrl } from '../../src/utils/purchasedTickets';
 import { FintechButton } from '../../src/components/FintechButton';
-import { EventPoster } from '../../src/components/EventPoster';
 import { formatEventDate } from '../../src/utils/format';
 import { styles } from '../../src/styles/tickets.styles';
 import { DisputeTicketModal } from '../../src/components/DisputeTicketModal';
@@ -229,68 +228,42 @@ export default function MobileTicketsScreen() {
         onPress={() => setSelectedTicket(item)}
         activeOpacity={0.9}
       >
-        <View style={styles.posterWrap}>
-          <EventPoster seed={item.eventId || item.ticketPassCode} height={104} />
-          <View style={styles.posterOverlay}>
-            {item.status !== 'USED' && renderStatusBadge(item.status)}
-            <View style={[styles.openQrPill, !isValid && styles.lockedQrPill]}>
-              {isValid ? (
-                <>
-                  <QrCode size={13} color={theme.colors.onPrimary} />
-                  <Text style={styles.openQrPillText}>Show Pass</Text>
-                </>
-              ) : (
-                <>
-                  <Lock size={12} color={theme.colors.textMuted} />
-                  <Text style={[styles.openQrPillText, styles.lockedQrPillText]}>
-                    {item.status === 'USED' ? 'Checked In' : 'Invalid'}
-                  </Text>
-                </>
-              )}
-            </View>
+        <View style={styles.walletInfoPanel}>
+          <View style={styles.walletTopRow}>
+            {renderStatusBadge(item.status)}
+            <Text style={styles.walletTierChip} numberOfLines={1}>{item.tierName}</Text>
           </View>
+          <Text style={styles.walletEventName} numberOfLines={2}>{item.eventName}</Text>
+          <View style={styles.walletMetaRow}>
+            <Calendar size={13} color={theme.colors.textMuted} />
+            <Text style={styles.walletMetaText} numberOfLines={1}>{formatEventDate(item.eventStartAt)}</Text>
+          </View>
+          <View style={styles.walletMetaRow}>
+            <MapPin size={13} color={theme.colors.textMuted} />
+            <Text style={styles.walletMetaText} numberOfLines={1}>{item.eventVenue}</Text>
+          </View>
+          <Text style={styles.walletSeatText} numberOfLines={1}>{item.seatZone || 'General Admission'}</Text>
         </View>
 
-      <View style={styles.cardBody}>
-        <Text style={styles.eventName} numberOfLines={2}>
-          {item.eventName}
-        </Text>
-
-        <View style={styles.metaRow}>
-          <Calendar size={14} color={theme.colors.textMuted} />
-          <Text style={styles.metaText}>{formatEventDate(item.eventStartAt)}</Text>
+        <View style={styles.walletDivider}>
+          <View style={styles.walletNotchTop} />
+          <View style={styles.walletNotchBottom} />
         </View>
-        <View style={styles.metaRow}>
-          <MapPin size={14} color={theme.colors.textMuted} />
-          <Text style={styles.metaText} numberOfLines={1}>
-            {item.eventVenue}
+
+        <View style={styles.walletPassPanel}>
+          <Text style={styles.walletCodeLabel}>Pass code</Text>
+          <Text style={styles.walletCode} numberOfLines={1} ellipsizeMode="tail">{item.ticketPassCode}</Text>
+          <Text style={styles.walletStatusLabel}>Status</Text>
+          <Text style={[styles.walletStatusValue, isValid && styles.walletStatusValueValid]} numberOfLines={1}>
+            {item.status === 'USED' ? 'Checked in' : isValid ? 'Ready' : 'Unavailable'}
           </Text>
-        </View>
-
-        <View style={styles.dottedDivider}>
-          <View style={styles.notchLeft} />
-          <View style={styles.dashLine} />
-          <View style={styles.notchRight} />
-        </View>
-
-        <View style={styles.ticketDetailsRow}>
-          <View style={[styles.detailCol, styles.tierDetailCol]}>
-            <Text style={styles.detailLabel}>Tier</Text>
-            <Text style={styles.detailValue} numberOfLines={1}>
-              {item.tierName}
+          <View style={[styles.walletPassCta, !isValid && styles.walletPassCtaDisabled]}>
+            {isValid ? <QrCode size={13} color={theme.colors.onPrimary} /> : <Lock size={12} color={theme.colors.textMuted} />}
+            <Text style={[styles.walletPassCtaText, !isValid && styles.walletPassCtaTextDisabled]}>
+              {isValid ? 'Open pass' : item.status === 'USED' ? 'Checked in' : 'Unavailable'}
             </Text>
           </View>
-          <View style={[styles.detailCol, styles.seatDetailCol]}>
-            <Text style={styles.detailLabel}>Zone / Seat</Text>
-            <Text style={styles.detailValue} numberOfLines={1}>
-              {item.seatZone}
-            </Text>
-          </View>
-          <Text style={styles.ticketCode} numberOfLines={1} ellipsizeMode="tail">
-            {item.ticketPassCode}
-          </Text>
         </View>
-      </View>
       </TouchableOpacity>
     );
   };

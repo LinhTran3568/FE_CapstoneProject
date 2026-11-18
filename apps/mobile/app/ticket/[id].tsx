@@ -11,7 +11,6 @@ import { Text } from '../../src/components/AppText';
 import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
-  ShieldCheck,
   Calendar,
   MapPin,
   Share2,
@@ -26,7 +25,6 @@ import type { PurchasedTicketDto } from '@ticketshield/types';
 import { mockTicketsApi, resaleListingsApi } from '@ticketshield/api-client';
 import { expandPurchasedTickets, getIssuedQrImageUrl } from '../../src/utils/purchasedTickets';
 import { FintechButton } from '../../src/components/FintechButton';
-import { EventPoster } from '../../src/components/EventPoster';
 import { formatEventDateTime } from '../../src/utils/format';
 import { styles } from '../../src/styles/ticket-detail.styles';
 import { DisputeTicketModal } from '../../src/components/DisputeTicketModal';
@@ -168,14 +166,6 @@ export default function TicketDetailScreen() {
         contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 40 }]}
         showsVerticalScrollIndicator={false}
       >
-        <View style={styles.posterCard}>
-          <EventPoster seed={ticket.eventId || ticket.ticketPassCode} height={150} />
-          <View style={styles.verifiedTag}>
-            <ShieldCheck size={15} color={theme.colors.success} />
-            <Text style={styles.verifiedTagText}>Verified TicketShield Pass</Text>
-          </View>
-        </View>
-
         <View style={styles.passCard}>
           <View style={styles.passHeader}>
             <Text style={styles.eventName}>{ticket.eventName}</Text>
