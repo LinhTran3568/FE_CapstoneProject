@@ -11,6 +11,7 @@
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "test:bot": "node e2e/webdriver-puppeteer.mjs && node e2e/webdriver-selenium.mjs",
     "test:webgl": "node --experimental-strip-types src/__tests__/run-webgl-gpu-detection-test.ts",
+    "test:tamper": "node --experimental-strip-types src/__tests__/run-prototype-tampering-test.ts",
     "test:gate": "npx tsx src/__tests__/run-gate-scan-test.cjs",
     "test:orders": "npx tsx src/__tests__/run-buyer-orders-test.cjs",
     "test:admin": "npx tsx src/__tests__/run-admin-ops-test.cjs"
