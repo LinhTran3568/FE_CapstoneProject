@@ -69,6 +69,9 @@ export const assertBotTelemetry = (tool, captured) => {
     console.error(`[${tool}] FAIL: ${problems.join('; ')}${verdict}`);
     return false;
   }
-  console.log(`[${tool}] PASS: is_webdriver=1, nonce=${telemetry.nonce}, client_timestamp=${telemetry.client_timestamp}${verdict}`);
+  const gpuMsg = telemetry.virtual_gpu_detected !== undefined
+    ? `, virtual_gpu=${telemetry.virtual_gpu_detected} (${telemetry.webgl_renderer ?? 'n/a'})`
+    : '';
+  console.log(`[${tool}] PASS: is_webdriver=1${gpuMsg}, nonce=${telemetry.nonce}, client_timestamp=${telemetry.client_timestamp}${verdict}`);
   return true;
 };

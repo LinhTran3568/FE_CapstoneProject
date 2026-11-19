@@ -2,15 +2,130 @@ import type { ClientTelemetry } from '@ticketshield/api-client';
 
 /**
  * Client Telemetry SDK cho trang đặt vé sơ cấp của BTC (US-8.1, SCRUM-246 / SCRUM-247).
+ * Mở rộng: WebGL Unmasked GPU & Software Rasterizer Detection (US-13.2, SCRUM-373 / SCRUM-374).
  *
- * Đo ba tín hiệu theo Spec 08 và gắn mã chống phát lại cho mỗi lần checkout:
+ * Đo các tín hiệu bảo vệ theo Spec 08 và US-13.2:
  * - is_webdriver: cờ navigator.webdriver (Selenium / Puppeteer / Playwright bật cờ này).
+ * - virtual_gpu_detected: cờ phát hiện card đồ họa ảo / CPU software rasterizer (SwiftShader, llvmpipe, VM).
+ * - webgl_renderer & webgl_vendor: trích xuất phần cứng đồ họa unmasked qua WebGL extension.
  * - action_interval_std_dev: độ lệch chuẩn (ms) giữa các lần bấm, cần tối thiểu 3 lần bấm.
- * - device_fingerprint: 32 ký tự hex đầu của SHA-256 trên vài thuộc tính trình duyệt.
+ * - device_fingerprint: 32 ký tự hex đầu của SHA-256 kết hợp thuộc tính trình duyệt và WebGL GPU.
  * - nonce + client_timestamp: mỗi lần collect() một nonce mới, giờ gửi đã chỉnh theo giờ server.
  *
  * Trình duyệt không giữ khóa bí mật nào. Chữ ký HMAC nằm trong session token do server cấp.
  */
+
+export interface WebGlGpuInfo {
+  virtual_gpu_detected: 0 | 1;
+  webgl_renderer: string;
+  webgl_vendor: string;
+  is_tampered: boolean;
+}
+
+/**
+ * Danh sách chữ ký nhận diện card đồ họa ảo / bộ dựng hình bằng phần mềm qua CPU (US-13.2, SCRUM-374).
+ * Hầu hết các trang trại bot chạy Chromium headless trên Cloud VPS/Server không có GPU rời,
+ * buộc phải sử dụng SwiftShader hoặc llvmpipe để render.
+ */
+export const VIRTUAL_GPU_PATTERNS = [
+  /swiftshader/i,               // Chrome headless software 3D
+  /llvmpipe/i,                  // Mesa LLVM software rasterizer (Linux Cloud VPS)
+  /virtualbox/i, /vbox/i,       // VirtualBox GPU
+  /vmware/i, /svga3d/i,         // VMware SVGA
+  /mesa offscreen/i,            // Mesa offscreen rendering
+  /microsoft basic render/i,    // DirectX WARP software driver (Windows VPS)
+  /apple software renderer/i,   // macOS VM software rasterizer
+  /softpipe/i,                  // Mesa CPU software fallback
+];
+
+/** Đối chiếu chuỗi vendor và renderer với danh sách phần cứng ảo/software rasterizer. */
+export const isVirtualGpu = (renderer: string, vendor: string): boolean => {
+  const combined = `${vendor} ${renderer}`.trim();
+  return VIRTUAL_GPU_PATTERNS.some((pattern) => pattern.test(combined));
+};
+
+/** Kiểm tra hàm native code để bẫy các stealth plugin cố tình ghi đè prototype. */
+const isNativeFunction = (fn: unknown): boolean => {
+  if (typeof fn !== 'function') return false;
+  try {
+    return /\{\s*\[native code\]\s*\}/.test(Function.prototype.toString.call(fn));
+  } catch {
+    return false;
+  }
+};
+
+let cachedGpuInfo: WebGlGpuInfo | null = null;
+
+/**
+ * Trích xuất thông tin WebGL Unmasked GPU và nhận diện software rasterizer.
+ * Áp dụng Singleton Cache & WEBGL_lose_context để chống rò rỉ VRAM / xung đột Three.js.
+ */
+export const extractWebGlGpuInfo = (): WebGlGpuInfo => {
+  if (cachedGpuInfo) return cachedGpuInfo;
+
+  const fallback: WebGlGpuInfo = {
+    virtual_gpu_detected: 0,
+    webgl_renderer: 'unavailable',
+    webgl_vendor: 'unavailable',
+    is_tampered: false,
+  };
+
+  if (typeof window === 'undefined' || typeof document === 'undefined') {
+    return fallback;
+  }
+
+  try {
+    const canvas = document.createElement('canvas');
+    const gl = (
+      canvas.getContext('webgl2') ||
+      canvas.getContext('webgl') ||
+      canvas.getContext('experimental-webgl')
+    ) as WebGLRenderingContext | WebGL2RenderingContext | null;
+
+    if (!gl) {
+      cachedGpuInfo = {
+        ...fallback,
+        webgl_renderer: 'disabled',
+        webgl_vendor: 'disabled',
+      };
+      return cachedGpuInfo;
+    }
+
+    // Bẫy Anti-Tampering: Phát hiện bot stealth ghi đè gl.getParameter
+    const isTampered = !isNativeFunction(gl.getParameter);
+
+    // Kích hoạt extension unmask GPU
+    const debugInfo = gl.getExtension('WEBGL_debug_renderer_info');
+    let renderer = '';
+    let vendor = '';
+
+    if (debugInfo) {
+      vendor = String(gl.getParameter(debugInfo.UNMASKED_VENDOR_WEBGL) ?? '');
+      renderer = String(gl.getParameter(debugInfo.UNMASKED_RENDERER_WEBGL) ?? '');
+    } else {
+      // Fallback khi extension bị ẩn (Firefox Privacy RFP, Safari)
+      vendor = String(gl.getParameter(gl.VENDOR) ?? 'masked');
+      renderer = String(gl.getParameter(gl.RENDERER) ?? 'masked');
+    }
+
+    // Giải phóng WebGL context ngay lập tức để bảo toàn tài nguyên cho các canvas khác
+    gl.getExtension('WEBGL_lose_context')?.loseContext();
+
+    const isVirtual = isVirtualGpu(renderer, vendor);
+
+    cachedGpuInfo = {
+      virtual_gpu_detected: isVirtual ? 1 : 0,
+      webgl_renderer: renderer || 'unknown',
+      webgl_vendor: vendor || 'unknown',
+      is_tampered: isTampered,
+    };
+
+    return cachedGpuInfo;
+  } catch {
+    // Fail-Safe: Tránh crash ứng dụng nếu WebGL ném lỗi
+    return fallback;
+  }
+};
 
 /** Giữ 21 mốc gần nhất = 20 khoảng cách. */
 const MAX_ACTION_TIMESTAMPS = 21;
@@ -68,13 +183,16 @@ const fallbackHash128 = (input: string): string => {
 };
 
 const computeFingerprint = async (): Promise<string> => {
+  const gpu = extractWebGlGpuInfo();
   const parts = [
-    navigator.userAgent,
-    navigator.language,
-    navigator.platform,
-    String(navigator.hardwareConcurrency ?? ''),
-    `${screen.width}x${screen.height}x${screen.colorDepth}`,
+    typeof navigator !== 'undefined' ? navigator.userAgent : 'node',
+    typeof navigator !== 'undefined' ? navigator.language : 'en',
+    typeof navigator !== 'undefined' ? navigator.platform : 'server',
+    typeof navigator !== 'undefined' ? String(navigator.hardwareConcurrency ?? '') : '',
+    typeof screen !== 'undefined' ? `${screen.width}x${screen.height}x${screen.colorDepth}` : '0x0x0',
     Intl.DateTimeFormat().resolvedOptions().timeZone,
+    gpu.webgl_vendor,
+    gpu.webgl_renderer,
   ].join('|');
 
   if (globalThis.crypto?.subtle) {
@@ -119,13 +237,23 @@ export const antiBotSdk = {
     }
   },
 
+  /** Lấy thông tin trích xuất phần cứng GPU WebGL. */
+  getGpuInfo(): WebGlGpuInfo {
+    return extractWebGlGpuInfo();
+  },
+
   /** Đóng gói telemetry cho một request checkout. Mỗi lần gọi sinh một nonce mới. */
   async collect(): Promise<ClientTelemetry> {
     fingerprintPromise ??= computeFingerprint();
     const stdDev = computeIntervalStdDev(actionTimestamps);
+    const gpu = extractWebGlGpuInfo();
+    const isWd = typeof navigator !== 'undefined' && navigator.webdriver === true ? 1 : 0;
 
     return {
-      is_webdriver: navigator.webdriver === true ? 1 : 0,
+      is_webdriver: isWd,
+      virtual_gpu_detected: gpu.virtual_gpu_detected,
+      webgl_renderer: gpu.webgl_renderer,
+      webgl_vendor: gpu.webgl_vendor,
       ...(stdDev !== undefined && { action_interval_std_dev: stdDev }),
       device_fingerprint: await fingerprintPromise,
       nonce: createNonce(),
