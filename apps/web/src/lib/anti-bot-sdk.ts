@@ -493,6 +493,8 @@ export const antiBotSdk = {
       ? options.nonce.trim()
       : createNonce();
 
+    const clientUserAgent = typeof navigator !== 'undefined' ? (navigator.userAgent || '') : '';
+
     return {
       is_webdriver: isWdEffective,
       virtual_gpu_detected: gpu.virtual_gpu_detected,
@@ -505,6 +507,7 @@ export const antiBotSdk = {
       device_fingerprint: await fingerprintPromise,
       nonce: effectiveNonce,
       client_timestamp: Date.now() + serverClockOffsetMs,
+      client_user_agent: clientUserAgent,
     };
   },
 };

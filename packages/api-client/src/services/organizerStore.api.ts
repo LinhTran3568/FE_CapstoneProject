@@ -166,6 +166,7 @@ export interface ClientTelemetry {
   device_fingerprint: string;
   nonce: string;
   client_timestamp: number;
+  client_user_agent?: string;
 }
 
 export interface SessionTokenResponse {

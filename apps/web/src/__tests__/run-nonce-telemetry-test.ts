@@ -59,4 +59,33 @@ test('Bảo toàn đầy đủ hợp đồng Telemetry của US-13.2.1 và US-13
   assert.ok('is_webdriver' in telemetry);
   assert.ok('device_fingerprint' in telemetry);
   assert.ok('client_timestamp' in telemetry);
+
+  // US-13.2.4 Client User-Agent signal
+  assert.ok('client_user_agent' in telemetry);
+  assert.strictEqual(typeof telemetry.client_user_agent, 'string');
+});
+
+test('antiBotSdk.collect() thu thập đúng navigator.userAgent từ runtime JavaScript', async () => {
+  // Lưu navigator ban đầu nếu có
+  const originalNav = globalThis.navigator;
+  const mockUa = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/130.0.0.0 Safari/537.36';
+
+  try {
+    Object.defineProperty(globalThis, 'navigator', {
+      value: { ...originalNav, userAgent: mockUa },
+      configurable: true,
+      writable: true,
+    });
+
+    const telemetry = await antiBotSdk.collect({ nonce: 'test_ua_mock' });
+    assert.strictEqual(telemetry.client_user_agent, mockUa, 'client_user_agent phải phản ánh chính xác navigator.userAgent');
+  } finally {
+    if (originalNav) {
+      Object.defineProperty(globalThis, 'navigator', {
+        value: originalNav,
+        configurable: true,
+        writable: true,
+      });
+    }
+  }
 });
