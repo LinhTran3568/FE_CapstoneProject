@@ -308,6 +308,99 @@ const fallbackHash128 = (input: string): string => {
     .join('');
 };
 
+export interface CanvasEntropyResult {
+  canvas_hash: string;
+  canvas_tampered: 0 | 1;
+}
+
+let cachedCanvasResult: CanvasEntropyResult | null = null;
+
+/**
+ * Trích xuất sai khác khử răng cưa Canvas 2D (Micro-Entropy) và bẫy phát hiện Canvas Noise Poisoning (US-13.2.2, SCRUM-375).
+ * Kiểm tra tính toàn vẹn của API Canvas và áp dụng Double-Read Check để phát hiện các tiện ích tiêm nhiễu ngẫu nhiên.
+ */
+export const extractCanvasMicroEntropy = (): CanvasEntropyResult => {
+  if (cachedCanvasResult) return cachedCanvasResult;
+
+  const fallback: CanvasEntropyResult = {
+    canvas_hash: 'unavailable',
+    canvas_tampered: 0,
+  };
+
+  if (typeof window === 'undefined' || typeof document === 'undefined') {
+    return fallback;
+  }
+
+  try {
+    // 1. Kiểm tra Native Code trên Prototype của Canvas API
+    const isToDataUrlTampered =
+      typeof HTMLCanvasElement !== 'undefined' &&
+      !isNativeFunction(HTMLCanvasElement.prototype.toDataURL);
+    const isGetImageDataTampered =
+      typeof CanvasRenderingContext2D !== 'undefined' &&
+      !isNativeFunction(CanvasRenderingContext2D.prototype.getImageData);
+
+    const canvas = document.createElement('canvas');
+    canvas.width = 180;
+    canvas.height = 40;
+    const ctx = canvas.getContext('2d');
+
+    if (!ctx) {
+      cachedCanvasResult = {
+        canvas_hash: 'disabled',
+        canvas_tampered: 0,
+      };
+      return cachedCanvasResult;
+    }
+
+    // 2. Vẽ hình ảnh phức tạp để kích hoạt khử răng cưa (Anti-Aliasing) và sub-pixel rendering
+    const grad = ctx.createLinearGradient(0, 0, 180, 0);
+    grad.addColorStop(0, '#f38b00');
+    grad.addColorStop(1, '#e52d27');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, 180, 40);
+
+    ctx.textBaseline = 'top';
+    ctx.font = '14px "Arial", "Segoe UI", sans-serif';
+    ctx.fillStyle = '#069';
+    ctx.fillText('TicketShield 🎟️ 2026', 4, 4);
+
+    ctx.fillStyle = 'rgba(102, 204, 0, 0.7)';
+    ctx.fillText('AntiBot 🛡️ Micro-Entropy', 4, 20);
+
+    ctx.shadowBlur = 4;
+    ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
+    ctx.beginPath();
+    ctx.arc(160, 20, 12, 0, Math.PI * 2);
+    ctx.stroke();
+
+    // 3. Double-Read Check: Đọc 2 lần liên tiếp vùng pixel tĩnh để phát hiện Canvas Noise Poisoning (Brave Farbling/Spook)
+    const img1 = ctx.getImageData(0, 0, 180, 40).data;
+    const img2 = ctx.getImageData(0, 0, 180, 40).data;
+    let isNoisePoisoned = false;
+
+    // Lấy mẫu bước nhảy 16 bytes để tối ưu tốc độ (< 0.2ms)
+    for (let i = 0; i < img1.length; i += 16) {
+      if (img1[i] !== img2[i]) {
+        isNoisePoisoned = true;
+        break;
+      }
+    }
+
+    const dataUrl = canvas.toDataURL();
+    const canvasHash = fallbackHash128(dataUrl).slice(0, 32);
+
+    cachedCanvasResult = {
+      canvas_hash: canvasHash,
+      canvas_tampered: isToDataUrlTampered || isGetImageDataTampered || isNoisePoisoned ? 1 : 0,
+    };
+
+    return cachedCanvasResult;
+  } catch {
+    return fallback;
+  }
+};
+
 const computeFingerprint = async (): Promise<string> => {
   const gpu = extractWebGlGpuInfo();
   const parts = [
@@ -371,6 +464,11 @@ export const antiBotSdk = {
   /** Kiểm tra tính toàn vẹn của prototype navigator.webdriver (US-13.2.2). */
   inspectPrototype(): PrototypeInspectionResult {
     return inspectWebdriverPrototype();
+  },
+
+  /** Trích xuất Canvas Micro-Entropy và kiểm tra Canvas Noise Poisoning (US-13.2.2). */
+  getCanvasEntropy(): CanvasEntropyResult {
+    return extractCanvasMicroEntropy();
   },
 
   /** Đóng gói telemetry cho một request checkout. Mỗi lần gọi sinh một nonce mới. */
