@@ -137,18 +137,20 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
     for (const item of selectedItems) {
       try {
         let effectiveToken = sessionTokens?.[item.tier.id]?.sessionToken;
+        let effectiveNonce = sessionTokens?.[item.tier.id]?.nonce;
         if (!effectiveToken) {
           try {
             const sessionRes = await organizerStoreApi.createSession(item.tier.id);
             effectiveToken = sessionRes.sessionToken;
+            effectiveNonce = sessionRes.nonce;
             antiBotSdk.setServerClock(sessionRes.issuedAtUtc);
           } catch (e) {
             console.warn(`Could not fetch session token for tier ${item.tier.id}:`, e);
           }
         }
 
-        // US-8.1: each tier request has its own nonce and telemetry
-        const telemetry = await antiBotSdk.collect();
+        // US-8.1 & US-13.2.3: each tier request has its own one-time server nonce and telemetry
+        const telemetry = await antiBotSdk.collect({ nonce: effectiveNonce });
 
         const checkoutRes = await organizerStoreApi.checkout({
           tierId: item.tier.id,

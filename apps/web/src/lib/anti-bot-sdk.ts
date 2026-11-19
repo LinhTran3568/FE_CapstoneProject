@@ -471,8 +471,8 @@ export const antiBotSdk = {
     return extractCanvasMicroEntropy();
   },
 
-  /** Đóng gói telemetry cho một request checkout. Mỗi lần gọi sinh một nonce mới. */
-  async collect(): Promise<ClientTelemetry> {
+  /** Đóng gói telemetry cho một request checkout. Hỗ trợ One-Time Cryptographic Nonce từ Server hoặc tự sinh (US-13.2.3). */
+  async collect(options?: { nonce?: string }): Promise<ClientTelemetry> {
     fingerprintPromise ??= computeFingerprint();
     const stdDev = computeIntervalStdDev(actionTimestamps);
     const gpu = extractWebGlGpuInfo();
@@ -489,6 +489,10 @@ export const antiBotSdk = {
           ? 1
           : 0;
 
+    const effectiveNonce = options?.nonce && options.nonce.trim().length > 0
+      ? options.nonce.trim()
+      : createNonce();
+
     return {
       is_webdriver: isWdEffective,
       virtual_gpu_detected: gpu.virtual_gpu_detected,
@@ -499,7 +503,7 @@ export const antiBotSdk = {
       webgl_vendor: gpu.webgl_vendor,
       ...(stdDev !== undefined && { action_interval_std_dev: stdDev }),
       device_fingerprint: await fingerprintPromise,
-      nonce: createNonce(),
+      nonce: effectiveNonce,
       client_timestamp: Date.now() + serverClockOffsetMs,
     };
   },
