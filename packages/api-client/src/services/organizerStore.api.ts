@@ -156,6 +156,9 @@ export interface OrganizerBackendTier {
 
 export interface ClientTelemetry {
   is_webdriver: 0 | 1;
+  virtual_gpu_detected?: 0 | 1;
+  webgl_renderer?: string;
+  webgl_vendor?: string;
   action_interval_std_dev?: number;
   device_fingerprint: string;
   nonce: string;
