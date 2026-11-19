@@ -22,6 +22,132 @@ export interface WebGlGpuInfo {
   is_tampered: boolean;
 }
 
+export interface PrototypeInspectionResult {
+  prototype_tampered: 0 | 1;
+  is_webdriver_effective: 0 | 1;
+  reason?: string;
+}
+
+let cachedPrototypeResult: PrototypeInspectionResult | null = null;
+
+/**
+ * Kiểm tra can thiệp JavaScript Prototype trên navigator.webdriver (US-13.2.2, SCRUM-375).
+ * Phát hiện các công cụ bot stealth dùng delete hoặc Object.defineProperty để che giấu cờ tự động hóa.
+ * Áp dụng cơ chế khử False Positive cho In-App WebView (Zalo, FB, TikTok) và Safari WebKit.
+ */
+export const inspectWebdriverPrototype = (): PrototypeInspectionResult => {
+  if (cachedPrototypeResult) return cachedPrototypeResult;
+
+  const fallback: PrototypeInspectionResult = {
+    prototype_tampered: 0,
+    is_webdriver_effective: typeof navigator !== 'undefined' && navigator.webdriver === true ? 1 : 0,
+  };
+
+  if (typeof window === 'undefined' || typeof navigator === 'undefined') {
+    return fallback;
+  }
+
+  try {
+    const ua = navigator.userAgent || '';
+    const isInAppWebView = /FBAN|FBAV|Instagram|Zalo|TikTok|Line|Snapchat/i.test(ua);
+    const isSafari = /Safari/i.test(ua) && !/Chrome|Chromium|Edg|CriOS|OPR/i.test(ua);
+
+    // Bẫy 1: Own Property Check
+    // Trên chuẩn W3C, webdriver KHÔNG ĐƯỢC là thuộc tính riêng (own property) trên instance navigator.
+    // Nếu navigator.hasOwnProperty('webdriver') === true => Bot đã can thiệp Object.defineProperty(navigator, 'webdriver', ...)
+    if (Object.prototype.hasOwnProperty.call(navigator, 'webdriver')) {
+      cachedPrototypeResult = {
+        prototype_tampered: 1,
+        is_webdriver_effective: 1,
+        reason: 'navigator.hasOwnProperty("webdriver") is true (own property injection)',
+      };
+      return cachedPrototypeResult;
+    }
+
+    const proto = Object.getPrototypeOf(navigator);
+    if (!proto) {
+      cachedPrototypeResult = fallback;
+      return cachedPrototypeResult;
+    }
+
+    const hasInProto = 'webdriver' in proto;
+
+    // Khử False Positive cho In-App WebView hoặc Safari WebKit không bật automation
+    if (!hasInProto && (isInAppWebView || isSafari)) {
+      cachedPrototypeResult = fallback;
+      return cachedPrototypeResult;
+    }
+
+    // Bẫy 2: Prototype Missing Check
+    // Trên trình duyệt Chromium (Chrome/Edge/Brave/Cốc Cốc), thuộc tính webdriver bắt buộc phải tồn tại trong Navigator.prototype.
+    // Nếu thiếu => Bot đã dùng delete Navigator.prototype.webdriver
+    if (!hasInProto) {
+      cachedPrototypeResult = {
+        prototype_tampered: 1,
+        is_webdriver_effective: 1,
+        reason: 'webdriver missing from Navigator.prototype (prototype deletion)',
+      };
+      return cachedPrototypeResult;
+    }
+
+    // Bẫy 3: Descriptor Integrity & Native Getter Check
+    const desc = Object.getOwnPropertyDescriptor(proto, 'webdriver');
+    if (!desc) {
+      cachedPrototypeResult = {
+        prototype_tampered: 1,
+        is_webdriver_effective: 1,
+        reason: 'Property descriptor of webdriver is undefined',
+      };
+      return cachedPrototypeResult;
+    }
+
+    if (typeof desc.get !== 'function') {
+      cachedPrototypeResult = {
+        prototype_tampered: 1,
+        is_webdriver_effective: 1,
+        reason: 'webdriver descriptor does not have a getter function',
+      };
+      return cachedPrototypeResult;
+    }
+
+    if (!isNativeFunction(desc.get)) {
+      cachedPrototypeResult = {
+        prototype_tampered: 1,
+        is_webdriver_effective: 1,
+        reason: 'webdriver getter is not a native function (tampered with JS code)',
+      };
+      return cachedPrototypeResult;
+    }
+
+    if (desc.set !== undefined) {
+      cachedPrototypeResult = {
+        prototype_tampered: 1,
+        is_webdriver_effective: 1,
+        reason: 'webdriver descriptor has unexpected setter',
+      };
+      return cachedPrototypeResult;
+    }
+
+    if (desc.configurable === false || desc.enumerable === false) {
+      cachedPrototypeResult = {
+        prototype_tampered: 1,
+        is_webdriver_effective: 1,
+        reason: 'webdriver descriptor configurable/enumerable flags have been modified',
+      };
+      return cachedPrototypeResult;
+    }
+
+    // Hoàn toàn hợp lệ
+    cachedPrototypeResult = {
+      prototype_tampered: 0,
+      is_webdriver_effective: navigator.webdriver === true ? 1 : 0,
+    };
+    return cachedPrototypeResult;
+  } catch {
+    return fallback;
+  }
+};
+
 /**
  * Danh sách chữ ký nhận diện card đồ họa ảo / bộ dựng hình bằng phần mềm qua CPU (US-13.2, SCRUM-374).
  * Hầu hết các trang trại bot chạy Chromium headless trên Cloud VPS/Server không có GPU rời,
@@ -240,6 +366,11 @@ export const antiBotSdk = {
   /** Lấy thông tin trích xuất phần cứng GPU WebGL. */
   getGpuInfo(): WebGlGpuInfo {
     return extractWebGlGpuInfo();
+  },
+
+  /** Kiểm tra tính toàn vẹn của prototype navigator.webdriver (US-13.2.2). */
+  inspectPrototype(): PrototypeInspectionResult {
+    return inspectWebdriverPrototype();
   },
 
   /** Đóng gói telemetry cho một request checkout. Mỗi lần gọi sinh một nonce mới. */
