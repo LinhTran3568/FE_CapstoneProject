@@ -171,6 +171,7 @@ export interface ClientTelemetry {
 export interface SessionTokenResponse {
   sessionToken: string;
   tierId: string;
+  nonce?: string;
   issuedAtUtc: string;
   expiresInSeconds: number;
 }
