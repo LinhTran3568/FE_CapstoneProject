@@ -476,11 +476,25 @@ export const antiBotSdk = {
     fingerprintPromise ??= computeFingerprint();
     const stdDev = computeIntervalStdDev(actionTimestamps);
     const gpu = extractWebGlGpuInfo();
-    const isWd = typeof navigator !== 'undefined' && navigator.webdriver === true ? 1 : 0;
+    const proto = inspectWebdriverPrototype();
+    const canvas = extractCanvasMicroEntropy();
+
+    // Cơ chế Cầu Nối ONNX 6D (Bridge to ONNX):
+    // Nếu phát hiện bot stealth can thiệp/xóa webdriver (prototype_tampered = 1),
+    // tự động ép cờ is_webdriver = 1 để kích hoạt hình phạt tối đa trong mô hình ONNX 6 chiều.
+    const isWdEffective: 0 | 1 =
+      proto.prototype_tampered === 1 || proto.is_webdriver_effective === 1
+        ? 1
+        : typeof navigator !== 'undefined' && navigator.webdriver === true
+          ? 1
+          : 0;
 
     return {
-      is_webdriver: isWd,
+      is_webdriver: isWdEffective,
       virtual_gpu_detected: gpu.virtual_gpu_detected,
+      prototype_tampered: proto.prototype_tampered,
+      canvas_hash: canvas.canvas_hash,
+      canvas_tampered: canvas.canvas_tampered,
       webgl_renderer: gpu.webgl_renderer,
       webgl_vendor: gpu.webgl_vendor,
       ...(stdDev !== undefined && { action_interval_std_dev: stdDev }),
