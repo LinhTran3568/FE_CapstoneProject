@@ -12,19 +12,19 @@ import {
   AlertCircle,
   Plus,
   Sparkles,
-  CheckCircle2
+  CheckCircle2,
+  Trash2,
+  CircleCheck
 } from 'lucide-react';
 import { bankAccountsApi, type BankInfo } from '@ticketshield/api-client';
 import { UserBankAccountDto } from '@ticketshield/types';
 import { useUIStore } from '../stores/uiStore';
-import { useAuthStore } from '../stores/authStore';
 
 export const PayoutAccountsPage: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const returnUrl = searchParams.get('returnUrl');
 
-  const { user } = useAuthStore();
   const { showToast } = useUIStore();
 
   // Danh sách tài khoản đã liên kết
@@ -40,6 +40,8 @@ export const PayoutAccountsPage: React.FC = () => {
   const [accountHolderName, setAccountHolderName] = useState<string>('');
   const [isDefault, setIsDefault] = useState<boolean>(true);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+  const [updatingAccountId, setUpdatingAccountId] = useState<string | null>(null);
+  const [accountPendingDeletion, setAccountPendingDeletion] = useState<string | null>(null);
 
   // Auto-lookup trạng thái
   const [isSearchingName, setIsSearchingName] = useState<boolean>(false);
@@ -148,6 +150,39 @@ export const PayoutAccountsPage: React.FC = () => {
     return b ? b.name : code;
   };
 
+  const handleSetDefaultAccount = async (account: UserBankAccountDto) => {
+    if (account.isDefault || updatingAccountId || accountPendingDeletion) return;
+
+    try {
+      setUpdatingAccountId(account.id);
+      await bankAccountsApi.setDefaultBankAccount(account.id);
+      // Keep card positions stable; only its selected state changes in place.
+      setBankAccounts((previous) => previous.map((item) => ({
+        ...item,
+        isDefault: item.id === account.id,
+      })));
+      showToast('This account will receive future payouts.', 'success');
+    } catch (err: any) {
+      showToast(err?.message || 'Could not update the payout account. Please try again.', 'error');
+    } finally {
+      setUpdatingAccountId(null);
+    }
+  };
+
+  const handleDeleteAccount = async (account: UserBankAccountDto) => {
+    try {
+      setUpdatingAccountId(account.id);
+      await bankAccountsApi.deleteBankAccount(account.id);
+      setAccountPendingDeletion(null);
+      await fetchAccounts();
+      showToast(`${getBankNameByCode(account.bankCode)} account removed.`, 'success');
+    } catch (err: any) {
+      showToast(err?.message || 'Could not remove this bank account. Please try again.', 'error');
+    } finally {
+      setUpdatingAccountId(null);
+    }
+  };
+
   // Bước 1 -> Bước 2: Chuyển sang ô xác nhận lại
   const handleProceedToConfirm = (e: React.FormEvent) => {
     e.preventDefault();
@@ -232,7 +267,7 @@ export const PayoutAccountsPage: React.FC = () => {
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-[#FF5A36]/15 via-transparent to-transparent" />
       </div>
 
-      <div className="relative z-10 max-w-6xl mx-auto space-y-8">
+      <div className="relative z-10 max-w-6xl mx-auto space-y-5 md:space-y-6">
         {/* Top Navigation & Return CTA */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex items-center gap-3">
@@ -269,28 +304,25 @@ export const PayoutAccountsPage: React.FC = () => {
         </div>
 
         {/* Page Header Banner */}
-        <div className="bg-gradient-to-r from-[#0A0D12] via-[#0F141C] to-[#0A0D12] border border-white/10 p-6 md:p-8 rounded-3xl shadow-2xl relative overflow-hidden flex items-center justify-between gap-6">
+        <div className="bg-gradient-to-r from-[#0A0D12] via-[#0F141C] to-[#0A0D12] border border-white/10 px-6 py-5 md:px-8 rounded-2xl shadow-2xl relative overflow-hidden flex items-center justify-between gap-6">
           <div className="absolute top-0 right-0 w-80 h-80 bg-[#FF5A36]/10 rounded-full blur-3xl pointer-events-none" />
 
-          <div className="flex items-center gap-5 relative z-10">
-            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[#FF5A36] to-amber-500 text-white flex items-center justify-center shadow-xl shadow-[#FF5A36]/25 shrink-0">
-              <Building2 className="w-8 h-8" />
-            </div>
-
-            <div>
-              <h1 className="text-2xl md:text-3xl font-extrabold font-display text-white tracking-tight">
+          <div className="relative z-10">
+            <div className="space-y-0.5">
+              <h1 className="text-2xl font-extrabold font-display text-white tracking-tight">
                 Payout Accounts
               </h1>
+              <p className="text-xs text-[#A3A8B3]">Choose where your future ticket-sale payouts are sent.</p>
             </div>
           </div>
         </div>
 
         {/* Main Content Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
           
           {/* LEFT COLUMN: Linked Accounts List (5 cols) */}
           <div className="lg:col-span-5 space-y-6">
-            <div className="bg-[#0A0D12] border border-white/10 rounded-3xl p-6 space-y-5 relative overflow-hidden">
+            <div className="bg-[#0A0D12] border border-white/10 rounded-2xl p-5 space-y-4 relative overflow-hidden">
               <div className="flex items-center justify-between">
                 <div>
                   <div className="flex items-center gap-2.5">
@@ -331,14 +363,27 @@ export const PayoutAccountsPage: React.FC = () => {
                   </div>
                 </div>
               ) : (
-                <div className="space-y-3.5">
-                  {bankAccounts.map((account) => (
+                <div className="space-y-3">
+                  {bankAccounts.map((account) => {
+                    const isUpdating = updatingAccountId === account.id;
+                    const isConfirmingDelete = accountPendingDeletion === account.id;
+                    return (
                     <div
                       key={account.id}
-                      className={`p-4 rounded-2xl border transition-all relative overflow-hidden ${
+                      role={account.isDefault ? undefined : 'button'}
+                      tabIndex={account.isDefault ? undefined : 0}
+                      onClick={account.isDefault ? undefined : () => handleSetDefaultAccount(account)}
+                      onKeyDown={account.isDefault ? undefined : (event) => {
+                        if (event.key === 'Enter' || event.key === ' ') {
+                          event.preventDefault();
+                          handleSetDefaultAccount(account);
+                        }
+                      }}
+                      aria-label={account.isDefault ? undefined : `Choose ${getBankNameByCode(account.bankCode)} account ending in ${account.bankAccountNumber.slice(-4)} for future payouts`}
+                      className={`p-4 rounded-2xl border transition-all duration-200 relative overflow-hidden ${
                         account.isDefault
                           ? 'bg-gradient-to-r from-emerald-950/40 via-[#05070A] to-[#05070A] border-emerald-500/40 shadow-lg shadow-emerald-500/5'
-                          : 'bg-[#05070A] border-white/10 hover:border-white/20'
+                          : 'bg-[#05070A] border-white/10 hover:border-emerald-500/60 hover:bg-emerald-950/20 hover:-translate-y-0.5 cursor-pointer focus:outline-none focus:ring-2 focus:ring-emerald-400/50'
                       }`}
                     >
                       <div className="flex items-start justify-between gap-3 mb-2">
@@ -369,8 +414,63 @@ export const PayoutAccountsPage: React.FC = () => {
                           <Check className="w-3 h-3 stroke-[3]" /> Bank Verified
                         </span>
                       </div>
+
+                      <div className="mt-3 pt-2.5 border-t border-white/10 flex flex-wrap items-center justify-between gap-2">
+                        {account.isDefault ? (
+                          <span className="text-[11px] text-emerald-400 font-semibold flex items-center gap-1.5">
+                            <CircleCheck className="w-3.5 h-3.5" />
+                            Selected for future payouts
+                          </span>
+                        ) : isUpdating ? (
+                          <span className="text-[11px] font-semibold text-emerald-400">Selecting…</span>
+                        ) : (
+                          <span className="text-[11px] text-[#8B929C]">Click this card to select for payouts</span>
+                        )}
+
+                        {isConfirmingDelete ? (
+                          <div className="flex items-center gap-2 ml-auto">
+                            <button
+                              type="button"
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                setAccountPendingDeletion(null);
+                              }}
+                              disabled={isUpdating}
+                              className="text-[11px] text-[#A3A8B3] hover:text-white disabled:opacity-50 cursor-pointer"
+                            >
+                              Cancel
+                            </button>
+                            <button
+                              type="button"
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                handleDeleteAccount(account);
+                              }}
+                              disabled={isUpdating}
+                              className="text-[11px] font-bold text-red-400 hover:text-red-300 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                            >
+                              {isUpdating ? 'Removing…' : 'Confirm remove'}
+                            </button>
+                          </div>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              setAccountPendingDeletion(account.id);
+                            }}
+                            disabled={isUpdating || updatingAccountId !== null}
+                            className="ml-auto p-1.5 rounded-lg text-[#8B929C] hover:text-red-400 hover:bg-red-500/10 disabled:opacity-50 disabled:cursor-not-allowed transition-colors cursor-pointer"
+                            aria-label={`Remove ${getBankNameByCode(account.bankCode)} account ending in ${account.bankAccountNumber.slice(-4)}`}
+                            title="Remove bank account"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                      </div>
                     </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
 
@@ -380,7 +480,7 @@ export const PayoutAccountsPage: React.FC = () => {
 
           {/* RIGHT COLUMN: Add Bank Account Form (7 cols) */}
           <div className="lg:col-span-7 space-y-6">
-            <div className="bg-[#0A0D12] border border-white/10 rounded-3xl p-6 md:p-8 space-y-6 relative overflow-hidden">
+            <div className="bg-[#0A0D12] border border-white/10 rounded-2xl p-5 md:p-6 space-y-5 relative overflow-hidden">
               
               {/* Form Step Indicator */}
               <div className="flex items-center justify-between pb-4 border-b border-white/10">
@@ -413,7 +513,7 @@ export const PayoutAccountsPage: React.FC = () => {
 
               {/* STEP 1: FORM INPUT */}
               {formStep === 'input' && (
-                <form onSubmit={handleProceedToConfirm} className="space-y-5">
+                <form onSubmit={handleProceedToConfirm} className="space-y-4">
                   {/* Beneficiary Bank Select */}
                   <div className="space-y-1.5 relative" ref={bankDropdownRef}>
                     <label className="block text-xs font-semibold uppercase tracking-wider text-[#A3A8B3] flex items-center gap-1.5">

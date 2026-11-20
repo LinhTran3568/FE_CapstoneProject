@@ -37,6 +37,25 @@ export const bankAccountsApi = {
   },
 
   /**
+   * Choose the beneficiary account that receives future automatic payouts.
+   * PUT /api/v1/user-bank-accounts/{id}/set-default (JWT required)
+   */
+  setDefaultBankAccount: async (id: string): Promise<UserBankAccountDto> => {
+    return httpClient<UserBankAccountDto>(`/user-bank-accounts/${id}/set-default`, {
+      method: 'PUT',
+    });
+  },
+
+  /**
+   * Remove one linked bank account.
+   * The server prevents removing the final default account.
+   * DELETE /api/v1/user-bank-accounts/{id} (JWT required)
+   */
+  deleteBankAccount: async (id: string): Promise<void> => {
+    await httpClient(`/user-bank-accounts/${id}`, { method: 'DELETE' });
+  },
+
+  /**
    * Auto-lookup beneficiary account holder name via BE proxy (avoids browser CORS).
    * Calls GET /api/v1/user-bank-accounts/lookup-name?bin={bin}&accountNumber={accountNumber}
    * Returns isVerified:true ONLY when the bank API confirms the name.
