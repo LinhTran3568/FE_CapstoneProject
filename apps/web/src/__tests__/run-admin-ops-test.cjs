@@ -363,6 +363,55 @@ test('loai tin doi sang co cua API', () => {
   assert.equal(ops().toListingParams(base).isBundleOnly, undefined);
 });
 
+// ---------- Bieu do doanh thu theo ngay (SCRUM-391) ----------
+test('7d du 7 ngay toi hom nay, ngay khong co doanh thu bang 0', () => {
+  const daily = [
+    { date: '2026-11-10', netRevenue: 100000, gmv: 1050000 },
+    { date: '2026-11-13', netRevenue: 342400, gmv: 4494000 },
+  ];
+  const points = ops().buildRevenueTrend('7d', daily, NOW);
+  assert.equal(points.length, 7);
+  assert.equal(points[0].date, '2026-11-09');
+  assert.equal(points[6].date, '2026-11-15');
+  assert.deepEqual(points.filter((p) => p.netRevenue > 0).map((p) => p.date), ['2026-11-10', '2026-11-13']);
+  assert.equal(points.find((p) => p.date === '2026-11-13').gmv, 4494000);
+  assert.equal(points.find((p) => p.date === '2026-11-11').netRevenue, 0);
+});
+
+test('30d bat dau cung ngay voi rangeToDates', () => {
+  const points = ops().buildRevenueTrend('30d', [], NOW);
+  assert.equal(points.length, 30);
+  assert.equal(points[0].date, '2026-10-17');
+  assert.equal(points[29].date, '2026-11-15');
+});
+
+test('All bat dau tu ngay som nhat co doanh thu, du thu tu BE tra', () => {
+  const daily = [
+    { date: '2026-11-13', netRevenue: 342400, gmv: 4494000 },
+    { date: '2026-11-10', netRevenue: 100000, gmv: 1050000 },
+  ];
+  const points = ops().buildRevenueTrend('All', daily, NOW);
+  assert.equal(points.length, 6);
+  assert.equal(points[0].date, '2026-11-10');
+  assert.equal(points[5].date, '2026-11-15');
+});
+
+test('All chua co doanh thu thi rong, 7d thieu du lieu thi toan 0', () => {
+  assert.deepEqual(ops().buildRevenueTrend('All', [], NOW), []);
+  assert.deepEqual(ops().buildRevenueTrend('All', undefined, NOW), []);
+  const zeros = ops().buildRevenueTrend('7d', undefined, NOW);
+  assert.equal(zeros.length, 7);
+  assert.ok(zeros.every((p) => p.netRevenue === 0 && p.gmv === 0));
+});
+
+test('nhan ngay va tien rut gon tren truc', () => {
+  assert.equal(ops().dayLabel('2026-11-13'), '13/11');
+  assert.equal(ops().formatCompactVnd(765400), '765k');
+  assert.equal(ops().formatCompactVnd(1250000), '1.3M');
+  assert.equal(ops().formatCompactVnd(2000000000), '2B');
+  assert.equal(ops().formatCompactVnd(0), '0');
+});
+
 (async () => {
   console.log('\n TICKETSHIELD WEB - US-11.1 ADMIN OPERATIONS\n');
   let failed = 0;
