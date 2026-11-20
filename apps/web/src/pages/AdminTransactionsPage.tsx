@@ -86,8 +86,9 @@ export const AdminTransactionsPage: React.FC = () => {
         </Link>
       </PageHeader>
 
-      {/* Số toàn sàn, không theo bộ lọc. */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5">
+      {/* Tính trên đúng các dòng khớp bộ lọc, đủ mọi trang (SCRUM-394). */}
+      <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-3.5">
+        <StatCard label="Inflow" value={summary ? formatMoney(summary.totalInflowAmount) : '—'} />
         <StatCard
           label="Held in escrow"
           value={summary ? formatMoney(summary.totalEscrowLockedAmount) : '—'}
@@ -116,7 +117,7 @@ export const AdminTransactionsPage: React.FC = () => {
           onChange={(payoutStatus) => update({ payoutStatus })}
           options={PAYOUT_OPTIONS}
         />
-        <FilterToggle checked={filters.holdOnly} onChange={(holdOnly) => update({ holdOnly })} label="In hold window only" />
+        <FilterToggle checked={filters.holdOnly} onChange={(holdOnly) => update({ holdOnly })} label="Awaiting auto payout" />
         <DateRangeInputs from={filters.from} to={filters.to} onChange={(range) => update(range)} />
         {hasFilters && <ClearFiltersButton onClick={reset} />}
       </FilterBar>
