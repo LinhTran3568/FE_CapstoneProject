@@ -1,11 +1,13 @@
-// Khối thống kê sàn trên Dashboard (SCRUM-339): số tiền, doanh thu theo sự kiện, kho vé, người dùng, bảng sự kiện.
-// Biểu đồ vẽ bằng thanh CSS: một chuỗi số nên một màu, không cần chú thích, số ghi ở cuối thanh bằng màu chữ.
+// Khối thống kê sàn trên Dashboard (SCRUM-339, SCRUM-390): 6 ô tiền đối soát được, doanh thu theo ngày,
+// doanh thu theo sự kiện, kho vé, người dùng, bảng sự kiện.
+// Biểu đồ theo sự kiện vẽ bằng thanh CSS: một chuỗi số nên một màu, không cần chú thích, số ghi ở cuối thanh bằng màu chữ.
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { BarChart3, Boxes, Loader2, Users } from 'lucide-react';
+import { BarChart3, Boxes, Loader2, TrendingUp, Users } from 'lucide-react';
 import type { AdminPlatformAnalyticsDto } from '@ticketshield/api-client';
 import { RetryButton, StatCard, errorText } from './AdminOpsUi';
-import { formatMoney, topEvents, type DashboardRange, type EventMetric } from '../../utils/adminOps';
+import { RevenueTrendChart } from './RevenueTrendChart';
+import { buildRevenueTrend, formatMoney, topEvents, type DashboardRange, type EventMetric } from '../../utils/adminOps';
 import { formatEventDateTime } from '../../utils/formatters';
 
 /** Màu duy nhất của thanh (slot 1 bảng màu mẫu, đã qua kiểm tra tương phản trên nền sáng). */
@@ -63,12 +65,15 @@ export const DashboardMoneyRow: React.FC<{ analytics: AnalyticsState; range: Das
   if (!data) return null;
 
   const { revenue } = data;
+  // SCRUM-392/393: cùng cách tính với trang Giao dịch, nên Inflow − Payout − Refunded − Held = Net revenue.
   return (
-    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5">
-      <StatCard label="Platform revenue" value={formatMoney(revenue.totalNetRevenue)} />
-      <StatCard label="GMV (total traded)" value={formatMoney(revenue.totalGmv)} />
-      <StatCard label="Fees still in escrow" value={formatMoney(revenue.pendingFeesInEscrow)} />
+    <div className="grid grid-cols-2 md:grid-cols-3 gap-3.5">
+      <StatCard label="Inflow" value={formatMoney(revenue.totalInflow)} />
+      <StatCard label="Net revenue" value={formatMoney(revenue.totalNetRevenue)} />
+      <StatCard label="Payout" value={formatMoney(revenue.totalPayout)} />
+      <StatCard label="Held in escrow" value={formatMoney(revenue.totalHeldInEscrow)} />
       <StatCard label="Refunded" value={formatMoney(revenue.totalRefundedAmount)} />
+      <StatCard label="GMV" value={formatMoney(revenue.totalGmv)} />
     </div>
   );
 };
@@ -129,9 +134,14 @@ export const DashboardAnalyticsPanels: React.FC<{
       ]
     : [];
   const events = [...data.eventTransactions].sort((a, b) => b.totalPlatformRevenue - a.totalPlatformRevenue);
+  const trend = buildRevenueTrend(range, data.dailyRevenue, new Date());
 
   return (
     <>
+      <Panel title="Revenue trend" icon={<TrendingUp className="w-4 h-4 text-[#F45135]" />}>
+        <RevenueTrendChart points={trend} />
+      </Panel>
+
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
         <div className="lg:col-span-7">
           <Panel
@@ -206,7 +216,7 @@ export const DashboardAnalyticsPanels: React.FC<{
             )
           ) : (
             <>
-          <Panel title="Ticket inventory" icon={<Boxes className="w-4 h-4 text-[#F45135]" />}>
+          <Panel title="Ticket inventory" icon={<Boxes className="w-4 h-4 text-[#F45135]" />} badge="All time">
             <p className="text-xs text-[#667085]">
               <span className="text-lg font-bold font-mono text-[#101722] tabular-nums">{inventory.totalTicketsInInventory}</span> tickets
             </p>
@@ -229,7 +239,7 @@ export const DashboardAnalyticsPanels: React.FC<{
             </ul>
           </Panel>
 
-          <Panel title="Users" icon={<Users className="w-4 h-4 text-[#F45135]" />}>
+          <Panel title="Users" icon={<Users className="w-4 h-4 text-[#F45135]" />} badge="All time">
             <div className="grid grid-cols-3 gap-3 text-xs">
               {[
                 ['Total', users.totalUsers],

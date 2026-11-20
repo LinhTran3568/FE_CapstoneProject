@@ -5,6 +5,7 @@ import type {
   AdminListingsParams,
   AdminTransactionDto,
   AdminTransactionsParams,
+  DailyRevenueDto,
   EventTransactionAnalyticsDto,
 } from '@ticketshield/api-client';
 import { formatEventDateTime, formatVND } from './formatters';
@@ -187,6 +188,67 @@ export const rangeToDates = (range: DashboardRange, now: Date): { fromDate?: str
   const from = startOfLocalDay(now);
   from.setDate(from.getDate() - (days - 1));
   return { fromDate: from.toISOString() };
+};
+
+// ── Biểu đồ doanh thu theo ngày (SCRUM-391) ──
+
+export interface RevenueTrendPoint {
+  /** `yyyy-MM-dd` theo giờ máy, cùng dạng với `DailyRevenueDto.date` của BE (giờ Việt Nam). */
+  date: string;
+  netRevenue: number;
+  gmv: number;
+}
+
+const localDayKey = (d: Date) =>
+  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+
+/**
+ * Đủ từng ngày từ đầu khoảng tới hôm nay, ngày BE không trả thì bằng 0.
+ * 7d và 30d bắt đầu giống `rangeToDates`. All bắt đầu từ ngày sớm nhất có doanh thu,
+ * chưa có ngày nào thì trả mảng rỗng.
+ */
+export const buildRevenueTrend = (
+  range: DashboardRange,
+  daily: DailyRevenueDto[] | undefined,
+  now: Date
+): RevenueTrendPoint[] => {
+  const rows = daily ?? [];
+  const byDay = new Map(rows.map((row) => [row.date, row]));
+  const today = startOfLocalDay(now);
+
+  let start: Date;
+  if (range === 'All') {
+    const first = rows.map((row) => row.date).filter((date) => DATE_RE.test(date)).sort()[0];
+    if (!first) return [];
+    const [y, m, d] = first.split('-').map(Number);
+    start = new Date(y, m - 1, d);
+  } else {
+    start = new Date(today);
+    start.setDate(start.getDate() - ((range === '7d' ? 7 : 30) - 1));
+  }
+
+  const points: RevenueTrendPoint[] = [];
+  for (const day = new Date(start); day <= today; day.setDate(day.getDate() + 1)) {
+    const key = localDayKey(day);
+    const row = byDay.get(key);
+    points.push({ date: key, netRevenue: row?.netRevenue ?? 0, gmv: row?.gmv ?? 0 });
+  }
+  return points;
+};
+
+/** `2026-11-13` → `13/11`, cho trục ngày. */
+export const dayLabel = (date: string): string => {
+  const [, m, d] = date.split('-');
+  return d && m ? `${d}/${m}` : date;
+};
+
+/** Tiền rút gọn cho trục dọc: 765.400 → `765k`, 1.250.000 → `1.3M`. Ô chú thích vẫn ghi đủ bằng `formatMoney`. */
+export const formatCompactVnd = (amount: number): string => {
+  const abs = Math.abs(amount);
+  if (abs >= 1_000_000_000) return `${+(amount / 1_000_000_000).toFixed(1)}B`;
+  if (abs >= 1_000_000) return `${+(amount / 1_000_000).toFixed(1)}M`;
+  if (abs >= 1_000) return `${Math.round(amount / 1_000)}k`;
+  return String(amount);
 };
 
 // ── Bộ lọc trên URL ──
