@@ -72,10 +72,18 @@ export const styles = StyleSheet.create({
   accountCard: {
     backgroundColor: theme.colors.surfaceHighlight,
     borderRadius: theme.radii.lg,
-    padding: theme.spacing.md,
     borderWidth: 1,
     borderColor: theme.colors.border,
-    gap: theme.spacing.sm,
+    overflow: 'hidden',
+  },
+  accountCardDefault: {
+    borderColor: 'rgba(52, 211, 153, 0.55)',
+  },
+  accountSelectArea: {
+    padding: theme.spacing.md,
+  },
+  accountSelectAreaDefault: {
+    backgroundColor: 'rgba(52, 211, 153, 0.06)',
   },
   accountCardHeader: {
     flexDirection: 'row',
@@ -132,6 +140,37 @@ export const styles = StyleSheet.create({
     height: 1,
     backgroundColor: theme.colors.border,
     marginVertical: 4,
+  },
+  accountActions: {
+    minHeight: 42,
+    paddingLeft: theme.spacing.md,
+    paddingRight: theme.spacing.sm,
+    borderTopWidth: 1,
+    borderTopColor: theme.colors.border,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  selectedPayoutStatus: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  selectedPayoutText: {
+    fontSize: theme.typography.sizes.xs,
+    fontFamily: theme.typography.families.semibold,
+    color: theme.colors.success,
+  },
+  selectAccountHint: {
+    fontSize: theme.typography.sizes.xs,
+    color: theme.colors.textMuted,
+  },
+  deleteAccountButton: {
+    width: 36,
+    height: 36,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 18,
   },
   accountCardBottom: {
     flexDirection: 'row',
