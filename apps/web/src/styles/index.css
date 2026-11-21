@@ -188,3 +188,35 @@ section {
   background-image: radial-gradient(rgba(0, 0, 0, 0.05) 1px, transparent 0);
   background-size: 8px 8px;
 }
+
+@keyframes crt-sweep-slow {
+  0% {
+    transform: translate3d(0, -100%, 0);
+  }
+  100% {
+    transform: translate3d(0, 280%, 0);
+  }
+}
+
+@keyframes crt-sweep-fast {
+  0% {
+    transform: translate3d(0, -100%, 0);
+  }
+  100% {
+    transform: translate3d(0, 280%, 0);
+  }
+}
+
+.animate-crt-sweep-left {
+  transform: translate3d(0, -100%, 0);
+  animation: crt-sweep-slow 3.2s linear infinite;
+  animation-fill-mode: backwards;
+  will-change: transform;
+}
+
+.animate-crt-sweep-right {
+  transform: translate3d(0, -100%, 0);
+  animation: crt-sweep-fast 2.1s linear infinite;
+  animation-fill-mode: backwards;
+  will-change: transform;
+}

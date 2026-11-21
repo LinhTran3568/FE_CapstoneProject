@@ -333,11 +333,14 @@ export async function httpClient<T>(
     });
 
     const data = response.data;
-    if (!data.success) {
-      throw new Error(parseApiResponseErrorMessage(data, `Request failed with status ${response.status}`));
+    if (data && typeof data === 'object' && 'success' in data) {
+      if (!data.success) {
+        throw new Error(parseApiResponseErrorMessage(data, `Request failed with status ${response.status}`));
+      }
+      return data.data;
     }
 
-    return data.data;
+    return data as T;
   } catch (err: any) {
     if (axios.isAxiosError(err) && err.response?.data) {
       const resData = err.response.data as ApiResponse<T>;

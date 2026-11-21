@@ -23,7 +23,7 @@ import { BuyTicketModal } from '../components/marketplace/BuyTicketModal';
 import { TicketDetailModal } from '../components/marketplace/TicketDetailModal';
 import { StageMapModal } from '../components/marketplace/StageMapModal';
 import { MarketplaceListingDto } from '@ticketshield/types';
-import { API_CONFIG } from '@ticketshield/api-client';
+import { API_CONFIG, resaleListingsApi } from '@ticketshield/api-client';
 import * as signalR from '@microsoft/signalr';
 
 export const MarketplacePage: React.FC = () => {
@@ -61,6 +61,8 @@ export const MarketplacePage: React.FC = () => {
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 12;
+
+
 
   // Sync state when URL searchParams changes
   useEffect(() => {
@@ -278,6 +280,36 @@ export const MarketplacePage: React.FC = () => {
     }
   }, [searchParams, isAuthenticated, listings, user]);
 
+  // Open ticket detail modal if URL has ?listingId=...
+  useEffect(() => {
+    const listingIdParam = searchParams.get('listingId');
+    if (!listingIdParam) return;
+
+    // Check if it's already in the loaded listings
+    const match = listings.find((l) => l.listingId === listingIdParam);
+    if (match) {
+      setInspectingListing(match);
+      return;
+    }
+
+    // If not in currently loaded listings, fetch it directly
+    let isCancelled = false;
+    resaleListingsApi
+      .getListingById(listingIdParam)
+      .then((detail) => {
+        if (!isCancelled && detail) {
+          setInspectingListing(detail);
+        }
+      })
+      .catch((err) => {
+        console.warn('Could not load listing detail for', listingIdParam, err);
+      });
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [searchParams, listings]);
+
   const handleBuy = (listing: MarketplaceListingDto, isIndividual = false, selectedIds: string[] = []) => {
     const rawStatus = (listing.listingStatus || '').toLowerCase();
     if (rawStatus === 'transacting') {
@@ -330,223 +362,22 @@ export const MarketplacePage: React.FC = () => {
   ];
 
   return (
-    <div className="relative min-h-screen bg-[#05070A] text-[#F5F5F5] font-sans antialiased selection:bg-[#FF5A36] selection:text-white pt-24 sm:pt-28 pb-16 overflow-hidden">
+    <div className="relative min-h-screen bg-[#05070A] text-[#F5F5F5] font-sans antialiased selection:bg-[#FF5A36] selection:text-white pt-24 sm:pt-28 pb-16 overflow-x-clip">
       {/* ================= DYNAMIC BACKGROUND ATMOSPHERE WITH EFFECTS ================= */}
+      {/* ================= HIGH-PERFORMANCE STATIC AMBIENT BACKGROUND ================= */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden z-0 select-none">
-        {/* Real High-Res Concert Laser Arena Photo with Slow Breathing Zoom Animation */}
-        <motion.div
-          animate={{
-            scale: [1, 1.05, 1],
-            opacity: [0.65, 0.76, 0.65],
-          }}
-          transition={{
-            duration: 18,
-            repeat: Infinity,
-            ease: 'easeInOut',
-          }}
-          className="absolute inset-0 bg-cover bg-center bg-no-repeat filter contrast-125 saturate-125"
+        {/* Static Concert Arena Backdrop with subtle opacity */}
+        <div
+          className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-35 filter contrast-125 saturate-125"
           style={{
             backgroundImage: `url('/images/landing/marketplace-hero.jpg')`,
           }}
         />
 
-        {/* Dynamic Sweeping Cyber Laser Light Beam 1 (Neon Coral) */}
-        <motion.div
-          animate={{
-            x: ['-100%', '200%'],
-            opacity: [0, 0.35, 0],
-          }}
-          transition={{
-            duration: 8,
-            repeat: Infinity,
-            ease: 'easeInOut',
-            repeatDelay: 1.5,
-          }}
-          className="absolute inset-y-0 w-1/3 bg-gradient-to-r from-transparent via-[#FF5A36]/40 to-transparent transform -skew-x-12 blur-2xl pointer-events-none"
-        />
-
-        {/* Dynamic Sweeping Cyber Laser Light Beam 2 (Electric Cyan) */}
-        <motion.div
-          animate={{
-            x: ['200%', '-100%'],
-            opacity: [0, 0.25, 0],
-          }}
-          transition={{
-            duration: 11,
-            repeat: Infinity,
-            ease: 'easeInOut',
-            repeatDelay: 3,
-          }}
-          className="absolute inset-y-0 w-1/4 bg-gradient-to-r from-transparent via-cyan-400/35 to-transparent transform skew-x-12 blur-2xl pointer-events-none"
-        />
-
-        {/* Layered Gradient Masks for Perfect Content Contrast */}
-        <div className="absolute inset-0 bg-gradient-to-b from-[#05070A]/35 via-[#05070A]/60 to-[#05070A]/95" />
-        <div className="absolute inset-0 bg-gradient-to-r from-[#05070A]/75 via-transparent to-[#05070A]/75" />
-
-        {/* Floating Cyber Light Particles */}
-        {[
-          { top: '15%', left: '12%', size: 4, color: 'bg-orange-400 shadow-[0_0_10px_#fb923c]', duration: 7, delay: 0 },
-          { top: '25%', left: '85%', size: 5, color: 'bg-cyan-400 shadow-[0_0_12px_#22d3ee]', duration: 9, delay: 1 },
-          { top: '45%', left: '22%', size: 3, color: 'bg-amber-300 shadow-[0_0_8px_#fcd34d]', duration: 8, delay: 2 },
-          { top: '65%', left: '78%', size: 4, color: 'bg-orange-500 shadow-[0_0_10px_#f97316]', duration: 11, delay: 0.5 },
-          { top: '35%', left: '50%', size: 5, color: 'bg-cyan-300 shadow-[0_0_12px_#67e8f9]', duration: 10, delay: 3 },
-          { top: '75%', left: '15%', size: 3, color: 'bg-purple-400 shadow-[0_0_8px_#c084fc]', duration: 8.5, delay: 1.5 },
-          { top: '80%', left: '60%', size: 4, color: 'bg-amber-400 shadow-[0_0_10px_#fbbf24]', duration: 9.5, delay: 2.5 },
-          { top: '18%', left: '42%', size: 3, color: 'bg-rose-400 shadow-[0_0_8px_#fb7185]', duration: 12, delay: 4 },
-        ].map((particle, idx) => (
-          <motion.div
-            key={idx}
-            animate={{
-              y: [-15, 15, -15],
-              x: [-10, 10, -10],
-              opacity: [0.2, 0.8, 0.2],
-              scale: [0.8, 1.3, 0.8],
-            }}
-            transition={{
-              duration: particle.duration,
-              delay: particle.delay,
-              repeat: Infinity,
-              ease: 'easeInOut',
-            }}
-            className={`absolute rounded-full pointer-events-none ${particle.color}`}
-            style={{
-              top: particle.top,
-              left: particle.left,
-              width: `${particle.size}px`,
-              height: `${particle.size}px`,
-            }}
-          />
-        ))}
-
-        {/* Dynamic Floating Coral/Amber Glow Orb */}
-        <motion.div
-          animate={{
-            x: [-40, 50, -40],
-            y: [-30, 40, -30],
-            scale: [1, 1.2, 1],
-            opacity: [0.3, 0.5, 0.3],
-          }}
-          transition={{
-            duration: 14,
-            repeat: Infinity,
-            ease: 'easeInOut',
-          }}
-          className="absolute -top-20 left-1/2 -translate-x-1/2 w-[1100px] h-[500px] bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-[#FF5A36]/40 via-[#FF5A36]/12 to-transparent blur-3xl"
-        />
-
-        {/* Dynamic Floating Cyan Laser Beam Orb */}
-        <motion.div
-          animate={{
-            x: [40, -50, 40],
-            y: [30, -30, 30],
-            scale: [1, 1.25, 1],
-            opacity: [0.2, 0.4, 0.2],
-          }}
-          transition={{
-            duration: 16,
-            repeat: Infinity,
-            ease: 'easeInOut',
-          }}
-          className="absolute top-1/3 -left-20 w-[600px] h-[450px] bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-cyan-400/30 via-cyan-500/8 to-transparent blur-3xl"
-        />
-
-        {/* Dynamic Floating Violet / Purple Accent Orb */}
-        <motion.div
-          animate={{
-            x: [-30, 30, -30],
-            y: [20, -20, 20],
-            scale: [1, 1.15, 1],
-            opacity: [0.15, 0.32, 0.15],
-          }}
-          transition={{
-            duration: 18,
-            repeat: Infinity,
-            ease: 'easeInOut',
-          }}
-          className="absolute top-1/2 -right-24 w-[550px] h-[450px] bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-purple-500/25 via-purple-600/8 to-transparent blur-3xl"
-        />
-
-        {/* Dynamic Concert Moving Searchlight Beams */}
-        <motion.div
-          animate={{
-            rotate: [-20, 25, -20],
-            opacity: [0.18, 0.4, 0.18],
-          }}
-          transition={{
-            duration: 12,
-            repeat: Infinity,
-            ease: 'easeInOut',
-          }}
-          style={{ transformOrigin: 'bottom left' }}
-          className="absolute -bottom-20 -left-10 w-[450px] h-[850px] bg-gradient-to-t from-[#FF5A36]/30 via-[#FF5A36]/10 to-transparent blur-3xl pointer-events-none"
-        />
-
-        <motion.div
-          animate={{
-            rotate: [25, -20, 25],
-            opacity: [0.18, 0.4, 0.18],
-          }}
-          transition={{
-            duration: 14,
-            repeat: Infinity,
-            ease: 'easeInOut',
-          }}
-          style={{ transformOrigin: 'bottom right' }}
-          className="absolute -bottom-20 -right-10 w-[450px] h-[850px] bg-gradient-to-t from-cyan-400/30 via-cyan-400/10 to-transparent blur-3xl pointer-events-none"
-        />
-
-        {/* Shooting Cyber Laser Streak 1 */}
-        <motion.div
-          animate={{
-            x: ['-200%', '300%'],
-            y: ['-50%', '250%'],
-            opacity: [0, 0.8, 0],
-          }}
-          transition={{
-            duration: 3.5,
-            repeat: Infinity,
-            repeatDelay: 5,
-            ease: 'easeOut',
-          }}
-          className="absolute top-10 -left-40 w-72 h-[2px] bg-gradient-to-r from-transparent via-[#FF5A36] to-transparent transform -rotate-12 blur-[1px] pointer-events-none"
-        />
-
-        {/* Shooting Cyber Laser Streak 2 */}
-        <motion.div
-          animate={{
-            x: ['300%', '-200%'],
-            y: ['0%', '300%'],
-            opacity: [0, 0.7, 0],
-          }}
-          transition={{
-            duration: 4,
-            repeat: Infinity,
-            repeatDelay: 7,
-            delay: 2.5,
-            ease: 'easeOut',
-          }}
-          className="absolute top-28 -right-40 w-80 h-[2px] bg-gradient-to-r from-transparent via-cyan-400 to-transparent transform rotate-12 blur-[1px] pointer-events-none"
-        />
-
-        {/* Subtle Ambient Equalizer Wave Bars at the bottom */}
-        <div className="absolute bottom-0 inset-x-0 h-16 flex items-end justify-center gap-1.5 opacity-25 pointer-events-none overflow-hidden px-8">
-          {[24, 45, 30, 60, 80, 50, 95, 40, 70, 35, 85, 65, 30, 55, 75, 40, 90, 60, 35, 70, 45, 80, 50, 30].map((height, i) => (
-            <motion.div
-              key={i}
-              animate={{
-                height: [`${height * 0.3}%`, `${height}%`, `${height * 0.4}%`],
-              }}
-              transition={{
-                duration: 1.2 + (i % 5) * 0.2,
-                repeat: Infinity,
-                ease: 'easeInOut',
-                repeatType: 'reverse',
-              }}
-              className="w-1.5 rounded-t-full bg-gradient-to-t from-[#FF5A36] via-amber-400 to-cyan-400 shadow-[0_0_8px_rgba(255,90,54,0.4)]"
-            />
-          ))}
-        </div>
+        {/* Clean Fintech Dark Gradient Overlays for zero GPU overhead */}
+        <div className="absolute inset-0 bg-gradient-to-b from-[#05070A]/75 via-[#05070A]/90 to-[#05070A]" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-[#FF5A36]/15 via-transparent to-transparent" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom_right,_var(--tw-gradient-stops))] from-cyan-500/8 via-transparent to-transparent" />
 
         {/* High-tech Micro Dot Matrix Overlay */}
         <div
@@ -586,11 +417,11 @@ export const MarketplacePage: React.FC = () => {
           <div className="flex items-center gap-3">
             <h1 className="text-2xl sm:text-3xl font-black font-display text-white tracking-tight flex items-center gap-2.5">
               <span>Ticket Marketplace</span>
-              <Sparkles className="w-5 h-5 text-[#FF5A36] animate-pulse" />
+              <Sparkles className="w-5 h-5 text-[#FF5A36]" />
             </h1>
             {filteredListings.length > 0 ? (
               <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-black/80 backdrop-blur-md border border-white/20 text-xs font-mono font-bold text-white shadow-md">
-                <span className="w-2 h-2 rounded-full bg-[#FF5A36] animate-pulse" />
+                <span className="w-2 h-2 rounded-full bg-[#FF5A36]" />
                 <span>{filteredListings.length} tickets available</span>
               </span>
             ) : (
@@ -693,16 +524,23 @@ export const MarketplacePage: React.FC = () => {
 
         {/* Ticket Listings Grid (2 cột thoáng đãng, sang trọng) */}
         {!isLoading && !isError && filteredListings.length > 0 && (
-          <div className="space-y-8">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch">
+          <div className="space-y-8 pt-4">
+            <div
+              id="marketplace-card-grid"
+              className="grid grid-cols-1 lg:grid-cols-2 gap-y-10 gap-x-6 items-stretch"
+            >
               {filteredListings.map((listing) => (
-                <TicketCard
+                <div
                   key={listing.listingId}
-                  listing={listing}
-                  onBuy={handleBuy}
-                  onViewDetails={(target) => setInspectingListing(target)}
-                  bundleListings={listing.bundleId ? bundleMap.get(listing.bundleId) : undefined}
-                />
+                  className="relative hover:z-20 overflow-visible"
+                >
+                  <TicketCard
+                    listing={listing}
+                    onBuy={handleBuy}
+                    onViewDetails={(target) => setInspectingListing(target)}
+                    bundleListings={listing.bundleId ? bundleMap.get(listing.bundleId) : undefined}
+                  />
+                </div>
               ))}
             </div>
 
@@ -779,9 +617,21 @@ export const MarketplacePage: React.FC = () => {
       <TicketDetailModal
         listing={inspectingListing}
         isOpen={Boolean(inspectingListing)}
-        onClose={() => setInspectingListing(null)}
+        onClose={() => {
+          setInspectingListing(null);
+          if (searchParams.get('listingId')) {
+            const next = new URLSearchParams(searchParams);
+            next.delete('listingId');
+            setSearchParams(next, { replace: true });
+          }
+        }}
         onBuy={(target, isIndividual, selectedIds) => {
           setInspectingListing(null);
+          if (searchParams.get('listingId')) {
+            const next = new URLSearchParams(searchParams);
+            next.delete('listingId');
+            setSearchParams(next, { replace: true });
+          }
           handleBuy(target, isIndividual, selectedIds);
         }}
         bundleListings={

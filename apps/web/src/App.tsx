@@ -6,6 +6,7 @@ import { CheckCircle2, AlertCircle, AlertTriangle, Info, X } from 'lucide-react'
 import { Navbar } from './components/layout/Navbar';
 import { Footer } from './components/layout/Footer';
 import { QuickActionSpeedDial } from './components/layout/QuickActionSpeedDial';
+import { AiTicketCopilot } from './components/copilot/AiTicketCopilot';
 import { AppRoutes } from './routes/AppRoutes';
 import { useUIStore } from './stores/uiStore';
 import { useAuthStore } from './stores/authStore';
@@ -138,6 +139,7 @@ const AppContent: React.FC = () => {
       </main>
       {showPublicChrome && <Footer />}
       {showPublicChrome && <QuickActionSpeedDial />}
+      {showPublicChrome && <AiTicketCopilot />}
       <ToastContainer />
     </div>
   );
