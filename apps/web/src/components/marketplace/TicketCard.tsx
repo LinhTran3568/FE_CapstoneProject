@@ -7,6 +7,7 @@ import { usePaymentCountdown } from '../../hooks/usePaymentCountdown';
 import { useAuthStore } from '../../stores/authStore';
 import { SeatAdjacencyBadge } from '../ui/SeatAdjacencyBadge';
 import { detectSeatAdjacency } from '../../utils/seatAdjacency';
+import { BundleTicketCard } from './BundleTicketCard';
 
 interface TicketCardProps {
   listing: MarketplaceListingDto;
@@ -157,84 +158,55 @@ export const TicketCard: React.FC<TicketCardProps> = ({
 
   const backdropUrl = getEventBackdrop(listing.eventName);
 
+  if (isBundle) {
+    return (
+      <BundleTicketCard
+        title={listing.eventName}
+        ticketTypeLabel={listing.tierName || 'VIP ZONE A'}
+        zoneLabel={
+          effectiveBundleListings.length > 1
+            ? effectiveBundleListings.map((b) => b.seatZone || b.tierName).filter(Boolean).join(' · ')
+            : (listing.seatZone || `${bundleCount} Adjacent Seats`)
+        }
+        dateLabel={formattedDate}
+        venue={listing.eventVenue}
+        organizer={listing.organizerName || 'Organizer'}
+        seller={listing.sellerFullName || 'Ticket Seller'}
+        count={bundleCount}
+        totalPrice={totalBundleResalePrice}
+        currency="VND"
+        ctaLabel={isTransacting ? 'RESERVED' : isSold ? 'SOLD' : isOwner ? 'YOUR LISTING' : 'VIEW & BUY'}
+        onView={() => {
+          if (!isTransacting && onViewDetails) {
+            onViewDetails(listing);
+          } else if (!isTransacting) {
+            onBuy(listing);
+          }
+        }}
+      />
+    );
+  }
+
   return (
     <div
       id={`ticket-card-${listing.listingId}`}
-      className={`group relative isolate w-full h-[195px] sm:h-[200px] select-none cursor-pointer transition-all duration-300 ease-out origin-bottom-left ${
-        isBundle
-          ? 'hover:-translate-y-2 hover:-rotate-[0.6deg]'
-          : 'hover:-translate-y-1.5'
-      }`}
+      className="group relative isolate w-full h-[195px] sm:h-[200px] select-none cursor-pointer transform-gpu transition-transform duration-200 ease-out hover:-translate-y-1.5 hover:z-20 will-change-transform"
       onClick={() => {
         if (!isTransacting && onViewDetails) {
           onViewDetails(listing);
         }
       }}
     >
-      {/* Layered Stacked Deck Visual Effect for Combo Bundles (Interactive Pull-Card & Subtle Tilt on Hover) */}
-      {isBundle && (
-        <>
-          {/* Deck Layer 2 (Mid Ticket): Khoét lỗ bán nguyệt ở 65% trên & dưới y hệt vé chính */}
-          <div
-            className="absolute inset-0 rounded-2xl bg-[#141824] border border-white/15 -z-10 opacity-75 pointer-events-none transition-all duration-300 ease-out origin-bottom-left -top-1 -right-1 group-hover:-top-2.5 group-hover:-right-4 group-hover:rotate-[1.4deg] group-hover:opacity-100 shadow-[0_8px_20px_rgba(0,0,0,0.6)] group-hover:border-[#FF5A36]/50 overflow-hidden"
-            style={{
-              WebkitMaskImage:
-                'radial-gradient(circle 14px at 65% 0px, transparent 13.5px, black 14px), radial-gradient(circle 14px at 65% 100%, transparent 13.5px, black 14px)',
-              WebkitMaskComposite: 'destination-in',
-              maskImage:
-                'radial-gradient(circle 14px at 65% 0px, transparent 13.5px, black 14px), radial-gradient(circle 14px at 65% 100%, transparent 13.5px, black 14px)',
-              maskComposite: 'intersect',
-            }}
-            aria-hidden="true"
-          >
-            {/* Đường nét đứt xé vé ngăn cách 65% */}
-            <div className="absolute left-[65%] top-0 bottom-0 border-r border-dashed border-white/10 pointer-events-none" />
-
-            {/* Stub simulation for ticket #2 */}
-            <div className="absolute right-0 top-0 bottom-0 w-[35%] bg-slate-300/25 border-l border-white/10 flex items-center justify-center">
-              <span className="font-mono text-[9px] font-bold text-slate-400/80 uppercase tracking-widest rotate-90 select-none">
-                TICKET #2
-              </span>
-            </div>
-          </div>
-
-          {/* Deck Layer 3 (Back Ticket - if bundle >= 3) */}
-          {bundleCount >= 3 && (
-            <div
-              className="absolute inset-0 rounded-2xl bg-[#0d1017] border border-white/10 -z-20 opacity-45 pointer-events-none transition-all duration-300 ease-out origin-bottom-left -top-2 -right-2 group-hover:-top-4.5 group-hover:-right-7.5 group-hover:rotate-[2.6deg] group-hover:opacity-85 shadow-[0_12px_28px_rgba(0,0,0,0.7)] group-hover:border-[#FF5A36]/40 overflow-hidden"
-              style={{
-                WebkitMaskImage:
-                  'radial-gradient(circle 14px at 65% 0px, transparent 13.5px, black 14px), radial-gradient(circle 14px at 65% 100%, transparent 13.5px, black 14px)',
-                WebkitMaskComposite: 'destination-in',
-                maskImage:
-                  'radial-gradient(circle 14px at 65% 0px, transparent 13.5px, black 14px), radial-gradient(circle 14px at 65% 100%, transparent 13.5px, black 14px)',
-                maskComposite: 'intersect',
-              }}
-              aria-hidden="true"
-            >
-              <div className="absolute left-[65%] top-0 bottom-0 border-r border-dashed border-white/10 pointer-events-none" />
-
-              {/* Stub simulation for ticket #3 */}
-              <div className="absolute right-0 top-0 bottom-0 w-[35%] bg-slate-400/15 border-l border-white/10 flex items-center justify-center">
-                <span className="font-mono text-[9px] font-bold text-slate-500/70 uppercase tracking-widest rotate-90 select-none">
-                  TICKET #3
-                </span>
-              </div>
-            </div>
-          )}
-        </>
-      )}
-
       {/* ================= MASKED TICKET CONTAINER (Cutout Notches via CSS Mask) ================= */}
       <div
-        className={`relative w-full h-full flex rounded-2xl overflow-hidden border transition-all duration-300 ease-out ${
+        className={`relative w-full h-full flex rounded-2xl overflow-hidden border transition-colors duration-150 ${
           isTransacting
-            ? 'border-amber-500/40 shadow-[0_8px_30px_rgba(245,158,11,0.15)]'
+            ? 'border-amber-500/40 shadow-md'
             : isSold
               ? 'border-zinc-700/50 opacity-75'
               : isBundle
-                ? 'border-white/20 group-hover:border-[#FF5A36] shadow-[0_8px_24px_rgba(0,0,0,0.7)] group-hover:shadow-[0_12px_36px_rgba(255,90,54,0.3)]'
-                : 'border-white/10 group-hover:border-[#FF5A36] shadow-[0_8px_24px_rgba(0,0,0,0.7)] group-hover:shadow-[0_12px_36px_rgba(255,90,54,0.25)]'
+                ? 'border-white/20 group-hover:border-[#FF5A36] shadow-md'
+                : 'border-white/10 group-hover:border-[#FF5A36] shadow-md'
         }`}
         style={{
           WebkitMaskImage:
@@ -310,54 +282,35 @@ export const TicketCard: React.FC<TicketCardProps> = ({
           <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_left,_var(--tw-gradient-stops))] from-amber-500/15 via-transparent to-transparent"></div>
         </div>
 
-        {/* Left Top Content: VIP Badge, Bundle Badge & Seat Badge (flex-wrap ensures no clipping) */}
-        <div className="relative z-10 flex flex-wrap items-center justify-between gap-1.5">
-          <div className="flex flex-wrap items-center gap-1.5 min-w-0">
+        {/* Left Top Content: VIP Badge, Bundle Badge (Clean, aligned) */}
+        <div className="relative z-10 flex items-center justify-between gap-1.5">
+          <div className="flex items-center gap-1.5 min-w-0">
             {/* Tier / Zone Badge */}
             <div
               className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full border shrink-0 ${zoneStyle.badge}`}
             >
-              <span className={`w-1.5 h-1.5 rounded-full animate-pulse ${zoneStyle.dot}`}></span>
-              <span className="text-[10px] sm:text-[11px] font-bold tracking-wider uppercase text-white truncate max-w-[110px]">
+              <span className={`w-1.5 h-1.5 rounded-full ${zoneStyle.dot}`}></span>
+              <span className="text-[10px] sm:text-[11px] font-bold tracking-wider uppercase text-white truncate max-w-[120px]">
                 {listing.tierName || 'VIP ZONE A'}
               </span>
             </div>
 
-            {/* FE-5.2.6: Bundle Combo Badge from DB */}
+            {/* Bundle Combo Badge */}
             {isBundle && (
               <div
                 id={`badge-bundle-${listing.listingId}`}
                 className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-[#1e0f0a] border border-[#FF5A36]/60 text-[#FF8A65] text-[10px] sm:text-[11px] font-extrabold tracking-wider uppercase shadow-[0_0_12px_rgba(255,90,54,0.2)] shrink-0"
-                title={`Combo package of ${bundleCount} ${bundleCount > 1 ? 'tickets' : 'ticket'}`}
+                title={`Combo package of ${bundleCount} tickets`}
               >
                 <Layers className="w-3 h-3 text-[#FF5A36] shrink-0" />
                 <span>COMBO · {bundleCount} {bundleCount > 1 ? 'TICKETS' : 'TICKET'}</span>
               </div>
             )}
-
-            {/* Seat Adjacency / Position Badge */}
-            {(listing.seatZone || listing.tierName) && (
-              (() => {
-                const adj = detectSeatAdjacency(listing.seatZone || listing.tierName);
-                if (adj.status === 'ADJACENT' || adj.status === 'DIFFERENT_LOCATIONS' || (adj.status === 'SINGLE_SEAT' && (adj.commonRow || adj.seatNumbers.length > 0))) {
-                  return (
-                    <SeatAdjacencyBadge
-                      result={adj}
-                      variant="glass"
-                      size="xs"
-                      showSubtext={false}
-                      className="inline-flex shrink-0 shadow-sm"
-                    />
-                  );
-                }
-                return null;
-              })()
-            )}
           </div>
 
           {isTransacting && (
             <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-amber-400/50 bg-black/75 text-white text-[10px] sm:text-[11px] font-bold tracking-wider uppercase backdrop-blur-md shadow-sm shrink-0">
-              <Lock className="w-3.5 h-3.5 text-amber-300 animate-pulse" />
+              <Lock className="w-3.5 h-3.5 text-amber-300" />
               <span>Reserved</span>
             </div>
           )}
@@ -370,78 +323,63 @@ export const TicketCard: React.FC<TicketCardProps> = ({
         </div>
 
         {/* Left Middle & Bottom Content */}
-        <div className="relative z-10 space-y-2">
-          {/* Event Heading - instant smooth color transition on card hover */}
-          <h2 className={`text-[17px] sm:text-[19px] font-extrabold tracking-tight leading-snug drop-shadow-sm transition-colors duration-200 ease-out line-clamp-2 ${isSold ? 'text-zinc-400' : 'text-white group-hover:text-[#FF5A36]'
-            }`}>
+        <div className="relative z-10 space-y-1.5">
+          {/* Event Heading */}
+          <h2 className={`text-[16px] sm:text-[18px] font-extrabold tracking-tight leading-snug drop-shadow-sm transition-colors duration-200 ease-out line-clamp-1 ${
+            isSold ? 'text-zinc-400' : 'text-white group-hover:text-[#FF5A36]'
+          }`}>
             {listing.eventName}
           </h2>
 
-          {/* Metadata with subtle icons */}
-          <div className="flex flex-wrap items-center gap-x-3.5 gap-y-1 text-[11px] sm:text-xs text-zinc-300">
-            {/* Seat Position from DB — Clean presentation for combos and single tickets */}
+          {/* Row 1: Seat Info */}
+          <div className="flex items-center gap-1.5 text-[11px] sm:text-xs text-zinc-300 min-w-0">
             {isBundle ? (
-              <div className="flex items-center gap-1.5 flex-wrap my-0.5" title="Click to view details of each seat">
-                <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-[#FF5A36]/15 border border-[#FF5A36]/35 text-[#FF8A65] text-[10px] font-bold">
-                  <Ticket className="w-3 h-3 text-[#FF5A36]" />
-                  <span>{bundleCount} Seats:</span>
-                </div>
-                {effectiveBundleListings.length > 1 ? (
-                  effectiveBundleListings.slice(0, 3).map((item, idx) => (
-                    <span
-                      key={item.listingId || idx}
-                      className="px-1.5 py-0.5 rounded bg-white/10 border border-white/10 text-white font-mono text-[10px] font-semibold truncate max-w-[140px]"
-                    >
-                      {item.seatZone || item.tierName || `Seat #${idx + 1}`}
-                    </span>
-                  ))
-                ) : (
-                  <span className="px-1.5 py-0.5 rounded bg-white/10 border border-white/10 text-white font-mono text-[10px] font-semibold truncate max-w-[220px]">
-                    {listing.seatZone || listing.tierName || `${bundleCount} Tickets`}
-                  </span>
-                )}
-                {effectiveBundleListings.length > 3 && (
-                  <span className="text-[10px] text-zinc-400 font-mono">+{effectiveBundleListings.length - 3}</span>
-                )}
-              </div>
-            ) : listing.seatZone ? (
-              <div className="flex items-center gap-1.5 shrink-0" title={`Seat zone: ${listing.seatZone}`}>
-                <Ticket className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-                <span className="font-semibold text-amber-200">
-                  {listing.seatZone}
+              <>
+                <Ticket className="w-3.5 h-3.5 text-[#FF5A36] shrink-0" />
+                <span className="font-semibold text-[#FF8A65] shrink-0">{bundleCount} Tickets:</span>
+                <span className="font-medium text-zinc-200 truncate">
+                  {effectiveBundleListings.length > 1
+                    ? effectiveBundleListings.map(b => b.seatZone || b.tierName).filter(Boolean).join(' · ')
+                    : (listing.seatZone || `${bundleCount} Adjacent Seats`)}
                 </span>
-              </div>
-            ) : null}
+              </>
+            ) : (
+              <>
+                <Ticket className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                <span className="font-semibold text-amber-200 truncate">
+                  {listing.seatZone || 'General Admission'}
+                </span>
+              </>
+            )}
+          </div>
 
-            {/* Date & Time */}
+          {/* Row 2: Date & Venue */}
+          <div className="flex items-center gap-3 text-[11px] sm:text-xs text-zinc-300 min-w-0">
             <div className="flex items-center gap-1.5 shrink-0">
               <Calendar className="w-3.5 h-3.5 text-zinc-400 shrink-0" />
-              <span className="font-medium text-zinc-300">{formattedDate}</span>
+              <span className="font-medium">{formattedDate}</span>
             </div>
-
-            {/* Venue Location */}
             <div className="flex items-center gap-1.5 min-w-0">
               <MapPin className="w-3.5 h-3.5 text-zinc-400 shrink-0" />
-              <span className="font-medium text-zinc-300 truncate max-w-[140px] sm:max-w-[180px]">
+              <span className="font-medium truncate max-w-[130px] sm:max-w-[180px]">
                 {listing.eventVenue}
               </span>
             </div>
+          </div>
 
-            {/* Organizer */}
+          {/* Row 3: Organizer & Seller */}
+          <div className="flex items-center gap-3 text-[10px] sm:text-[11px] text-zinc-400 min-w-0 pt-0.5 border-t border-white/5">
             {listing.organizerName && (
-              <div className="hidden sm:flex items-center gap-1.5 shrink-0">
-                <span className="font-medium text-zinc-400">Organizer:</span>
-                <span className="font-medium text-white">{listing.organizerName}</span>
+              <div className="hidden sm:flex items-center gap-1 truncate max-w-[130px]">
+                <span>Organizer:</span>
+                <span className="text-white font-medium truncate">{listing.organizerName}</span>
               </div>
             )}
-
-            {/* Seller */}
             {listing.sellerFullName && (
-              <div className="flex items-center gap-1.5 shrink-0">
-                <CheckCircle2 className="w-3.5 h-3.5 text-zinc-400 shrink-0" />
-                <span className="font-medium text-zinc-400">
-                  Seller: <span className="text-white font-medium">{listing.sellerFullName}</span>
-                </span>
+              <div className="flex items-center gap-1 truncate max-w-[160px]">
+                <CheckCircle2 className="w-3 h-3 text-emerald-400 shrink-0" />
+                <span>Sold by:</span>
+                <span className="text-white font-medium truncate">{listing.sellerFullName}</span>
               </div>
             )}
           </div>
@@ -525,7 +463,7 @@ export const TicketCard: React.FC<TicketCardProps> = ({
           {/* Combo per-ticket price */}
           {isBundle && (
             <div className="text-[10px] font-mono text-slate-600 font-semibold mt-0.5">
-              ~{formattedPerTicketPrice} ₫/ticket
+              ~{formattedPerTicketPrice} VND / ticket
             </div>
           )}
         </div>

@@ -57,6 +57,18 @@ export const resaleListingsApi = {
   },
 
   /**
+   * Public or preview resale listing details by ID.
+   * GET /resale-listings/{listingId}[?token=...]
+   */
+  getListingById: async (listingId: string, token?: string): Promise<ResaleListingDetailDto> => {
+    const query = token ? `?token=${encodeURIComponent(token)}` : '';
+    return httpClient<ResaleListingDetailDto>(
+      `/resale-listings/${encodeURIComponent(listingId)}${query}`,
+      { method: 'GET' }
+    );
+  },
+
+  /**
    * Listings published by the signed-in seller, newest first.
    * GET /resale-listings/my-listings[?status=Verified]  (JWT required)
    */

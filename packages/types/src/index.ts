@@ -689,5 +689,43 @@ export interface SeatAdjacencyResult {
   liquidityNote: string;
 }
 
+/**
+ * Copilot AI Assistant Types (US-13.4 / SCRUM-384 / SCRUM-388)
+ */
+export interface CopilotChatMessage {
+  role: 'user' | 'assistant' | 'system';
+  content: string;
+}
+
+export interface CopilotChatRequest {
+  message: string;
+  conversationHistory?: CopilotChatMessage[];
+  history?: CopilotChatMessage[];
+  stream?: boolean;
+}
+
+export interface CopilotTicketItemDto {
+  listingId: string;
+  eventId: string;
+  eventName: string;
+  tierName: string;
+  seatZone?: string | null;
+  resalePrice: number;
+  originalPrice: number;
+  discountPercentage: number;
+  eventStartAt: string;
+  venue?: string | null;
+}
+
+export interface CopilotChatResponse {
+  reply: string;
+  suggestedTickets?: CopilotTicketItemDto[];
+  hasViolation?: boolean;
+  violationReason?: string | null;
+  actionTaken?: string | null;
+  isFallback?: boolean;
+}
+
+
 
 

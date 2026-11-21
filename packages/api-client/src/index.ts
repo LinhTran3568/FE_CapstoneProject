@@ -11,3 +11,4 @@ export * from './services/disputes.api';
 export * from './services/admin.api';
 export * from './services/organizerStore.api';
 export * from './services/orders.api';
+export * from './services/copilot.api';
