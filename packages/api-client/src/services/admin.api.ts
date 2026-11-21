@@ -275,7 +275,14 @@ export interface AdminTransactionDto {
   disputeStatus: AdminDisputeStatus | null;
 }
 
+/**
+ * Ô tổng trang Giao dịch, tính trên đúng các dòng khớp bộ lọc (SCRUM-394).
+ * Tên field giữ như cũ, nghĩa theo SCRUM-390: `totalEscrowLockedAmount` là Held in escrow,
+ * `totalPayoutCompletedAmount` là tổng lệnh chuyển tiền thành công, `totalDisputedCount` chỉ đếm đơn đang khiếu nại.
+ */
 export interface AdminTransactionsSummaryDto {
+  /** Inflow. Thiếu khi BE chưa lên bản SCRUM-390. */
+  totalInflowAmount?: number;
   totalEscrowLockedAmount: number;
   totalLockedCount: number;
   totalPayoutCompletedAmount: number;
@@ -365,6 +372,18 @@ export interface PlatformRevenueStatsDto {
   totalGmv: number;
   pendingFeesInEscrow: number;
   totalRefundedAmount: number;
+  /** Inflow, Payout, Held in escrow (SCRUM-392/393). Thiếu khi BE chưa lên bản SCRUM-390. */
+  totalInflow?: number;
+  totalPayout?: number;
+  totalHeldInEscrow?: number;
+}
+
+/** Doanh thu sàn một ngày theo giờ Việt Nam. BE chỉ trả ngày có doanh thu. */
+export interface DailyRevenueDto {
+  /** `yyyy-MM-dd` */
+  date: string;
+  netRevenue: number;
+  gmv: number;
 }
 
 export interface PlatformUserAnalyticsDto {
@@ -401,6 +420,8 @@ export interface AdminPlatformAnalyticsDto {
   users: PlatformUserAnalyticsDto;
   inventory: TicketInventoryAnalyticsDto;
   eventTransactions: EventTransactionAnalyticsDto[];
+  /** Thiếu khi BE chưa lên bản SCRUM-390. */
+  dailyRevenue?: DailyRevenueDto[];
 }
 
 export interface AdminUserDto {

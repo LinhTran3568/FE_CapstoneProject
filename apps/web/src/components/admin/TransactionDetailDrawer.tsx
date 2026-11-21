@@ -54,7 +54,7 @@ export const TransactionDetailDrawer: React.FC<TransactionDetailDrawerProps> = (
     >
       <div className="flex flex-wrap items-center gap-1.5">
         <Pill tone={escrowTone(tx.status)}>{labelOf(ESCROW_STATUS_LABEL, tx.status)}</Pill>
-        {tx.inSettlementBuffer && <Pill tone="amber">In hold window</Pill>}
+        {tx.inSettlementBuffer && <Pill tone="amber">Awaiting auto payout</Pill>}
         {tx.bundleId && <Pill tone="slate">COMBO</Pill>}
       </div>
 

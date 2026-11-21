@@ -131,7 +131,7 @@ export const AdminListingsPage: React.FC = () => {
         refreshing={isFetching}
       />
 
-      {/* Số toàn sàn, không theo bộ lọc. */}
+      {/* Tính trên đúng các tin khớp bộ lọc, đủ mọi trang. */}
       <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3.5">
         <StatCard label="Listings" value={summary ? summary.totalListings : '—'} />
         <StatCard label="Singles" value={summary ? summary.totalSingleTickets : '—'} />
