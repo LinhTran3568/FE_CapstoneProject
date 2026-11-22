@@ -86,15 +86,17 @@ export const AdminTransactionsPage: React.FC = () => {
         </Link>
       </PageHeader>
 
-      {/* Tính trên đúng các dòng khớp bộ lọc, đủ mọi trang (SCRUM-394). */}
-      <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-3.5">
+      {/* Tính trên đúng các dòng khớp bộ lọc, đủ mọi trang (SCRUM-394). Xếp cùng thứ tự với Dashboard.
+          Net revenue lấy số BE tính từ phí, không lấy các ô khác trừ nhau. */}
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-3.5">
         <StatCard label="Inflow" value={summary ? formatMoney(summary.totalInflowAmount) : '—'} />
+        <StatCard label="Net revenue" value={summary ? formatMoney(summary.totalNetRevenue) : '—'} />
+        <StatCard label="Paid out" value={summary ? formatMoney(summary.totalPayoutCompletedAmount) : '—'} />
         <StatCard
           label="Held in escrow"
           value={summary ? formatMoney(summary.totalEscrowLockedAmount) : '—'}
           hint={summary ? `${summary.totalLockedCount} transactions on hold` : undefined}
         />
-        <StatCard label="Paid out" value={summary ? formatMoney(summary.totalPayoutCompletedAmount) : '—'} />
         <StatCard label="Refunded" value={summary ? formatMoney(summary.totalRefundedAmount) : '—'} />
         <StatCard label="In dispute" value={summary ? summary.totalDisputedCount : '—'} />
       </div>
