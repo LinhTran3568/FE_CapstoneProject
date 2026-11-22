@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { QRCodeCanvas } from 'qrcode.react';
 import { Link } from 'react-router-dom';
 import { StorefrontEvent } from '../../data/storefrontCatalog';
@@ -36,7 +36,7 @@ interface OrderResultData {
   createdAt: string;
 }
 
-import { organizerStoreApi, mockTicketsApi, SessionTokenResponse } from '@ticketshield/api-client';
+import { organizerStoreApi, SessionTokenResponse } from '@ticketshield/api-client';
 import { antiBotSdk } from '../../lib/anti-bot-sdk';
 import { ChallengeModal } from './ChallengeModal';
 
@@ -69,21 +69,17 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [orderResult, setOrderResult] = useState<OrderResultData | null>(null);
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
-  const [sessionToken, setSessionToken] = useState<string | null>(null);
+  const usedSessions = useRef(new Set<string>());
 
   // Challenge State (Google reCAPTCHA v2 / Cloudflare Turnstile / Sequential)
-  const [isChallengeOpen, setIsChallengeOpen] = useState(false);
+  const [challengeOpen, setChallengeOpen] = useState(false);
   const [preferredChallengeProvider, setPreferredChallengeProvider] = useState<'turnstile' | 'recaptcha' | 'sequential'>('recaptcha');
 
-  // Pre-fetch Anti-Bot session token when modal opens
   useEffect(() => {
-    if (isOpen && selectedItems.length > 0) {
-      organizerStoreApi
-        .createSession(selectedItems[0].tier.id)
-        .then((res) => setSessionToken(res.sessionToken))
-        .catch((err) => console.warn('Could not initialize Anti-Bot session:', err));
+    if (!isOpen) {
+      setChallengeOpen(false);
     }
-  }, [isOpen, selectedItems]);
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
@@ -130,101 +126,89 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
     const finalBuyerName = buyerName.trim();
     const finalBuyerPhone = buyerPhone.trim();
 
-    let backendOrderId: string | null = null;
-    const issuedTickets: MockTicketDto[] = [];
-
-    // 1. Primary ticket purchase: Checkout call with buyer details, anti-bot telemetry, and session token
-    for (const item of selectedItems) {
-      try {
-        let effectiveToken = sessionTokens?.[item.tier.id]?.sessionToken;
-        let effectiveNonce = sessionTokens?.[item.tier.id]?.nonce;
-        if (!effectiveToken) {
-          try {
-            const sessionRes = await organizerStoreApi.createSession(item.tier.id);
-            effectiveToken = sessionRes.sessionToken;
-            effectiveNonce = sessionRes.nonce;
-            antiBotSdk.setServerClock(sessionRes.issuedAtUtc);
-          } catch (e) {
-            console.warn(`Could not fetch session token for tier ${item.tier.id}:`, e);
-          }
+    try {
+      if (selectedItems.length === 0) throw new Error('Please select a ticket tier.');
+      const lines = await Promise.all(selectedItems.map(async item => {
+        let session = sessionTokens[item.tier.id];
+        if (!session || usedSessions.current.has(session.sessionToken) || challengeToken) {
+          session = await organizerStoreApi.createSession(item.tier.id);
+          antiBotSdk.setServerClock(session.issuedAtUtc);
         }
+        return { tierId: item.tier.id, quantity: item.quantity, session };
+      }));
+      const [first, ...rest] = lines;
+      const telemetry = await antiBotSdk.collect({ nonce: first.session.nonce });
+      lines.forEach(line => usedSessions.current.add(line.session.sessionToken));
+      const checkoutRes = await organizerStoreApi.checkout({
+        tierId: first.tierId,
+        quantity: first.quantity,
+        additionalItems: rest.length ? rest.map(line => ({ tierId: line.tierId, quantity: line.quantity, sessionToken: line.session.sessionToken })) : undefined,
+        buyerEmail: finalBuyerEmail,
+        buyerName: finalBuyerName,
+        buyerPhone: finalBuyerPhone,
+        sessionToken: first.session.sessionToken,
+        telemetry,
+        challengeToken,
+        challengeProvider,
+      });
 
-        // US-8.1 & US-13.2.3: each tier request has its own one-time server nonce and telemetry
-        const telemetry = await antiBotSdk.collect({ nonce: effectiveNonce });
+      const issuedTickets: MockTicketDto[] = [];
 
-        const checkoutRes = await organizerStoreApi.checkout({
-          tierId: item.tier.id,
-          quantity: item.quantity,
-          buyerEmail: finalBuyerEmail,
-          buyerName: finalBuyerName,
-          buyerPhone: finalBuyerPhone,
-          sessionToken: effectiveToken,
-          telemetry,
-          challengeToken,
-          challengeProvider,
-        });
-
-        if (!backendOrderId && checkoutRes.orderId) {
-          backendOrderId = checkoutRes.orderId;
+      // Receive tickets issued directly by Backend inside transaction
+      if (checkoutRes.tickets && checkoutRes.tickets.length > 0) {
+        for (const t of checkoutRes.tickets) {
+          issuedTickets.push({
+            id: t.ticketCode,
+            ticketCode: t.ticketCode,
+            eventName: event.title,
+            seatZone: t.seatZone || selectedItems[0].tier.tierName,
+            originalPrice: t.originalPrice ?? selectedItems[0].tier.price,
+            ownerEmail: t.ownerEmail || finalBuyerEmail,
+            ownerName: t.ownerName || finalBuyerName,
+            ownerPhone: t.ownerPhone || finalBuyerPhone,
+            status: t.status || 'VALID',
+            createdAt: timestamp,
+            updatedAt: timestamp,
+          });
         }
+      }
+      if (!checkoutRes.orderId || !issuedTickets.length) {
+        throw new Error('Could not retrieve official tickets from the organizer system.');
+      }
+      setOrderResult({
+        orderId: checkoutRes.orderId,
+        eventName: event.title,
+        buyerName: finalBuyerName,
+        buyerEmail: finalBuyerEmail,
+        buyerPhone: finalBuyerPhone,
+        totalAmount: checkoutRes.totalAmount ?? grandTotal,
+        tickets: issuedTickets,
+        createdAt: timestamp,
+      });
+    } catch (err: unknown) {
 
-        // Receive tickets issued directly by Backend inside transaction
-        if (checkoutRes.tickets && checkoutRes.tickets.length > 0) {
-          for (const t of checkoutRes.tickets) {
-            issuedTickets.push({
-              id: t.ticketCode,
-              ticketCode: t.ticketCode,
-              eventName: event.title,
-              seatZone: t.seatZone || item.tier.tierName,
-              originalPrice: item.tier.price,
-              ownerEmail: t.ownerEmail || finalBuyerEmail,
-              ownerName: t.ownerName || finalBuyerName,
-              ownerPhone: t.ownerPhone || finalBuyerPhone,
-              status: t.status || 'VALID',
-              createdAt: timestamp,
-              updatedAt: timestamp,
-            });
-          }
-        }
-      } catch (err: unknown) {
-        setIsSubmitting(false);
-
-        // Tier 2: Challenge Required -> Open Google reCAPTCHA / Cloudflare Turnstile modal
-        if (
-          err &&
-          typeof err === 'object' &&
-          ('challengeRequired' in err || (err as Error).message === 'CHALLENGE_REQUIRED')
-        ) {
-          const prov = (err as { preferredProvider?: 'turnstile' | 'recaptcha' | 'sequential' }).preferredProvider || 'recaptcha';
-          setPreferredChallengeProvider(prov);
-          setIsChallengeOpen(true);
+      // Tier 2: Challenge Required -> Open Google reCAPTCHA / Cloudflare Turnstile modal
+      if (
+        err &&
+        typeof err === 'object' &&
+        ('challengeRequired' in err || (err as Error).message === 'CHALLENGE_REQUIRED')
+      ) {
+        if (challengeToken) {
+          setApiError('The organizer requested verification again. Please retry checkout.');
           return;
         }
-
-        const errMsg = err instanceof Error ? err.message : `System error during checkout for ${item.tier.tierName}`;
-        setApiError(errMsg);
+        const prov = (err as { preferredProvider?: 'turnstile' | 'recaptcha' | 'sequential' }).preferredProvider || 'recaptcha';
+        setPreferredChallengeProvider(prov);
+        setChallengeOpen(true);
         return;
       }
-    }
 
-    if (!backendOrderId || issuedTickets.length === 0) {
-      setIsSubmitting(false);
-      setApiError('Could not retrieve official tickets from the organizer system. Please try again.');
+      const errMsg = err instanceof Error ? err.message : 'System error during checkout.';
+      setApiError(errMsg);
       return;
+    } finally {
+      setIsSubmitting(false);
     }
-
-    // 2. Display confirmation screen with official tickets received from Backend
-    setIsSubmitting(false);
-    setOrderResult({
-      orderId: backendOrderId,
-      eventName: event.title,
-      buyerName: finalBuyerName,
-      buyerEmail: finalBuyerEmail,
-      buyerPhone: finalBuyerPhone,
-      totalAmount: grandTotal,
-      tickets: issuedTickets,
-      createdAt: timestamp,
-    });
   };
 
   const handleSubmitCheckout = async (e: React.FormEvent) => {
@@ -234,7 +218,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
   };
 
   const handleChallengeSuccess = async (token: string, provider: 'turnstile' | 'recaptcha' | 'sequential') => {
-    setIsChallengeOpen(false);
+    setChallengeOpen(false);
     await performCheckout(token, provider);
   };
 
@@ -262,11 +246,12 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
           <div className="flex items-center gap-2">
             <span className="w-2.5 h-2.5 rounded-full bg-[#ff5945] animate-pulse" />
             <h3 className="font-display font-bold text-base text-white">
-              {orderResult ? 'Ticket Issuance Confirmed' : 'Recipient Information (Required)'}
+              {orderResult ? 'Ticket Issuance Confirmed' : isSubmitting ? 'Processing checkout' : 'Recipient Information (Required)'}
             </h3>
           </div>
           <button
             type="button"
+            disabled={isSubmitting}
             onClick={orderResult ? handleReset : onClose}
             className="w-8 h-8 rounded-lg bg-[#282a32] hover:bg-[#33343d] text-[#aa8984] hover:text-white flex items-center justify-center transition-colors"
           >
@@ -276,7 +261,9 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
 
         {/* Modal Body */}
         <div className="p-6 overflow-y-auto space-y-5">
-          {!orderResult ? (
+          {isSubmitting ? (
+            <p role="status" className="py-8 text-center text-sm text-slate-300">Waiting for the organizer to confirm your tickets…</p>
+          ) : !orderResult ? (
             /* =================== STEP 1: BUYER INFORMATION FORM =================== */
             <form onSubmit={handleSubmitCheckout} className="space-y-5">
               {/* Selected tickets summary card */}
@@ -578,12 +565,12 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
       </div>
 
       {/* Tier 2 Anti-Bot Verification Challenge Modal (Cloudflare Turnstile & Google reCAPTCHA) */}
-      <ChallengeModal
-        isOpen={isChallengeOpen}
-        onClose={() => setIsChallengeOpen(false)}
+      {challengeOpen && <ChallengeModal
+        isOpen
+        onClose={() => setChallengeOpen(false)}
         onSuccess={handleChallengeSuccess}
         initialProvider={preferredChallengeProvider}
-      />
+      />}
     </div>
   );
 };

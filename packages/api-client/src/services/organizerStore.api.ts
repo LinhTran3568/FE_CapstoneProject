@@ -178,6 +178,7 @@ export interface SessionTokenResponse {
 }
 
 export interface OrganizerCheckoutRequest {
+  additionalItems?: { tierId: string; quantity: number; sessionToken: string }[];
   tierId: string;
   quantity: number;
   buyerEmail: string;
@@ -202,6 +203,7 @@ export interface OrganizerCheckoutResponse {
   tickets: Array<{
     ticketCode: string;
     seatZone?: string;
+    originalPrice?: number;
     ownerEmail: string;
     ownerName: string;
     ownerPhone: string;
@@ -348,14 +350,20 @@ export const organizerStoreApi = {
   },
 
   checkout: async (request: OrganizerCheckoutRequest): Promise<OrganizerCheckoutResponse> => {
-    const res = await fetchWithOrganizerFallback(`/orders/checkout`, {
+    const path = request.additionalItems?.length ? "/orders/checkout/cart" : "/orders/checkout";
+    const sendCheckout = request.additionalItems?.length
+      ? (route: string, init: RequestInit) => fetch(getOrganizerApiBase() + route, init)
+      : fetchWithOrganizerFallback;
+    const res = await sendCheckout(path, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
       body: JSON.stringify(request),
     });
 
     if (!res.ok) {
-      let errMsg = `Organizer checkout failed (HTTP ${res.status})`;
+      let errMsg = res.status === 404 && request.additionalItems?.length
+        ? "The organizer service needs an update to check out multiple ticket tiers together."
+        : `Organizer checkout failed (HTTP ${res.status})`;
       let errorJson: Record<string, any> | null = null;
       try {
         errorJson = await res.json();
@@ -368,12 +376,12 @@ export const organizerStoreApi = {
           const challengeErr = new Error('CHALLENGE_REQUIRED');
           Object.assign(challengeErr, {
             challengeRequired: true,
-            preferredProvider: errorJson.preferredProvider || 'turnstile',
+            preferredProvider: errorJson.preferredProvider || errorJson.challengeMode || 'recaptcha',
             riskScore: errorJson.riskScore,
           });
           throw challengeErr;
         } else if (res.status === 429) {
-          errMsg = 'Too many requests detected. Please try again shortly.';
+          errMsg = errorJson.message || 'Too many requests detected. Please try again shortly.';
         } else if (errorJson.message) {
           if (res.status === 409) {
             errMsg = `Ticket tier is sold out or has insufficient inventory (Remaining: ${errorJson.available ?? 0})`;

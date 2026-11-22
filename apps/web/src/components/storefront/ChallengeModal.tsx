@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { X, RefreshCw, CheckCircle2, ShieldCheck } from 'lucide-react';
+import { X, ShieldCheck } from 'lucide-react';
 
 export interface ChallengeModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess: (token: string, provider: 'turnstile' | 'recaptcha' | 'sequential') => void;
+  tierName?: string;
   initialProvider?: 'turnstile' | 'recaptcha' | 'sequential';
 }
 
@@ -47,6 +48,7 @@ export const ChallengeModal: React.FC<ChallengeModalProps> = ({
   isOpen,
   onClose,
   onSuccess,
+  tierName,
   initialProvider = 'recaptcha',
 }) => {
   // If sequential, step 1 is turnstile, step 2 is recaptcha
@@ -56,188 +58,86 @@ export const ChallengeModal: React.FC<ChallengeModalProps> = ({
     isSequential ? 'turnstile' : initialProvider === 'turnstile' ? 'turnstile' : 'recaptcha'
   );
 
-  const [isVerifying, setIsVerifying] = useState<boolean>(false);
-  const [isStep1Completed, setIsStep1Completed] = useState<boolean>(false);
   const [widgetError, setWidgetError] = useState<string | null>(null);
-
   const turnstileContainerRef = useRef<HTMLDivElement>(null);
   const recaptchaContainerRef = useRef<HTMLDivElement>(null);
-  const turnstileWidgetIdRef = useRef<string | null>(null);
-  const recaptchaWidgetIdRef = useRef<number | null>(null);
+  const successRef = useRef(onSuccess);
+  useEffect(() => { successRef.current = onSuccess; }, [onSuccess]);
 
-  // Reset widget refs when modal closes or opens
   useEffect(() => {
-    if (isOpen) {
-      recaptchaWidgetIdRef.current = null;
-      turnstileWidgetIdRef.current = null;
-      if (initialProvider === 'sequential') {
-        setCurrentStep(1);
-        setActiveProvider('turnstile');
-        setIsStep1Completed(false);
+    if (!isOpen) return;
+    const cloudflare = activeProvider === 'turnstile';
+    const container = cloudflare ? turnstileContainerRef.current : recaptchaContainerRef.current;
+    if (!container) return;
+    const mount = document.createElement('div');
+    container.appendChild(mount);
+    let disposed = false;
+    let answered = false;
+    let turnstileId: string | undefined;
+    let googleId: number | undefined;
+    setWidgetError(null);
+    const onError = () => {
+      if (!disposed) setWidgetError('Verification could not load. Close this dialog and try again.');
+    };
+    const answer = (token: string) => {
+      if (disposed || answered) return;
+      answered = true;
+      if (isSequential && cloudflare) {
+        setCurrentStep(2);
+        setActiveProvider('recaptcha');
       } else {
-        setActiveProvider(initialProvider === 'turnstile' ? 'turnstile' : 'recaptcha');
+        successRef.current(token, isSequential ? 'sequential' : activeProvider);
       }
-      setIsVerifying(false);
-      setWidgetError(null);
-    }
-  }, [isOpen, initialProvider]);
-
-  // Load Cloudflare Turnstile when activeProvider is 'turnstile'
-  useEffect(() => {
-    if (!isOpen || activeProvider !== 'turnstile') return;
-    setWidgetError(null);
-
-    const scriptId = 'cf-turnstile-script';
-    let script = document.getElementById(scriptId) as HTMLScriptElement | null;
-
-    const renderTurnstile = () => {
-      if (!turnstileContainerRef.current || !window.turnstile) return;
+    };
+    const render = () => {
+      if (disposed) return;
       try {
-        if (turnstileWidgetIdRef.current) {
-          try {
-            window.turnstile.remove(turnstileWidgetIdRef.current);
-          } catch {
-            // ignore
-          }
-          turnstileWidgetIdRef.current = null;
-        }
-        if (turnstileContainerRef.current) {
-          turnstileContainerRef.current.innerHTML = '';
-        }
-        turnstileWidgetIdRef.current = window.turnstile.render(turnstileContainerRef.current, {
-          sitekey: TURNSTILE_SITE_KEY,
-          theme: 'dark',
-          callback: (token: string) => {
-            setIsVerifying(true);
-            setTimeout(() => {
-              if (isSequential && currentStep === 1) {
-                // Advance to step 2 (Google reCAPTCHA visual puzzle)
-                setIsStep1Completed(true);
-                setCurrentStep(2);
-                setActiveProvider('recaptcha');
-                setIsVerifying(false);
-              } else {
-                onSuccess(token, 'turnstile');
-                setIsVerifying(false);
-              }
-            }, 600);
-          },
-          'error-callback': () => {
-            // Auto fallback to Google reCAPTCHA
-            setWidgetError('Automated security check timed out, switching to visual challenge...');
-            setTimeout(() => {
-              setActiveProvider('recaptcha');
-              setWidgetError(null);
-            }, 1000);
-          },
-        });
-      } catch {
-        setActiveProvider('recaptcha');
-      }
-    };
-
-    if (!script) {
-      script = document.createElement('script');
-      script.id = scriptId;
-      script.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit';
-      script.async = true;
-      script.defer = true;
-      script.onload = () => {
-        setTimeout(renderTurnstile, 200);
-      };
-      script.onerror = () => {
-        setActiveProvider('recaptcha');
-      };
-      document.head.appendChild(script);
-    } else if (window.turnstile) {
-      setTimeout(renderTurnstile, 100);
-    }
-
-    return () => {
-      if (turnstileWidgetIdRef.current && window.turnstile) {
-        try {
-          window.turnstile.remove(turnstileWidgetIdRef.current);
-        } catch {
-          // ignore
-        }
-        turnstileWidgetIdRef.current = null;
-      }
-    };
-  }, [isOpen, activeProvider, currentStep, isSequential, onSuccess]);
-
-  // Load Google reCAPTCHA v2 (with English language hl=en)
-  useEffect(() => {
-    if (!isOpen || activeProvider !== 'recaptcha') return;
-    setWidgetError(null);
-
-    const scriptId = 'google-recaptcha-script';
-    let script = document.getElementById(scriptId) as HTMLScriptElement | null;
-
-    const renderRecaptcha = () => {
-      if (!recaptchaContainerRef.current) return;
-      if (!window.grecaptcha || typeof window.grecaptcha.render !== 'function') {
-        setTimeout(renderRecaptcha, 150);
-        return;
-      }
-
-      window.grecaptcha.ready(() => {
-        if (!recaptchaContainerRef.current || !window.grecaptcha) return;
-        // If container already has rendered content, don't duplicate
-        if (recaptchaContainerRef.current.children.length > 0) return;
-
-        try {
-          recaptchaWidgetIdRef.current = window.grecaptcha.render(recaptchaContainerRef.current, {
-            sitekey: RECAPTCHA_SITE_KEY,
-            theme: 'light',
-            callback: (token: string) => {
-              setIsVerifying(true);
-              setTimeout(() => {
-                onSuccess(token, isSequential ? 'sequential' : 'recaptcha');
-                setIsVerifying(false);
-              }, 500);
-            },
-            'error-callback': () => {
-              setWidgetError('Unable to connect to reCAPTCHA service. Please use simulated bypass or retry.');
-            },
+        if (cloudflare && window.turnstile) {
+          turnstileId = window.turnstile.render(mount, {
+            sitekey: TURNSTILE_SITE_KEY, theme: 'dark', callback: answer, 'error-callback': onError,
           });
-        } catch (err) {
-          console.warn('reCAPTCHA render notice:', err);
-        }
-      });
+        } else if (!cloudflare && window.grecaptcha) {
+          window.grecaptcha.ready(() => {
+            if (disposed || !window.grecaptcha) return;
+            try {
+              googleId = window.grecaptcha.render(mount, {
+                sitekey: RECAPTCHA_SITE_KEY, theme: 'light', callback: answer, 'error-callback': onError,
+              });
+            } catch { onError(); }
+          });
+        } else { onError(); }
+      } catch { onError(); }
     };
-
-    if (!script) {
-      script = document.createElement('script');
-      script.id = scriptId;
-      script.src = 'https://www.google.com/recaptcha/api.js?render=explicit&hl=en';
-      script.async = true;
-      script.defer = true;
-      script.onload = () => {
-        setTimeout(renderRecaptcha, 250);
-      };
-      script.onerror = () => {
-        setWidgetError('Failed to load Google reCAPTCHA script.');
-      };
-      document.head.appendChild(script);
+    const id = cloudflare ? 'cf-turnstile-script' : 'google-recaptcha-script';
+    const existing = document.getElementById(id) as HTMLScriptElement | null;
+    const script = existing ?? document.createElement('script');
+    const loadError = () => { script.remove(); onError(); };
+    if (cloudflare ? window.turnstile : window.grecaptcha?.ready) {
+      render();
     } else {
-      setTimeout(renderRecaptcha, 150);
+      script.addEventListener('load', render);
+      script.addEventListener('error', loadError);
+      if (!existing) {
+        script.id = id;
+        script.async = true;
+        script.src = cloudflare
+          ? 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit'
+          : 'https://www.google.com/recaptcha/api.js?render=explicit&hl=en';
+        document.head.appendChild(script);
+      }
     }
-
     return () => {
-      recaptchaWidgetIdRef.current = null;
+      disposed = true;
+      script.removeEventListener('load', render);
+      script.removeEventListener('error', loadError);
+      try {
+        if (turnstileId !== undefined) window.turnstile?.remove(turnstileId);
+        if (googleId !== undefined) window.grecaptcha?.reset(googleId);
+      } finally { mount.remove(); }
     };
-  }, [isOpen, activeProvider, isSequential, onSuccess]);
+  }, [isOpen, activeProvider, isSequential]);
 
   if (!isOpen) return null;
-
-  const handleSimulatePass = () => {
-    setIsVerifying(true);
-    setTimeout(() => {
-      const dummyToken = `simulated_${activeProvider}_${Date.now()}`;
-      onSuccess(dummyToken, isSequential ? 'sequential' : activeProvider);
-      setIsVerifying(false);
-    }, 400);
-  };
 
   return (
     <div className="fixed inset-0 z-[60] overflow-y-auto bg-black/80 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200">
@@ -250,6 +150,7 @@ export const ChallengeModal: React.FC<ChallengeModalProps> = ({
             </div>
             <div>
               <h3 className="font-display font-bold text-base text-white">Security Verification</h3>
+              {tierName && <p className="text-xs text-slate-300">{tierName}</p>}
               {isSequential && (
                 <div className="text-[11px] font-mono text-cyan-400 mt-0.5">
                   Step {currentStep}/2: {currentStep === 1 ? 'Session Security Check' : 'Visual Puzzle Challenge'}
@@ -269,7 +170,7 @@ export const ChallengeModal: React.FC<ChallengeModalProps> = ({
         {/* Sequential Step Progress Bar (Only visible when sequential mode active) */}
         {isSequential && (
           <div className="flex items-center gap-2 px-1">
-            <div className={`h-1.5 flex-1 rounded-full transition-all ${isStep1Completed || currentStep === 1 ? 'bg-cyan-500' : 'bg-white/10'}`} />
+            <div className="h-1.5 flex-1 rounded-full bg-cyan-500" />
             <div className={`h-1.5 flex-1 rounded-full transition-all ${currentStep === 2 ? 'bg-cyan-500' : 'bg-white/10'}`} />
           </div>
         )}
@@ -291,26 +192,10 @@ export const ChallengeModal: React.FC<ChallengeModalProps> = ({
               {widgetError}
             </p>
           )}
-
-          {isVerifying && (
-            <div className="flex items-center gap-2 text-xs text-emerald-400 font-mono mt-3">
-              <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-              <span>Verifying challenge response...</span>
-            </div>
-          )}
         </div>
 
         {/* Footer Actions */}
-        <div className="pt-2 flex items-center justify-between border-t border-white/5">
-          <button
-            type="button"
-            onClick={handleSimulatePass}
-            disabled={isVerifying}
-            className="text-[11px] text-slate-500 hover:text-slate-300 transition-colors font-mono cursor-pointer"
-          >
-            Simulate Pass (Dev)
-          </button>
-
+        <div className="pt-2 flex items-center justify-end border-t border-white/5">
           <div className="flex items-center gap-2">
             <button
               type="button"
