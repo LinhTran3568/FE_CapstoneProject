@@ -7,6 +7,7 @@ export interface Step3Ticket {
   code: string;
   originalPrice: number;
   priceCeiling?: number;
+  organizerName?: string;
   seatZone?: string;
   tierName?: string;
   eventStartAt?: string;
@@ -91,18 +92,18 @@ const TicketCardItem: React.FC<TicketCardItemProps> = ({
   eventName,
   eventVenue,
   eventStartAt,
-  organizerName = 'VieON Entertainment',
+  organizerName = 'Organizer not provided',
 }) => {
   const resolvedEventName = ticket.eventName || eventName;
   const resolvedVenue = ticket.eventVenue || eventVenue;
-  const resolvedTier = ticket.tierName || 'GA STANDING';
+  const resolvedTier = ticket.tierName || 'Tier not provided';
   const zoneStyle = getZoneStyle(resolvedTier);
   const backdropUrl = getEventBackdrop(resolvedEventName);
   const formattedDate = ticket.eventStartAt
     ? formatEventDateTime(ticket.eventStartAt)
     : eventStartAt
       ? formatEventDateTime(eventStartAt)
-      : '05 Nov 2026, 02:11';
+      : 'Date not provided';
 
   return (
     <div className="group relative isolate w-full select-none transition-transform duration-200 ease-out hover:-translate-y-1">
@@ -179,7 +180,7 @@ const TicketCardItem: React.FC<TicketCardItemProps> = ({
               {/* Nền tảng phát hành */}
               <div className="flex items-center gap-1.5 shrink-0 text-zinc-400">
                 <span>Organizer:</span>
-                <span className="font-medium text-white">{organizerName}</span>
+                <span className="font-medium text-white">{ticket.organizerName || organizerName}</span>
               </div>
             </div>
           </div>
@@ -278,10 +279,10 @@ export const Step3ConfirmDetails: React.FC<Step3ConfirmDetailsProps> = ({
   onContinue,
   onCancel,
   isCancelling = false,
-  eventName = 'Official Concert Event',
-  eventVenue = 'National Stadium',
+  eventName = 'Event not provided',
+  eventVenue = 'Venue not provided',
   eventStartAt,
-  organizerName = 'VieON Entertainment',
+  organizerName = 'Organizer not provided',
 }) => {
   const [activeIndex, setActiveIndex] = useState(0);
   const isCombo = tickets.length > 1;

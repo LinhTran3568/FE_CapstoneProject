@@ -119,6 +119,9 @@ export const adminApi = {
   /**
    * Khóa vĩnh viễn tài khoản người dùng vi phạm (SCRUM-220 / FE-6.5.4)
    */
+  reactivateUser: (userId: string): Promise<AdminUserDto> =>
+    httpClient<AdminUserDto>(`/admin/users/${userId}/suspension`, { method: 'DELETE' }),
+
   suspendUser: async (userId: string): Promise<AdminUserDto> => {
     return await httpClient<AdminUserDto>(`/admin/users/${userId}/suspension`, {
       method: 'POST',

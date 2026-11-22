@@ -1242,7 +1242,7 @@ export const AdminOrganizersPage: React.FC = () => {
                   <div>
                     <label className="block font-semibold text-slate-700 mb-1">Network Gateway (Endpoint)</label>
                     <input
-                      type="text"
+                      type="url"
                       value={createForm.grpcEndpoint || ''}
                       onChange={(e) => setCreateForm({ ...createForm, grpcEndpoint: e.target.value })}
                       placeholder="https://gateway.organizer.example.com"
@@ -1252,7 +1252,7 @@ export const AdminOrganizersPage: React.FC = () => {
                   <div>
                     <label className="block font-semibold text-slate-700 mb-1">API Base URL</label>
                     <input
-                      type="text"
+                      type="url"
                       value={createForm.apiBaseUrl || ''}
                       onChange={(e) => setCreateForm({ ...createForm, apiBaseUrl: e.target.value })}
                       placeholder="https://api.organizer.example.com"
@@ -1344,7 +1344,7 @@ export const AdminOrganizersPage: React.FC = () => {
                 <div>
                   <label className="block font-semibold text-slate-700 mb-1">Network Gateway (Endpoint)</label>
                   <input
-                    type="text"
+                    type="url"
                     value={editForm.grpcEndpoint || ''}
                     onChange={(e) => setEditForm({ ...editForm, grpcEndpoint: e.target.value })}
                     className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-[#F45135] focus:bg-white font-mono text-[11px] text-slate-800"
@@ -1353,7 +1353,7 @@ export const AdminOrganizersPage: React.FC = () => {
                 <div>
                   <label className="block font-semibold text-slate-700 mb-1">API Base URL</label>
                   <input
-                    type="text"
+                    type="url"
                     value={editForm.apiBaseUrl || ''}
                     onChange={(e) => setEditForm({ ...editForm, apiBaseUrl: e.target.value })}
                     className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-[#F45135] focus:bg-white font-mono text-[11px] text-slate-800"

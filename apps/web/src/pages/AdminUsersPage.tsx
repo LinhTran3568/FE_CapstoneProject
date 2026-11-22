@@ -142,7 +142,7 @@ export const AdminUsersPage: React.FC = () => {
     setTimeout(() => setCopiedId(null), 2000);
   };
 
-  const handleSuspend = async (targetId: string, e: React.MouseEvent) => {
+  const handleSuspend = async (targetId: string, e: React.MouseEvent, reactivate = false) => {
     e.stopPropagation();
     if (targetId === currentAuthUser?.id) {
       showToast('Cannot suspend currently active user session!', 'error');
@@ -150,22 +150,19 @@ export const AdminUsersPage: React.FC = () => {
     }
 
     const confirmed = window.confirm(
-      'WARNING: Are you sure you want to permanently suspend this user account?\n\nThis action will set TrustScore to 0 and immediately revoke all active sessions.'
+      reactivate ? 'Reactivate this user account?' : 'WARNING: Are you sure you want to suspend this user account?\n\nThis action will set TrustScore to 0 and immediately revoke all active sessions.'
     );
     if (!confirmed) return;
 
     setActionLoadingId(targetId);
     try {
-      await adminApi.suspendUser(targetId);
-      setUsers((prev) =>
-        prev.map((u) => (u.id === targetId ? { ...u, isActive: false, trustScore: 0 } : u))
-      );
-      if (selectedUser?.id === targetId) {
-        setSelectedUser((prev) => (prev ? { ...prev, isActive: false, trustScore: 0 } : null));
-      }
-      showToast('User account has been permanently suspended.', 'success');
+      const updated = reactivate ? await adminApi.reactivateUser(targetId) : await adminApi.suspendUser(targetId);
+      const status = { isActive: updated.isActive, trustScore: updated.trustScore ?? 0 };
+      setUsers((prev) => prev.map((u) => u.id === targetId ? { ...u, ...status } : u));
+      setSelectedUser((prev) => prev?.id === targetId ? { ...prev, ...status } : prev);
+      showToast(reactivate ? 'User account reactivated.' : 'User account suspended.', 'success');
     } catch (err: any) {
-      showToast(err?.message || 'Failed to suspend user account.', 'error');
+      showToast(err?.message || 'Could not update the account.', 'error');
     } finally {
       setActionLoadingId(null);
     }
@@ -357,7 +354,7 @@ export const AdminUsersPage: React.FC = () => {
           >
             <option value="ALL">All Statuses</option>
             <option value="ACTIVE">Active</option>
-            <option value="INACTIVE">Permanently Suspended</option>
+            <option value="INACTIVE">Suspended</option>
             <option value="VERIFIED">KYC Verified</option>
             <option value="UNVERIFIED">Unverified</option>
           </select>
@@ -538,7 +535,7 @@ export const AdminUsersPage: React.FC = () => {
                             <button
                               type="button"
                               onClick={(e) => handleSuspend(userItem.id, e)}
-                              disabled={isCurrentAuth || isUpdatingThis}
+                              disabled={isCurrentAuth || isUpdatingThis || userItem.role !== 'USER'}
                               className={`p-1.5 rounded-lg transition-colors ${
                                 isCurrentAuth
                                   ? 'opacity-30 cursor-not-allowed text-slate-400'
@@ -553,12 +550,11 @@ export const AdminUsersPage: React.FC = () => {
                               )}
                             </button>
                           ) : (
-                            <span
-                              className="p-1.5 rounded-lg text-rose-300 cursor-not-allowed inline-flex"
-                              title="Account suspended"
-                            >
-                              <UserX className="w-3.5 h-3.5" />
-                            </span>
+                            <button type="button" disabled={isUpdatingThis || isCurrentAuth || userItem.role !== 'USER'}
+                              onClick={(e) => handleSuspend(userItem.id, e, true)}
+                              className="text-xs font-semibold text-emerald-700 hover:underline">
+                              Reactivate
+                            </button>
                           )}
                         </div>
                       </td>
@@ -702,15 +698,15 @@ export const AdminUsersPage: React.FC = () => {
               <div>
                 {!selectedUser.isActive && (
                   <span className="text-[11px] text-rose-600 font-medium flex items-center gap-1">
-                    <UserX className="w-3.5 h-3.5" /> Permanently Suspended
+                    <UserX className="w-3.5 h-3.5" /> Suspended
                   </span>
                 )}
               </div>
               <div className="flex items-center gap-2">
-                {selectedUser.isActive && selectedUser.id !== currentAuthUser?.id && (
+                {selectedUser.role === 'USER' && selectedUser.id !== currentAuthUser?.id && (
                   <button
                     type="button"
-                    onClick={(e) => handleSuspend(selectedUser.id, e)}
+                    onClick={(e) => handleSuspend(selectedUser.id, e, !selectedUser.isActive)}
                     disabled={actionLoadingId === selectedUser.id}
                     className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-rose-50 text-rose-700 border border-rose-200 hover:bg-rose-100 transition-colors flex items-center gap-1.5"
                   >
@@ -719,7 +715,7 @@ export const AdminUsersPage: React.FC = () => {
                     ) : (
                       <UserX className="w-3.5 h-3.5" />
                     )}
-                    Suspend Account
+                    {selectedUser.isActive ? 'Suspend account' : 'Reactivate account'}
                   </button>
                 )}
                 <button

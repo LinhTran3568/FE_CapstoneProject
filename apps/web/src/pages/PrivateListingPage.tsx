@@ -42,6 +42,8 @@ export const PrivateListingPage: React.FC = () => {
     queryKey: ['private-listing', shareToken],
     queryFn: () => resaleListingsApi.getPrivateListing(shareToken || ''),
     enabled: Boolean(shareToken && shareToken.trim().length > 0),
+    gcTime: 0,
+    staleTime: 0,
     retry: 1,
   });
 
@@ -158,7 +160,7 @@ export const PrivateListingPage: React.FC = () => {
         )}
 
         {/* Loaded Active Listing Card */}
-        {listing && (
+        {!isError && listing && (
           <motion.div
             initial={{ opacity: 0, y: 15 }}
             animate={{ opacity: 1, y: 0 }}
@@ -317,7 +319,7 @@ export const PrivateListingPage: React.FC = () => {
       </div>
 
       {/* Buy Modal Integration */}
-      {listing && (
+      {!isError && listing && (
         <BuyTicketModal
           listing={{
             ...listing,

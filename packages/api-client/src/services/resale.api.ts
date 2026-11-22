@@ -11,6 +11,12 @@ export interface VerificationResult {
   resendAfter?: string;
   deliveryState?: string;
   originalPrice?: number;
+  eventName?: string;
+  eventVenue?: string;
+  eventStartAt?: string;
+  tierName?: string;
+  seatZone?: string;
+  organizerName?: string;
   listingId?: string;
   privateAccessToken?: string;
   /** Event markup % snapshotted for this verification (0–100). */
