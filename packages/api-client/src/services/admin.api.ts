@@ -283,6 +283,8 @@ export interface AdminTransactionDto {
 export interface AdminTransactionsSummaryDto {
   /** Inflow. Thiếu khi BE chưa lên bản SCRUM-390. */
   totalInflowAmount?: number;
+  /** Net revenue: phí người mua + phí người bán của đơn Released khớp bộ lọc, cùng cách tính Dashboard. Thiếu khi BE chưa có bản 22/11. */
+  totalNetRevenue?: number;
   totalEscrowLockedAmount: number;
   totalLockedCount: number;
   totalPayoutCompletedAmount: number;
