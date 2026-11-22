@@ -572,6 +572,18 @@ export default function MobileTicketsScreen() {
                         Checked In · Cycle Completed
                       </Text>
                     </View>
+                  ) : (selectedTicket.status === 'VALID' || selectedTicket.status === 'COMPLETED') && !selectedTicket.disputeId ? (
+                    <View
+                      style={[
+                        styles.disputeActionBtn,
+                        { backgroundColor: 'rgba(16, 185, 129, 0.15)', borderColor: 'rgba(16, 185, 129, 0.4)' },
+                      ]}
+                    >
+                      <Check size={16} color="#10B981" />
+                      <Text style={[styles.disputeActionText, { color: '#10B981' }]}>
+                        Escrow Completed · Payout Done
+                      </Text>
+                    </View>
                   ) : (
                     <TouchableOpacity
                       style={[
@@ -580,7 +592,7 @@ export default function MobileTicketsScreen() {
                           styles.disputeActionBtnActive,
                       ]}
                       onPress={() => {
-                        if (selectedTicket.status === 'USED') return;
+                        if (selectedTicket.status === 'USED' || selectedTicket.status === 'VALID' || selectedTicket.status === 'COMPLETED') return;
                         setDisputeModalTicket(selectedTicket);
                         setIsDisputeModalOpen(true);
                       }}

@@ -401,8 +401,8 @@ export default function MobileOrdersScreen() {
 
   const handleReportOrder = (item: MobileEscrowOrder) => {
     // The API rejects this as well, but keep the client from opening a dispute
-    // form after the pass has already been accepted at the gate.
-    if (item.isCheckedIn) return;
+    // form after the pass has already been accepted at the gate or escrow has completed.
+    if (item.isCheckedIn || (item.status !== 'ESCROW_HOLDING' && item.status !== 'DISPUTED')) return;
 
     const isDisputed = item.status === 'DISPUTED' || Boolean(item.disputeId);
     const syntheticTicket: PurchasedTicketDto = {
@@ -416,7 +416,7 @@ export default function MobileOrdersScreen() {
       seatZone: item.seatZone,
       ticketPassCode: item.ticketPassCode,
       totalAmountPaid: item.totalPaid,
-      status: isDisputed ? 'DISPUTED' : item.isCheckedIn ? 'USED' : item.status === 'COMPLETED' ? 'VALID' : 'IN_ESCROW',
+      status: isDisputed ? 'DISPUTED' : item.isCheckedIn ? 'USED' : 'IN_ESCROW',
       disputeId: item.disputeId || null,
       recipientName: 'Ticket Holder',
       recipientEmail: '',
@@ -543,9 +543,8 @@ export default function MobileOrdersScreen() {
             <Clock size={14} color={theme.colors.warning} />
             <Text style={styles.disputeProgressOrderBtnText}>View Dispute</Text>
           </TouchableOpacity>
-        ) : item.status !== 'CANCELLED' &&
-          item.status !== 'REFUNDED' &&
-          item.type !== 'SELL' &&
+        ) : item.status === 'ESCROW_HOLDING' &&
+          item.type === 'BUY' &&
           !item.disputeWaived &&
           !item.isCheckedIn ? (
           <TouchableOpacity
