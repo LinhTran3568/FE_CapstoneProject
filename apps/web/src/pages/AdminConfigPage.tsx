@@ -11,7 +11,8 @@ import {
   Clock,
   CheckCircle2,
   Layers,
-  ArrowUpRight
+  ArrowUpRight,
+  RefreshCw
 } from 'lucide-react';
 
 type TabKey = 'FEE_SETTINGS' | 'EVENT_MARKUP' | 'SETTLEMENT_BUFFER';
@@ -39,29 +40,28 @@ export const AdminConfigPage: React.FC = () => {
   const [feeConfig, setFeeConfig] = useState<ResaleFeeConfigDto | null>(null);
   const [bufferConfig, setBufferConfig] = useState<EscrowBufferConfigDto | null>(null);
   const [eventCount, setEventCount] = useState<number>(0);
+  const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
+
+  const fetchSummary = async () => {
+    try {
+      setIsRefreshing(true);
+      const [fee, buffer, events] = await Promise.allSettled([
+        adminApi.getFeeSettings(),
+        adminApi.getEscrowBuffer(),
+        adminApi.getAllEventMarkups()
+      ]);
+      if (fee.status === 'fulfilled') setFeeConfig(fee.value);
+      if (buffer.status === 'fulfilled') setBufferConfig(buffer.value);
+      if (events.status === 'fulfilled') setEventCount(events.value?.length || 0);
+    } catch {
+      // silent fail for summary card
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
 
   useEffect(() => {
-    let isMounted = true;
-    const fetchSummary = async () => {
-      try {
-        const [fee, buffer, events] = await Promise.allSettled([
-          adminApi.getFeeSettings(),
-          adminApi.getEscrowBuffer(),
-          adminApi.getAllEventMarkups()
-        ]);
-        if (isMounted) {
-          if (fee.status === 'fulfilled') setFeeConfig(fee.value);
-          if (buffer.status === 'fulfilled') setBufferConfig(buffer.value);
-          if (events.status === 'fulfilled') setEventCount(events.value?.length || 0);
-        }
-      } catch {
-        // silent fail for summary card
-      }
-    };
     fetchSummary();
-    return () => {
-      isMounted = false;
-    };
   }, []);
 
   const handleTabChange = (key: TabKey) => {
@@ -88,6 +88,16 @@ export const AdminConfigPage: React.FC = () => {
             Policy Engine
           </span>
         </div>
+        <button
+          type="button"
+          onClick={fetchSummary}
+          disabled={isRefreshing}
+          className="px-3 py-1.5 rounded-lg border border-[#E5EAF0] bg-white text-xs font-medium text-[#475467] hover:text-[#101722] hover:bg-slate-50 transition-colors flex items-center gap-1.5 shadow-2xs cursor-pointer self-start sm:self-auto"
+          title="Làm mới trạng thái chính sách"
+        >
+          <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin text-[#F45135]' : ''}`} />
+          <span>Làm mới</span>
+        </button>
       </div>
 
       {/* ── Compact Live Parameters Summary Strip ── */}
@@ -173,9 +183,9 @@ export const AdminConfigPage: React.FC = () => {
 
       {/* ── Active Tab Panel Content ── */}
       <div className="transition-all duration-200">
-        {activeTab === 'FEE_SETTINGS' && <FeeSettingsControlPanel />}
-        {activeTab === 'EVENT_MARKUP' && <EventMarkupControlPanel />}
-        {activeTab === 'SETTLEMENT_BUFFER' && <SettlementBufferControlPanel />}
+        {activeTab === 'FEE_SETTINGS' && <FeeSettingsControlPanel onConfigUpdated={fetchSummary} />}
+        {activeTab === 'EVENT_MARKUP' && <EventMarkupControlPanel onConfigUpdated={fetchSummary} />}
+        {activeTab === 'SETTLEMENT_BUFFER' && <SettlementBufferControlPanel onConfigUpdated={fetchSummary} />}
       </div>
     </div>
   );

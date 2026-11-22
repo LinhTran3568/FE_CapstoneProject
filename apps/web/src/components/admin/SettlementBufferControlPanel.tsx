@@ -15,7 +15,11 @@ import {
   AlertCircle
 } from 'lucide-react';
 
-export const SettlementBufferControlPanel: React.FC = () => {
+export interface SettlementBufferControlPanelProps {
+  onConfigUpdated?: (config: EscrowBufferConfigDto) => void;
+}
+
+export const SettlementBufferControlPanel: React.FC<SettlementBufferControlPanelProps> = ({ onConfigUpdated }) => {
   const [loading, setLoading] = useState<boolean>(true);
   const [saving, setSaving] = useState<boolean>(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
@@ -88,6 +92,7 @@ export const SettlementBufferControlPanel: React.FC = () => {
         setSavedConfig(result);
         setBufferSeconds(result.bufferSeconds);
         setCutoffSeconds(result.cutoffSeconds);
+        onConfigUpdated?.(result);
       }
       setSuccessMessage('Escrow buffer and cutoff thresholds successfully updated!');
       setTimeout(() => setSuccessMessage(null), 4000);

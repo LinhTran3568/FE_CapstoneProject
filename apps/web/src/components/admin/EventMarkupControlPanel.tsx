@@ -18,7 +18,11 @@ import {
   Filter
 } from 'lucide-react';
 
-export const EventMarkupControlPanel: React.FC = () => {
+export interface EventMarkupControlPanelProps {
+  onConfigUpdated?: () => void;
+}
+
+export const EventMarkupControlPanel: React.FC<EventMarkupControlPanelProps> = ({ onConfigUpdated }) => {
   const [events, setEvents] = useState<EventResaleMarkupDto[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [searchQuery, setSearchQuery] = useState<string>('');
@@ -114,6 +118,7 @@ export const EventMarkupControlPanel: React.FC = () => {
 
       setSuccessMessage(`Updated price ceiling for "${editingEvent.eventName}" to +${newMarkup}%!`);
       setTimeout(() => setSuccessMessage(null), 4000);
+      onConfigUpdated?.();
 
       setEvents((prev) =>
         prev.map((item) =>
