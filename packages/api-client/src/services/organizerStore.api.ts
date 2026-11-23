@@ -381,7 +381,16 @@ export const organizerStoreApi = {
           });
           throw challengeErr;
         } else if (res.status === 429) {
-          errMsg = errorJson.message || 'Too many requests detected. Please try again shortly.';
+          const retryHeader = res.headers.get('Retry-After');
+          const retrySec = retryHeader ? parseInt(retryHeader, 10) : (errorJson.retryAfterSeconds || errorJson.cooldownSeconds || 15);
+          const blockErr = new Error(errorJson.message || `Tạm thời khóa thử lại. Vui lòng chờ ${retrySec}s.`);
+          Object.assign(blockErr, {
+            status: 429,
+            retryAfterSeconds: retrySec,
+            violationScore: errorJson.violationScore,
+            isHardCutoff: errorJson.isHardCutoff,
+          });
+          throw blockErr;
         } else if (errorJson.message) {
           if (res.status === 409) {
             errMsg = `Ticket tier is sold out or has insufficient inventory (Remaining: ${errorJson.available ?? 0})`;

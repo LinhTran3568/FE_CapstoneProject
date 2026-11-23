@@ -71,7 +71,15 @@ export const OGTicketStorePage: React.FC = () => {
     if (first) {
       antiBotSdk.setServerClock(first.issuedAtUtc);
     }
-    setSessionTokens((prev) => ({ ...fetched, ...prev }));
+    setSessionTokens((prev) => ({ ...prev, ...fetched }));
+  }, []);
+
+  // Callback đồng bộ session token mới vào state trang khi CheckoutModal cấp phát hoặc làm mới token (US-8.1, US-13.2.3)
+  const handleUpdateSessionToken = useCallback((tierId: string, session: SessionTokenResponse) => {
+    setSessionTokens((prev) => ({
+      ...prev,
+      [tierId]: session,
+    }));
   }, []);
 
   // 3. Connect to Ban Tổ Chức API (GET /api/organizer/events/{id}/tiers)
@@ -776,6 +784,7 @@ export const OGTicketStorePage: React.FC = () => {
         selectedItems={selectedItems}
         grandTotal={grandTotal}
         sessionTokens={sessionTokens}
+        onUpdateSessionToken={handleUpdateSessionToken}
       />
     </StorefrontLayout>
   );

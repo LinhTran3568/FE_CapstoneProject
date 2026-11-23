@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { QRCodeCanvas } from 'qrcode.react';
 import { Link } from 'react-router-dom';
 import { StorefrontEvent } from '../../data/storefrontCatalog';
-import { MockTicketDto } from '@ticketshield/types';
+import type { MockTicketDto } from '@ticketshield/types';
 
 export interface SelectedTierItem {
   tier: {
@@ -23,6 +23,8 @@ export interface CheckoutModalProps {
   grandTotal: number;
   /** Session token per tierId, obtained upon opening ticket selection (US-8.1). */
   sessionTokens: Record<string, SessionTokenResponse>;
+  /** Callback to notify parent of newly created or refreshed session tokens (US-13.2.3). */
+  onUpdateSessionToken?: (tierId: string, session: SessionTokenResponse) => void;
 }
 
 interface OrderResultData {
@@ -40,6 +42,15 @@ import { organizerStoreApi, SessionTokenResponse } from '@ticketshield/api-clien
 import { antiBotSdk } from '../../lib/anti-bot-sdk';
 import { ChallengeModal } from './ChallengeModal';
 
+const isSessionValid = (session?: SessionTokenResponse): boolean => {
+  if (!session?.sessionToken || !session?.nonce || !session?.issuedAtUtc) return false;
+  const issuedMs = new Date(session.issuedAtUtc).getTime();
+  if (isNaN(issuedMs)) return false;
+  const ttlMs = (session.expiresInSeconds || 300) * 1000;
+  // Buffer of 15s before official TTL expires
+  return Date.now() - issuedMs < ttlMs - 15000;
+};
+
 export const CheckoutModal: React.FC<CheckoutModalProps> = ({
   isOpen,
   onClose,
@@ -47,6 +58,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
   selectedItems,
   grandTotal,
   sessionTokens,
+  onUpdateSessionToken,
 }) => {
   // Form states - completely empty by default, no hardcoded accounts
   const [buyerName, setBuyerName] = useState('');
@@ -69,15 +81,30 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [orderResult, setOrderResult] = useState<OrderResultData | null>(null);
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
-  const usedSessions = useRef(new Set<string>());
+
+  // Track nonces submitted to Backend to eliminate ReplayGuard (409) race conditions (SCRUM-247)
+  const consumedNoncesRef = useRef<Set<string>>(new Set());
+  const lastSubmitTimeRef = useRef<number>(0);
 
   // Challenge State (Google reCAPTCHA v2 / Cloudflare Turnstile / Sequential)
   const [challengeOpen, setChallengeOpen] = useState(false);
   const [preferredChallengeProvider, setPreferredChallengeProvider] = useState<'turnstile' | 'recaptcha' | 'sequential'>('recaptcha');
+  const [challengeFailCount, setChallengeFailCount] = useState<number>(0);
+  const [blockCooldownSeconds, setBlockCooldownSeconds] = useState<number>(0);
+
+  // Cooldown timer tick down (SCRUM-403 Anti-bot BLOCK rate limit)
+  useEffect(() => {
+    if (blockCooldownSeconds <= 0) return;
+    const interval = setInterval(() => {
+      setBlockCooldownSeconds((prev) => (prev <= 1 ? 0 : prev - 1));
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [blockCooldownSeconds]);
 
   useEffect(() => {
     if (!isOpen) {
       setChallengeOpen(false);
+      setBlockCooldownSeconds(0);
     }
   }, [isOpen]);
 
@@ -128,21 +155,44 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
 
     try {
       if (selectedItems.length === 0) throw new Error('Please select a ticket tier.');
-      const lines = await Promise.all(selectedItems.map(async item => {
-        let session = sessionTokens[item.tier.id];
-        if (!session || usedSessions.current.has(session.sessionToken) || challengeToken) {
-          session = await organizerStoreApi.createSession(item.tier.id);
-          antiBotSdk.setServerClock(session.issuedAtUtc);
-        }
-        return { tierId: item.tier.id, quantity: item.quantity, session };
-      }));
+
+      // Resolve valid, unconsumed session token for each selected tier (SCRUM-247, US-13.2.3)
+      const lines = await Promise.all(
+        selectedItems.map(async (item) => {
+          let session = sessionTokens[item.tier.id];
+          const isConsumed = session?.nonce ? consumedNoncesRef.current.has(session.nonce) : false;
+          const isStale = !isSessionValid(session);
+
+          // Procure a fresh session if missing, consumed in earlier attempt, expired, or solving challenge
+          if (!session || isConsumed || isStale || challengeToken) {
+            session = await organizerStoreApi.createSession(item.tier.id);
+            antiBotSdk.setServerClock(session.issuedAtUtc);
+            onUpdateSessionToken?.(item.tier.id, session);
+          }
+          return { tierId: item.tier.id, quantity: item.quantity, session };
+        })
+      );
+
       const [first, ...rest] = lines;
+
+      // Mark all participating nonces as consumed BEFORE sending to eliminate race conditions
+      if (first.session.nonce) consumedNoncesRef.current.add(first.session.nonce);
+      rest.forEach((r) => {
+        if (r.session.nonce) consumedNoncesRef.current.add(r.session.nonce);
+      });
+
       const telemetry = await antiBotSdk.collect({ nonce: first.session.nonce });
-      lines.forEach(line => usedSessions.current.add(line.session.sessionToken));
+
       const checkoutRes = await organizerStoreApi.checkout({
         tierId: first.tierId,
         quantity: first.quantity,
-        additionalItems: rest.length ? rest.map(line => ({ tierId: line.tierId, quantity: line.quantity, sessionToken: line.session.sessionToken })) : undefined,
+        additionalItems: rest.length
+          ? rest.map((line) => ({
+              tierId: line.tierId,
+              quantity: line.quantity,
+              sessionToken: line.session.sessionToken,
+            }))
+          : undefined,
         buyerEmail: finalBuyerEmail,
         buyerName: finalBuyerName,
         buyerPhone: finalBuyerPhone,
@@ -186,7 +236,6 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
         createdAt: timestamp,
       });
     } catch (err: unknown) {
-
       // Tier 2: Challenge Required -> Open Google reCAPTCHA / Cloudflare Turnstile modal
       if (
         err &&
@@ -203,6 +252,11 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
         return;
       }
 
+      if (err && typeof err === 'object' && ('status' in err && (err as { status: number }).status === 429)) {
+        const cd = (err as { retryAfterSeconds?: number }).retryAfterSeconds || 15;
+        setBlockCooldownSeconds(cd);
+      }
+
       const errMsg = err instanceof Error ? err.message : 'System error during checkout.';
       setApiError(errMsg);
       return;
@@ -213,12 +267,18 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
 
   const handleSubmitCheckout = async (e: React.FormEvent) => {
     e.preventDefault();
+    const now = Date.now();
+    if (now - lastSubmitTimeRef.current < 600 || isSubmitting || blockCooldownSeconds > 0) {
+      return; // Debounce 600ms and prevent duplicate submissions during Cooldown (SCRUM-398, SCRUM-403)
+    }
+    lastSubmitTimeRef.current = now;
     if (!validateForm()) return;
     await performCheckout();
   };
 
   const handleChallengeSuccess = async (token: string, provider: 'turnstile' | 'recaptcha' | 'sequential') => {
     setChallengeOpen(false);
+    setChallengeFailCount(0); // Reset failure count upon challenge pass
     await performCheckout(token, provider);
   };
 
@@ -235,6 +295,8 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
     setBuyerPhone('');
     setAgreedTerms(false);
     setErrors({});
+    setChallengeFailCount(0);
+    consumedNoncesRef.current.clear();
     onClose();
   };
 
@@ -253,7 +315,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
             type="button"
             disabled={isSubmitting}
             onClick={orderResult ? handleReset : onClose}
-            className="w-8 h-8 rounded-lg bg-[#282a32] hover:bg-[#33343d] text-[#aa8984] hover:text-white flex items-center justify-center transition-colors"
+            className="w-8 h-8 rounded-lg bg-[#282a32] hover:bg-[#33343d] text-[#aa8984] hover:text-white flex items-center justify-center transition-colors disabled:opacity-30"
           >
             <span className="material-symbols-outlined text-[18px]">close</span>
           </button>
@@ -267,40 +329,39 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
             /* =================== STEP 1: BUYER INFORMATION FORM =================== */
             <form onSubmit={handleSubmitCheckout} className="space-y-5">
               {/* Selected tickets summary card */}
-              <div className="p-4 rounded-xl bg-[#0c0e16] border border-white/5 space-y-2">
-                <div className="flex items-center justify-between text-xs text-[#aa8984]">
-                  <span className="font-semibold text-white">{event.title}</span>
-                  <span className="text-[#ffb4a8] font-bold">
-                    {selectedItems.reduce((sum, i) => sum + i.quantity, 0)} {selectedItems.reduce((sum, i) => sum + i.quantity, 0) === 1 ? 'ticket' : 'tickets'}
-                  </span>
+              <div className="p-4 rounded-xl bg-[#0e1017] border border-white/5 space-y-2">
+                <div className="text-xs font-semibold text-[#aa8984] uppercase tracking-wider">
+                  Order Summary
                 </div>
-                <div className="space-y-1 pt-1 border-t border-white/5">
+                <div className="text-sm font-bold text-white flex items-center justify-between">
+                  <span>{event.title}</span>
+                  <span className="text-[#4cd7f6]">{selectedItems.reduce((acc, curr) => acc + curr.quantity, 0)} tickets</span>
+                </div>
+                <div className="divide-y divide-white/5 pt-1">
                   {selectedItems.map((item) => (
-                    <div key={item.tier.id} className="flex justify-between text-xs">
-                      <span className="text-[#CBD5E1]">
-                        {item.quantity}x {item.tier.tierName}
-                      </span>
-                      <span className="font-mono font-bold text-white">
+                    <div key={item.tier.id} className="py-2 flex items-center justify-between text-xs">
+                      <div>
+                        <span className="font-medium text-white">{item.tier.tierName}</span>
+                        <span className="text-[#aa8984] ml-2">x {item.quantity}</span>
+                      </div>
+                      <div className="font-mono font-semibold text-[#CBD5E1]">
                         {item.subtotal.toLocaleString('en-US')} ₫
-                      </span>
+                      </div>
                     </div>
                   ))}
                 </div>
-                <div className="pt-2 border-t border-white/10 flex justify-between items-baseline">
-                  <span className="text-xs font-bold text-[#aa8984] uppercase">Total Due:</span>
-                  <span className="font-display font-extrabold text-xl text-[#ffb4a8]">
+                <div className="pt-2 border-t border-white/10 flex items-center justify-between text-sm font-bold">
+                  <span className="text-white">Total Amount</span>
+                  <span className="text-emerald-400 font-mono text-base">
                     {grandTotal.toLocaleString('en-US')} ₫
                   </span>
                 </div>
               </div>
 
-              {/* Input: Full Name */}
-              <div className="space-y-1">
-                <label className="text-xs font-semibold text-[#aa8984] flex items-center justify-between">
-                  <span>
-                    Recipient Full Name <span className="text-[#ff5945]">*</span>
-                  </span>
-                  {errors.name && <span className="text-[11px] text-[#ff5945] font-bold">{errors.name}</span>}
+              {/* Form Input: Buyer Full Name */}
+              <div className="space-y-1.5">
+                <label className="block text-xs font-semibold text-[#CBD5E1]" htmlFor="buyer-name-input">
+                  Recipient Full Name <span className="text-[#ff5945]">*</span>
                 </label>
                 <input
                   type="text"
@@ -310,23 +371,20 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                     setBuyerName(e.target.value);
                     if (errors.name) setErrors((prev) => ({ ...prev, name: undefined }));
                   }}
-                  placeholder="Enter full name (e.g., John Doe)"
+                  placeholder="Full name as printed on ID"
                   className={`w-full px-4 py-2.5 rounded-xl bg-[#0e1017] border text-white text-sm placeholder:text-[#64748b] transition-all focus:outline-none ${
                     errors.name
                       ? 'border-[#ff5945] ring-1 ring-[#ff5945]'
                       : 'border-white/10 focus:border-[#4cd7f6] focus:ring-1 focus:ring-[#4cd7f6]'
                   }`}
-                  autoFocus
                 />
+                {errors.name && <p className="text-[11px] text-[#ff5945] mt-1 font-medium">{errors.name}</p>}
               </div>
 
-              {/* Input: Email */}
-              <div className="space-y-1">
-                <label className="text-xs font-semibold text-[#aa8984] flex items-center justify-between">
-                  <span>
-                    Email Address for E-Tickets <span className="text-[#ff5945]">*</span>
-                  </span>
-                  {errors.email && <span className="text-[11px] text-[#ff5945] font-bold">{errors.email}</span>}
+              {/* Form Input: Buyer Email */}
+              <div className="space-y-1.5">
+                <label className="block text-xs font-semibold text-[#CBD5E1]" htmlFor="buyer-email-input">
+                  Delivery Email Address <span className="text-[#ff5945]">*</span>
                 </label>
                 <input
                   type="email"
@@ -336,25 +394,20 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                     setBuyerEmail(e.target.value);
                     if (errors.email) setErrors((prev) => ({ ...prev, email: undefined }));
                   }}
-                  placeholder="Valid email address (e.g., alex@example.com)"
+                  placeholder="Official e-tickets will be delivered to this email"
                   className={`w-full px-4 py-2.5 rounded-xl bg-[#0e1017] border text-white text-sm placeholder:text-[#64748b] transition-all focus:outline-none ${
                     errors.email
                       ? 'border-[#ff5945] ring-1 ring-[#ff5945]'
                       : 'border-white/10 focus:border-[#4cd7f6] focus:ring-1 focus:ring-[#4cd7f6]'
                   }`}
                 />
-                <p className="text-[11px] text-[#64748b]">
-                  Official tickets and entrance QR codes will be delivered to this email.
-                </p>
+                {errors.email && <p className="text-[11px] text-[#ff5945] mt-1 font-medium">{errors.email}</p>}
               </div>
 
-              {/* Input: Phone Number */}
-              <div className="space-y-1">
-                <label className="text-xs font-semibold text-[#aa8984] flex items-center justify-between">
-                  <span>
-                    Contact Phone Number <span className="text-[#ff5945]">*</span>
-                  </span>
-                  {errors.phone && <span className="text-[11px] text-[#ff5945] font-bold">{errors.phone}</span>}
+              {/* Form Input: Buyer Phone Number */}
+              <div className="space-y-1.5">
+                <label className="block text-xs font-semibold text-[#CBD5E1]" htmlFor="buyer-phone-input">
+                  Recipient Phone Number <span className="text-[#ff5945]">*</span>
                 </label>
                 <input
                   type="tel"
@@ -371,6 +424,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                       : 'border-white/10 focus:border-[#4cd7f6] focus:ring-1 focus:ring-[#4cd7f6]'
                   }`}
                 />
+                {errors.phone && <p className="text-[11px] text-[#ff5945] mt-1 font-medium">{errors.phone}</p>}
               </div>
 
               {/* Checkbox: Agreed terms */}
@@ -416,13 +470,18 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                 <button
                   type="submit"
                   id="btn-confirm-checkout"
-                  disabled={isSubmitting}
-                  className="w-full sm:w-2/3 py-3 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/25 active:scale-[0.98] transition-all cursor-pointer"
+                  disabled={isSubmitting || blockCooldownSeconds > 0}
+                  className="w-full sm:w-2/3 py-3 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/25 active:scale-[0.98] transition-all cursor-pointer disabled:opacity-50"
                 >
                   {isSubmitting ? (
                     <>
                       <span className="material-symbols-outlined text-[18px] animate-spin">refresh</span>
                       <span>Processing order & issuing tickets...</span>
+                    </>
+                  ) : blockCooldownSeconds > 0 ? (
+                    <>
+                      <span className="material-symbols-outlined text-[18px] animate-pulse">timer</span>
+                      <span>Tạm khóa thử lại ({blockCooldownSeconds}s)</span>
                     </>
                   ) : (
                     <>
@@ -565,12 +624,16 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
       </div>
 
       {/* Tier 2 Anti-Bot Verification Challenge Modal (Cloudflare Turnstile & Google reCAPTCHA) */}
-      {challengeOpen && <ChallengeModal
-        isOpen
-        onClose={() => setChallengeOpen(false)}
-        onSuccess={handleChallengeSuccess}
-        initialProvider={preferredChallengeProvider}
-      />}
+      {challengeOpen && (
+        <ChallengeModal
+          isOpen
+          onClose={() => setChallengeOpen(false)}
+          onSuccess={handleChallengeSuccess}
+          initialProvider={preferredChallengeProvider}
+          failCount={challengeFailCount}
+          onFail={(cnt) => setChallengeFailCount(cnt)}
+        />
+      )}
     </div>
   );
 };
