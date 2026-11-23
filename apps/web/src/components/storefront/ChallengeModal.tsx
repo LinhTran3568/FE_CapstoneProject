@@ -1,11 +1,14 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { X, RefreshCw, CheckCircle2, ShieldCheck } from 'lucide-react';
+import { X, ShieldCheck, Clock, RefreshCw } from 'lucide-react';
 
 export interface ChallengeModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess: (token: string, provider: 'turnstile' | 'recaptcha' | 'sequential') => void;
+  tierName?: string;
   initialProvider?: 'turnstile' | 'recaptcha' | 'sequential';
+  failCount?: number;
+  onFail?: (failCount: number) => void;
 }
 
 declare global {
@@ -43,11 +46,22 @@ declare global {
 const TURNSTILE_SITE_KEY = '1x00000000000000000000AA';
 const RECAPTCHA_SITE_KEY = '6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI';
 
+const getCooldownSeconds = (fails: number) => {
+  if (fails <= 0) return 0;
+  if (fails === 1) return 5;
+  if (fails === 2) return 15;
+  if (fails >= 5) return 900;
+  return 60;
+};
+
 export const ChallengeModal: React.FC<ChallengeModalProps> = ({
   isOpen,
   onClose,
   onSuccess,
+  tierName,
   initialProvider = 'recaptcha',
+  failCount = 0,
+  onFail,
 }) => {
   // If sequential, step 1 is turnstile, step 2 is recaptcha
   const isSequential = initialProvider === 'sequential';
@@ -56,185 +70,141 @@ export const ChallengeModal: React.FC<ChallengeModalProps> = ({
     isSequential ? 'turnstile' : initialProvider === 'turnstile' ? 'turnstile' : 'recaptcha'
   );
 
-  const [isVerifying, setIsVerifying] = useState<boolean>(false);
-  const [isStep1Completed, setIsStep1Completed] = useState<boolean>(false);
   const [widgetError, setWidgetError] = useState<string | null>(null);
+  const [internalFailCount, setInternalFailCount] = useState<number>(failCount);
+  const [cooldownSeconds, setCooldownSeconds] = useState<number>(getCooldownSeconds(failCount));
+  const [isVerifying, setIsVerifying] = useState(false);
 
   const turnstileContainerRef = useRef<HTMLDivElement>(null);
   const recaptchaContainerRef = useRef<HTMLDivElement>(null);
-  const turnstileWidgetIdRef = useRef<string | null>(null);
-  const recaptchaWidgetIdRef = useRef<number | null>(null);
+  const successRef = useRef(onSuccess);
+  useEffect(() => { successRef.current = onSuccess; }, [onSuccess]);
+
+  // Cooldown timer tick down (SCRUM-398 Anti-bot brute-force protection)
+  useEffect(() => {
+    if (cooldownSeconds <= 0) return;
+    const interval = setInterval(() => {
+      setCooldownSeconds((prev) => (prev > 0 ? prev - 1 : 0));
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [cooldownSeconds]);
 
   // Reset widget refs when modal closes or opens
   useEffect(() => {
     if (isOpen) {
-      recaptchaWidgetIdRef.current = null;
-      turnstileWidgetIdRef.current = null;
-      if (initialProvider === 'sequential') {
-        setCurrentStep(1);
-        setActiveProvider('turnstile');
-        setIsStep1Completed(false);
-      } else {
-        setActiveProvider(initialProvider === 'turnstile' ? 'turnstile' : 'recaptcha');
-      }
-      setIsVerifying(false);
+      setInternalFailCount(failCount);
+      setCooldownSeconds(getCooldownSeconds(failCount));
       setWidgetError(null);
+      setIsVerifying(false);
     }
-  }, [isOpen, initialProvider]);
+  }, [isOpen, failCount]);
 
-  // Load Cloudflare Turnstile when activeProvider is 'turnstile'
   useEffect(() => {
-    if (!isOpen || activeProvider !== 'turnstile') return;
+    if (!isOpen || cooldownSeconds > 0) return;
+    const cloudflare = activeProvider === 'turnstile';
+    const container = cloudflare ? turnstileContainerRef.current : recaptchaContainerRef.current;
+    if (!container) return;
+    const mount = document.createElement('div');
+    container.appendChild(mount);
+    let disposed = false;
+    let answered = false;
+    let turnstileId: string | undefined;
+    let googleId: number | undefined;
     setWidgetError(null);
-
-    const scriptId = 'cf-turnstile-script';
-    let script = document.getElementById(scriptId) as HTMLScriptElement | null;
-
-    const renderTurnstile = () => {
-      if (!turnstileContainerRef.current || !window.turnstile) return;
+    const onError = () => {
+      if (!disposed) {
+        handleFailChallenge('Không thể tải mã xác thực. Vui lòng thử lại sau.');
+      }
+    };
+    const answer = (token: string) => {
+      if (disposed || answered || cooldownSeconds > 0) return;
+      answered = true;
+      if (isSequential && cloudflare) {
+        setCurrentStep(2);
+        setActiveProvider('recaptcha');
+      } else {
+        setInternalFailCount(0);
+        onFail?.(0);
+        successRef.current(token, isSequential ? 'sequential' : activeProvider);
+      }
+    };
+    const render = () => {
+      if (disposed || cooldownSeconds > 0) return;
       try {
-        if (turnstileWidgetIdRef.current) {
-          try {
-            window.turnstile.remove(turnstileWidgetIdRef.current);
-          } catch {
-            // ignore
-          }
-          turnstileWidgetIdRef.current = null;
-        }
-        if (turnstileContainerRef.current) {
-          turnstileContainerRef.current.innerHTML = '';
-        }
-        turnstileWidgetIdRef.current = window.turnstile.render(turnstileContainerRef.current, {
-          sitekey: TURNSTILE_SITE_KEY,
-          theme: 'dark',
-          callback: (token: string) => {
-            setIsVerifying(true);
-            setTimeout(() => {
-              if (isSequential && currentStep === 1) {
-                // Advance to step 2 (Google reCAPTCHA visual puzzle)
-                setIsStep1Completed(true);
-                setCurrentStep(2);
-                setActiveProvider('recaptcha');
-                setIsVerifying(false);
-              } else {
-                onSuccess(token, 'turnstile');
-                setIsVerifying(false);
-              }
-            }, 600);
-          },
-          'error-callback': () => {
-            // Auto fallback to Google reCAPTCHA
-            setWidgetError('Automated security check timed out, switching to visual challenge...');
-            setTimeout(() => {
-              setActiveProvider('recaptcha');
-              setWidgetError(null);
-            }, 1000);
-          },
-        });
-      } catch {
-        setActiveProvider('recaptcha');
-      }
-    };
-
-    if (!script) {
-      script = document.createElement('script');
-      script.id = scriptId;
-      script.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit';
-      script.async = true;
-      script.defer = true;
-      script.onload = () => {
-        setTimeout(renderTurnstile, 200);
-      };
-      script.onerror = () => {
-        setActiveProvider('recaptcha');
-      };
-      document.head.appendChild(script);
-    } else if (window.turnstile) {
-      setTimeout(renderTurnstile, 100);
-    }
-
-    return () => {
-      if (turnstileWidgetIdRef.current && window.turnstile) {
-        try {
-          window.turnstile.remove(turnstileWidgetIdRef.current);
-        } catch {
-          // ignore
-        }
-        turnstileWidgetIdRef.current = null;
-      }
-    };
-  }, [isOpen, activeProvider, currentStep, isSequential, onSuccess]);
-
-  // Load Google reCAPTCHA v2 (with English language hl=en)
-  useEffect(() => {
-    if (!isOpen || activeProvider !== 'recaptcha') return;
-    setWidgetError(null);
-
-    const scriptId = 'google-recaptcha-script';
-    let script = document.getElementById(scriptId) as HTMLScriptElement | null;
-
-    const renderRecaptcha = () => {
-      if (!recaptchaContainerRef.current) return;
-      if (!window.grecaptcha || typeof window.grecaptcha.render !== 'function') {
-        setTimeout(renderRecaptcha, 150);
-        return;
-      }
-
-      window.grecaptcha.ready(() => {
-        if (!recaptchaContainerRef.current || !window.grecaptcha) return;
-        // If container already has rendered content, don't duplicate
-        if (recaptchaContainerRef.current.children.length > 0) return;
-
-        try {
-          recaptchaWidgetIdRef.current = window.grecaptcha.render(recaptchaContainerRef.current, {
-            sitekey: RECAPTCHA_SITE_KEY,
-            theme: 'light',
-            callback: (token: string) => {
-              setIsVerifying(true);
-              setTimeout(() => {
-                onSuccess(token, isSequential ? 'sequential' : 'recaptcha');
-                setIsVerifying(false);
-              }, 500);
-            },
-            'error-callback': () => {
-              setWidgetError('Unable to connect to reCAPTCHA service. Please use simulated bypass or retry.');
-            },
+        if (cloudflare && window.turnstile) {
+          turnstileId = window.turnstile.render(mount, {
+            sitekey: TURNSTILE_SITE_KEY, theme: 'dark', callback: answer, 'error-callback': onError,
           });
-        } catch (err) {
-          console.warn('reCAPTCHA render notice:', err);
-        }
-      });
+        } else if (!cloudflare && window.grecaptcha) {
+          window.grecaptcha.ready(() => {
+            if (disposed || !window.grecaptcha || cooldownSeconds > 0) return;
+            try {
+              googleId = window.grecaptcha.render(mount, {
+                sitekey: RECAPTCHA_SITE_KEY, theme: 'light', callback: answer, 'error-callback': onError,
+              });
+            } catch { onError(); }
+          });
+        } else { onError(); }
+      } catch { onError(); }
     };
-
-    if (!script) {
-      script = document.createElement('script');
-      script.id = scriptId;
-      script.src = 'https://www.google.com/recaptcha/api.js?render=explicit&hl=en';
-      script.async = true;
-      script.defer = true;
-      script.onload = () => {
-        setTimeout(renderRecaptcha, 250);
-      };
-      script.onerror = () => {
-        setWidgetError('Failed to load Google reCAPTCHA script.');
-      };
-      document.head.appendChild(script);
+    const id = cloudflare ? 'cf-turnstile-script' : 'google-recaptcha-script';
+    const existing = document.getElementById(id) as HTMLScriptElement | null;
+    const script = existing ?? document.createElement('script');
+    const loadError = () => { script.remove(); onError(); };
+    if (cloudflare ? window.turnstile : window.grecaptcha?.ready) {
+      render();
     } else {
-      setTimeout(renderRecaptcha, 150);
+      script.addEventListener('load', render);
+      script.addEventListener('error', loadError);
+      if (!existing) {
+        script.id = id;
+        script.async = true;
+        script.src = cloudflare
+          ? 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit'
+          : 'https://www.google.com/recaptcha/api.js?render=explicit&hl=vi';
+        document.head.appendChild(script);
+      }
     }
-
     return () => {
-      recaptchaWidgetIdRef.current = null;
+      disposed = true;
+      script.removeEventListener('load', render);
+      script.removeEventListener('error', loadError);
+      try {
+        if (turnstileId !== undefined) window.turnstile?.remove(turnstileId);
+        if (googleId !== undefined) window.grecaptcha?.reset(googleId);
+      } finally { mount.remove(); }
     };
-  }, [isOpen, activeProvider, isSequential, onSuccess]);
+  }, [isOpen, activeProvider, isSequential, cooldownSeconds]);
 
   if (!isOpen) return null;
 
+  const handleFailChallenge = (customMsg?: string) => {
+    const nextFails = internalFailCount + 1;
+    setInternalFailCount(nextFails);
+    onFail?.(nextFails);
+
+    if (nextFails >= 5) {
+      setCooldownSeconds(900);
+      setWidgetError('Bạn đã giải sai 5 lần liên tiếp. Phiên mua vé bị hủy để nhả vé về kho chung (Khóa 15 phút).');
+      setTimeout(() => {
+        onClose();
+      }, 3500);
+      return;
+    }
+
+    const cd = getCooldownSeconds(nextFails);
+    setCooldownSeconds(cd);
+    setWidgetError(customMsg || `Xác thực chưa đúng (Lần ${nextFails}/5). Vui lòng chờ ${cd}s trước khi thử lại.`);
+  };
+
   const handleSimulatePass = () => {
+    if (cooldownSeconds > 0) return;
     setIsVerifying(true);
     setTimeout(() => {
       const dummyToken = `simulated_${activeProvider}_${Date.now()}`;
-      onSuccess(dummyToken, isSequential ? 'sequential' : activeProvider);
+      setInternalFailCount(0);
+      onFail?.(0);
+      successRef.current(dummyToken, isSequential ? 'sequential' : activeProvider);
       setIsVerifying(false);
     }, 400);
   };
@@ -249,10 +219,11 @@ export const ChallengeModal: React.FC<ChallengeModalProps> = ({
               <ShieldCheck className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="font-display font-bold text-base text-white">Security Verification</h3>
+              <h3 className="font-display font-bold text-base text-white">Xác thực thao tác</h3>
+              {tierName && <p className="text-xs text-slate-300">{tierName}</p>}
               {isSequential && (
                 <div className="text-[11px] font-mono text-cyan-400 mt-0.5">
-                  Step {currentStep}/2: {currentStep === 1 ? 'Session Security Check' : 'Visual Puzzle Challenge'}
+                  Bước {currentStep}/2: {currentStep === 1 ? 'Kiểm tra an ninh' : 'Thử thách hình ảnh'}
                 </div>
               )}
             </div>
@@ -269,47 +240,84 @@ export const ChallengeModal: React.FC<ChallengeModalProps> = ({
         {/* Sequential Step Progress Bar (Only visible when sequential mode active) */}
         {isSequential && (
           <div className="flex items-center gap-2 px-1">
-            <div className={`h-1.5 flex-1 rounded-full transition-all ${isStep1Completed || currentStep === 1 ? 'bg-cyan-500' : 'bg-white/10'}`} />
+            <div className="h-1.5 flex-1 rounded-full bg-cyan-500" />
             <div className={`h-1.5 flex-1 rounded-full transition-all ${currentStep === 2 ? 'bg-cyan-500' : 'bg-white/10'}`} />
           </div>
         )}
 
-        {/* Challenge Widget Area - Clean, Centered Container */}
-        <div className="min-h-[120px] flex flex-col items-center justify-center p-5 bg-[#0a0f1a] border border-white/5 rounded-xl relative overflow-visible">
-          {activeProvider === 'turnstile' && (
-            <div ref={turnstileContainerRef} className="flex justify-center" />
-          )}
-
-          {activeProvider === 'recaptcha' && (
-            <div className="flex justify-center w-full">
-              <div ref={recaptchaContainerRef} className="flex justify-center shadow-md rounded overflow-visible" />
+        {/* Challenge Widget Area - Clean, Centered Container with Cooldown Lock (SCRUM-398) */}
+        <div className="min-h-[140px] flex flex-col items-center justify-center p-5 bg-[#0a0f1a] border border-white/5 rounded-xl relative overflow-visible">
+          {cooldownSeconds > 0 ? (
+            <div className="flex flex-col items-center justify-center p-4 text-center space-y-3">
+              <div className="w-10 h-10 rounded-full bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400">
+                <Clock className="w-5 h-5 animate-pulse" />
+              </div>
+              <div>
+                <p className="text-xs font-bold text-amber-300">
+                  Tạm thời khóa thử lại ({internalFailCount} lần chưa đúng)
+                </p>
+                <p className="text-[11px] text-slate-400 mt-1">
+                  Vui lòng chờ <span className="font-mono font-bold text-amber-400 text-sm">{cooldownSeconds}s</span> trước khi thử lại
+                </p>
+              </div>
+              <div className="w-48 h-1.5 bg-white/10 rounded-full overflow-hidden mt-1">
+                <div
+                  className="h-full bg-amber-400 transition-all duration-1000 ease-linear"
+                  style={{
+                    width: `${(cooldownSeconds / getCooldownSeconds(internalFailCount)) * 100}%`,
+                  }}
+                />
+              </div>
             </div>
-          )}
+          ) : (
+            <>
+              {activeProvider === 'turnstile' && (
+                <div ref={turnstileContainerRef} className="flex justify-center" />
+              )}
 
-          {widgetError && (
-            <p className="text-[11px] text-amber-400 text-center mt-3 font-mono">
-              {widgetError}
-            </p>
-          )}
+              {activeProvider === 'recaptcha' && (
+                <div className="flex justify-center w-full">
+                  <div ref={recaptchaContainerRef} className="flex justify-center shadow-md rounded overflow-visible" />
+                </div>
+              )}
 
-          {isVerifying && (
-            <div className="flex items-center gap-2 text-xs text-emerald-400 font-mono mt-3">
-              <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-              <span>Verifying challenge response...</span>
-            </div>
+              {widgetError && (
+                <p className="text-[11px] text-amber-400 text-center mt-3 font-mono">
+                  {widgetError}
+                </p>
+              )}
+
+              {isVerifying && (
+                <div className="flex items-center gap-2 text-xs text-emerald-400 font-mono mt-3">
+                  <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                  <span>Đang xác nhận kết quả...</span>
+                </div>
+              )}
+            </>
           )}
         </div>
 
         {/* Footer Actions */}
         <div className="pt-2 flex items-center justify-between border-t border-white/5">
-          <button
-            type="button"
-            onClick={handleSimulatePass}
-            disabled={isVerifying}
-            className="text-[11px] text-slate-500 hover:text-slate-300 transition-colors font-mono cursor-pointer"
-          >
-            Simulate Pass (Dev)
-          </button>
+          <div className="flex items-center gap-2.5">
+            <button
+              type="button"
+              onClick={handleSimulatePass}
+              disabled={isVerifying || cooldownSeconds > 0}
+              className="text-[11px] text-slate-500 hover:text-slate-300 disabled:opacity-30 transition-colors font-mono cursor-pointer"
+            >
+              Simulate Pass (Dev)
+            </button>
+            <span className="text-white/10">|</span>
+            <button
+              type="button"
+              onClick={() => handleFailChallenge()}
+              disabled={isVerifying || cooldownSeconds > 0}
+              className="text-[11px] text-rose-400/80 hover:text-rose-300 disabled:opacity-30 transition-colors font-mono cursor-pointer"
+            >
+              Simulate Fail (Dev)
+            </button>
+          </div>
 
           <div className="flex items-center gap-2">
             <button
@@ -317,7 +325,7 @@ export const ChallengeModal: React.FC<ChallengeModalProps> = ({
               onClick={onClose}
               className="px-4 py-2 bg-white/5 hover:bg-white/10 text-slate-300 text-xs font-medium rounded-xl transition-all cursor-pointer"
             >
-              Cancel
+              Hủy
             </button>
           </div>
         </div>

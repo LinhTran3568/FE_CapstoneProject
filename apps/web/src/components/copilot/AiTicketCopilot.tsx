@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { copilotApi } from '@ticketshield/api-client';
 import type { CopilotChatMessage, CopilotTicketItemDto } from '@ticketshield/types';
+import { TickyAvatar, type TickyState } from './TickyAvatar';
 
 interface ChatItem {
   id: string;
@@ -25,17 +26,19 @@ interface ChatItem {
 const INITIAL_MESSAGE: ChatItem = {
   id: 'welcome',
   role: 'assistant',
-  content: 'Xin chào! Tôi có thể giúp bạn tìm vé sự kiện theo mức giá, hoặc kiểm tra mức trần giá quy định trước khi đăng bán.',
+  content: "Hi! I'm Ticky, your smart ticket assistant. I can help you find event tickets by price, or verify resale price caps before listing.",
 };
 
 const SUGGESTIONS = [
-  'Vé ca nhạc dưới 1 triệu',
-  'Kiểm tra giá trần vé VIP',
-  'Chính sách bảo hiểm tiền 24h',
+  'Concert tickets under 1M',
+  'Check VIP ticket price cap',
+  'Hot concert tickets this week',
 ];
 
 export const AiTicketCopilot: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
+  const [tickyState, setTickyState] = useState<TickyState>('idle_calm');
+  const [isBubbleDismissed, setIsBubbleDismissed] = useState(false);
   const [messages, setMessages] = useState<ChatItem[]>([INITIAL_MESSAGE]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -71,6 +74,7 @@ export const AiTicketCopilot: React.FC = () => {
     ];
     setMessages(updatedMessages);
     setIsLoading(true);
+    setTickyState('thinking');
 
     const history: CopilotChatMessage[] = messages
       .filter((m) => m.id !== 'welcome')
@@ -99,18 +103,20 @@ export const AiTicketCopilot: React.FC = () => {
             : msg
         )
       );
+      setTickyState('hello');
     } catch {
       setMessages((prev) =>
         prev.map((msg) =>
           msg.id === assistantMsgId
             ? {
                 ...msg,
-                content: 'Hệ thống trợ lý vé đang bận hoặc quá tải kết nối. Vui lòng thử lại sau giây lát.',
+                content: 'Ticky is currently busy or experiencing high traffic. Please try again in a moment.',
                 isStreaming: false,
               }
             : msg
         )
       );
+      setTickyState(isOpen ? 'idle2' : 'idle_calm');
     } finally {
       setIsLoading(false);
     }
@@ -177,40 +183,95 @@ export const AiTicketCopilot: React.FC = () => {
     return parts.length > 0 ? parts : content;
   };
 
+  const handleToggleOpen = () => {
+    if (!isOpen) {
+      setIsOpen(true);
+      setTickyState('hello');
+    } else {
+      setIsOpen(false);
+      setTickyState('idle_calm');
+    }
+  };
+
   return (
     <>
-      {/* Floating Launcher Button */}
-      <div className="fixed bottom-20 right-4 z-40">
-        <button
-          onClick={() => setIsOpen(!isOpen)}
-          className={`w-12 h-12 rounded-full flex items-center justify-center transition-all duration-300 shadow-xl cursor-pointer ${
-            isOpen
-              ? 'bg-[#FF5A36] text-white rotate-90 scale-95 shadow-[#FF5A36]/30'
-              : 'bg-[#0D1117] text-white border border-white/15 hover:border-[#FF5A36]/60 hover:scale-105 shadow-black/60'
-          }`}
-          aria-label={isOpen ? 'Đóng trợ lý' : 'Mở trợ lý vé'}
-          title="Trợ lý Vé"
-        >
-          {isOpen ? (
-            <X className="w-5 h-5 text-white" />
-          ) : (
-            <div className="relative">
-              <Bot className="w-5 h-5 text-white" />
-              <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-emerald-500 border-2 border-[#0D1117]" />
-            </div>
+      {/* Free-standing Enlarged Ticky Mascot */}
+      <div className="fixed bottom-2 -left-8 sm:-left-12 lg:-left-14 z-40 select-none">
+        {/* Speech Bubble thông báo Chatbox khi chưa mở */}
+        <AnimatePresence>
+          {!isOpen && !isBubbleDismissed && (
+            <motion.div
+              initial={{ opacity: 0, y: 10, scale: 0.9 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 10, scale: 0.9 }}
+              transition={{ duration: 0.25 }}
+              className="absolute -top-3 left-24 sm:left-32 z-50 pointer-events-auto"
+            >
+              <div
+                onClick={handleToggleOpen}
+                className="relative px-3.5 py-2 rounded-2xl bg-[#0D1117]/95 border border-white/15 text-white shadow-2xl backdrop-blur-md flex items-center gap-2 group hover:border-[#FF5A36]/60 transition-all cursor-pointer"
+              >
+                <span className="w-2 h-2 rounded-full bg-[#FF5A36] animate-pulse shrink-0" />
+                <span className="text-xs font-medium text-[#F5F5F2] whitespace-nowrap">
+                  Ask Ticky to find tickets!
+                </span>
+                <Sparkles className="w-3.5 h-3.5 text-[#FF5A36] shrink-0" />
+
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setIsBubbleDismissed(true);
+                  }}
+                  className="ml-0.5 p-0.5 text-white/40 hover:text-white transition-colors rounded"
+                  title="Dismiss notification"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+
+                {/* Đuôi nhọn bong bóng thoại trỏ xuống Ticky */}
+                <div className="absolute -bottom-1.5 left-5 w-3 h-3 bg-[#0D1117] border-b border-l border-white/15 rotate-[-45deg]" />
+              </div>
+            </motion.div>
           )}
+        </AnimatePresence>
+
+        <button
+          onClick={handleToggleOpen}
+          onMouseEnter={() => {
+            if (!isOpen && tickyState === 'idle_calm') {
+              setTickyState('idle1');
+            }
+          }}
+          onMouseLeave={() => {
+            if (!isOpen && tickyState === 'idle1') {
+              setTickyState('idle_calm');
+            }
+          }}
+          className="relative block p-0 bg-transparent border-0 outline-none cursor-pointer group transition-transform duration-200 hover:scale-105 active:scale-95 focus:outline-none"
+          aria-label={isOpen ? 'Minimize Ticky' : 'Chat with Ticky'}
+          title="Ticky Assistant"
+        >
+          {/* Nhân vật Mascot Ticky phóng to nổi bật */}
+          <div className="w-44 h-44 sm:w-56 sm:h-56 flex items-center justify-center filter drop-shadow-[0_12px_28px_rgba(0,0,0,0.7)]">
+            <TickyAvatar
+              state={tickyState}
+              onStateChange={setTickyState}
+              className="w-full h-full scale-125 origin-bottom-left"
+            />
+          </div>
         </button>
       </div>
 
-      {/* Floating Chat Modal */}
+      {/* Floating Chat Modal (Mở cố định ở bên phải Mascot Ticky) */}
       <AnimatePresence>
         {isOpen && (
           <motion.div
-            initial={{ opacity: 0, y: 20, scale: 0.95 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 20, scale: 0.95 }}
+            initial={{ opacity: 0, x: -20, scale: 0.95 }}
+            animate={{ opacity: 1, x: 0, scale: 1 }}
+            exit={{ opacity: 0, x: -20, scale: 0.95 }}
             transition={{ duration: 0.2 }}
-            className="fixed bottom-36 right-4 sm:right-6 z-50 w-[92vw] sm:w-[400px] h-[520px] max-h-[80vh] rounded-2xl bg-[#0D1117] border border-white/10 shadow-2xl flex flex-col overflow-hidden backdrop-blur-xl"
+            className="fixed bottom-4 left-4 right-4 sm:right-auto sm:left-36 lg:left-44 z-50 w-auto sm:w-[390px] h-[540px] max-h-[84vh] rounded-2xl bg-[#0D1117]/95 border border-white/10 shadow-2xl flex flex-col overflow-hidden backdrop-blur-xl"
           >
             {/* Header */}
             <div className="px-4 py-3 border-b border-white/10 flex items-center justify-between bg-white/[0.02]">
@@ -219,7 +280,7 @@ export const AiTicketCopilot: React.FC = () => {
                   <Sparkles className="w-3.5 h-3.5 text-[#FF5A36]" />
                 </div>
                 <div>
-                  <h3 className="text-sm font-semibold text-white tracking-wide">Trợ lý Vé</h3>
+                  <h3 className="text-sm font-semibold text-white tracking-wide">Ticky</h3>
                 </div>
               </div>
 
@@ -227,14 +288,17 @@ export const AiTicketCopilot: React.FC = () => {
                 <button
                   onClick={handleResetChat}
                   className="p-1.5 rounded-lg text-white/50 hover:text-white hover:bg-white/5 transition-colors"
-                  title="Bắt đầu hội thoại mới"
+                  title="New conversation"
                 >
                   <RotateCcw className="w-3.5 h-3.5" />
                 </button>
                 <button
-                  onClick={() => setIsOpen(false)}
+                  onClick={() => {
+                    setIsOpen(false);
+                    setTickyState('idle_calm');
+                  }}
                   className="p-1.5 rounded-lg text-white/50 hover:text-white hover:bg-white/5 transition-colors"
-                  title="Thu nhỏ"
+                  title="Minimize"
                 >
                   <X className="w-4 h-4" />
                 </button>
@@ -260,7 +324,7 @@ export const AiTicketCopilot: React.FC = () => {
                     ) : msg.isStreaming ? (
                       <span className="inline-flex items-center gap-1 text-white/60">
                         <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                        Đang phản hồi...
+                        Ticky is typing...
                       </span>
                     ) : null}
                   </div>
@@ -269,8 +333,8 @@ export const AiTicketCopilot: React.FC = () => {
                   {msg.suggestedTickets && msg.suggestedTickets.length > 0 && (
                     <div className="w-full mt-2.5 space-y-2">
                       <div className="text-[11px] font-medium text-white/50 px-1 flex items-center justify-between">
-                        <span>Vé phù hợp trên sàn:</span>
-                        <span className="text-[10px] text-[#FF5A36]">Bấm để xem & mua vé</span>
+                        <span>Matching tickets on marketplace:</span>
+                        <span className="text-[10px] text-[#FF5A36]">Click to view & purchase</span>
                       </div>
                       {msg.suggestedTickets.map((t) => (
                         <div
@@ -284,7 +348,7 @@ export const AiTicketCopilot: React.FC = () => {
                             </div>
                             <div className="text-[11px] text-[#A3A8B3] flex items-center gap-1.5 mt-0.5">
                               <span className="font-medium text-white/80">{t.tierName}</span>
-                              {t.seatZone && <span>• Khu {t.seatZone}</span>}
+                              {t.seatZone && <span>• Zone {t.seatZone}</span>}
                             </div>
                             <div className="text-xs font-semibold text-[#FF5A36] mt-1 flex items-center gap-2">
                               <span>{t.resalePrice.toLocaleString('vi-VN')} đ</span>
@@ -300,7 +364,7 @@ export const AiTicketCopilot: React.FC = () => {
                               <ArrowRight className="w-3.5 h-3.5" />
                             </div>
                             <span className="text-[10px] text-white/40 group-hover:text-[#FF5A36] transition-colors font-medium">
-                              Xem vé
+                              View ticket
                             </span>
                           </div>
                         </div>
@@ -341,7 +405,7 @@ export const AiTicketCopilot: React.FC = () => {
                   type="text"
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
-                  placeholder="Nhập câu hỏi hoặc yêu cầu tìm vé..."
+                  placeholder="Ask a question or search for tickets..."
                   disabled={isLoading}
                   className="flex-1 bg-white/5 border border-white/10 rounded-xl px-3.5 py-2 text-xs sm:text-sm text-white placeholder-white/40 focus:outline-none focus:border-[#FF5A36] transition-colors"
                 />
@@ -349,7 +413,7 @@ export const AiTicketCopilot: React.FC = () => {
                   type="submit"
                   disabled={!input.trim() || isLoading}
                   className="p-2 rounded-xl bg-[#FF5A36] hover:bg-[#E04826] disabled:opacity-40 disabled:hover:bg-[#FF5A36] text-white transition-colors cursor-pointer"
-                  title="Gửi"
+                  title="Send"
                 >
                   {isLoading ? (
                     <Loader2 className="w-4 h-4 animate-spin" />

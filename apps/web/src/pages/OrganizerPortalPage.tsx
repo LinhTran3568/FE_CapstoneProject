@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { Copy, RefreshCw, Plus, RotateCcw, Check, Ticket, KeyRound, Activity, Sliders, ScanLine, AlertCircle, Minus } from 'lucide-react';
+import { Copy, RefreshCw, Plus, RotateCcw, Check, Ticket, KeyRound, Activity, Sliders, ScanLine, AlertCircle, Minus, Eye } from 'lucide-react';
 import { useUIStore } from '../stores/uiStore';
 import GateScanTab from '../components/organizer/GateScanTab';
+import { AiVectorInspectionModal } from '../components/organizer/AiVectorInspectionModal';
 import {
   getMockOrganizerApiBase,
   organizerStoreApi,
@@ -48,6 +49,7 @@ export const OrganizerPortalPage: React.FC = () => {
 
   // Security & Policy state (US-8.4)
   const [analytics, setAnalytics] = useState<AntiBotAnalyticsSummary | null>(null);
+  const [inspectedLog, setInspectedLog] = useState<any | null>(null);
   const [allowThreshold, setAllowThreshold] = useState<number>(0.35);
   const [blockThreshold, setBlockThreshold] = useState<number>(0.75);
   const [challengeMode, setChallengeMode] = useState<'recaptcha' | 'turnstile' | 'sequential'>('recaptcha');
@@ -678,13 +680,14 @@ export const OrganizerPortalPage: React.FC = () => {
                       <th className="pb-3">Decision</th>
                       <th className="pb-3">Risk Score</th>
                       <th className="pb-3">Latency</th>
-                      <th className="pb-3 pr-2">Notes</th>
+                      <th className="pb-3">Notes</th>
+                      <th className="pb-3 pr-2 text-right">Vector</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-white/5">
                     {(!analytics?.recentLogs || analytics.recentLogs.length === 0) ? (
                       <tr>
-                        <td colSpan={6} className="py-8 text-center text-slate-500">
+                        <td colSpan={7} className="py-8 text-center text-slate-500">
                           No recent transactions recorded.
                         </td>
                       </tr>
@@ -720,8 +723,18 @@ export const OrganizerPortalPage: React.FC = () => {
                             <td className="py-3 font-mono text-slate-400">
                               {Number(log.latencyMs).toFixed(1)} ms
                             </td>
-                            <td className="py-3 pr-2 text-slate-400 truncate max-w-[200px]">
+                            <td className="py-3 text-slate-400 truncate max-w-[160px]">
                               {log.isFailOpen ? 'Fail-open fallback' : log.reason || '-'}
+                            </td>
+                            <td className="py-3 pr-2 text-right">
+                              <button
+                                onClick={() => setInspectedLog(log)}
+                                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-300 border border-cyan-500/20 text-[11px] font-mono font-medium transition-all cursor-pointer"
+                                title="Inspect 11D AI feature vector"
+                              >
+                                <Eye className="w-3 h-3" />
+                                <span>Inspect</span>
+                              </button>
                             </td>
                           </tr>
                         );
@@ -916,6 +929,13 @@ export const OrganizerPortalPage: React.FC = () => {
 
         {/* TAB 3: GATE CHECK-IN (US-9.4) */}
         {activeTab === 'gate' && <GateScanTab apiBase={ORGANIZER_API} />}
+
+        {/* 11D Feature Vector & Decision Inspector Modal (SCRUM-399) */}
+        <AiVectorInspectionModal
+          isOpen={!!inspectedLog}
+          onClose={() => setInspectedLog(null)}
+          log={inspectedLog}
+        />
 
       </div>
     </div>

@@ -8,6 +8,12 @@ export const myPurchasedTicketsQueryKey = ['resale-listings', 'my-purchased-tick
 
 const unpaidOrRefundedStatuses = new Set(['PENDING_PAYMENT', 'REFUNDED', 'REFUNDQUEUED']);
 
+/** A valid entry pass can still have its payment held in escrow. */
+const walletStatus = (purchaseStatus: string, gateStatus?: string) => {
+  if (gateStatus === 'USED' || gateStatus === 'EXPIRED') return gateStatus;
+  return purchaseStatus;
+};
+
 const isPaidPurchasedPass = (ticket: PurchasedTicketDto) => {
   const status = (ticket.status || '').trim().toUpperCase();
   return !unpaidOrRefundedStatuses.has(status);
@@ -55,7 +61,7 @@ export const useMyTickets = ({ includeDisputeHistory = false }: UseMyTicketsOpti
         const organizerStatus = liveStatuses.get(ticket.ticketPassCode);
         return {
           ...ticket,
-          status: organizerStatus || ticket.status,
+          status: walletStatus(ticket.status, organizerStatus),
           bundleItems,
         };
       });

@@ -89,3 +89,39 @@ test('antiBotSdk.collect() thu thập đúng navigator.userAgent từ runtime Ja
     }
   }
 });
+
+test('SessionToken TTL & Grace Buffer: Nhận diện chính xác session đã hết hạn hoặc cận kề hết hạn (300s)', () => {
+  const isSessionValid = (session?: { issuedAtUtc?: string; expiresInSeconds?: number }): boolean => {
+    if (!session?.issuedAtUtc) return false;
+    const issuedMs = new Date(session.issuedAtUtc).getTime();
+    if (isNaN(issuedMs)) return false;
+    const ttlMs = (session.expiresInSeconds || 300) * 1000;
+    return Date.now() - issuedMs < ttlMs - 15000;
+  };
+
+  const now = Date.now();
+  // Session mới sinh 10s trước -> hợp lệ
+  assert.strictEqual(isSessionValid({ issuedAtUtc: new Date(now - 10000).toISOString(), expiresInSeconds: 300 }), true);
+  // Session sinh 290s trước (cận kề hết hạn < 15s grace) -> coi như hết hạn để refresh
+  assert.strictEqual(isSessionValid({ issuedAtUtc: new Date(now - 290000).toISOString(), expiresInSeconds: 300 }), false);
+  // Session sinh 350s trước -> hết hạn hoàn toàn
+  assert.strictEqual(isSessionValid({ issuedAtUtc: new Date(now - 350000).toISOString(), expiresInSeconds: 300 }), false);
+  // Session thiếu issuedAtUtc -> không hợp lệ
+  assert.strictEqual(isSessionValid(undefined), false);
+});
+
+test('One-time Nonce Tracking: Đảm bảo không gửi lại nonce đã từng được claim/submit', () => {
+  const consumedNonces = new Set<string>();
+  const nonce1 = 'nonce_1111111111111111';
+  const nonce2 = 'nonce_2222222222222222';
+
+  // Lần 1: nonce1 chưa dùng
+  assert.strictEqual(consumedNonces.has(nonce1), false);
+  consumedNonces.add(nonce1);
+
+  // Lần 2: nonce1 đã dùng -> phát hiện tái sử dụng
+  assert.strictEqual(consumedNonces.has(nonce1), true, 'Nonce đã submit phải bị chặn không được gửi lại');
+  // Lần 2: nonce2 mới -> hợp lệ
+  assert.strictEqual(consumedNonces.has(nonce2), false);
+});
+

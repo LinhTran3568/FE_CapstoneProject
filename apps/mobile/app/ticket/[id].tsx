@@ -259,6 +259,18 @@ export default function TicketDetailScreen() {
                   Checked In · Cycle Completed
                 </Text>
               </View>
+            ) : (ticket.status === 'VALID' || ticket.status === 'COMPLETED') && !ticket.disputeId ? (
+              <View
+                style={[
+                  styles.disputeBtn,
+                  { backgroundColor: 'rgba(16, 185, 129, 0.15)', borderColor: 'rgba(16, 185, 129, 0.4)' },
+                ]}
+              >
+                <Check size={16} color="#10B981" />
+                <Text style={[styles.disputeBtnText, { color: '#10B981' }]}>
+                  Escrow Completed · Payout Done
+                </Text>
+              </View>
             ) : (
               <TouchableOpacity
                 style={[
@@ -267,7 +279,7 @@ export default function TicketDetailScreen() {
                     styles.disputeBtnActive,
                 ]}
                 onPress={() => {
-                  if (ticket.status === 'USED') return;
+                  if (ticket.status === 'USED' || ticket.status === 'VALID' || ticket.status === 'COMPLETED') return;
                   setIsDisputeModalOpen(true);
                 }}
                 activeOpacity={0.85}

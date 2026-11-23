@@ -740,15 +740,7 @@ const OfficialTicketPassCard: React.FC<OfficialTicketPassCardProps> = ({ ticket,
               <ShieldAlert className="w-3 h-3 text-amber-700 shrink-0" />
               <span>Buyer Disputed</span>
             </div>
-          ) : ticket.status === 'USED' || isUsed ? (
-            <div
-              className="w-full py-1 px-1.5 bg-emerald-100 border border-emerald-500/50 text-emerald-800 font-bold text-[9.5px] sm:text-[10px] tracking-tight rounded-lg flex items-center justify-center gap-1 text-center select-none"
-              title="Ticket checked in at gate. Transaction cycle completed."
-            >
-              <Check className="w-3 h-3 text-emerald-700 shrink-0" />
-              <span>CHECKED IN · CYCLE COMPLETED</span>
-            </div>
-          ) : ticket.disputeWaived ? (
+          ) : ticket.status === 'USED' || isUsed ? null : ticket.disputeWaived ? (
             <div className="w-full py-1 px-1.5 bg-slate-100 border border-slate-300 text-slate-500 font-bold text-[9.5px] sm:text-[10px] tracking-tight rounded-lg flex items-center justify-center gap-1 text-center select-none" title="This ticket was listed for resale. Dispute rights are waived.">
               <span>RESOLD — DISPUTE WAIVED</span>
             </div>

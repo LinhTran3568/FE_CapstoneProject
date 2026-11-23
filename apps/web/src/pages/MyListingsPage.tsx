@@ -173,9 +173,7 @@ const ListingFinancialBreakdown: React.FC<{
     ? listing.totalBuyerPaid - (listing.buyerFee || 0)
     : listing.sellerFee != null && listing.netSellerPayout != null
       ? listing.netSellerPayout + listing.sellerFee
-      : isBundle && bundleTotal > 1
-        ? singlePrice * bundleTotal
-        : singlePrice;
+      : singlePrice;
 
   const feeAmount = listing.sellerFee ?? Math.max(0, grossAmount - netPayout);
   const feePercent = grossAmount > 0 ? Math.round((feeAmount / grossAmount) * 100) : 0;
@@ -185,7 +183,7 @@ const ListingFinancialBreakdown: React.FC<{
       {/* Fee Breakdown */}
       <div className="space-y-1.5 pb-2 border-b border-white/10">
         <div className="flex justify-between text-gray-400">
-          <span>Listing Price {isBundle && bundleTotal > 1 ? `(${bundleTotal} tickets)` : ''}:</span>
+          <span>Listing Price:</span>
           <span className="text-white font-semibold tabular-nums">+{formatVND(grossAmount)}</span>
         </div>
         <div className="flex justify-between text-rose-400">
@@ -809,7 +807,7 @@ export const MyListingsPage: React.FC = () => {
                                 <span>View Progress</span>
                               </button>
                             </div>
-                          ) : listing.inSettlementBuffer ? (
+                          ) : listing.inSettlementBuffer || listing.escrowStatus === 'Locked' || (listing.listingStatus === 'Sold' && listing.escrowStatus !== 'Released' && listing.payoutStatus !== 'Success' && listing.payoutStatus !== 'Processed') ? (
                             <SettlementCountdownBanner
                               unlockAt={listing.unlockAt}
                               netSellerPayout={listing.netSellerPayout}

@@ -51,6 +51,12 @@ const DRAFT_STORAGE_KEY = 'ticketshield_sell_draft';
     code: string;
     verificationId: string;
     originalPrice: number;
+    eventName?: string;
+    eventVenue?: string;
+    eventStartAt?: string;
+    tierName?: string;
+    seatZone?: string;
+    organizerName?: string;
     priceCeiling: number;
     markupPercent: number;
     locked: boolean;
@@ -360,7 +366,10 @@ const DRAFT_STORAGE_KEY = 'ticketshield_sell_draft';
   /** Đóng mọi phiên đã tạo (dùng khi luồng lỗi giữa chừng) — không để vé nào bị khoá treo. */
   const closeAllSessions = useCallback(async () => {
     const ids = sessions.map((s) => s.verificationId).filter(Boolean);
-    await Promise.allSettled(ids.map((id) => resaleApi.closeVerification(id)));
+    await Promise.all(ids.map(async (id) => {
+      const result = await resaleApi.closeVerification(id);
+      if (result.status !== 'Closed') throw new Error('Verification closure is pending.');
+    }));
   }, [sessions]);
 
   // Step 1: Request an OTP for EVERY ticket (BTC issues one OTP per ticket)
@@ -550,6 +559,12 @@ const DRAFT_STORAGE_KEY = 'ticketshield_sell_draft';
             ? {
                 ...s,
                 locked: true,
+                eventName: result.eventName,
+                eventVenue: result.eventVenue,
+                eventStartAt: result.eventStartAt,
+                tierName: result.tierName,
+                seatZone: result.seatZone,
+                organizerName: result.organizerName,
                 originalPrice: result.originalPrice ?? s.originalPrice,
                 markupPercent: result.markupPercent ?? s.markupPercent,
                 priceCeiling:
@@ -580,7 +595,12 @@ const DRAFT_STORAGE_KEY = 'ticketshield_sell_draft';
         errorCode === 'TICKET_LOCKED';
 
       if (isFatal) {
-        await closeAllSessions();
+        try {
+          await closeAllSessions();
+        } catch {
+          showToast('Could not close verification. Retry cancellation to unlock the tickets.', 'error');
+          return false;
+        }
         resetToStep1(sessions.map((s) => s.code).join(', '));
         const fatalMsg =
           errorCode === 'OTP_ATTEMPTS_EXHAUSTED' || status === 429
@@ -695,8 +715,7 @@ const DRAFT_STORAGE_KEY = 'ticketshield_sell_draft';
       fetchExistingListings();
     } catch (err: any) {
       console.warn('Could not close verification session on backend', err);
-      showToast('Draft session cleared locally.', 'warning');
-      resetToStep1();
+      showToast('Could not close the verification. Please retry to unlock your ticket.', 'warning');
     } finally {
       setIsCancellingSession(false);
     }
@@ -807,18 +826,19 @@ const DRAFT_STORAGE_KEY = 'ticketshield_sell_draft';
         return;
       }
 
+      if (errorCode === 'TICKET_MAPPING_NOT_CONFIGURED' || rawMsg.includes('TICKET_MAPPING_NOT_CONFIGURED')) {
+        await handleAbandonSession();
+        showToast('This ticket tier is missing from the organizer catalog.', 'error');
+        return;
+      }
+
       const isExpiredSession =
-        err?.response?.status === 409 ||
         rawMsg.includes('INVALID_VERIFICATION_STATE') ||
         rawMsg.includes('VERIFICATION_NOT_FOUND') ||
         rawMsg.includes('LOCK_NOT_HELD');
 
       if (isExpiredSession) {
-        try {
-          localStorage.removeItem(DRAFT_STORAGE_KEY);
-        } catch {}
-        showToast('Ticket verification session has expired. Please verify your ticket again to proceed.', 'error');
-        setCurrentStep(1);
+        await handleAbandonSession();
       } else {
         const msg = rawMsg || 'Could not publish listing. Please try again.';
         showToast(msg, 'error');
@@ -1074,35 +1094,17 @@ const DRAFT_STORAGE_KEY = 'ticketshield_sell_draft';
               );
               return {
                 code: s.code,
+                organizerName: s.organizerName,
                 originalPrice: s.originalPrice,
                 priceCeiling: s.priceCeiling,
-                seatZone: matched?.seatZone,
-                tierName: matched?.tierName,
-                eventStartAt: matched?.eventStartAt,
-                eventName: matched?.eventName,
-                eventVenue: matched?.eventVenue,
+                seatZone: s.seatZone || matched?.seatZone,
+                tierName: s.tierName || matched?.tierName,
+                eventStartAt: s.eventStartAt || matched?.eventStartAt,
+                eventName: s.eventName || matched?.eventName,
+                eventVenue: s.eventVenue || matched?.eventVenue,
               };
             })}
             markupPercent={markupPercent}
-            eventName={
-              allPurchasedTickets.find(
-                (t) => purchasedPassCode(t).toUpperCase() === sessions[0]?.code?.toUpperCase()
-              )?.eventName ||
-              (organizers.find((o) => o.id === selectedOrganizerId)?.name
-                ? `Live Concert by ${organizers.find((o) => o.id === selectedOrganizerId)?.name}`
-                : 'Official Concert Event')
-            }
-            eventVenue={
-              allPurchasedTickets.find(
-                (t) => purchasedPassCode(t).toUpperCase() === sessions[0]?.code?.toUpperCase()
-              )?.eventVenue || 'National Stadium'
-            }
-            eventStartAt={
-              allPurchasedTickets.find(
-                (t) => purchasedPassCode(t).toUpperCase() === sessions[0]?.code?.toUpperCase()
-              )?.eventStartAt
-            }
-            organizerName={organizers.find((o) => o.id === selectedOrganizerId)?.name || 'Event Organizer'}
             onContinue={() => {
               setPriceSubStep('pricing');
               setCurrentStep(4);
@@ -1141,19 +1143,16 @@ const DRAFT_STORAGE_KEY = 'ticketshield_sell_draft';
             bankAccounts={bankAccounts}
             seatZone={
               allPurchasedTickets.find((t) => purchasedPassCode(t).toUpperCase() === sessions[0]?.code?.toUpperCase())?.seatZone ||
-              (sessions[0] as any)?.seatZone ||
+              sessions[0]?.seatZone ||
               undefined
             }
             eventName={
               allPurchasedTickets.find((t) => purchasedPassCode(t).toUpperCase() === sessions[0]?.code?.toUpperCase())?.eventName ||
-              (sessions[0] as any)?.eventName ||
-              (organizers.find((o) => o.id === selectedOrganizerId)?.name
-                ? `Live Concert by ${organizers.find((o) => o.id === selectedOrganizerId)?.name}`
-                : 'Live Concert Event')
+              sessions[0]?.eventName || 'Event not provided'
             }
             eventVenue={
               allPurchasedTickets.find((t) => purchasedPassCode(t).toUpperCase() === sessions[0]?.code?.toUpperCase())?.eventVenue ||
-              'National Stadium'
+              sessions[0]?.eventVenue || 'Venue not provided'
             }
             isPrivateListing={isPrivateListing}
             setIsPrivateListing={setIsPrivateListing}

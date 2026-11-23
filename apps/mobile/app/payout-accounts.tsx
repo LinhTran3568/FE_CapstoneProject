@@ -20,6 +20,8 @@ import {
   Check,
   X,
   Plus,
+  Trash2,
+  CircleCheck,
 } from 'lucide-react-native';
 import { bankAccountsApi, BankInfo } from '@ticketshield/api-client';
 import { UserBankAccountDto } from '@ticketshield/types';
@@ -45,6 +47,7 @@ export default function PayoutAccountsScreen() {
   const [accountHolderName, setAccountHolderName] = useState('');
   const [isDefault, setIsDefault] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [updatingAccountId, setUpdatingAccountId] = useState<string | null>(null);
 
   // Tra cứu tự động tên chủ tài khoản
   const [isSearchingName, setIsSearchingName] = useState(false);
@@ -190,6 +193,53 @@ export default function PayoutAccountsScreen() {
     }
   };
 
+  const handleSelectPayoutAccount = async (account: UserBankAccountDto) => {
+    if (account.isDefault || updatingAccountId) return;
+
+    try {
+      setUpdatingAccountId(account.id);
+      await bankAccountsApi.setDefaultBankAccount(account.id);
+      // Keep the list stable on mobile; indicate selection without moving cards.
+      setBankAccounts((current) => current.map((item) => ({
+        ...item,
+        isDefault: item.id === account.id,
+      })));
+      Alert.alert('Payout account updated', 'Future payouts will be sent to this account.');
+    } catch (err: any) {
+      const msg = err?.response?.data?.message || err?.message || 'Could not update the payout account. Please try again.';
+      Alert.alert('Update failed', msg);
+    } finally {
+      setUpdatingAccountId(null);
+    }
+  };
+
+  const confirmDeleteAccount = (account: UserBankAccountDto) => {
+    Alert.alert(
+      'Remove bank account?',
+      'This will remove the linked bank account from your payout settings.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Remove',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              setUpdatingAccountId(account.id);
+              await bankAccountsApi.deleteBankAccount(account.id);
+              setBankAccounts((current) => current.filter((item) => item.id !== account.id));
+              Alert.alert('Account removed', 'The bank account has been removed.');
+            } catch (err: any) {
+              const msg = err?.response?.data?.message || err?.message || 'Could not remove this bank account. Please try again.';
+              Alert.alert('Remove failed', msg);
+            } finally {
+              setUpdatingAccountId(null);
+            }
+          },
+        },
+      ],
+    );
+  };
+
   return (
     <>
       <Stack.Screen
@@ -221,39 +271,73 @@ export default function PayoutAccountsScreen() {
           ) : (
             bankAccounts.map((acc, index) => {
               const bank = banks.find((b) => b.code === acc.bankCode);
+              const isUpdating = updatingAccountId === acc.id;
               return (
-                <View key={acc.id || index} style={styles.accountCard}>
-                  <View style={styles.accountCardHeader}>
-                    <View style={styles.bankInfoSlot}>
-                      <View style={styles.bankBadgeIcon}>
-                        <Building2 size={18} color={theme.colors.primary} />
+                <View key={acc.id || index} style={[styles.accountCard, acc.isDefault && styles.accountCardDefault]}>
+                  <TouchableOpacity
+                    style={[styles.accountSelectArea, acc.isDefault && styles.accountSelectAreaDefault]}
+                    onPress={() => handleSelectPayoutAccount(acc)}
+                    disabled={acc.isDefault || updatingAccountId !== null}
+                    activeOpacity={0.78}
+                    accessibilityRole="button"
+                    accessibilityLabel={acc.isDefault
+                      ? `${bank?.shortName || acc.bankCode} is selected for payouts`
+                      : `Select ${bank?.shortName || acc.bankCode} account for payouts`}
+                    accessibilityState={{ selected: acc.isDefault, disabled: updatingAccountId !== null }}
+                  >
+                    <View style={styles.accountCardHeader}>
+                      <View style={styles.bankInfoSlot}>
+                        <View style={styles.bankBadgeIcon}>
+                          <Building2 size={18} color={theme.colors.primary} />
+                        </View>
+                        <View style={styles.bankTextGroup}>
+                          <Text style={styles.bankShortName}>{bank?.shortName || acc.bankCode}</Text>
+                          <Text style={styles.bankFullName} numberOfLines={1}>
+                            {bank?.name || acc.bankCode}
+                          </Text>
+                        </View>
                       </View>
-                      <View style={styles.bankTextGroup}>
-                        <Text style={styles.bankShortName}>{bank?.shortName || acc.bankCode}</Text>
-                        <Text style={styles.bankFullName} numberOfLines={1}>
-                          {bank?.name || acc.bankCode}
-                        </Text>
+                      {acc.isDefault && (
+                        <View style={styles.defaultBadge}>
+                          <Check size={12} color={theme.colors.success} />
+                          <Text style={styles.defaultBadgeText}>Default Payout</Text>
+                        </View>
+                      )}
+                    </View>
+
+                    <View style={styles.accountCardDivider} />
+
+                    <View style={styles.accountCardBottom}>
+                      <View>
+                        <Text style={styles.accountNumberLabel}>Account Number</Text>
+                        <Text style={styles.accountNumber}>{acc.bankAccountNumber}</Text>
+                      </View>
+                      <View style={styles.accountHolderGroup}>
+                        <Text style={styles.accountHolderLabel}>Beneficiary Name</Text>
+                        <Text style={styles.accountHolder}>{acc.accountHolderName}</Text>
                       </View>
                     </View>
-                    {acc.isDefault && (
-                      <View style={styles.defaultBadge}>
-                        <Check size={12} color={theme.colors.success} />
-                        <Text style={styles.defaultBadgeText}>Default Payout</Text>
+                  </TouchableOpacity>
+
+                  <View style={styles.accountActions}>
+                    {acc.isDefault ? (
+                      <View style={styles.selectedPayoutStatus}>
+                        <CircleCheck size={15} color={theme.colors.success} />
+                        <Text style={styles.selectedPayoutText}>Selected for future payouts</Text>
                       </View>
+                    ) : (
+                      <Text style={styles.selectAccountHint}>{isUpdating ? 'Selecting account...' : 'Tap card to select for payouts'}</Text>
                     )}
-                  </View>
-
-                  <View style={styles.accountCardDivider} />
-
-                  <View style={styles.accountCardBottom}>
-                    <View>
-                      <Text style={styles.accountNumberLabel}>Account Number</Text>
-                      <Text style={styles.accountNumber}>{acc.bankAccountNumber}</Text>
-                    </View>
-                    <View style={styles.accountHolderGroup}>
-                      <Text style={styles.accountHolderLabel}>Beneficiary Name</Text>
-                      <Text style={styles.accountHolder}>{acc.accountHolderName}</Text>
-                    </View>
+                    <TouchableOpacity
+                      style={styles.deleteAccountButton}
+                      onPress={() => confirmDeleteAccount(acc)}
+                      disabled={updatingAccountId !== null}
+                      activeOpacity={0.7}
+                      accessibilityRole="button"
+                      accessibilityLabel={`Remove ${bank?.shortName || acc.bankCode} account ending in ${acc.bankAccountNumber.slice(-4)}`}
+                    >
+                      <Trash2 size={18} color={theme.colors.textMuted} />
+                    </TouchableOpacity>
                   </View>
                 </View>
               );
