@@ -6,9 +6,10 @@ import {
   TouchableOpacity,
   Modal,
   ActivityIndicator,
+  Alert,
 } from 'react-native';
 import { Text } from '../../src/components/AppText';
-import { useRouter, useFocusEffect } from 'expo-router';
+import { useRouter, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets, SafeAreaView } from 'react-native-safe-area-context';
 import {
   Search,
@@ -53,6 +54,27 @@ function matchesBand(price: number, band: PriceBand): boolean {
   return true;
 }
 
+function listingAvailability(item: ResaleListingDetailDto, bundleItems: ResaleListingDetailDto[], user: ReturnType<typeof useAuthStore.getState>['user']) {
+  const isOwnListing = Boolean(
+    user && (
+      (item.sellerId && user.id && item.sellerId.toLowerCase() === user.id.toLowerCase()) ||
+      (item.sellerFullName && user.fullName && item.sellerFullName.trim().toLowerCase() === user.fullName.trim().toLowerCase()) ||
+      ((item as any).userId && user.id && (item as any).userId.toLowerCase() === user.id.toLowerCase()) ||
+      bundleItems.some(
+        (b) =>
+          (b.sellerId && user.id && b.sellerId.toLowerCase() === user.id.toLowerCase()) ||
+          (b.sellerFullName && user.fullName && b.sellerFullName.trim().toLowerCase() === user.fullName.trim().toLowerCase()) ||
+          ((b as any).userId && user.id && (b as any).userId.toLowerCase() === user.id.toLowerCase())
+      )
+    )
+  );
+
+  const isReserved = [item, ...bundleItems].some(
+    (listing) => (listing.listingStatus || '').toLowerCase() === 'transacting'
+  );
+  return { isOwnListing, isReserved };
+}
+
 export default function MarketplaceScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -71,6 +93,55 @@ export default function MarketplaceScreen() {
 
   const [selectedListing, setSelectedListing] = useState<ResaleListingDetailDto | null>(null);
   const [selectedBundleItems, setSelectedBundleItems] = useState<ResaleListingDetailDto[]>([]);
+  const { eventQuery, suggestedId, selection, suggestedEvent } = useLocalSearchParams<{
+    suggestedEvent?: string; eventQuery?: string; suggestedId?: string; selection?: string;
+  }>();
+  useEffect(() => {
+    if (eventQuery && selection) {
+      setKeyword(eventQuery);
+      setPriceBand('ALL');
+      setCurrentPage(1);
+    }
+  }, [eventQuery, selection]);
+
+  const handledSelection = useRef<string>();
+  useFocusEffect(useCallback(() => {
+    if (!selection || !suggestedId || handledSelection.current === selection) return;
+    let active = true;
+    async function openSuggestion() {
+      const items: ResaleListingDetailDto[] = [];
+      for (let page = 1; ; page++) {
+        const result = await resaleListingsApi.getMarketplaceListings({
+          eventId: suggestedEvent, keyword: suggestedEvent ? undefined : eventQuery, page, size: 50,
+        });
+        if (!active) return;
+        items.push(...result.items);
+        if (!result.hasNextPage) break;
+      }
+      handledSelection.current = selection;
+      const item = items.find(ticket => ticket.listingId === suggestedId);
+      if (!item) {
+        Alert.alert('Ticket unavailable', 'This ticket is no longer listed.');
+        return;
+      }
+      const bundle = item.bundleId ? items.filter(ticket => ticket.bundleId === item.bundleId) : [item];
+      const { isOwnListing, isReserved } = listingAvailability(item, bundle, user);
+      if (isOwnListing || isReserved) {
+        Alert.alert('Ticket unavailable', isOwnListing ? 'This is your listing.' : 'This ticket is reserved.');
+        return;
+      }
+      setSelectedListing(item);
+      setSelectedBundleItems(bundle);
+    }
+    void openSuggestion().catch(() => {
+      if (active) {
+        handledSelection.current = selection;
+        Alert.alert('Unable to load ticket', 'Open the ticket in Ticky to try again.');
+      }
+    });
+    return () => { active = false; };
+  }, [selection, suggestedId, suggestedEvent, eventQuery, user]));
+
   const latestSearchTerm = useRef('');
 
   useEffect(() => {
@@ -197,8 +268,11 @@ export default function MarketplaceScreen() {
   const totalPages = Math.max(1, Math.ceil(dedupedListings.length / LISTINGS_PER_PAGE));
   const pagedListings = useMemo(() => {
     const start = (currentPage - 1) * LISTINGS_PER_PAGE;
-    return dedupedListings.slice(start, start + LISTINGS_PER_PAGE);
-  }, [currentPage, dedupedListings]);
+    const suggested = dedupedListings.find(item => item.listingId === suggestedId ||
+      (item.bundleId && bundleMap.get(item.bundleId)?.some(ticket => ticket.listingId === suggestedId)));
+    const ordered = suggested ? [suggested, ...dedupedListings.filter(item => item !== suggested)] : dedupedListings;
+    return ordered.slice(start, start + LISTINGS_PER_PAGE);
+  }, [currentPage, dedupedListings, suggestedId, bundleMap]);
 
   useEffect(() => {
     setCurrentPage(1);
@@ -244,19 +318,7 @@ export default function MarketplaceScreen() {
     const discountPercentage =
       item.discountPercentage > 0 ? item.discountPercentage : calculatedDiscountPercent;
 
-    const isOwnListing = Boolean(
-      user && (
-        (item.sellerId && user.id && item.sellerId.toLowerCase() === user.id.toLowerCase()) ||
-        (item.sellerFullName && user.fullName && item.sellerFullName.trim().toLowerCase() === user.fullName.trim().toLowerCase()) ||
-        ((item as any).userId && user.id && (item as any).userId.toLowerCase() === user.id.toLowerCase()) ||
-        bundleItems.some(
-          (b) =>
-            (b.sellerId && user.id && b.sellerId.toLowerCase() === user.id.toLowerCase()) ||
-            (b.sellerFullName && user.fullName && b.sellerFullName.trim().toLowerCase() === user.fullName.trim().toLowerCase()) ||
-            ((b as any).userId && user.id && (b as any).userId.toLowerCase() === user.id.toLowerCase())
-        )
-      )
-    );
+    const { isOwnListing, isReserved } = listingAvailability(item, bundleItems, user);
 
     const cleanSeatName = (seat?: string | null) => {
       if (!seat) return 'GA';
@@ -266,10 +328,6 @@ export default function MarketplaceScreen() {
     };
 
     const isRetailAllowed = isBundle && item.isBundleAllOrNothing === false;
-    const isReserved = [item, ...bundleItems].some(
-      (listing) => (listing.listingStatus || '').toLowerCase() === 'transacting'
-    );
-
     const seatDisplay = isBundle
       ? bundleItems.length > 1
         ? bundleItems.map((b) => cleanSeatName(b.seatZone)).join(', ')

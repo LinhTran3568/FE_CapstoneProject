@@ -16,6 +16,7 @@ import { theme } from '../src/theme';
 import { useAuthStore } from '../src/stores/authStore';
 import { FintechShieldLogo } from '../src/components/FintechShieldLogo';
 import { Text } from '../src/components/AppText';
+import { TicketChat } from '../src/components/TicketChat';
 import { styles } from '../src/styles/root-layout.styles';
 
 // Keep the splash screen visible while resources & auth session load
@@ -87,6 +88,7 @@ function AuthNavigationCoordinator() {
         <Stack.Screen name="verify" options={{ title: 'Verify Ticket' }} />
         <Stack.Screen name="payout-accounts" options={{ title: 'Payout Accounts' }} />
       </Stack>
+      {isAuthenticated && segments[0] === '(tabs)' && <TicketChat />}
     </>
   );
 }
