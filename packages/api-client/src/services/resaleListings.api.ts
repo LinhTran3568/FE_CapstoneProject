@@ -32,6 +32,14 @@ export const resaleListingsApi = {
     keyword?: string;
     eventId?: string;
     organizerId?: string;
+    /** CONCERT | FESTIVAL | SPORTS | THEATER */
+    category?: string;
+    /** HN | HCM | DN */
+    city?: string;
+    /** upcoming | this-month */
+    dateRange?: string;
+    /** newest | price-asc | date-asc */
+    sortBy?: string;
   }): Promise<PaginatedList<ResaleListingDetailDto>> => {
     const searchParams = new URLSearchParams();
     if (params?.page) searchParams.set('page', params.page.toString());
@@ -39,6 +47,10 @@ export const resaleListingsApi = {
     if (params?.keyword) searchParams.set('keyword', params.keyword);
     if (params?.eventId) searchParams.set('eventId', params.eventId);
     if (params?.organizerId) searchParams.set('organizerId', params.organizerId);
+    if (params?.category) searchParams.set('category', params.category);
+    if (params?.city) searchParams.set('city', params.city);
+    if (params?.dateRange) searchParams.set('dateRange', params.dateRange);
+    if (params?.sortBy) searchParams.set('sortBy', params.sortBy);
     const query = searchParams.toString() ? `?${searchParams.toString()}` : '';
     return httpClient<PaginatedList<ResaleListingDetailDto>>(`/resale-listings${query}`, {
       method: 'GET',
