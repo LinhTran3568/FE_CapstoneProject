@@ -58,6 +58,9 @@ export const PrivateListingPage: React.FC = () => {
         (listing.bundleItems && listing.bundleItems.length >= 2))
   );
 
+  // A cancelled link still opens, but the backend no longer sends price, seller or ticket (TC-MKT-07).
+  const isCancelled = listing?.listingStatus === 'Cancelled';
+
   const bundleCount =
     listing?.bundleTotalTickets || listing?.bundleItems?.length || (isBundle ? 2 : 1);
 
@@ -159,8 +162,49 @@ export const PrivateListingPage: React.FC = () => {
           </div>
         )}
 
+        {/* Cancelled Listing State */}
+        {!isError && listing && isCancelled && (
+          <div className="bg-[#0B0E14] border border-amber-500/20 rounded-3xl p-8 sm:p-12 text-center space-y-5 max-w-lg mx-auto">
+            <div className="w-14 h-14 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center mx-auto text-amber-400">
+              <AlertCircle className="w-7 h-7" />
+            </div>
+            <div className="space-y-2">
+              <span className="inline-block px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold uppercase tracking-wider bg-amber-500/10 border border-amber-500/30 text-amber-400">
+                Cancelled
+              </span>
+              <h2 className="text-xl font-bold text-white">This private listing was cancelled</h2>
+              <p className="text-xs text-gray-400 leading-relaxed">
+                The seller withdrew this ticket, so it can no longer be bought through this link.
+              </p>
+            </div>
+            {listing.eventName && (
+              <div className="bg-[#12161F] border border-white/[0.08] rounded-2xl p-4 text-left space-y-2 text-xs font-mono text-gray-300">
+                <p className="text-sm font-bold text-white uppercase">{listing.eventName}</p>
+                <div className="flex items-center gap-2">
+                  <Calendar className="w-4 h-4 text-[#FF5A36] shrink-0" />
+                  <span>{formatEventDateTime(listing.eventStartAt)}</span>
+                </div>
+                {listing.eventVenue && (
+                  <div className="flex items-center gap-2">
+                    <MapPin className="w-4 h-4 text-[#FF5A36] shrink-0" />
+                    <span className="truncate">{listing.eventVenue}</span>
+                  </div>
+                )}
+              </div>
+            )}
+            <div className="pt-2 flex justify-center">
+              <Link
+                to="/marketplace"
+                className="px-5 py-2 bg-gradient-to-r from-[#FF5A36] to-[#FF7A59] rounded-xl text-xs font-bold text-white shadow-lg shadow-[#FF5A36]/20 transition-all hover:brightness-110"
+              >
+                Explore Marketplace
+              </Link>
+            </div>
+          </div>
+        )}
+
         {/* Loaded Active Listing Card */}
-        {!isError && listing && (
+        {!isError && listing && !isCancelled && (
           <motion.div
             initial={{ opacity: 0, y: 15 }}
             animate={{ opacity: 1, y: 0 }}
@@ -319,7 +363,7 @@ export const PrivateListingPage: React.FC = () => {
       </div>
 
       {/* Buy Modal Integration */}
-      {!isError && listing && (
+      {!isError && listing && !isCancelled && (
         <BuyTicketModal
           listing={{
             ...listing,
