@@ -92,99 +92,25 @@ export const MarketplacePage: React.FC = () => {
   } = useMarketplaceListings({
     keyword: filters.keyword.trim() || undefined,
     organizerId: filters.organizerId && filters.organizerId !== 'ALL' ? filters.organizerId : undefined,
+    // TC-MKT-01 / TC-MKT-03: category, city, date and sort are applied by the API on all listings,
+    // not on the 12 listings of the current page.
+    category: selectedCategory !== 'ALL' ? selectedCategory : undefined,
+    city: filters.city !== 'ALL' ? filters.city : undefined,
+    dateRange: filters.dateRange !== 'all' ? filters.dateRange : undefined,
+    sortBy: filters.sortBy !== 'newest' ? filters.sortBy : undefined,
     page: currentPage,
     size: pageSize,
   });
 
   const listings = paginatedData?.items || [];
+  // Total number of tickets that match the filters on every page (a combo counts each ticket).
+  const totalMatching = paginatedData?.totalCount ?? listings.length;
 
-  // Filter & sort listings on client side
+  // The API already filtered and sorted; only merge bundle combos into one card here.
   const filteredListings = useMemo(() => {
-    const filtered = listings.filter((item) => {
-      // 1. Category Filter
-      if (selectedCategory !== 'ALL') {
-        const title = (item.eventName || '').toLowerCase();
-        if (selectedCategory === 'CONCERT') {
-          if (
-            !title.includes('concert') &&
-            !title.includes('live') &&
-            !title.includes('tour') &&
-            !title.includes('say hi') &&
-            !title.includes('mỹ tâm')
-          ) {
-            return false;
-          }
-        } else if (selectedCategory === 'FESTIVAL') {
-          if (!title.includes('fest') && !title.includes('rave') && !title.includes('music')) {
-            return false;
-          }
-        } else if (selectedCategory === 'SPORTS') {
-          if (
-            !title.includes('derby') &&
-            !title.includes('league') &&
-            !title.includes('bóng') &&
-            !title.includes('clb')
-          ) {
-            return false;
-          }
-        } else if (selectedCategory === 'THEATER') {
-          if (
-            !title.includes('kịch') &&
-            !title.includes('ngày xửa') &&
-            !title.includes('diễn') &&
-            !title.includes('hát')
-          ) {
-            return false;
-          }
-        }
-      }
+    const sorted = [...listings];
 
-      // 2. City Filter
-      if (filters.city !== 'ALL') {
-        const venue = (item.eventVenue || '').toLowerCase();
-        const cityLower = filters.city.toLowerCase();
-        if (!venue.includes(cityLower)) {
-          return false;
-        }
-      }
-
-      // 3. Organizer Filter
-      if (filters.organizerId && filters.organizerId !== 'ALL') {
-        if (item.organizerId !== filters.organizerId) {
-          return false;
-        }
-      }
-
-      // 3. Date Range Filter
-      if (filters.dateRange === 'upcoming') {
-        const eventDate = new Date(item.eventStartAt);
-        const maxDate = new Date();
-        maxDate.setDate(maxDate.getDate() + 7);
-        if (eventDate > maxDate) return false;
-      } else if (filters.dateRange === 'this-month') {
-        const eventDate = new Date(item.eventStartAt);
-        const currentDate = new Date();
-        if (
-          eventDate.getMonth() !== currentDate.getMonth() ||
-          eventDate.getFullYear() !== currentDate.getFullYear()
-        ) {
-          return false;
-        }
-      }
-
-      return true;
-    });
-
-    // 4. Sorting
-    const sorted = filtered.sort((a, b) => {
-      if (filters.sortBy === 'price-asc') return a.resalePrice - b.resalePrice;
-      if (filters.sortBy === 'date-asc') {
-        return new Date(a.eventStartAt).getTime() - new Date(b.eventStartAt).getTime();
-      }
-      return new Date(b.createdAt || '').getTime() - new Date(a.createdAt || '').getTime();
-    });
-
-    // 5. Dedup bundle combos: chỉ giữ 1 card đại diện cho mỗi bundleId
+    // Dedup bundle combos: chỉ giữ 1 card đại diện cho mỗi bundleId
     const bundleRepresentatives = new Map<string, MarketplaceListingDto>();
     sorted.forEach((item) => {
       if (!item.bundleId || (item.bundleTotalTickets ?? 0) <= 1) return;
@@ -199,7 +125,7 @@ export const MarketplacePage: React.FC = () => {
       }
       return true;
     });
-  }, [listings, selectedCategory, filters]);
+  }, [listings]);
 
   // Map bundleId -> all listings in that bundle (dùng để truyền vào TicketCard)
   const bundleMap = useMemo(() => {
@@ -222,6 +148,7 @@ export const MarketplacePage: React.FC = () => {
     const params: Record<string, string> = {};
     if (newFilters.keyword.trim()) params.q = newFilters.keyword.trim();
     if (newFilters.city !== 'ALL') params.city = newFilters.city;
+    if (newFilters.organizerId && newFilters.organizerId !== 'ALL') params.organizer = newFilters.organizerId;
     if (selectedCategory !== 'ALL') params.category = selectedCategory;
     setSearchParams(params);
   };
@@ -233,6 +160,7 @@ export const MarketplacePage: React.FC = () => {
     const params: Record<string, string> = {};
     if (filters.keyword.trim()) params.q = filters.keyword.trim();
     if (filters.city !== 'ALL') params.city = filters.city;
+    if (filters.organizerId && filters.organizerId !== 'ALL') params.organizer = filters.organizerId;
     if (catId !== 'ALL') params.category = catId;
     setSearchParams(params);
   };
@@ -422,7 +350,7 @@ export const MarketplacePage: React.FC = () => {
             {filteredListings.length > 0 ? (
               <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-black/80 backdrop-blur-md border border-white/20 text-xs font-mono font-bold text-white shadow-md">
                 <span className="w-2 h-2 rounded-full bg-[#FF5A36]" />
-                <span>{filteredListings.length} tickets available</span>
+                <span>{totalMatching} tickets available</span>
               </span>
             ) : (
               <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-black/75 backdrop-blur-md border border-white/10 text-xs font-mono font-medium text-zinc-400 shadow-md">
