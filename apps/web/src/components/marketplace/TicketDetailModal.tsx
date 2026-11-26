@@ -25,7 +25,17 @@ interface TicketDetailModalProps {
   isOwner?: boolean;
 }
 
-export const TicketDetailModal: React.FC<TicketDetailModalProps> = ({
+type TicketDetailModalContentProps = Omit<TicketDetailModalProps, 'listing'> & {
+  listing: MarketplaceListingDto;
+};
+
+export const TicketDetailModal: React.FC<TicketDetailModalProps> = (props) => {
+  if (!props.isOpen || !props.listing) return null;
+
+  return <TicketDetailModalContent {...props} listing={props.listing} />;
+};
+
+const TicketDetailModalContent: React.FC<TicketDetailModalContentProps> = ({
   listing,
   isOpen,
   onClose,
@@ -33,8 +43,6 @@ export const TicketDetailModal: React.FC<TicketDetailModalProps> = ({
   bundleListings = [],
   isOwner = false,
 }) => {
-  if (!isOpen || !listing) return null;
-
   const rawStatus = (listing.listingStatus || 'Verified').toLowerCase();
   const isTransacting = rawStatus === 'transacting';
   const isSold = rawStatus === 'sold';
