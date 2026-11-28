@@ -37,6 +37,18 @@ import {
 import { useAdminAnalytics } from '../hooks/useAdminAnalytics';
 import type { DashboardRange } from '../utils/adminOps';
 
+// Ceiling range of the monitored events (the same list as the "events monitored" count),
+// e.g. "0% → +10%", or a single value when every event has the same ceiling.
+// 0% means the ticket can only be resold at face value.
+const formatCeilingRange = (events: EventResaleMarkupDto[]): string => {
+  if (events.length === 0) return 'no events yet';
+  const values = events.map((e) => Number(e.maxResaleMarkupPercentage) || 0);
+  const format = (value: number) => (value > 0 ? `+${value}%` : `${value}%`);
+  const min = Math.min(...values);
+  const max = Math.max(...values);
+  return min === max ? format(min) : `${format(min)} → ${format(max)}`;
+};
+
 export const AdminDashboardPage: React.FC = () => {
   // Thống kê sàn (SCRUM-339) chạy riêng với dữ liệu cũ, nên lỗi thống kê không làm hỏng các thẻ vận hành.
   const [range, setRange] = useState<DashboardRange>('All');
@@ -239,7 +251,7 @@ export const AdminDashboardPage: React.FC = () => {
           </div>
 
           <div className="pt-2 border-t border-[#E5EAF0] flex items-center justify-between text-[11px]">
-            <span className="text-[#667085] font-mono">Ceiling range: +10% → +20%</span>
+            <span className="text-[#667085] font-mono">Ceiling range: {formatCeilingRange(events)}</span>
             <Link
               to="/admin/config?tab=markup"
               className="text-[#F45135] font-semibold hover:underline inline-flex items-center gap-1"

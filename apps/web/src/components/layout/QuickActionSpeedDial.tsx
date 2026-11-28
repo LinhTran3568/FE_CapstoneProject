@@ -26,11 +26,7 @@ export const QuickActionSpeedDial: React.FC = () => {
   const containerRef = useRef<HTMLDivElement>(null);
   const location = useLocation();
   const navigate = useNavigate();
-
-  // Hide on admin portal and dispute console to keep UI uncluttered
-  if (location.pathname.startsWith('/admin') || location.pathname.startsWith('/disputes')) {
-    return null;
-  }
+  const isHidden = location.pathname.startsWith('/admin') || location.pathname.startsWith('/disputes');
 
   // Close on Escape or click outside
   useEffect(() => {
@@ -52,6 +48,12 @@ export const QuickActionSpeedDial: React.FC = () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, [isOpen]);
+
+  // Hide on admin portal and dispute console to keep UI uncluttered.
+  // Keep this after hooks so their call order remains stable across routes.
+  if (isHidden) {
+    return null;
+  }
 
   // All 6 actions stacked vertically from bottom to top (zero clipping & full features)
   const actions: SpeedDialActionItem[] = [

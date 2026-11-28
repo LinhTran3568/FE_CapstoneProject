@@ -416,7 +416,10 @@ const DRAFT_STORAGE_KEY = 'ticketshield_sell_draft';
       const ownedPurchase = allPurchasedTickets.find(
         (t) => purchasedPassCode(t).toUpperCase() === code
       );
-      if (ownedPurchase && (ownedPurchase.status || '').trim().toUpperCase() !== 'VALID') {
+      // BR-L06: a ticket still in escrow may be resold once the buyer waives the dispute right
+      // (the waiver is asked on the review step); used, disputed or refunded passes may not.
+      const resaleableStatuses = ['VALID', 'IN_ESCROW', 'LOCKED', 'RELEASING'];
+      if (ownedPurchase && !resaleableStatuses.includes((ownedPurchase.status || '').trim().toUpperCase())) {
         showToast(`Ticket ${code} cannot be resold yet. Please wait until the protection period has concluded.`, 'error');
         return false;
       }
