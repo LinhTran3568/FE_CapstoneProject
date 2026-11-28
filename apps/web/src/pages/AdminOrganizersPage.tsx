@@ -95,6 +95,8 @@ export const AdminOrganizersPage: React.FC = () => {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState<boolean>(false);
   const [editingOrganizer, setEditingOrganizer] = useState<AdminOrganizerDto | null>(null);
   const [submitting, setSubmitting] = useState<boolean>(false);
+  // Server validation errors stay inside the dialog; a toast disappears after a few seconds (TC-ADM-06).
+  const [formError, setFormError] = useState<string | null>(null);
 
   // Form states for Create
   const [createForm, setCreateForm] = useState<CreateOrganizerRequest>({
@@ -252,6 +254,7 @@ export const AdminOrganizersPage: React.FC = () => {
     }
 
     setSubmitting(true);
+    setFormError(null);
     try {
       await adminApi.createOrganizer(createForm);
       showToast('New event organizer added successfully.', 'success');
@@ -269,13 +272,16 @@ export const AdminOrganizersPage: React.FC = () => {
       });
       fetchOrganizers();
     } catch (err: any) {
-      showToast(err?.message || 'Failed to create organizer.', 'error');
+      const message = err?.message || 'Failed to create organizer.';
+      setFormError(message);
+      showToast(message, 'error');
     } finally {
       setSubmitting(false);
     }
   };
 
   const handleOpenEdit = (org: AdminOrganizerDto) => {
+    setFormError(null);
     setEditingOrganizer(org);
     setEditForm({
       name: org.name,
@@ -296,13 +302,16 @@ export const AdminOrganizersPage: React.FC = () => {
     if (!editingOrganizer) return;
 
     setSubmitting(true);
+    setFormError(null);
     try {
       await adminApi.updateOrganizer(editingOrganizer.id, editForm);
       showToast(`Configuration updated for ${editingOrganizer.name}.`, 'success');
       setEditingOrganizer(null);
       fetchOrganizers();
     } catch (err: any) {
-      showToast(err?.message || 'Failed to update connection parameters.', 'error');
+      const message = err?.message || 'Failed to update connection parameters.';
+      setFormError(message);
+      showToast(message, 'error');
     } finally {
       setSubmitting(false);
     }
@@ -407,7 +416,7 @@ export const AdminOrganizersPage: React.FC = () => {
 
           <button
             type="button"
-            onClick={() => setIsCreateModalOpen(true)}
+            onClick={() => { setFormError(null); setIsCreateModalOpen(true); }}
             className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[#F45135] text-white text-xs font-bold hover:bg-[#e0452a] transition-all shadow-sm shadow-[#F45135]/20"
           >
             <Plus className="w-4 h-4" />
@@ -1273,10 +1282,16 @@ export const AdminOrganizersPage: React.FC = () => {
                 </div>
               </div>
 
+              {formError && (
+                <p role="alert" className="px-3 py-2 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 font-semibold">
+                  {formError}
+                </p>
+              )}
+
               <div className="flex items-center justify-end gap-2.5 pt-4 border-t border-slate-100">
                 <button
                   type="button"
-                  onClick={() => setIsCreateModalOpen(false)}
+                  onClick={() => { setIsCreateModalOpen(false); setFormError(null); }}
                   className="px-4 py-2 rounded-xl border border-slate-200 text-slate-600 font-semibold hover:bg-slate-50"
                 >
                   Cancel
@@ -1399,10 +1414,16 @@ export const AdminOrganizersPage: React.FC = () => {
                 </div>
               </div>
 
+              {formError && (
+                <p role="alert" className="px-3 py-2 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 font-semibold">
+                  {formError}
+                </p>
+              )}
+
               <div className="flex items-center justify-end gap-2.5 pt-4 border-t border-slate-100">
                 <button
                   type="button"
-                  onClick={() => setEditingOrganizer(null)}
+                  onClick={() => { setEditingOrganizer(null); setFormError(null); }}
                   className="px-4 py-2 rounded-xl border border-slate-200 text-slate-600 font-semibold hover:bg-slate-50"
                 >
                   Cancel

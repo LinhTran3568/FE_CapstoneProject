@@ -146,9 +146,12 @@ export const disputesApi = {
     const formData = new FormData();
     formData.append('file', file);
 
+    // axiosClient defaults to 'application/json', which makes axios turn FormData into JSON
+    // and the API answers 415. Multipart lets the browser send the file with its boundary.
     const response = await axiosClient.post<ApiResponse<AddDisputeEvidenceResponse>>(
       `${API_CONFIG.baseURL}/disputes/${disputeId}/evidence`,
-      formData
+      formData,
+      { headers: { 'Content-Type': 'multipart/form-data' } }
     );
 
     if (!response.data.success) {
