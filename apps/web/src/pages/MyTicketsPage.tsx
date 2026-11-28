@@ -1,92 +1,1056 @@
-import React from 'react';
-import { Ticket, QrCode, Calendar, MapPin, ShieldCheck, Download, Share2 } from 'lucide-react';
+import React, { useCallback, useEffect, useId, useState } from 'react';
+import { Link } from 'react-router-dom';
+import { motion } from 'framer-motion';
+import {
+  AlertCircle,
+  Calendar,
+  Check,
+  Clock,
+  Copy,
+  Download,
+  Loader2,
+  MapPin,
+  QrCode,
+  RefreshCw,
+  Search,
+  ShieldAlert,
+  Ticket,
+  User,
+  X,
+} from 'lucide-react';
+import { QRCodeCanvas } from 'qrcode.react';
+import type { PurchasedTicketDto } from '@ticketshield/types';
+import { useMyTickets } from '../hooks/useMyTickets';
 import { useUIStore } from '../stores/uiStore';
+import { formatEventDateTime, formatVND } from '../utils/formatters';
+import { SeatAdjacencyBadge } from '../components/ui/SeatAdjacencyBadge';
+import { DisputeSubmissionModal } from '../components/dispute/DisputeSubmissionModal';
+import {
+  DisputeProgressDrawer,
+  type DisputeProgressTarget,
+} from '../components/dispute/DisputeProgressDrawer';
+
+
+const entryPayload = (ticket: PurchasedTicketDto) =>
+  (ticket.qrCodeImageUrl || ticket.qrCodeData || ticket.ticketPassCode || '').trim();
+
+/** Returns true if the payload is a base64-encoded PNG/image data URL */
+const isBase64Image = (value: string) => value.startsWith('data:image/');
+
+const canShowEntryQr = (ticket: PurchasedTicketDto) => {
+  const status = (ticket.status || '').trim().toUpperCase();
+  if (status === 'PENDING_PAYMENT' || status === 'REFUNDED' || status === 'REFUNDQUEUED' || status === 'USED') {
+    return false;
+  }
+  return Boolean(ticket.qrCodeImageUrl || ticket.qrCodeData || ticket.ticketPassCode);
+};
+
+const getDisputeStatusBadge = (ticket: PurchasedTicketDto) => {
+  const status = (ticket.status || '').trim().toUpperCase();
+  if (status === 'USED') {
+    return {
+      label: 'CHECKED IN · COMPLETED',
+      classes: 'bg-black/80 text-emerald-300 border border-emerald-500/50 backdrop-blur-md shadow-sm',
+      dotClass: 'bg-emerald-400',
+    };
+  }
+  if (status === 'DISPUTED') {
+    return {
+      label: 'DISPUTED',
+      classes: 'bg-black/80 text-rose-300 border border-rose-500/50 backdrop-blur-md shadow-sm',
+      dotClass: 'bg-rose-400',
+    };
+  }
+  if (status === 'REFUNDED') {
+    return {
+      label: 'REFUNDED',
+      classes: 'bg-black/80 text-indigo-300 border border-indigo-400/50 backdrop-blur-md shadow-sm',
+      dotClass: 'bg-indigo-400',
+    };
+  }
+  return null;
+};
 
 export const MyTicketsPage: React.FC = () => {
-  const { showToast } = useUIStore();
+  const { data: tickets = [], isPending, isError, error, refetch, isFetching } = useMyTickets({ includeDisputeHistory: true });
+  const [qrTicket, setQrTicket] = useState<PurchasedTicketDto | null>(null);
+  const [disputeTicket, setDisputeTicket] = useState<PurchasedTicketDto | null>(null);
+  const [progressTarget, setProgressTarget] = useState<DisputeProgressTarget | null>(null);
+  const [filter, setFilter] = useState<'all' | 'ready'>('all');
+  const [searchQuery, setSearchQuery] = useState('');
+  const showToast = useUIStore((state) => state.showToast);
 
-  const handleShowQR = (title: string) => {
-    showToast(`Displaying verified QR code for "${title}"`, 'success');
-  };
+  const readyCount = tickets.filter(canShowEntryQr).length;
+
+  const filteredTickets = tickets.filter((ticket) => {
+    if (filter === 'ready' && !canShowEntryQr(ticket)) return false;
+
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase().trim();
+      const name = (ticket.eventName || '').toLowerCase();
+      const venue = (ticket.eventVenue || '').toLowerCase();
+      const code = (ticket.ticketPassCode || ticket.qrCodeData || '').toLowerCase();
+      const zone = (ticket.seatZone || ticket.tierName || '').toLowerCase();
+      const matchesMain = name.includes(q) || venue.includes(q) || code.includes(q) || zone.includes(q);
+      if (matchesMain) return true;
+
+      const matchesBundle = (ticket.bundleItems || []).some((item) => {
+        const itemCode = (item.ticketCode || item.qrCodeData || '').toLowerCase();
+        const itemZone = (item.seatZone || '').toLowerCase();
+        return itemCode.includes(q) || itemZone.includes(q);
+      });
+      return matchesBundle;
+    }
+    return true;
+  });
 
   return (
-    <div className="relative min-h-screen bg-[#05070A] text-[#F5F5F2] pt-28 pb-20 px-6 md:px-12 font-sans antialiased overflow-hidden">
-      {/* Background Concert Image */}
-      <div className="fixed inset-0 z-0 pointer-events-none">
-        <img
-          src="/images/landing/ticket-bg.jpg"
-          alt="Concert Background"
-          className="w-full h-full object-cover opacity-25 filter brightness-75 contrast-125 scale-105"
+    <div className="relative min-h-screen bg-[#07090E] text-[#F8FAFC] pt-28 pb-24 px-4 sm:px-6 md:px-10 lg:px-12 font-sans antialiased overflow-hidden selection:bg-[#FF573D]/30 selection:text-white">
+      {/* Rich Dynamic Atmospheric Background with Motion Effects */}
+      <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden">
+        {/* Breathing Slow Zoom on Hero Image */}
+        <motion.div
+          animate={{
+            scale: [1, 1.06, 1],
+            x: [0, -8, 0],
+            y: [0, -6, 0],
+          }}
+          transition={{
+            duration: 20,
+            repeat: Infinity,
+            ease: 'easeInOut',
+          }}
+          className="absolute inset-0 w-full h-full"
+        >
+          <img
+            src="/images/landing/my-tickets-hero.jpg"
+            alt=""
+            className="w-full h-full object-cover object-center opacity-75 filter brightness-105 contrast-120 saturate-120"
+          />
+        </motion.div>
+
+        {/* Diagonal Laser Light Sweep Effect */}
+        <motion.div
+          animate={{
+            x: ['-100%', '200%'],
+            opacity: [0, 0.25, 0],
+          }}
+          transition={{
+            duration: 8,
+            repeat: Infinity,
+            ease: 'easeInOut',
+            repeatDelay: 3,
+          }}
+          className="absolute inset-y-0 w-1/3 bg-gradient-to-r from-transparent via-[#FF573D]/30 to-transparent transform -skew-x-12 blur-2xl pointer-events-none"
         />
-        <div className="absolute inset-0 bg-gradient-to-b from-[#05070A]/90 via-[#05070A]/85 to-[#05070A]" />
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-[#FF5A36]/15 via-transparent to-transparent" />
+
+        {/* Layered Gradient Masks for Perfect Content Contrast */}
+        <div className="absolute inset-0 bg-gradient-to-b from-[#07090E]/50 via-[#07090E]/75 to-[#07090E]" />
+        <div className="absolute inset-0 bg-gradient-to-r from-[#07090E]/70 via-transparent to-[#07090E]/70" />
+
+        {/* Dynamic Floating Coral Glow Orb */}
+        <motion.div
+          animate={{
+            x: [-30, 40, -30],
+            y: [-20, 30, -20],
+            scale: [1, 1.15, 1],
+            opacity: [0.25, 0.45, 0.25],
+          }}
+          transition={{
+            duration: 12,
+            repeat: Infinity,
+            ease: 'easeInOut',
+          }}
+          className="absolute -top-24 left-1/2 -translate-x-1/2 w-[1200px] h-[550px] bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-[#FF573D]/40 via-[#FF573D]/12 to-transparent blur-3xl"
+        />
+
+        {/* Dynamic Floating Cyan Light Orb */}
+        <motion.div
+          animate={{
+            x: [40, -40, 40],
+            y: [20, -30, 20],
+            scale: [1, 1.2, 1],
+            opacity: [0.2, 0.4, 0.2],
+          }}
+          transition={{
+            duration: 15,
+            repeat: Infinity,
+            ease: 'easeInOut',
+          }}
+          className="absolute top-1/2 -right-20 w-[650px] h-[450px] bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-cyan-400/25 via-cyan-500/5 to-transparent blur-3xl"
+        />
+
+        {/* High-tech Micro Dot Matrix Overlay */}
+        <div
+          className="absolute inset-0 opacity-[0.05]"
+          style={{
+            backgroundImage: `radial-gradient(rgba(255, 255, 255, 0.4) 1px, transparent 1px)`,
+            backgroundSize: '24px 24px',
+          }}
+        />
       </div>
 
-      <div className="relative z-10 max-w-6xl mx-auto space-y-8">
-        
-        {/* Header */}
-        <div className="space-y-2">
-          <h1 className="text-4xl font-extrabold font-display text-white uppercase tracking-tight">
-            My Purchased Passes
-          </h1>
-          <p className="text-sm text-[#A3A8B3]">Your verified digital passes with dynamic entry QR authentication.</p>
+      <div className="relative z-10 max-w-6xl mx-auto space-y-7">
+        {/* Top Header Section */}
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 pb-2 border-b border-white/10">
+          <div className="space-y-1.5">
+            <h1 className="text-3xl sm:text-4xl font-black font-display text-white tracking-tight">
+              My Purchased Tickets
+            </h1>
+            <p className="text-sm text-[#9CA3AF]">
+              Manage your event tickets and entry passes. Official codes and QR keys issued directly by organizers.
+            </p>
+          </div>
+
+          {/* Quick Actions & Refresh */}
+          <div className="flex items-center gap-3 self-start md:self-auto">
+            <button
+              type="button"
+              onClick={() => {
+                refetch();
+                showToast('Refreshed ticket passes', 'info');
+              }}
+              disabled={isFetching}
+              aria-label="Refresh tickets"
+              className="px-3.5 py-2 min-h-10 bg-[#12151C] hover:bg-[#1A1E29] border border-white/10 hover:border-white/20 text-[#CBD5E1] hover:text-white rounded-xl text-xs font-mono font-medium inline-flex items-center gap-2 transition-all cursor-pointer shadow-sm disabled:opacity-50"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 text-[#FF573D] ${isFetching ? 'animate-spin' : ''}`} />
+              <span>{isFetching ? 'Syncing...' : 'Sync Passes'}</span>
+            </button>
+          </div>
         </div>
 
-        {/* Ticket Passes Cards */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {[
-            {
-              title: 'Anh Trai Vượt Ngàn Chông Gai Concert',
-              date: 'Dec 20, 2026 • 19:00',
-              venue: 'Sân Vận Động Mỹ Đình, Hà Nội',
-              zone: 'VIP Khái Hưng - Row 03 - Seat 12',
-              code: 'TS-99201-PASS',
-            },
-            {
-              title: 'Coldplay Music of the Spheres Tour',
-              date: 'Jan 15, 2027 • 20:00',
-              venue: 'Sân Vận Động Quốc Gia Singapore',
-              zone: 'Cat 1 Standing General',
-              code: 'TS-77182-PASS',
-            },
-          ].map((ticket, idx) => (
-            <div key={idx} className="bg-[#0A0D12] border border-white/10 rounded-3xl p-6 space-y-6 relative overflow-hidden shadow-2xl">
-              <div className="flex items-center justify-between border-b border-white/10 pb-4">
-                <span className="text-xs font-mono text-[#FF5A36] font-bold">DIGITAL PASS</span>
-                <span className="text-xs font-mono text-[#A3A8B3]">{ticket.code}</span>
-              </div>
-
-              <div className="space-y-3">
-                <h3 className="text-xl font-bold font-display text-white">{ticket.title}</h3>
-                <div className="space-y-1 text-xs text-[#A3A8B3] font-mono">
-                  <div className="flex items-center gap-2">
-                    <Calendar className="w-4 h-4 text-[#FF5A36]" />
-                    <span>{ticket.date}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <MapPin className="w-4 h-4 text-cyan-400" />
-                    <span>{ticket.venue}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Ticket className="w-4 h-4 text-amber-400" />
-                    <span className="text-white font-semibold">{ticket.zone}</span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="pt-4 border-t border-white/10 flex items-center justify-between">
-                <button
-                  onClick={() => handleShowQR(ticket.title)}
-                  className="px-5 py-2.5 bg-[#FF5A36] hover:bg-[#FF7252] text-white font-bold font-display text-xs uppercase tracking-wider rounded-xl shadow-lg shadow-[#FF5A36]/25 flex items-center gap-2"
-                >
-                  <QrCode className="w-4 h-4" />
-                  <span>Show Entry QR Code</span>
-                </button>
-              </div>
+        {/* Stats & Filter Bar */}
+        {!isPending && !isError && tickets.length > 0 && (
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            {/* Filter Tabs */}
+            <div className="inline-flex items-center gap-1.5 bg-[#10141D] p-1 rounded-xl border border-white/10 text-xs font-mono self-start">
+              <button
+                type="button"
+                onClick={() => setFilter('all')}
+                className={`px-3.5 py-1.5 rounded-lg transition-all font-semibold cursor-pointer ${
+                  filter === 'all'
+                    ? 'bg-[#FF573D] text-white shadow-md shadow-[#FF573D]/25'
+                    : 'text-[#94A3B8] hover:text-white hover:bg-white/5'
+                }`}
+              >
+                All Passes ({tickets.length})
+              </button>
+              <button
+                type="button"
+                onClick={() => setFilter('ready')}
+                className={`px-3.5 py-1.5 rounded-lg transition-all font-semibold cursor-pointer ${
+                  filter === 'ready'
+                    ? 'bg-emerald-500 text-white shadow-md shadow-emerald-500/25'
+                    : 'text-[#94A3B8] hover:text-white hover:bg-white/5'
+                }`}
+              >
+                Ready for Entry ({readyCount})
+              </button>
             </div>
-          ))}
+
+            {/* Search Input */}
+            <div className="relative w-full sm:w-72">
+              <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-[#94A3B8] pointer-events-none" />
+              <input
+                type="text"
+                placeholder="Search event, venue, or code..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full bg-[#10141D] border border-white/10 rounded-xl pl-9 pr-8 py-2 text-xs font-mono text-white placeholder-[#64748B] focus:border-[#FF573D] focus:outline-none transition-colors"
+              />
+              {searchQuery && (
+                <button
+                  type="button"
+                  onClick={() => setSearchQuery('')}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 p-0.5 text-[#94A3B8] hover:text-white"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Loading State: Skeleton Cards */}
+        {isPending && (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+            <TicketCardSkeleton />
+            <TicketCardSkeleton />
+          </div>
+        )}
+
+        {/* Error State */}
+        {isError && (
+          <div className="py-16 bg-[#12151C]/90 border border-rose-500/20 rounded-3xl p-8 text-center space-y-4 shadow-2xl backdrop-blur-md max-w-xl mx-auto">
+            <div className="w-14 h-14 mx-auto rounded-2xl bg-rose-500/10 text-rose-400 flex items-center justify-center border border-rose-500/20">
+              <AlertCircle className="w-7 h-7" />
+            </div>
+            <div className="space-y-1">
+              <h2 className="text-lg font-bold text-white font-display">Could not load purchased tickets</h2>
+              <p className="text-xs text-[#94A3B8] leading-relaxed">
+                {error instanceof Error
+                  ? error.message
+                  : 'Unable to communicate with TicketShield services. Please refresh or verify your connection.'}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => refetch()}
+              disabled={isFetching}
+              className="px-5 py-2.5 min-h-11 bg-rose-500/20 hover:bg-rose-500/30 text-rose-200 border border-rose-500/30 rounded-xl text-xs font-semibold font-mono inline-flex items-center gap-2 cursor-pointer transition-all"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${isFetching ? 'animate-spin' : ''}`} />
+              <span>Try Again</span>
+            </button>
+          </div>
+        )}
+
+        {/* Empty State */}
+        {!isPending && !isError && tickets.length === 0 && (
+          <div className="py-20 bg-[#10141D]/60 border border-white/10 rounded-3xl p-8 sm:p-12 text-center space-y-5 max-w-lg mx-auto shadow-2xl backdrop-blur-md">
+            <div className="w-16 h-16 mx-auto rounded-2xl bg-gradient-to-br from-[#FF573D]/20 to-[#FF573D]/5 border border-[#FF573D]/30 text-[#FF573D] flex items-center justify-center shadow-lg shadow-[#FF573D]/10">
+              <Ticket className="w-8 h-8" />
+            </div>
+            <div className="space-y-2">
+              <h2 className="text-xl font-bold font-display text-white">No Tickets Found</h2>
+              <p className="text-xs sm:text-sm text-[#94A3B8] leading-relaxed">
+                You have not purchased any event tickets yet. Explore verified tickets protected by TicketShield escrow.
+              </p>
+            </div>
+            <Link
+              to="/marketplace"
+              className="inline-flex items-center justify-center gap-2 px-6 py-3 min-h-11 bg-[#FF573D] hover:bg-[#FF7252] text-white font-bold font-display text-xs uppercase tracking-wider rounded-xl shadow-lg shadow-[#FF573D]/25 transition-all hover:scale-[1.02] active:scale-[0.98]"
+            >
+              <Ticket className="w-4 h-4" />
+              <span>Browse Marketplace</span>
+            </Link>
+          </div>
+        )}
+
+        {/* Filtered Empty State */}
+        {!isPending && !isError && tickets.length > 0 && filteredTickets.length === 0 && (
+          <div className="py-14 bg-[#10141D]/60 border border-white/10 rounded-2xl p-6 text-center space-y-3">
+            <p className="text-sm text-[#94A3B8]">No tickets match the selected filter.</p>
+            <button
+              type="button"
+              onClick={() => setFilter('all')}
+              className="text-xs font-mono text-[#FF573D] hover:underline"
+            >
+              Show all tickets
+            </button>
+          </div>
+        )}
+
+        {/* Tickets Grid: Always 2 columns on tablet/desktop, cleanly holding at least 2 tickets */}
+        {!isPending && !isError && filteredTickets.length > 0 && (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5 items-start">
+            {filteredTickets.map((ticket) => (
+              <OfficialTicketPassCard
+                key={ticket.escrowId || ticket.listingId}
+                ticket={ticket}
+                onViewQr={() => setQrTicket(ticket)}
+                onOpenDispute={() => {
+                  if ((ticket.status || '').trim().toUpperCase() === 'USED') return;
+                  setDisputeTicket(ticket);
+                }}
+                onOpenProgress={() => {
+                  if (!ticket.disputeId) return;
+                  setProgressTarget({
+                    disputeId: ticket.disputeId,
+                    eventName: ticket.eventName,
+                    ticketCode: ticket.ticketPassCode,
+                  });
+                }}
+              />
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Entry QR Modal */}
+      {qrTicket && (
+        <EntryQrModal ticket={qrTicket} onClose={() => setQrTicket(null)} />
+      )}
+
+      {/* Dispute Submission Modal */}
+      {disputeTicket && (disputeTicket.status || '').trim().toUpperCase() !== 'USED' && (
+        <DisputeSubmissionModal ticket={disputeTicket} onClose={() => setDisputeTicket(null)} />
+      )}
+
+      {/* Dispute Progress Drawer */}
+      {progressTarget && (
+        <DisputeProgressDrawer target={progressTarget} onClose={() => setProgressTarget(null)} />
+      )}
+    </div>
+  );
+};
+
+const cleanTierName = (raw: string) =>
+  raw.replace(/•\s*chính chủ/i, '').trim() || 'VIP ZONE A';
+
+const getZoneStyle = (tierName: string) => {
+  const lower = (tierName || '').toLowerCase();
+  if (lower.includes('svip')) {
+    return {
+      badge: 'bg-black/75 border border-amber-400/50 text-white backdrop-blur-md shadow-sm',
+      dot: 'bg-amber-400 shadow-[0_0_8px_#fbbf24]',
+    };
+  }
+  if (lower.includes('vip b') || lower.includes('vip-b')) {
+    return {
+      badge: 'bg-black/75 border border-orange-400/50 text-white backdrop-blur-md shadow-sm',
+      dot: 'bg-orange-400 shadow-[0_0_8px_#fb923c]',
+    };
+  }
+  if (lower.includes('fanzone') || lower.includes('fan zone')) {
+    return {
+      badge: 'bg-black/75 border border-rose-400/50 text-white backdrop-blur-md shadow-sm',
+      dot: 'bg-rose-400 shadow-[0_0_8px_#fb7185]',
+    };
+  }
+  if (lower.includes('ga') || lower.includes('standard')) {
+    return {
+      badge: 'bg-black/75 border border-sky-400/50 text-white backdrop-blur-md shadow-sm',
+      dot: 'bg-sky-400 shadow-[0_0_8px_#38bdf8]',
+    };
+  }
+  return {
+    badge: 'bg-black/75 border border-white/20 text-white backdrop-blur-md shadow-sm',
+    dot: 'bg-[#FF5A36] shadow-[0_0_8px_#FF5A36]',
+  };
+};
+
+const getEventBackdrop = (name: string): string => {
+  const lower = (name || '').toLowerCase();
+  if (lower.includes('say hi') || lower.includes('anh trai')) {
+    return '/images/landing/hero-concert.jpg';
+  }
+  if (lower.includes('mỹ tâm') || lower.includes('tri âm')) {
+    return '/images/landing/featured-1.jpg';
+  }
+  if (lower.includes('rave') || lower.includes('festival') || lower.includes('edm')) {
+    return '/images/landing/festival.jpg';
+  }
+  if (lower.includes('derby') || lower.includes('league') || lower.includes('viettel') || lower.includes('sports')) {
+    return '/images/landing/sports.jpg';
+  }
+  if (lower.includes('kịch') || lower.includes('ngày xửa') || lower.includes('theater')) {
+    return '/images/landing/theater.jpg';
+  }
+  return '/images/landing/concert.jpg';
+};
+
+/**
+ * Official Digital Pass Card Component
+ * Styled with exact Marketplace TicketCard aesthetics: 65% event body + 35% paper stub with perforated tear line
+ */
+interface OfficialTicketPassCardProps {
+  ticket: PurchasedTicketDto;
+  onViewQr: () => void;
+  onOpenDispute: () => void;
+  onOpenProgress: () => void;
+}
+
+const OfficialTicketPassCard: React.FC<OfficialTicketPassCardProps> = ({ ticket, onViewQr, onOpenDispute, onOpenProgress }) => {
+  const showToast = useUIStore((state) => state.showToast);
+  const [copied, setCopied] = useState(false);
+  const disputeBadge = getDisputeStatusBadge(ticket);
+  const zoneStyle = getZoneStyle(ticket.seatZone || ticket.tierName || '');
+  const hasQr = canShowEntryQr(ticket);
+  const isUsed = (ticket.status || '').trim().toUpperCase() === 'USED';
+  const isRefunded = (ticket.status || '').trim().toUpperCase() === 'REFUNDED';
+  const hasDispute = Boolean(ticket.disputeId);
+  const code = ticket.ticketPassCode || (hasQr ? entryPayload(ticket) : '');
+  const backdropUrl = getEventBackdrop(ticket.eventName);
+  const formattedDate = ticket.eventStartAt ? formatEventDateTime(ticket.eventStartAt) : 'Date & Time Announced by Organizer';
+
+  const isCombo = Boolean((ticket.bundleTotalTickets && ticket.bundleTotalTickets >= 2) || (ticket.bundleItems && ticket.bundleItems.length >= 2));
+  const totalTicketsCount = ticket.bundleTotalTickets || ticket.bundleItems?.length || 1;
+
+  const handleCopyCode = useCallback(
+    (e: React.MouseEvent) => {
+      e.stopPropagation();
+      if (!code) return;
+      navigator.clipboard.writeText(code);
+      setCopied(true);
+      showToast('Copied ticket code to clipboard', 'success');
+      setTimeout(() => setCopied(false), 2000);
+    },
+    [code, showToast]
+  );
+
+  return (
+    <div
+      id={`my-ticket-card-${ticket.escrowId || ticket.listingId}`}
+      className="group relative isolate w-full min-h-[200px] flex items-stretch rounded-2xl bg-[#0a0c10] border border-white/10 hover:border-[#FF5A36] shadow-[0_8px_24px_rgba(0,0,0,0.7)] hover:shadow-[0_12px_36px_rgba(255,90,54,0.2)] hover:-translate-y-1 transition-[border-color,box-shadow,transform] duration-200 ease-out select-none cursor-pointer overflow-hidden"
+      onClick={() => {
+        if (hasQr) onViewQr();
+      }}
+    >
+      {/* ================= LEFT SECTION: MAIN BODY (65% width) ================= */}
+      <div className="relative w-[65%] min-h-full rounded-l-2xl overflow-hidden flex flex-col justify-between p-3.5 sm:p-4 bg-[#0a0c10]">
+        {/* Live Concert Photo Backdrop */}
+        <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none">
+          <img
+            src={backdropUrl}
+            alt={ticket.eventName}
+            className="w-full h-full object-cover object-center contrast-125 saturate-110 transition-transform duration-300 ease-out group-hover:scale-105 opacity-70"
+            loading="lazy"
+            onError={(e) => {
+              e.currentTarget.onerror = null;
+              e.currentTarget.src = '/images/landing/concert.jpg';
+            }}
+          />
+          {/* Multi-layer gradient overlays for high text contrast */}
+          <div className="absolute inset-0 bg-gradient-to-r from-[#07080b]/95 via-[#0a0c10]/85 to-[#0b0d13]/95" />
+          <div className="absolute inset-0 bg-gradient-to-t from-[#07080b] via-transparent to-black/50" />
+          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_left,_var(--tw-gradient-stops))] from-amber-500/15 via-transparent to-transparent" />
         </div>
 
+        {/* Top Badges */}
+        <div className="relative z-10 flex flex-wrap items-center justify-between gap-1.5">
+          <div className="flex flex-wrap items-center gap-1.5">
+            {isCombo ? (
+              <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-gradient-to-r from-amber-500/25 to-[#FF5A36]/25 border border-amber-500/50 text-[10px] sm:text-[11px] font-extrabold tracking-wider uppercase text-amber-300 backdrop-blur-md shadow-sm">
+                <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
+                <span>COMBO PACKAGE ({totalTicketsCount} TICKETS)</span>
+              </div>
+            ) : (
+              <div
+                className={`inline-flex items-center gap-2 px-3 py-1 rounded-full border backdrop-blur-md ${zoneStyle.badge}`}
+              >
+                <span className={`w-2 h-2 rounded-full animate-pulse ${zoneStyle.dot}`} />
+                <span className="text-[11px] font-bold tracking-wider uppercase text-white">
+                  {cleanTierName(ticket.tierName || ticket.seatZone || '')}
+                </span>
+              </div>
+            )}
+
+            {ticket.seatZone && !isCombo && (
+              <SeatAdjacencyBadge
+                seats={ticket.seatZone}
+                variant="glass"
+                size="xs"
+                showSubtext={false}
+              />
+            )}
+          </div>
+
+          {disputeBadge && (
+            <div
+              className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[10px] sm:text-[11px] font-bold tracking-wider uppercase backdrop-blur-md shadow-sm ${disputeBadge.classes}`}
+            >
+              <span className={`w-2 h-2 rounded-full ${disputeBadge.dotClass}`} />
+              <span>{disputeBadge.label}</span>
+            </div>
+          )}
+        </div>
+
+        {/* Middle & Bottom Content */}
+        <div className="relative z-10 space-y-1.5 mt-1.5">
+          <h2 className="text-[16px] sm:text-[18px] font-extrabold tracking-tight leading-snug text-white group-hover:text-[#FF5A36] drop-shadow-sm transition-colors duration-200 ease-out line-clamp-1">
+            {ticket.eventName}
+          </h2>
+
+          {/* If Combo, show ticket breakdown */}
+          {isCombo && ticket.bundleItems && ticket.bundleItems.length > 0 ? (
+            <div className="space-y-1 my-1 max-h-[52px] overflow-y-auto pr-0.5 custom-scrollbar">
+              {ticket.bundleItems.map((item, idx) => (
+                <div key={idx} className="flex items-center justify-between text-[10px] sm:text-[11px] bg-black/50 px-2 py-0.5 rounded border border-white/10 font-mono">
+                  <span className="text-amber-300 font-semibold truncate max-w-[130px] sm:max-w-[170px]">
+                    #{idx + 1}: {item.seatZone}
+                  </span>
+                  {item.ticketCode && (
+                    <span className="text-zinc-400 text-[9px] sm:text-[10px] font-mono truncate max-w-[80px] sm:max-w-[110px] ml-1">{item.ticketCode}</span>
+                  )}
+                </div>
+              ))}
+            </div>
+          ) : isCombo ? (
+            <div className="text-[10px] sm:text-[11px] font-mono text-amber-300 bg-black/50 px-2 py-0.5 rounded border border-amber-500/20 truncate">
+              Seats: {ticket.seatZone || 'Multiple Seats (Pair)'}
+            </div>
+          ) : null}
+
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-zinc-300 pt-0.5">
+            <div className="flex items-center gap-1 shrink-0">
+              <Calendar className="w-3 h-3 text-zinc-400 shrink-0" />
+              <span className="font-medium text-zinc-300">{formattedDate}</span>
+            </div>
+
+            <div className="flex items-center gap-1 min-w-0">
+              <MapPin className="w-3 h-3 text-zinc-400 shrink-0" />
+              <span className="font-medium text-zinc-300 truncate max-w-[130px] sm:max-w-[170px]">
+                {ticket.eventVenue || 'Official Venue'}
+              </span>
+            </div>
+
+            {ticket.recipientName && (
+              <div className="flex items-center gap-1 shrink-0">
+                <User className="w-3 h-3 text-[#10b981] shrink-0" />
+                <span className="font-medium text-zinc-300">
+                  Pass Holder: <span className="text-[#10b981] font-semibold">{ticket.recipientName}</span>
+                </span>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* ================= PERFORATION JUNCTION, NOTCHES & VERTICAL TEAR LINE ================= */}
+      {/* Top Notch Cutout with contour border */}
+      <div className="absolute left-[65%] -top-[1px] -translate-x-1/2 w-5 h-[10px] z-30 pointer-events-none">
+        <svg viewBox="0 0 20 10" className="w-full h-full block overflow-visible" fill="none">
+          <path d="M 0,-1 L 20,-1 L 20,0 A 10,10 0 0,1 0,0 Z" fill="#07090E" />
+          <path
+            d="M 0,0.5 A 10,10 0 0,0 20,0.5"
+            fill="none"
+            className="stroke-white/10 group-hover:stroke-[#FF5A36] transition-colors duration-200 ease-out"
+            strokeWidth="1.5"
+          />
+        </svg>
+      </div>
+
+      {/* Vertical Perforated Tear Line */}
+      <div className="absolute left-[65%] -ml-[1px] top-[10px] bottom-[10px] -translate-x-1/2 w-[2px] z-20 pointer-events-none flex flex-col items-center justify-center">
+        <svg className="h-full w-[2px] overflow-visible" preserveAspectRatio="none" viewBox="0 0 2 202">
+          <line
+            x1="1"
+            y1="0"
+            x2="1"
+            y2="202"
+            className="stroke-[#FF5A36]/45 group-hover:stroke-[#FF5A36] group-hover:drop-shadow-[0_0_6px_rgba(255,90,54,0.75)] transition-all duration-200 ease-out"
+            strokeWidth="2"
+            strokeDasharray="8 4"
+            strokeLinecap="round"
+          />
+        </svg>
+      </div>
+
+      {/* Bottom Notch Cutout with contour border */}
+      <div className="absolute left-[65%] -bottom-[1px] -translate-x-1/2 w-5 h-[10px] z-30 pointer-events-none">
+        <svg viewBox="0 0 20 10" className="w-full h-full block overflow-visible" fill="none">
+          <path d="M 0,10 A 10,10 0 0,1 20,10 L 20,11 L 0,11 Z" fill="#07090E" />
+          <path
+            d="M 0,9.5 A 10,10 0 0,1 20,9.5"
+            fill="none"
+            className="stroke-white/10 group-hover:stroke-[#FF5A36] transition-colors duration-200 ease-out"
+            strokeWidth="1.5"
+          />
+        </svg>
+      </div>
+
+      {/* ================= RIGHT SECTION: TICKET STUB (35% width) ================= */}
+      <div className="relative w-[35%] min-h-full bg-[#e2e8f0] rounded-r-2xl overflow-hidden flex flex-col justify-between p-3 sm:p-3.5 paper-texture shadow-inner">
+        <div className="absolute top-0 bottom-0 left-0 w-3 bg-gradient-to-r from-black/10 to-transparent pointer-events-none" />
+
+        {/* Stub Top: Monospace code pill and barcode */}
+        <div className="flex items-center justify-between gap-1 pt-0.5 min-w-0">
+          <div
+            onClick={handleCopyCode}
+            title="Click to copy pass code"
+            className="px-1.5 py-0.5 rounded bg-slate-300/80 border border-slate-400/50 flex items-center gap-1 cursor-pointer hover:bg-slate-300 transition-colors min-w-0 shrink"
+          >
+            <span className="font-mono text-[9.5px] sm:text-[10.5px] font-bold tracking-tight text-slate-800 truncate max-w-[130px] sm:max-w-[150px]">
+              {code || (isRefunded ? '—' : 'ISSUING...')}
+            </span>
+            {code ? (
+              copied ? (
+                <Check className="w-3 h-3 text-emerald-600 shrink-0" />
+              ) : (
+                <Copy className="w-3 h-3 text-slate-600 shrink-0" />
+              )
+            ) : null}
+          </div>
+
+          {/* Realistic Barcode Graphic */}
+          <div className="flex items-center gap-[1.5px] h-3.5 opacity-75 shrink-0" title="Ticket barcode">
+            <span className="w-[2px] h-full bg-slate-900" />
+            <span className="w-[1px] h-full bg-slate-900" />
+            <span className="w-[2.5px] h-full bg-slate-900" />
+            <span className="w-[1px] h-full bg-slate-900" />
+            <span className="w-[2px] h-full bg-slate-900" />
+            <span className="w-[2.5px] h-full bg-slate-900" />
+            <span className="w-[1px] h-full bg-slate-900" />
+          </div>
+        </div>
+
+        {/* Stub Middle: Amount Paid */}
+        <div className="my-auto py-1">
+          <div className="text-[9px] font-bold tracking-wider text-slate-500 uppercase mb-0.5">
+            AMOUNT PAID
+          </div>
+          <div className="flex items-baseline">
+            <span className="text-[17px] sm:text-[20px] font-extrabold tracking-tight text-slate-900 leading-none">
+              {new Intl.NumberFormat('vi-VN').format(ticket.totalAmountPaid)}
+            </span>
+            <span className="ml-1 text-[10px] sm:text-[11px] font-bold text-slate-700">VND</span>
+          </div>
+        </div>
+
+        {/* Stub Bottom: Action Buttons */}
+        <div className="space-y-1.5">
+          {isUsed ? (
+            <div
+              title="This ticket has already been checked in and its entry QR is locked."
+              className="w-full min-h-9 py-2 px-1 bg-amber-100 border border-amber-400/60 text-amber-900 rounded-xl font-bold text-[9px] sm:text-[10px] tracking-wide uppercase flex items-center justify-center gap-1 whitespace-nowrap select-none"
+            >
+              <Check className="w-3.5 h-3.5 shrink-0" />
+              <span>Checked In</span>
+            </div>
+          ) : hasQr ? (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onViewQr();
+              }}
+              className="w-full py-2 px-2 bg-[#ff5722] hover:bg-[#f4511e] active:scale-[0.98] transition-all duration-150 rounded-xl font-bold text-[10px] sm:text-[11px] text-white tracking-wider uppercase shadow-[0_4px_14px_rgba(255,87,34,0.35)] flex items-center justify-center gap-1 cursor-pointer group/btn whitespace-nowrap"
+            >
+              <QrCode className="w-3.5 h-3.5 shrink-0" />
+              <span>{isCombo ? `VIEW QRS (${totalTicketsCount})` : 'VIEW ENTRY QR'}</span>
+              <span className="transition-transform duration-150 group-hover/btn:translate-x-0.5">→</span>
+            </button>
+          ) : isRefunded ? null : (
+            <button
+              type="button"
+              disabled
+              className="w-full py-2 px-2 bg-slate-300 border border-slate-400 text-slate-600 rounded-xl font-bold text-[10px] tracking-wide flex items-center justify-center gap-1 cursor-not-allowed select-none"
+            >
+              <Loader2 className="w-3.5 h-3.5 animate-spin shrink-0" />
+              <span>ISSUING...</span>
+            </button>
+          )}
+
+          {hasDispute ? (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onOpenProgress();
+              }}
+              className="w-full py-1.5 px-1.5 bg-slate-800 hover:bg-slate-900 border border-slate-900 text-white font-bold text-[9.5px] sm:text-[10px] tracking-tight rounded-lg flex items-center justify-center gap-1 transition-colors cursor-pointer"
+            >
+              <Clock className="w-3 h-3 shrink-0" />
+              <span>VIEW DISPUTE STATUS</span>
+            </button>
+          ) : ticket.status === 'DISPUTED' ? (
+            <div className="w-full py-1 px-1.5 bg-amber-100 border border-amber-500/50 text-amber-800 font-bold text-[9.5px] sm:text-[10px] tracking-tight rounded-lg flex items-center justify-center gap-1 text-center select-none">
+              <ShieldAlert className="w-3 h-3 text-amber-700 shrink-0" />
+              <span>Buyer Disputed</span>
+            </div>
+          ) : ticket.status === 'USED' || isUsed ? null : ticket.disputeWaived ? (
+            <div className="w-full py-1 px-1.5 bg-slate-100 border border-slate-300 text-slate-500 font-bold text-[9.5px] sm:text-[10px] tracking-tight rounded-lg flex items-center justify-center gap-1 text-center select-none" title="This ticket was listed for resale. Dispute rights are waived.">
+              <span>RESOLD — DISPUTE WAIVED</span>
+            </div>
+          ) : (
+            ticket.escrowId &&
+            ticket.status !== 'USED' &&
+            (ticket.status === 'IN_ESCROW' || ticket.status === 'LOCKED') && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (isUsed || ticket.status === 'USED') return;
+                  onOpenDispute();
+                }}
+                className="w-full py-1 px-1.5 bg-slate-800/10 hover:bg-rose-500/15 border border-slate-400/40 hover:border-rose-500/40 text-slate-700 hover:text-rose-700 font-bold text-[9.5px] sm:text-[10px] tracking-tight rounded-lg flex items-center justify-center gap-1 transition-all cursor-pointer"
+                title="Report a ticket issue"
+              >
+                <ShieldAlert className="w-3 h-3 text-rose-600 shrink-0" />
+                <span>REPORT ISSUE</span>
+              </button>
+            )
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+/**
+ * Entry QR Modal Component
+ * Renders high-resolution official pass QR code with one-click download to PNG.
+ * Supports multi-ticket / combo package tab switching.
+ */
+interface EntryQrModalProps {
+  ticket: PurchasedTicketDto;
+  onClose: () => void;
+}
+
+const EntryQrModal: React.FC<EntryQrModalProps> = ({ ticket, onClose }) => {
+  const titleId = useId();
+  const showToast = useUIStore((state) => state.showToast);
+  const [copied, setCopied] = useState(false);
+  const [isDownloading, setIsDownloading] = useState(false);
+  const [selectedTicketIndex, setSelectedTicketIndex] = useState(0);
+
+  const isCombo = Boolean((ticket.bundleTotalTickets && ticket.bundleTotalTickets >= 2) || (ticket.bundleItems && ticket.bundleItems.length >= 2));
+
+  // Chỉ hiển thị vé có dữ liệu thật từ BE. Không sinh mã "-T1/-T2" hay ghép seat giả:
+  // nếu BE chưa trả bundleItems thì hiển thị đúng 1 vé đang có.
+  const items = (ticket.bundleItems && ticket.bundleItems.length > 0)
+    ? ticket.bundleItems
+    : [
+        {
+          listingId: ticket.listingId,
+          ticketCode: ticket.ticketPassCode || '',
+          seatZone: ticket.seatZone || '',
+          qrCodeData: ticket.qrCodeData,
+          qrCodeImageUrl: ticket.qrCodeImageUrl,
+        },
+      ];
+  const totalCount = items.length;
+
+  const currentItem = items[selectedTicketIndex] || items[0];
+  const payload = currentItem.qrCodeData || currentItem.ticketCode || entryPayload(ticket);
+  const code = currentItem.ticketCode || (isBase64Image(payload) ? '' : payload);
+
+  const handleKeyDown = useCallback(
+    (event: KeyboardEvent) => {
+      if (event.key === 'Escape') onClose();
+    },
+    [onClose]
+  );
+
+  useEffect(() => {
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [handleKeyDown]);
+
+  const handleCopyCode = useCallback(() => {
+    if (!code) return;
+    navigator.clipboard.writeText(code);
+    setCopied(true);
+    showToast('Copied ticket code to clipboard', 'success');
+    setTimeout(() => setCopied(false), 2000);
+  }, [code, showToast]);
+
+  const handleDownloadQr = useCallback(() => {
+    try {
+      setIsDownloading(true);
+      const safeTicketCode = (code || ticket.escrowId || `ticket-${selectedTicketIndex + 1}`).replace(
+        /[^a-zA-Z0-9-_]/g,
+        '_'
+      );
+      const filename = `TicketShield-${safeTicketCode}.png`;
+
+      // 1. If backend gave base64 data URL
+      if (isBase64Image(payload)) {
+        const link = document.createElement('a');
+        link.href = payload;
+        link.download = filename;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        showToast('QR code downloaded successfully!', 'success');
+        setIsDownloading(false);
+        return;
+      }
+
+      // 2. If rendered via QRCodeCanvas
+      const sourceCanvas = document.getElementById('official-entry-qr-canvas') as HTMLCanvasElement | null;
+      if (sourceCanvas) {
+        const padding = 28;
+        const offscreen = document.createElement('canvas');
+        offscreen.width = sourceCanvas.width + padding * 2;
+        offscreen.height = sourceCanvas.height + padding * 2;
+        const ctx = offscreen.getContext('2d');
+        if (ctx) {
+          ctx.fillStyle = '#FFFFFF';
+          ctx.fillRect(0, 0, offscreen.width, offscreen.height);
+          ctx.drawImage(sourceCanvas, padding, padding);
+          const dataUrl = offscreen.toDataURL('image/png');
+          const link = document.createElement('a');
+          link.href = dataUrl;
+          link.download = filename;
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          showToast('QR code downloaded successfully!', 'success');
+          setIsDownloading(false);
+          return;
+        }
+      }
+
+      showToast('Unable to generate QR image at this time.', 'error');
+      setIsDownloading(false);
+    } catch (err) {
+      console.error('Failed to download QR image:', err);
+      showToast('Failed to download QR code.', 'error');
+      setIsDownloading(false);
+    }
+  }, [code, payload, selectedTicketIndex, ticket.escrowId, showToast]);
+
+  return (
+    <div
+      className="fixed inset-0 z-[90] flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-in fade-in duration-200"
+      onClick={onClose}
+    >
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+        className="bg-[#10141D] border border-white/20 rounded-3xl max-w-md w-full p-6 sm:p-7 space-y-4 shadow-2xl relative text-center"
+        onClick={(event) => event.stopPropagation()}
+      >
+        {/* Close Button */}
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label="Close modal"
+          className="absolute top-4 right-4 min-w-10 min-h-10 inline-flex items-center justify-center rounded-xl text-[#94A3B8] hover:text-white hover:bg-white/10 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF573D]"
+        >
+          <X className="w-5 h-5" />
+        </button>
+
+        {/* Modal Header */}
+        <div className="space-y-1.5 pr-8">
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-[11px] font-mono font-bold text-emerald-400 uppercase tracking-wider">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+            <span>{isCombo ? `COMBO PACKAGE (${totalCount} TICKETS)` : 'OFFICIAL ENTRY PASS'}</span>
+          </div>
+          <h2 id={titleId} className="text-xl font-bold font-display text-white leading-tight">
+            {ticket.eventName}
+          </h2>
+          <div className="space-y-1 pt-0.5">
+            <div className="text-xs font-mono font-semibold text-amber-400">
+              {currentItem.seatZone || ticket.seatZone || ticket.tierName || 'Standard Entry'}
+            </div>
+            <div className="text-[11px] font-mono text-[#94A3B8] flex items-center justify-center gap-1">
+              <MapPin className="w-3.5 h-3.5 text-[#94A3B8] shrink-0" />
+              <span className="truncate max-w-[320px]">{ticket.eventVenue || 'Venue entrance'}</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Combo Multi-ticket Tabs */}
+        {isCombo && items.length > 1 && (
+          <div className="flex justify-center w-full">
+            <div className="inline-flex items-center gap-1.5 p-1 bg-[#080B10] rounded-xl border border-white/10 text-xs font-mono max-w-full overflow-x-auto scrollbar-none">
+              {items.map((item, idx) => (
+                <button
+                  key={idx}
+                  type="button"
+                  onClick={() => setSelectedTicketIndex(idx)}
+                  className={`px-3.5 py-1.5 rounded-lg font-bold transition-all cursor-pointer shrink-0 ${
+                    selectedTicketIndex === idx
+                      ? 'bg-[#FF573D] text-white shadow-md shadow-[#FF573D]/30'
+                      : 'text-[#94A3B8] hover:text-white hover:bg-white/5'
+                  }`}
+                >
+                  Ticket #{idx + 1}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Official QR Code Box — Renders real QR for selected ticket */}
+        <div className="flex flex-col items-center justify-center gap-3 py-1">
+          <div className="p-4 bg-white rounded-2xl shadow-xl border-4 border-white inline-block">
+            {currentItem.qrCodeImageUrl ? (
+              <img
+                src={currentItem.qrCodeImageUrl}
+                alt={`Official Ticket #${selectedTicketIndex + 1} QR Code`}
+                className="w-[200px] h-[200px] object-contain rounded-lg"
+              />
+            ) : isBase64Image(payload) ? (
+              <img
+                src={payload}
+                alt={`Official Ticket #${selectedTicketIndex + 1} QR Code`}
+                className="w-[200px] h-[200px] object-contain rounded-lg"
+              />
+            ) : (
+              <QRCodeCanvas
+                id="official-entry-qr-canvas"
+                value={payload || 'OFFICIAL_TICKET_PASS'}
+                size={200}
+                level="H"
+                includeMargin={false}
+              />
+            )}
+          </div>
+
+          {/* Ticket Pass Code with Copy */}
+          {code && (
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-[#080B10] border border-white/10">
+              <span className="text-xs font-mono font-bold text-[#FF573D] tracking-wider">
+                {code}
+              </span>
+              <button
+                type="button"
+                onClick={handleCopyCode}
+                title="Copy Pass Code"
+                className="p-1 rounded text-[#94A3B8] hover:text-white transition-colors"
+              >
+                {copied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+              </button>
+            </div>
+          )}
+
+          <p className="text-xs text-[#94A3B8] max-w-xs leading-relaxed">
+            {isCombo ? `Show this QR code for Ticket #${selectedTicketIndex + 1} at gate check-in.` : 'Show this official QR code to event staff at the gate for rapid scanner check-in.'}
+          </p>
+        </div>
+
+        {/* Action Buttons */}
+        <div className="pt-1 flex flex-col sm:flex-row gap-3">
+          <button
+            type="button"
+            onClick={handleDownloadQr}
+            disabled={isDownloading}
+            className="flex-1 py-3 px-4 min-h-11 bg-[#FF573D] hover:bg-[#FF7252] text-white font-bold font-display text-xs uppercase tracking-wider rounded-xl shadow-lg shadow-[#FF573D]/25 flex items-center justify-center gap-2 transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer disabled:opacity-50"
+          >
+            {isDownloading ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <Download className="w-4 h-4" />
+            )}
+            <span>Download Ticket #{selectedTicketIndex + 1} QR</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={onClose}
+            className="py-3 px-5 min-h-11 bg-white/5 hover:bg-white/10 text-[#CBD5E1] hover:text-white font-medium text-xs rounded-xl transition-colors cursor-pointer"
+          >
+            Close
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+/**
+ * Skeleton Loader for Ticket Pass Cards
+ */
+const TicketCardSkeleton: React.FC = () => {
+  return (
+    <div className="w-full h-[195px] sm:h-[200px] flex rounded-2xl bg-[#0a0c10] border border-white/10 overflow-hidden animate-pulse">
+      {/* 65% Left Body */}
+      <div className="w-[65%] h-full p-4 sm:p-5 flex flex-col justify-between bg-[#0e121a]">
+        <div className="flex justify-between items-center">
+          <div className="w-24 h-5 bg-white/10 rounded-full" />
+          <div className="w-20 h-5 bg-white/10 rounded-full" />
+        </div>
+        <div className="w-3/4 h-5 bg-white/10 rounded-lg" />
+        <div className="space-y-1.5">
+          <div className="w-1/2 h-3 bg-white/10 rounded" />
+          <div className="w-2/3 h-3 bg-white/10 rounded" />
+        </div>
+      </div>
+
+      {/* 35% Right Stub */}
+      <div className="w-[35%] h-full bg-[#181f2c] p-3.5 sm:p-4 flex flex-col justify-between border-l border-white/10">
+        <div className="w-full h-6 bg-white/10 rounded" />
+        <div className="space-y-1 my-auto">
+          <div className="w-12 h-2.5 bg-white/10 rounded" />
+          <div className="w-24 h-6 bg-white/10 rounded" />
+        </div>
+        <div className="w-full h-9 bg-white/10 rounded-xl" />
       </div>
     </div>
   );

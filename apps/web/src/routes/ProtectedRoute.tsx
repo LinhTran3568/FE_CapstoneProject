@@ -1,20 +1,142 @@
 import React from 'react';
-import { Navigate, Outlet } from 'react-router-dom';
+import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import { useAuthStore } from '../stores/authStore';
 import { UserRole } from '@ticketshield/types';
+import { Loader2 } from 'lucide-react';
+import { isStaffRole, isAdminRole } from '../utils/staffRole';
 
+const RouteLoadingScreen: React.FC = () => (
+  <div className="min-h-screen bg-[#05070A] flex flex-col items-center justify-center gap-3 text-white">
+    <Loader2 className="w-8 h-8 animate-spin text-[#FF5A36]" />
+    <span className="text-xs font-mono tracking-widest uppercase text-slate-400">Verifying session...</span>
+  </div>
+);
+
+/**
+ * Route only accessible to authenticated users.
+ * Saves current location for post-login redirect.
+ */
 export const ProtectedRoute: React.FC = () => {
-  const { isAuthenticated } = useAuthStore();
-  if (!isAuthenticated) {
-    return <Navigate to="/login" replace />;
+  const { isAuthenticated, isLoading } = useAuthStore();
+  const location = useLocation();
+
+  if (isLoading) {
+    return <RouteLoadingScreen />;
   }
+
+  if (!isAuthenticated) {
+    return <Navigate to="/login" state={{ from: location }} replace />;
+  }
+
+  return <Outlet />;
+};
+
+/**
+ * Route only accessible to guests or non-admin users.
+ * Strictly locks Admin accounts inside the management portal (/admin/dashboard),
+ * redirecting any attempt to access marketplace or public user pages.
+ */
+export const UserRoute: React.FC = () => {
+  const { user, isAuthenticated, isLoading } = useAuthStore();
+  const location = useLocation();
+
+  if (isLoading) {
+    return <RouteLoadingScreen />;
+  }
+
+  if (isAuthenticated && user && isAdminRole(user.role)) {
+    if (location.pathname === '/profile') {
+      return <Outlet />;
+    }
+    return <Navigate to="/admin/dashboard" replace />;
+  }
+
+  return <Outlet />;
+};
+
+/**
+ * Route only accessible to guest (unauthenticated) users.
+ * When authenticated, automatically redirects to Admin Portal (if admin), Dispute Console (if staff), or Marketplace.
+ */
+export const GuestRoute: React.FC = () => {
+  const { user, isAuthenticated, isLoading } = useAuthStore();
+  const location = useLocation();
+
+  if (isLoading) {
+    return <RouteLoadingScreen />;
+  }
+
+  if (isAuthenticated) {
+    if (user && isAdminRole(user.role)) {
+      return <Navigate to="/admin" replace />;
+    }
+    if (user && isStaffRole(user.role)) {
+      return <Navigate to="/disputes/console" replace />;
+    }
+
+    const rawFrom = (location.state as any)?.from;
+    const targetPath = typeof rawFrom === 'string' ? rawFrom : rawFrom?.pathname;
+    const from = (!targetPath || targetPath === '/sell-ticket' || targetPath === '/sell') ? '/marketplace' : targetPath;
+    return <Navigate to={from} replace />;
+  }
+
   return <Outlet />;
 };
 
 export const RoleGuard: React.FC<{ allowedRoles: UserRole[] }> = ({ allowedRoles }) => {
-  const { user } = useAuthStore();
+  const { user, isLoading } = useAuthStore();
+
+  if (isLoading) {
+    return <RouteLoadingScreen />;
+  }
+
   if (!user || !allowedRoles.includes(user.role)) {
     return <Navigate to="/" replace />;
   }
+
+  return <Outlet />;
+};
+
+/**
+ * Route accessible to platform staff (Admin, CSKH, Moderator).
+ */
+export const StaffRoute: React.FC = () => {
+  const { user, isAuthenticated, isLoading } = useAuthStore();
+  const location = useLocation();
+
+  if (isLoading) {
+    return <RouteLoadingScreen />;
+  }
+
+  if (!isAuthenticated || !user) {
+    return <Navigate to="/login" state={{ from: location }} replace />;
+  }
+
+  if (!isStaffRole(user.role)) {
+    return <Navigate to="/marketplace" replace />;
+  }
+
+  return <Outlet />;
+};
+
+/**
+ * Route accessible strictly to Admin role
+ */
+export const AdminRoute: React.FC = () => {
+  const { user, isAuthenticated, isLoading } = useAuthStore();
+  const location = useLocation();
+
+  if (isLoading) {
+    return <RouteLoadingScreen />;
+  }
+
+  if (!isAuthenticated || !user) {
+    return <Navigate to="/login" state={{ from: location }} replace />;
+  }
+
+  if (!isAdminRole(user.role)) {
+    return <Navigate to="/marketplace" replace />;
+  }
+
   return <Outlet />;
 };

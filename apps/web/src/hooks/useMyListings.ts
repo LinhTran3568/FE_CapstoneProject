@@ -5,14 +5,35 @@ import type { SellerListingDto } from '@ticketshield/types';
 /** Cache key for the signed-in seller's listings. Invalidate it after any listing change. */
 export const myListingsQueryKey = ['resale-listings', 'mine'] as const;
 
+/** The full-screen error replaces the list only before any list has arrived. */
+export const listingsFailedBeforeAnyData = (data: unknown, isError: boolean) =>
+  isError && data === undefined;
+
 /**
  * All listings of the signed-in seller (every status).
  * Filtering by status happens on the page so the per-status counts stay available.
  */
-export const useMyListings = () =>
+export const useMyListings = (refetchInterval?: number, enabled = true) =>
   useQuery({
     queryKey: myListingsQueryKey,
     queryFn: () => resaleListingsApi.getMyListings(),
+    refetchInterval: (query) => {
+      if (typeof refetchInterval === 'number') return refetchInterval;
+
+      const listings = query.state.data ?? [];
+      const hasActiveSettlement = listings.some(
+        (l) => l.inSettlementBuffer || l.escrowStatus === 'Locked' || l.listingStatus === 'Transacting'
+      );
+      if (hasActiveSettlement) return 1500;
+
+      const hasOnSale = listings.some((l) => l.listingStatus === 'Verified');
+      if (hasOnSale) return 2500;
+
+      return 4000;
+    },
+    refetchIntervalInBackground: true,
+    refetchOnWindowFocus: 'always',
+    enabled,
   });
 
 /**
@@ -26,9 +47,10 @@ export const useCancelListing = () => {
   return useMutation({
     mutationFn: (listingId: string) => resaleListingsApi.cancelListing(listingId),
     onSuccess: (result) => {
+      const cancelledCodes = new Set(result.allCancelledTicketCodes || []);
       queryClient.setQueryData<SellerListingDto[]>(myListingsQueryKey, (listings) =>
         listings?.map((listing) =>
-          listing.listingId === result.listingId
+          listing.listingId === result.listingId || cancelledCodes.has(listing.originalTicketCode)
             ? { ...listing, listingStatus: result.listingStatus }
             : listing
         )

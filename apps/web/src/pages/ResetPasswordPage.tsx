@@ -13,10 +13,14 @@ export const ResetPasswordPage: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const initialEmail = searchParams.get('email') || '';
+  const [isResending, setIsResending] = React.useState(false);
+  const [resendCooldown, setResendCooldown] = React.useState(0);
 
   const {
     register,
     handleSubmit,
+    watch,
+    setValue,
     formState: { errors, isSubmitting },
   } = useForm<ResetPasswordFormData>({
     resolver: zodResolver(resetPasswordSchema),
@@ -28,6 +32,22 @@ export const ResetPasswordPage: React.FC = () => {
     },
   });
 
+  React.useEffect(() => {
+    if (initialEmail) {
+      setValue('email', initialEmail);
+    }
+  }, [initialEmail, setValue]);
+
+  React.useEffect(() => {
+    if (resendCooldown <= 0) return;
+    const interval = setInterval(() => {
+      setResendCooldown((prev) => (prev > 0 ? prev - 1 : 0));
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [resendCooldown]);
+
+  const currentEmail = watch('email');
+
   const onSubmit = async (data: ResetPasswordFormData) => {
     try {
       const msg = await authApi.resetPassword({
@@ -35,10 +55,27 @@ export const ResetPasswordPage: React.FC = () => {
         otp: data.otp,
         newPassword: data.newPassword,
       });
-      showToast(msg || 'Password reset successfully! Please sign in.', 'success');
+      showToast(msg || 'Password has been reset successfully! Please sign in.', 'success');
       navigate('/login');
     } catch (err: any) {
-      showToast('Password reset failed: ' + err.message, 'error');
+      showToast('Password reset failed: ' + (err.message || 'An error occurred'), 'error');
+    }
+  };
+
+  const handleResendOtp = async () => {
+    if (!currentEmail || !/^\S+@\S+\.\S+$/.test(currentEmail)) {
+      showToast('Please enter a valid email address to resend OTP.', 'error');
+      return;
+    }
+    try {
+      setIsResending(true);
+      const msg = await authApi.forgotPassword(currentEmail);
+      showToast(msg || 'A new OTP code has been sent to your email.', 'success');
+      setResendCooldown(60);
+    } catch (err: any) {
+      showToast('Failed to resend OTP: ' + (err.message || 'An error occurred'), 'error');
+    } finally {
+      setIsResending(false);
     }
   };
 
@@ -73,7 +110,8 @@ export const ResetPasswordPage: React.FC = () => {
         </div>
 
         <div className="relative z-10 space-y-6 max-w-xl my-auto">
-          <span className="px-3.5 py-1 bg-[#FF5A36]/20 border border-[#FF5A36]/40 text-[#FF5A36] text-xs font-bold uppercase tracking-widest rounded-full font-display inline-block">
+          <span className="px-3.5 py-1 bg-black/80 backdrop-blur-md border border-white/20 text-white text-xs font-bold uppercase tracking-widest rounded-full font-display inline-flex items-center gap-2 shadow-md">
+            <span className="w-1.5 h-1.5 rounded-full bg-[#FF5A36]" />
             Final Step
           </span>
           <h1 className="font-display text-5xl xl:text-6xl font-extrabold uppercase leading-[0.95] tracking-tight">
@@ -86,7 +124,7 @@ export const ResetPasswordPage: React.FC = () => {
         </div>
 
         <div className="relative z-10 pt-6 border-t border-white/10 text-xs text-[#A3A8B3] font-display">
-          <span>Cryptographically Secured Account Reset</span>
+          <span>Multi-Layer Fan Account Security</span>
         </div>
       </div>
 
@@ -130,9 +168,23 @@ export const ResetPasswordPage: React.FC = () => {
             </div>
 
             <div>
-              <label className="block text-xs font-semibold uppercase tracking-wider text-[#A3A8B3] mb-1 font-display">
-                6-Digit OTP Code
-              </label>
+              <div className="flex items-center justify-between mb-1">
+                <label className="block text-xs font-semibold uppercase tracking-wider text-[#A3A8B3] font-display">
+                  6-Digit OTP Code
+                </label>
+                <button
+                  type="button"
+                  onClick={handleResendOtp}
+                  disabled={isResending || resendCooldown > 0}
+                  className="text-xs text-[#FF5A36] hover:underline font-medium font-display disabled:opacity-50 disabled:no-underline transition-colors"
+                >
+                  {isResending
+                    ? 'Sending...'
+                    : resendCooldown > 0
+                    ? `Resend in (${resendCooldown}s)`
+                    : 'Resend OTP'}
+                </button>
+              </div>
               <div className="relative">
                 <ShieldCheck className="w-4 h-4 text-[#A3A8B3] absolute left-3.5 top-3.5" />
                 <input

@@ -1,9 +1,27 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../stores/authStore';
 import { useUIStore } from '../../stores/uiStore';
-import { User as UserIcon, LogOut, PlusCircle, ShieldCheck, Ticket, Sparkles } from 'lucide-react';
 import { TicketShieldLogo } from '../ui/TicketShieldLogo';
+import { isStaffRole, isAdminRole } from '../../utils/staffRole';
+import {
+  Ticket,
+  PlusCircle,
+  ListFilter,
+  ShieldCheck,
+  ShieldAlert,
+  User as UserIcon,
+  LogOut,
+  ChevronDown,
+  Menu,
+  X,
+  Sparkles,
+  ArrowRight,
+  Search,
+  Building2,
+  Sliders,
+  ReceiptText
+} from 'lucide-react';
 
 export const Navbar: React.FC = () => {
   const { user, logout } = useAuthStore();
@@ -12,246 +30,521 @@ export const Navbar: React.FC = () => {
   const navigate = useNavigate();
 
   const [scrolled, setScrolled] = useState(false);
+  const [userDropdownOpen, setUserDropdownOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [navSearchTerm, setNavSearchTerm] = useState('');
 
-  const isHome = location.pathname === '/';
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  const isLandingPage = location.pathname === '/';
+
+  const handleNavSearchSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (navSearchTerm.trim()) {
+      navigate(`/marketplace?q=${encodeURIComponent(navSearchTerm.trim())}`);
+    } else {
+      navigate('/marketplace');
+    }
+  };
 
   useEffect(() => {
+    let ticking = false;
     const handleScroll = () => {
-      setScrolled(window.scrollY > 40);
+      if (!ticking) {
+        window.requestAnimationFrame(() => {
+          setScrolled(window.scrollY > 30);
+          ticking = false;
+        });
+        ticking = true;
+      }
     };
-    window.addEventListener('scroll', handleScroll);
+    window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setUserDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
   const handleBrandClick = (e: React.MouseEvent) => {
     e.preventDefault();
-    if (isHome) {
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+    if (isAdmin) {
+      navigate('/admin/dashboard');
     } else {
       navigate('/');
-      setTimeout(() => {
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-      }, 100);
     }
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleLogout = () => {
+    setUserDropdownOpen(false);
     logout();
-    showToast('Signed out successfully', 'info');
-    navigate('/login');
+    showToast('Signed out successfully.', 'info');
+    navigate('/');
   };
 
-  // Robust Reseller Role Detection
-  const isReseller = 
-    user?.role === 'RESELLER' || 
-    (user?.role as string) === 'SELLER' || 
-    user?.email?.toLowerCase().includes('seller') ||
-    user?.fullName?.toLowerCase().includes('seller');
+  const isSeller =
+    user?.role === 'RESELLER' ||
+    (user?.role as string) === 'SELLER';
 
-  // Determine Nav Links without "Home" (Brand Logo acts as Home link)
-  const getNavLinks = () => {
-    if (!user) {
-      return [
-        { label: 'Featured', href: '/#featured' },
-        { label: 'Resale Marketplace', href: '/marketplace' },
-        { label: 'Experiences', href: '/#experiences' },
-        { label: 'How It Works', href: '/#process' },
-      ];
-    }
-
-    if (isReseller) {
-      return [
-        { label: 'Resale Marketplace', href: '/marketplace' },
-        { label: 'Sell Ticket', href: '/sell-ticket' },
-        { label: 'My Listings', href: '/my-listings' },
-        { label: 'My Tickets', href: '/my-tickets' },
-      ];
-    }
-
-    if (user.role === 'ADMIN') {
-      return [
-        { label: 'Resale Marketplace', href: '/marketplace' },
-        { label: 'Manage Listings', href: '/my-listings' },
-      ];
-    }
-
-    // Default BUYER
-    return [
-      { label: 'Resale Marketplace', href: '/marketplace' },
-      { label: 'My Tickets', href: '/my-tickets' },
-      { label: 'How It Works', href: '/#process' },
-    ];
-  };
-
-  const navLinks = getNavLinks();
+  const isAdmin = isAdminRole(user?.role);
+  const isStaff = isStaffRole(user?.role);
+  const isAdminOrStaffPage = location.pathname.startsWith('/admin') || location.pathname.startsWith('/disputes');
 
   return (
     <header
-      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${
-        scrolled || !isHome
-          ? 'bg-[#05070A]/95 backdrop-blur-md border-b border-white/10 py-3.5 shadow-2xl'
-          : 'bg-transparent py-5'
-      }`}
+      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${scrolled
+          ? 'bg-[#05070A]/95 backdrop-blur-2xl border-b border-white/10 shadow-[0_10px_35px_rgba(0,0,0,0.85)] py-3'
+          : 'bg-gradient-to-b from-[#05070A]/90 via-[#05070A]/40 to-transparent py-4'
+        }`}
     >
-      <div className="max-w-7xl mx-auto px-6 md:px-12 flex items-center justify-between gap-6">
-        {/* Brand Logo - Acts as Home button */}
-        <a href="/" onClick={handleBrandClick} className="shrink-0">
-          <TicketShieldLogo size="md" />
-        </a>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-8 flex items-center justify-between gap-4">
+        {/* Brand Logo & Search Bar */}
+        <div className="flex items-center gap-3 sm:gap-4 shrink-0">
+          <a href="/" onClick={handleBrandClick} className="focus:outline-none shrink-0 group">
+            <TicketShieldLogo size="md" />
+          </a>
 
-        {/* Desktop Nav Links: Single-line horizontal layout (No text wrap) */}
-        <nav className="hidden lg:flex items-center space-x-6 text-xs font-semibold uppercase tracking-wider whitespace-nowrap shrink-0">
-          {navLinks.map((link) => (
-            <Link
-              key={link.label}
-              to={link.href}
-              className={`transition-colors duration-200 ${
-                location.pathname === link.href
-                  ? 'text-[#FF5A36] font-bold'
-                  : 'text-[#A3A8B3] hover:text-[#F5F5F2]'
-              }`}
+          {/* Global Navbar Search Bar (hidden on Admin & Dispute Console pages to prevent clutter) */}
+          {!isAdminOrStaffPage && (
+            <form
+              onSubmit={handleNavSearchSubmit}
+              className="hidden lg:flex items-center gap-2 h-9 w-44 md:w-56 lg:w-64 bg-white/5 hover:bg-white/10 focus-within:bg-[#0D1117] focus-within:border-[#FF5A36] border border-white/10 rounded-full px-3 transition-all"
             >
-              {link.label}
-            </Link>
-          ))}
-        </nav>
+              <Search className="w-3.5 h-3.5 text-[#8B929C] shrink-0" />
+              <input
+                type="text"
+                placeholder="Search events, tickets..."
+                value={navSearchTerm}
+                onChange={(e) => setNavSearchTerm(e.target.value)}
+                className="w-full bg-transparent border-0 text-white placeholder-[#8B929C] text-xs font-medium focus:outline-none"
+              />
+            </form>
+          )}
 
-        {/* Right CTA / User Account Controls */}
-        <div className="hidden md:flex items-center space-x-3.5 text-xs shrink-0">
-          {user ? (
-            <div className="flex items-center gap-3">
-              {/* User Profile Card Button - Navigates to /profile */}
-              <Link
-                to="/profile"
-                className="flex items-center gap-2.5 px-3.5 py-2 rounded-full bg-[#0A0D12] border border-white/10 hover:border-[#FF5A36]/50 transition-all font-semibold text-[#F5F5F2] group whitespace-nowrap"
-                title="View Profile & Account"
-              >
-                <div className="w-6 h-6 rounded-full bg-[#FF5A36]/20 text-[#FF5A36] group-hover:bg-[#FF5A36] group-hover:text-white transition-all flex items-center justify-center font-bold text-xs">
-                  {user.fullName ? user.fullName[0].toUpperCase() : <UserIcon className="w-3.5 h-3.5" />}
-                </div>
-                <span className="font-display font-medium max-w-[120px] truncate">{user.fullName || 'Account'}</span>
-                
-                {/* Role Badge */}
-                {isReseller ? (
-                  <span className="text-[10px] bg-gradient-to-r from-[#FF5A36] to-amber-500 text-white font-extrabold px-2 py-0.5 rounded-full font-mono uppercase tracking-wider shadow">
-                    RESELLER
-                  </span>
-                ) : user.role === 'ADMIN' ? (
-                  <span className="text-[10px] bg-red-500 text-white font-extrabold px-2 py-0.5 rounded-full font-mono">
-                    ADMIN
-                  </span>
-                ) : (
-                  <span className="text-[10px] bg-white/10 text-[#A3A8B3] px-2 py-0.5 rounded-full font-mono">
-                    BUYER
-                  </span>
-                )}
-              </Link>
-
-              {/* Logout Button */}
-              <button
-                onClick={handleLogout}
-                title="Sign Out"
-                className="p-2 rounded-full bg-[#0A0D12] border border-white/10 text-[#A3A8B3] hover:text-red-400 hover:border-red-500/40 transition-all"
-              >
-                <LogOut className="w-4 h-4" />
-              </button>
-            </div>
-          ) : (
-            <div className="flex items-center space-x-3">
-              <Link
-                to="/login"
-                className="px-6 py-2 rounded-full bg-white hover:bg-[#F5F5F2] text-[#05070A] font-extrabold tracking-wider transition-all duration-200 shadow-xl shadow-white/25 hover:shadow-2xl hover:shadow-white/45 hover:-translate-y-0.5 active:translate-y-0 uppercase font-display"
-              >
-                Login
-              </Link>
-              <Link
-                to="/register"
-                className="px-6 py-2 bg-[#FF5A36] hover:bg-[#FF7252] text-white font-extrabold rounded-full tracking-wider transition-all duration-200 shadow-xl shadow-[#FF5A36]/30 hover:shadow-2xl hover:shadow-[#FF5A36]/50 hover:-translate-y-0.5 active:translate-y-0 uppercase font-display"
-              >
-                Get Started
-              </Link>
+          {isAdminOrStaffPage && (
+            <div className="hidden sm:flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-xs font-mono text-slate-300">
+              <span className="w-2 h-2 rounded-full bg-[#FF5A36] animate-pulse"></span>
+              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-300">
+                {isAdmin ? 'Admin Console' : 'Staff Console'}
+              </span>
             </div>
           )}
         </div>
 
-        {/* Mobile Hamburger Toggle */}
+        {/* Navigation Links */}
+        <nav className="hidden md:flex items-center gap-1 bg-[#090C12]/90 backdrop-blur-md p-1.5 rounded-full border border-white/10 shadow-inner">
+          {!isAdmin && (
+            <>
+              <Link
+                to="/"
+                className={`px-3.5 py-1.5 rounded-full text-xs font-mono font-bold uppercase tracking-wider whitespace-nowrap transition-all ${
+                  location.pathname === '/'
+                    ? 'bg-[#FF5A36] text-white shadow-[0_2px_15px_rgba(255,90,54,0.4)]'
+                    : 'text-[#94A3B8] hover:text-white hover:bg-white/[0.06]'
+                }`}
+              >
+                Home
+              </Link>
+
+              <Link
+                to="/marketplace"
+                className={`px-3.5 py-1.5 rounded-full text-xs font-mono font-bold uppercase tracking-wider whitespace-nowrap transition-all flex items-center gap-1.5 ${
+                  location.pathname === '/marketplace'
+                    ? 'bg-[#FF5A36] text-white shadow-[0_2px_15px_rgba(255,90,54,0.4)]'
+                    : 'text-[#94A3B8] hover:text-white hover:bg-white/[0.06]'
+                }`}
+              >
+                <Ticket className="w-3.5 h-3.5" />
+                <span>Marketplace</span>
+              </Link>
+
+              <Link
+                to="/storefront"
+                className={`px-3.5 py-1.5 rounded-full text-xs font-mono font-bold uppercase tracking-wider whitespace-nowrap transition-all flex items-center gap-1.5 ${
+                  location.pathname.startsWith('/storefront')
+                    ? 'bg-[#FF5A36] text-white shadow-[0_2px_15px_rgba(255,90,54,0.4)]'
+                    : 'text-[#94A3B8] hover:text-white hover:bg-white/[0.06]'
+                }`}
+              >
+                <Building2 className="w-3.5 h-3.5" />
+                <span>Origin Store</span>
+              </Link>
+            </>
+          )}
+
+          {isStaff && (
+            <Link
+              to="/disputes/console"
+              className={`px-3.5 py-1.5 rounded-full text-xs font-mono font-bold uppercase tracking-wider whitespace-nowrap transition-all flex items-center gap-1.5 ${
+                location.pathname.startsWith('/disputes') || location.pathname.startsWith('/admin/disputes')
+                  ? 'bg-amber-500 text-black font-extrabold shadow-[0_2px_15px_rgba(245,158,11,0.4)]'
+                  : 'text-amber-400 hover:text-amber-300 hover:bg-white/[0.06]'
+              }`}
+            >
+              <ShieldAlert className="w-3.5 h-3.5" />
+              <span>Disputes</span>
+            </Link>
+          )}
+
+          {isAdmin && (
+            <Link
+              to="/admin/dashboard"
+              className={`px-3.5 py-1.5 rounded-full text-xs font-mono font-bold uppercase tracking-wider whitespace-nowrap transition-all flex items-center gap-1.5 ${
+                location.pathname.startsWith('/admin')
+                  ? 'bg-[#FF5A36] text-white shadow-[0_2px_15px_rgba(255,90,54,0.4)]'
+                  : 'text-[#FF5A36] hover:text-white hover:bg-white/[0.06]'
+              }`}
+            >
+              <Sliders className="w-3.5 h-3.5 text-[#FF5A36]" />
+              <span>Admin Portal</span>
+            </Link>
+          )}
+        </nav>
+
+        {/* Right Actions */}
+        <div className="hidden sm:flex items-center gap-3 shrink-0">
+          {!isAdmin && !isStaff && (
+            <Link
+              to="/sell-ticket"
+              className={`group px-3.5 py-2 rounded-xl text-xs font-mono font-bold uppercase tracking-wider whitespace-nowrap transition-all flex items-center gap-1.5 ${
+                location.pathname === '/sell-ticket'
+                  ? 'bg-[#FF5A36] text-black shadow-[0_2px_15px_rgba(255,90,54,0.4)]'
+                  : 'bg-white/5 text-white hover:bg-[#FF5A36] hover:text-black border border-white/15 hover:border-[#FF5A36]'
+              }`}
+            >
+              <PlusCircle
+                className={`w-3.5 h-3.5 transition-colors ${
+                  location.pathname === '/sell-ticket'
+                    ? 'text-black'
+                    : 'text-[#FF5A36] group-hover:text-black'
+                }`}
+              />
+              <span>Sell Ticket</span>
+            </Link>
+          )}
+
+          {!user ? (
+            <Link
+              to="/login"
+              className="px-5 py-2.5 bg-gradient-to-r from-[#FF5A36] to-[#FF7252] hover:brightness-110 text-white font-display font-black text-xs uppercase tracking-wider rounded-xl shadow-[0_4px_20px_rgba(255,90,54,0.4)] transition-all flex items-center gap-1.5 whitespace-nowrap"
+            >
+              <span>Sign In</span>
+              <ArrowRight className="w-3.5 h-3.5 stroke-[2.5]" />
+            </Link>
+          ) : (
+            <div className="relative" ref={dropdownRef}>
+              <button
+                onClick={() => setUserDropdownOpen(!userDropdownOpen)}
+                className="flex items-center gap-3 p-1.5 pr-3 rounded-2xl bg-[#090C12] border border-white/15 hover:border-[#FF5A36]/60 transition-all cursor-pointer group focus:outline-none"
+              >
+                <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-[#FF5A36] to-[#FF7252] text-white flex items-center justify-center font-bold text-xs shadow-md">
+                  {user.fullName ? user.fullName.charAt(0).toUpperCase() : 'U'}
+                </div>
+
+                <div className="flex flex-col text-left">
+                  <span className="text-xs font-bold font-display text-white line-clamp-1 group-hover:text-[#FF5A36] transition-colors">
+                    {user.fullName || 'User'}
+                  </span>
+                  <span className="text-[10px] font-mono text-[#8B929C]">
+                    {isAdmin ? 'ADMIN' : isSeller ? 'SELLER' : 'BUYER'}
+                  </span>
+                </div>
+
+                <ChevronDown
+                  className={`w-3.5 h-3.5 text-[#8B929C] group-hover:text-white transition-transform duration-200 ${
+                    userDropdownOpen ? 'rotate-180 text-white' : ''
+                  }`}
+                />
+              </button>
+
+              {/* User Dropdown */}
+              {userDropdownOpen && (
+                <div className="absolute right-0 mt-2 w-60 bg-[#0B0E14]/95 backdrop-blur-2xl border border-white/15 rounded-2xl p-2 shadow-[0_20px_50px_rgba(0,0,0,0.9)] animate-in fade-in slide-in-from-top-2 space-y-1 z-50">
+                  <div className="p-3 bg-white/[0.03] rounded-xl border border-white/5 space-y-1">
+                    <p className="text-xs font-bold text-white truncate">{user.fullName}</p>
+                    <p className="text-[11px] font-mono text-[#8B929C] truncate">{user.email}</p>
+                  </div>
+
+                  {isAdmin ? (
+                    <>
+                      <Link
+                        to="/admin/dashboard"
+                        onClick={() => setUserDropdownOpen(false)}
+                        className="w-full px-3 py-2.5 rounded-xl text-xs font-mono text-[#FF5A36] hover:text-white hover:bg-[#FF5A36]/10 flex items-center gap-2.5 transition-colors"
+                      >
+                        <Sliders className="w-4 h-4 text-[#FF5A36]" />
+                        <span>Admin Console</span>
+                      </Link>
+                      <Link
+                        to="/admin/disputes"
+                        onClick={() => setUserDropdownOpen(false)}
+                        className="w-full px-3 py-2.5 rounded-xl text-xs font-mono text-amber-300 hover:text-amber-200 hover:bg-amber-500/10 flex items-center gap-2.5 transition-colors"
+                      >
+                        <ShieldAlert className="w-4 h-4 text-amber-400" />
+                        <span>Dispute Console</span>
+                      </Link>
+                    </>
+                  ) : (
+                    <>
+                      {isStaff && (
+                        <Link
+                          to="/disputes/console"
+                          onClick={() => setUserDropdownOpen(false)}
+                          className="w-full px-3 py-2.5 rounded-xl text-xs font-mono text-amber-300 hover:text-amber-200 hover:bg-amber-500/10 flex items-center gap-2.5 transition-colors"
+                        >
+                          <ShieldAlert className="w-4 h-4 text-amber-400" />
+                          <span>Dispute Console</span>
+                        </Link>
+                      )}
+
+                      <Link
+                        to="/my-tickets"
+                        onClick={() => setUserDropdownOpen(false)}
+                        className="w-full px-3 py-2.5 rounded-xl text-xs font-mono text-[#CBD5E1] hover:text-white hover:bg-white/10 flex items-center gap-2.5 transition-colors"
+                      >
+                        <Sparkles className="w-4 h-4 text-[#FF5A36]" />
+                        <span>My Tickets</span>
+                      </Link>
+
+                      <Link
+                        to="/profile?tab=orders"
+                        onClick={() => setUserDropdownOpen(false)}
+                        className="w-full px-3 py-2.5 rounded-xl text-xs font-mono text-[#CBD5E1] hover:text-white hover:bg-white/10 flex items-center gap-2.5 transition-colors"
+                      >
+                        <ReceiptText className="w-4 h-4 text-[#FF5A36]" />
+                        <span>My Orders</span>
+                      </Link>
+
+                      <Link
+                        to="/my-listings"
+                        onClick={() => setUserDropdownOpen(false)}
+                        className="w-full px-3 py-2.5 rounded-xl text-xs font-mono text-[#CBD5E1] hover:text-white hover:bg-white/10 flex items-center gap-2.5 transition-colors"
+                      >
+                        <ListFilter className="w-4 h-4 text-[#FF5A36]" />
+                        <span>My Listings</span>
+                      </Link>
+
+                      <Link
+                        to="/payout-accounts"
+                        onClick={() => setUserDropdownOpen(false)}
+                        className="w-full px-3 py-2.5 rounded-xl text-xs font-mono text-[#CBD5E1] hover:text-white hover:bg-white/10 flex items-center gap-2.5 transition-colors"
+                      >
+                        <Building2 className="w-4 h-4 text-emerald-400" />
+                        <span>Payout Accounts</span>
+                      </Link>
+
+                      <Link
+                        to="/profile"
+                        onClick={() => setUserDropdownOpen(false)}
+                        className="w-full px-3 py-2.5 rounded-xl text-xs font-mono text-[#CBD5E1] hover:text-white hover:bg-white/10 flex items-center gap-2.5 transition-colors"
+                      >
+                        <UserIcon className="w-4 h-4 text-[#FF5A36]" />
+                        <span>My Profile</span>
+                      </Link>
+                    </>
+                  )}
+
+                  <div className="pt-1 border-t border-white/10">
+                    {!isAdmin && (
+                      <Link
+                        to="/organizer"
+                        onClick={() => setUserDropdownOpen(false)}
+                        className="w-full px-3 py-2 rounded-xl text-[11px] font-mono text-orange-400/80 hover:text-orange-400 hover:bg-orange-500/10 flex items-center gap-2.5 transition-colors"
+                      >
+                        <span className="w-2 h-2 rounded-full bg-orange-500 animate-pulse"></span>
+                        <span>Organizer Portal</span>
+                      </Link>
+                    )}
+
+                    <button
+                      onClick={handleLogout}
+                      className="w-full px-3 py-2.5 rounded-xl text-xs font-mono text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 flex items-center gap-2.5 transition-colors cursor-pointer"
+                    >
+                      <LogOut className="w-4 h-4 text-rose-400" />
+                      <span>Sign Out</span>
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Mobile Toggle */}
         <button
           onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-          className="lg:hidden text-[#F5F5F2] p-2 focus:outline-none"
-          aria-label="Toggle menu"
+          className="lg:hidden p-2 text-white hover:text-[#FF5A36] focus:outline-none"
         >
-          <svg className="w-6 h-6 fill-current" viewBox="0 0 24 24">
-            {mobileMenuOpen ? (
-              <path
-                fillRule="evenodd"
-                clipRule="evenodd"
-                d="M18.293 5.293a1 1 0 011.414 1.414L13.414 12l6.293 6.293a1 1 0 01-1.414 1.414L12 13.414l-6.293 6.293a1 1 0 01-1.414-1.414L10.586 12 4.293 5.707a1 1 0 011.414-1.414L12 10.586l6.293-6.293z"
-              />
-            ) : (
-              <path
-                fillRule="evenodd"
-                clipRule="evenodd"
-                d="M4 6h16v2H4V6zm0 5h16v2H4v-2zm0 5h16v2H4v-2z"
-              />
-            )}
-          </svg>
+          {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
         </button>
       </div>
 
-      {/* Mobile Drawer */}
+      {/* Mobile Drawer Menu */}
       {mobileMenuOpen && (
-        <div className="lg:hidden bg-[#05070A]/95 backdrop-blur-xl border-b border-white/10 px-6 py-6 space-y-4">
-          {navLinks.map((link) => (
-            <Link
-              key={link.label}
-              to={link.href}
-              onClick={() => setMobileMenuOpen(false)}
-              className="block text-[#A3A8B3] hover:text-[#F5F5F2] text-base font-medium"
-            >
-              {link.label}
-            </Link>
-          ))}
-          <div className="pt-4 border-t border-white/10 flex flex-col gap-3">
-            {user ? (
-              <>
+        <div className="lg:hidden px-6 pt-3 pb-6 bg-[#05070A]/95 backdrop-blur-2xl border-b border-white/10 space-y-2 animate-in fade-in slide-in-from-top-4">
+          {!user ? (
+            <div className="flex flex-col gap-1">
+              <Link
+                to="/"
+                onClick={() => setMobileMenuOpen(false)}
+                className="px-4 py-2.5 rounded-xl text-xs font-mono font-bold uppercase text-white hover:bg-white/10 text-left transition-colors"
+              >
+                Home
+              </Link>
+              <Link
+                to="/marketplace"
+                onClick={() => setMobileMenuOpen(false)}
+                className="px-4 py-2.5 rounded-xl text-xs font-mono font-bold uppercase text-white hover:bg-white/10 flex items-center gap-2"
+              >
+                <Ticket className="w-4 h-4 text-[#FF5A36]" />
+                <span>Marketplace</span>
+              </Link>
+              <Link
+                to="/storefront"
+                onClick={() => setMobileMenuOpen(false)}
+                className="px-4 py-2.5 rounded-xl text-xs font-mono font-bold uppercase text-[#4cd7f6] hover:bg-white/10 flex items-center gap-2"
+              >
+                <Building2 className="w-4 h-4 text-[#4cd7f6]" />
+                <span>Origin Store</span>
+              </Link>
+              <Link
+                to="/sell-ticket"
+                onClick={() => setMobileMenuOpen(false)}
+                className="px-4 py-2.5 rounded-xl text-xs font-mono font-bold uppercase text-white hover:bg-white/10 flex items-center gap-2"
+              >
+                <PlusCircle className="w-4 h-4 text-[#FF5A36]" />
+                <span>Sell Ticket</span>
+              </Link>
+              <Link
+                to="/login"
+                onClick={() => setMobileMenuOpen(false)}
+                className="mt-2 px-4 py-3 rounded-xl bg-gradient-to-r from-[#FF5A36] to-[#FF7252] text-white text-xs font-display font-black uppercase tracking-wider flex items-center justify-between shadow-lg shadow-[#FF5A36]/30"
+              >
+                <span>Sign In</span>
+                <ArrowRight className="w-4 h-4" />
+              </Link>
+            </div>
+          ) : (
+            <div className="flex flex-col gap-1">
+              {!isAdmin && (
+                <>
+                  <Link
+                    to="/"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="px-4 py-2.5 rounded-xl text-xs font-mono font-bold uppercase text-white hover:bg-white/10 text-left transition-colors"
+                  >
+                    Home
+                  </Link>
+                  <Link
+                    to="/marketplace"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="px-4 py-2.5 rounded-xl text-xs font-mono font-bold uppercase text-white hover:bg-white/10 flex items-center gap-2"
+                  >
+                    <Ticket className="w-4 h-4 text-[#FF5A36]" />
+                    <span>Marketplace</span>
+                  </Link>
+                  <Link
+                    to="/storefront"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="px-4 py-2.5 rounded-xl text-xs font-mono font-bold uppercase text-[#4cd7f6] hover:bg-white/10 flex items-center gap-2"
+                  >
+                    <Building2 className="w-4 h-4 text-[#4cd7f6]" />
+                    <span>Origin Store</span>
+                  </Link>
+                </>
+              )}
+              {isStaff && (
                 <Link
-                  to="/profile"
+                  to="/disputes/console"
                   onClick={() => setMobileMenuOpen(false)}
-                  className="w-full text-center py-3 bg-[#0A0D12] text-[#F5F5F2] font-medium rounded-full border border-white/10 flex items-center justify-center gap-2 text-xs"
+                  className="px-4 py-2.5 rounded-xl text-xs font-mono font-bold uppercase text-amber-400 hover:bg-amber-500/10 flex items-center gap-2"
                 >
-                  <UserIcon className="w-4 h-4 text-[#FF5A36]" />
-                  <span>Profile ({user.fullName})</span>
+                  <ShieldAlert className="w-4 h-4 text-amber-400" />
+                  <span>Dispute Console</span>
                 </Link>
+              )}
+              {isAdmin && (
+                <Link
+                  to="/admin/dashboard"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="px-4 py-2.5 rounded-xl text-xs font-mono font-bold uppercase text-[#FF5A36] hover:bg-[#FF5A36]/10 flex items-center gap-2"
+                >
+                  <Sliders className="w-4 h-4 text-[#FF5A36]" />
+                  <span>Admin Portal</span>
+                </Link>
+              )}
+              {!isAdmin && !isStaff && (
+                <>
+                  <Link
+                    to="/sell-ticket"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="px-4 py-2.5 rounded-xl text-xs font-mono font-bold uppercase text-[#FF5A36] hover:bg-[#FF5A36]/10 flex items-center gap-2 font-bold"
+                  >
+                    <PlusCircle className="w-4 h-4 text-[#FF5A36]" />
+                    <span>Sell Ticket</span>
+                  </Link>
+                  <Link
+                    to="/my-tickets"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="px-4 py-2.5 rounded-xl text-xs font-mono font-bold uppercase text-white hover:bg-white/10 flex items-center gap-2"
+                  >
+                    <Sparkles className="w-4 h-4 text-[#FF5A36]" />
+                    <span>My Tickets</span>
+                  </Link>
+                  <Link
+                    to="/profile?tab=orders"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="px-4 py-2.5 rounded-xl text-xs font-mono font-bold uppercase text-white hover:bg-white/10 flex items-center gap-2"
+                  >
+                    <ReceiptText className="w-4 h-4 text-[#FF5A36]" />
+                    <span>My Orders</span>
+                  </Link>
+                  <Link
+                    to="/my-listings"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="px-4 py-2.5 rounded-xl text-xs font-mono font-bold uppercase text-white hover:bg-white/10 flex items-center gap-2"
+                  >
+                    <ListFilter className="w-4 h-4 text-[#FF5A36]" />
+                    <span>My Listings</span>
+                  </Link>
+                  <Link
+                    to="/payout-accounts"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="px-4 py-2.5 rounded-xl text-xs font-mono font-bold uppercase text-white hover:bg-white/10 flex items-center gap-2"
+                  >
+                    <Building2 className="w-4 h-4 text-emerald-400" />
+                    <span>Payout Accounts</span>
+                  </Link>
+                  <Link
+                    to="/organizer"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="px-4 py-2.5 rounded-xl text-xs font-mono font-bold uppercase text-orange-400 hover:bg-orange-500/10 flex items-center gap-2"
+                  >
+                    <ShieldCheck className="w-4 h-4" />
+                    <span>Organizer Portal</span>
+                  </Link>
+                </>
+              )}
+              <div className="pt-2 border-t border-white/10">
                 <button
                   onClick={() => {
                     setMobileMenuOpen(false);
                     handleLogout();
                   }}
-                  className="w-full text-center py-3 bg-red-500/20 text-red-400 font-medium rounded-full text-xs"
+                  className="w-full px-4 py-2.5 rounded-xl text-xs font-mono font-bold uppercase text-rose-400 hover:bg-rose-500/10 flex items-center gap-2 text-left cursor-pointer"
                 >
-                  Sign Out
+                  <LogOut className="w-4 h-4" />
+                  <span>Sign Out</span>
                 </button>
-              </>
-            ) : (
-              <>
-                <Link
-                  to="/login"
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="text-[#F5F5F2] font-medium text-center py-2 text-xs"
-                >
-                  Login
-                </Link>
-                <Link
-                  to="/register"
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="w-full text-center py-3 bg-[#FF5A36] text-white font-medium rounded-full text-xs"
-                >
-                  Get Started
-                </Link>
-              </>
-            )}
-          </div>
+              </div>
+            </div>
+          )}
         </div>
       )}
     </header>

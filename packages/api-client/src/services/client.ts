@@ -1,4 +1,5 @@
-// API Client Abstraction & Helpers
+// API Client Abstraction & Axios Interceptors
+import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
 
 export interface ApiResponse<T> {
   success: boolean;
@@ -7,59 +8,347 @@ export interface ApiResponse<T> {
   errors?: string[];
 }
 
-const getBaseUrl = (): string => {
-  if (typeof window !== 'undefined') {
-    const viteUrl = (import.meta as any)?.env?.VITE_API_BASE_URL;
-    if (viteUrl) return viteUrl;
+let customBaseUrl: string | null = null;
+
+export const setApiBaseUrl = (url: string): void => {
+  customBaseUrl = url;
+  axiosClient.defaults.baseURL = url;
+};
+
+export const getApiBaseUrl = (): string => {
+  if (customBaseUrl) return customBaseUrl;
+  try {
+    const globalObj = typeof globalThis !== 'undefined' ? (globalThis as any) : {};
+    const win = typeof window !== 'undefined' ? (window as any) : {};
+    const env = globalObj?.process?.env || win?.__ENV__ || {};
+    const envUrl = env.VITE_API_BASE_URL || env.VITE_API_URL || env.EXPO_PUBLIC_API_BASE_URL;
+    if (envUrl) return envUrl;
+  } catch {
+    // Ignore env error
   }
+
   return 'http://localhost:5000/api/v1';
 };
 
 export const API_CONFIG = {
-  baseURL: getBaseUrl(),
+  get baseURL(): string {
+    return getApiBaseUrl();
+  },
+  set baseURL(url: string) {
+    setApiBaseUrl(url);
+  },
 };
 
 export const TOKEN_STORAGE_KEY = 'ticketshield_token';
+export const REFRESH_TOKEN_STORAGE_KEY = 'ticketshield_refresh_token';
+export const UNAUTHORIZED_EVENT = 'ticketshield:unauthorized';
+
+export interface TokenStorageAdapter {
+  getToken: () => Promise<string | null> | string | null;
+  getRefreshToken: () => Promise<string | null> | string | null;
+  setTokens: (accessToken?: string, refreshToken?: string) => Promise<void> | void;
+  clearTokens: () => Promise<void> | void;
+}
+
+export const defaultWebTokenAdapter: TokenStorageAdapter = {
+  getToken: () => {
+    try {
+      return typeof window !== 'undefined' && window.localStorage
+        ? localStorage.getItem(TOKEN_STORAGE_KEY)
+        : null;
+    } catch {
+      return null;
+    }
+  },
+  getRefreshToken: () => {
+    try {
+      return typeof window !== 'undefined' && window.localStorage
+        ? localStorage.getItem(REFRESH_TOKEN_STORAGE_KEY)
+        : null;
+    } catch {
+      return null;
+    }
+  },
+  setTokens: (accessToken, refreshToken) => {
+    try {
+      if (typeof window !== 'undefined' && window.localStorage) {
+        if (accessToken) localStorage.setItem(TOKEN_STORAGE_KEY, accessToken);
+        if (refreshToken) localStorage.setItem(REFRESH_TOKEN_STORAGE_KEY, refreshToken);
+      }
+    } catch {
+      // Ignore storage error
+    }
+  },
+  clearTokens: () => {
+    try {
+      if (typeof window !== 'undefined' && window.localStorage) {
+        localStorage.removeItem(TOKEN_STORAGE_KEY);
+        localStorage.removeItem(REFRESH_TOKEN_STORAGE_KEY);
+      }
+    } catch {
+      // Ignore storage error
+    }
+  },
+};
+
+let currentTokenAdapter: TokenStorageAdapter = defaultWebTokenAdapter;
+
+export const setTokenAdapter = (adapter: TokenStorageAdapter): void => {
+  currentTokenAdapter = adapter;
+};
+
+export const getTokenAdapter = (): TokenStorageAdapter => {
+  return currentTokenAdapter;
+};
+
+type UnauthorizedListener = () => void;
+const unauthorizedListeners = new Set<UnauthorizedListener>();
+
+export const onUnauthorized = (listener: UnauthorizedListener): (() => void) => {
+  unauthorizedListeners.add(listener);
+  return () => {
+    unauthorizedListeners.delete(listener);
+  };
+};
+
+export const notifyUnauthorized = (): void => {
+  unauthorizedListeners.forEach((listener) => {
+    try {
+      listener();
+    } catch (err) {
+      console.error('Error in onUnauthorized listener:', err);
+    }
+  });
+
+  if (typeof window !== 'undefined' && typeof window.dispatchEvent === 'function') {
+    try {
+      window.dispatchEvent(new CustomEvent(UNAUTHORIZED_EVENT));
+    } catch {
+      // Ignore
+    }
+  }
+};
+
+// Create central Axios client
+export const axiosClient = axios.create({
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
+
+// Request Interceptor: Inject Bearer Token
+axiosClient.interceptors.request.use(
+  async (config: InternalAxiosRequestConfig) => {
+    if (!config.baseURL) {
+      config.baseURL = API_CONFIG.baseURL;
+    }
+    const token = await currentTokenAdapter.getToken();
+    if (token && (!config.headers.Authorization || config.headers.Authorization === 'Bearer null')) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
+
+// Response Interceptor: Silent Refresh Token handling on 401
+interface FailedQueueItem {
+  resolve: (token: string) => void;
+  reject: (error: any) => void;
+}
+
+let isRefreshingToken = false;
+let failedQueue: FailedQueueItem[] = [];
+
+const processQueue = (error: any, token: string | null = null) => {
+  failedQueue.forEach((prom) => {
+    if (error) {
+      prom.reject(error);
+    } else if (token) {
+      prom.resolve(token);
+    }
+  });
+  failedQueue = [];
+};
+
+axiosClient.interceptors.response.use(
+  (response) => response,
+  async (error: AxiosError<ApiResponse<any>>) => {
+    const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean };
+
+    if (!originalRequest) {
+      return Promise.reject(error);
+    }
+
+    const status = error.response?.status;
+    const url = originalRequest.url || '';
+
+    // Bypass silent refresh if error originates from refresh-token, login, or register
+    const isAuthEndpoint =
+      url.includes('/auth/refresh-token') ||
+      url.includes('/auth/login') ||
+      url.includes('/auth/register');
+
+    if (status === 401 && !originalRequest._retry && !isAuthEndpoint) {
+      if (isRefreshingToken) {
+        return new Promise<string>((resolve, reject) => {
+          failedQueue.push({ resolve, reject });
+        })
+          .then((token) => {
+            originalRequest.headers.Authorization = `Bearer ${token}`;
+            return axiosClient(originalRequest);
+          })
+          .catch((err) => Promise.reject(err));
+      }
+
+      originalRequest._retry = true;
+      isRefreshingToken = true;
+
+      const refreshToken = await currentTokenAdapter.getRefreshToken();
+
+      if (!refreshToken) {
+        isRefreshingToken = false;
+        await currentTokenAdapter.clearTokens();
+        notifyUnauthorized();
+        return Promise.reject(error);
+      }
+
+      try {
+        const refreshUrl = `${API_CONFIG.baseURL}/auth/refresh-token`;
+        const response = await axios.post<ApiResponse<{ accessToken?: string; token?: string; refreshToken?: string }>>(
+          refreshUrl,
+          { refreshToken },
+          { headers: { 'Content-Type': 'application/json' } }
+        );
+
+        const resData = response.data;
+        if (resData && resData.success && resData.data) {
+          const newAccessToken = resData.data.accessToken || resData.data.token;
+          const newRefreshToken = resData.data.refreshToken;
+
+          await currentTokenAdapter.setTokens(newAccessToken, newRefreshToken);
+
+          if (newAccessToken) {
+            axiosClient.defaults.headers.common['Authorization'] = `Bearer ${newAccessToken}`;
+            originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
+            processQueue(null, newAccessToken);
+            isRefreshingToken = false;
+            return axiosClient(originalRequest);
+          }
+        }
+
+        throw new Error('Refresh token is invalid or has expired');
+      } catch (refreshError) {
+        processQueue(refreshError, null);
+        isRefreshingToken = false;
+        await currentTokenAdapter.clearTokens();
+        notifyUnauthorized();
+        return Promise.reject(refreshError);
+      }
+    }
+
+    return Promise.reject(error);
+  }
+);
+
+export const VIETNAMESE_TO_ENGLISH_ERRORS: Record<string, string> = {
+  'Email hoặc mật khẩu không chính xác.': 'Invalid email address or password.',
+  'Email hoặc mật khẩu không chính xác': 'Invalid email address or password.',
+  'Tài khoản của bạn đã bị khóa. Vui lòng liên hệ quản trị viên.': 'Your account has been suspended. Please contact administrator.',
+  'Tài khoản của bạn đã bị khóa': 'Your account has been suspended.',
+  'Tài khoản của bạn đã bị vô hiệu hóa.': 'Your account has been deactivated.',
+  'Mã xác thực Google IdToken không hợp lệ hoặc đã hết hạn.': 'Google authentication token is invalid or has expired.',
+  'Email này đã được sử dụng. Vui lòng chọn một email khác.': 'This email is already in use. Please use a different email address.',
+  'Email này đã được đăng ký tài khoản.': 'This email is already registered.',
+  'Mã refresh-token không hợp lệ hoặc đã hết hạn': 'Refresh token is invalid or has expired.',
+  'Mật khẩu cũ không chính xác.': 'Current password is incorrect.',
+  'Phiên làm việc không hợp lệ hoặc bạn chưa đăng nhập.': 'Session is invalid or you are not signed in.',
+  'Bạn phải đăng nhập để thực hiện thao tác này.': 'You must be signed in to perform this action.',
+  'Không tìm thấy người dùng.': 'User not found.',
+  'Đã xảy ra lỗi không xác định.': 'An unexpected error occurred.',
+  'TICKET_DISPUTED': 'This ticket is currently involved in an active dispute and cannot be listed for resale.',
+  'Vé này đã được đăng bán lại, quyền khiếu nại đã chấm dứt.': 'This ticket has been listed for resale. Dispute rights have been waived.',
+};
+
+export const normalizeErrorMessage = (msg?: string, defaultMessage = 'An unexpected error occurred.'): string => {
+  if (!msg) return defaultMessage;
+  const trimmed = msg.trim();
+  if (VIETNAMESE_TO_ENGLISH_ERRORS[trimmed]) {
+    return VIETNAMESE_TO_ENGLISH_ERRORS[trimmed];
+  }
+  for (const [vi, en] of Object.entries(VIETNAMESE_TO_ENGLISH_ERRORS)) {
+    if (trimmed.includes(vi)) {
+      return trimmed.replace(vi, en);
+    }
+  }
+  return trimmed;
+};
+
+const parseApiResponseErrorMessage = (data: ApiResponse<any>, defaultMessage?: string): string => {
+  const rawData = data as any;
+  const errors = data?.errors || rawData?.Errors;
+  const message = data?.message || rawData?.Message;
+
+  let result = message || defaultMessage || 'An unexpected error occurred.';
+  if (errors) {
+    if (Array.isArray(errors) && errors.length > 0) {
+      result = errors.join(', ');
+    } else if (typeof errors === 'object' && errors !== null) {
+      const messages = Object.values(errors).flat().filter(Boolean);
+      if (messages.length > 0) result = messages.join(', ');
+    }
+  }
+  return normalizeErrorMessage(result, defaultMessage);
+};
 
 export async function httpClient<T>(
   endpoint: string,
   options: RequestInit = {}
 ): Promise<T> {
-  const token = typeof window !== 'undefined' ? localStorage.getItem(TOKEN_STORAGE_KEY) : null;
+  const url = endpoint.startsWith('http') ? endpoint : `${API_CONFIG.baseURL}${endpoint.startsWith('/') ? '' : '/'}${endpoint}`;
 
   const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
     ...(options.headers as Record<string, string>),
   };
 
-  if (token) {
-    headers['Authorization'] = `Bearer ${token}`;
-  }
-
-  const url = endpoint.startsWith('http') ? endpoint : `${API_CONFIG.baseURL}${endpoint.startsWith('/') ? '' : '/'}${endpoint}`;
-
-  const response = await fetch(url, {
-    ...options,
-    headers,
-  });
-
-  let data: ApiResponse<T>;
   try {
-    data = await response.json();
-  } catch (err) {
-    if (!response.ok) {
-      throw new Error(`HTTP Error ${response.status}: ${response.statusText}`);
+    let requestData: any = undefined;
+    if (options.body) {
+      if (typeof options.body === 'string') {
+        try {
+          requestData = JSON.parse(options.body);
+        } catch {
+          requestData = options.body;
+        }
+      } else {
+        requestData = options.body;
+      }
     }
-    throw new Error('Lỗi phản hồi dữ liệu từ hệ thống (Invalid JSON response)');
-  }
 
-  if (!response.ok || !data.success) {
-    const errorMsg =
-      data.errors && data.errors.length > 0
-        ? data.errors.join(', ')
-        : data.message || `Request failed with status ${response.status}`;
-    throw new Error(errorMsg);
-  }
+    const response = await axiosClient.request<ApiResponse<T>>({
+      url,
+      method: (options.method || 'GET') as any,
+      data: requestData,
+      headers,
+    });
 
-  return data.data;
+    const data = response.data;
+    if (data && typeof data === 'object' && 'success' in data) {
+      if (!data.success) {
+        throw new Error(parseApiResponseErrorMessage(data, `Request failed with status ${response.status}`));
+      }
+      return data.data;
+    }
+
+    return data as T;
+  } catch (err: any) {
+    if (axios.isAxiosError(err) && err.response?.data) {
+      const resData = err.response.data as ApiResponse<T>;
+      const error = new Error(parseApiResponseErrorMessage(resData, err.message || `Request failed with status ${err.response.status}`));
+      (error as any).response = err.response;
+      (error as any).status = err.response.status;
+      throw error;
+    }
+    throw err;
+  }
 }

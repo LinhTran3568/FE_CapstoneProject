@@ -1,6 +1,6 @@
 // TicketShield AI Domain Models & Types
 
-export type UserRole = 'BUYER' | 'RESELLER' | 'ADMIN' | 'ORGANIZER';
+export type UserRole = 'BUYER' | 'RESELLER' | 'ADMIN' | 'ORGANIZER' | 'CSKH' | 'MODERATOR';
 
 export interface User {
   id: string;
@@ -32,19 +32,42 @@ export type TicketStatus =
  * - Transacting → a buyer has paid into escrow
  * - Sold        → ownership transferred, escrow released
  * - Cancelled   → seller cancelled, original ticket unlocked at the organizer
+ * - Expired     → closed by resale cut-off (2 hours before event start)
  */
 export type ListingStatus =
   | 'Draft'
   | 'Verified'
   | 'Transacting'
   | 'Sold'
-  | 'Cancelled';
+  | 'Cancelled'
+  | 'Expired';
 
 /** Mirrors the backend enum `TicketShield.Domain.Enums.VerificationStatus`. */
 export type VerificationStatus =
   | 'PendingOtp'
   | 'Verified'
   | 'Rejected';
+
+export interface TrendingEventDto {
+  id?: string;
+  eventId?: string;
+  name: string;
+  artist?: string;
+  category?: string;
+  city?: string;
+  bannerUrl?: string;
+  venue: string;
+  description?: string;
+  eventStartAt: string;
+  eventEndAt?: string;
+  minResalePrice?: number;
+  originalPriceFrom?: number;
+  totalAvailableListings: number;
+  organizerName?: string;
+}
+
+export type MarketplaceListingDto = ResaleListingDetailDto;
+
 
 export type EscrowStatus =
   | 'PENDING'
@@ -168,10 +191,11 @@ export interface SellerListingDto {
   eventStartAt: string;
   tierId: string;
   tierName: string;
+  seatZone?: string | null;
   originalTicketCode: string;
   /** VND */
   originalPrice: number;
-  /** VND, never above originalPrice (price ceiling rule) */
+  /** VND, never above the event price ceiling */
   resalePrice: number;
   discountAmount: number;
   discountPercentage: number;
@@ -182,15 +206,260 @@ export interface SellerListingDto {
   shareUrl: string | null;
   verificationStatus: VerificationStatus;
   listingStatus: ListingStatus;
+  escrowStatus?: string | null;
+  netSellerPayout?: number | null;
+  sellerFee?: number | null;
+  buyerFee?: number | null;
+  totalBuyerPaid?: number | null;
+  unlockAt?: string | null;
+  inSettlementBuffer?: boolean;
+  payoutStatus?: string | null;
+  payoutProcessedAt?: string | null;
+  payoutBankInfo?: string | null;
+  payoutCode?: string | null;
+  payoutAccountName?: string | null;
+  payoutBankCode?: string | null;
+  payoutAccountNumber?: string | null;
+  bankTransactionReference?: string | null;
+  /** Dispute filed on the latest sale of this listing; opens the dispute progress drawer */
+  disputeId?: string | null;
   createdAt: string;
+  bundleId?: string | null;
+  bundleTotalTickets?: number | null;
+  isBundleAllOrNothing?: boolean;
+}
+
+/**
+ * One payout the signed-in seller already requested.
+ * GET /api/v1/payouts/my-payouts → backend `MyPayoutDto`.
+ */
+export interface MyPayoutDto {
+  payoutId: string;
+  payoutCode: string;
+  escrowId: string;
+  escrowStatus: string;
+  unlockAt: string | null;
+  eventName: string;
+  originalTicketCode: string;
+  amount: number;
+  status: string;
+  recipientBankCode: string;
+  recipientAccountNumber: string;
+  recipientAccountName: string;
+  bankReferenceCode: string | null;
+  retryCount: number;
+  lastErrorMessage: string | null;
+  processedAt: string | null;
+  createdAt: string;
+}
+
+/**
+ * Purchased ticket pass for buyers
+ * GET /api/v1/resale-listings/my-purchased-tickets
+ */
+export interface PurchasedTicketItemDto {
+  listingId: string;
+  ticketCode: string;
+  /** Live organizer status for this individual pass, including USED after gate entry. */
+  status?: string;
+  seatZone: string;
+  qrCodeData: string;
+  qrCodeImageUrl: string;
+}
+
+export interface PurchasedTicketDto {
+  escrowId: string;
+  listingId: string;
+  eventId: string;
+  eventName: string;
+  eventVenue: string;
+  eventStartAt: string;
+  tierName: string;
+  seatZone: string;
+  ticketPassCode: string;
+  totalAmountPaid: number;
+  status: 'VALID' | 'IN_ESCROW' | 'PENDING_PAYMENT' | 'DISPUTED' | string;
+  paymentReference?: string | null;
+  holdExpiresAt?: string | null;
+  recipientName: string;
+  recipientEmail: string;
+  qrCodeData: string;
+  qrCodeImageUrl: string;
+  purchasedAt: string;
+  /** Only set for the buyer who paid; empty for a recipient who got the ticket by email */
+  disputeId?: string | null;
+  /** True if buyer listed this ticket for resale, waiving dispute rights */
+  disputeWaived?: boolean;
+
+  bundleId?: string | null;
+  bundleTotalTickets?: number | null;
+  bundleItems?: PurchasedTicketItemDto[];
+}
+
+/**
+ * Generic paginated response from backend `TicketShield.Application.Common.Models.PaginatedList<T>`.
+ */
+export interface PaginatedList<T> {
+  items: T[];
+  pageNumber: number;
+  pageSize: number;
+  totalCount: number;
+  totalPages: number;
+  hasPreviousPage: boolean;
+  hasNextPage: boolean;
+}
+
+export interface OrganizerDto {
+  id: string;
+  name: string;
+  code?: string;
+  logoUrl?: string;
+  officialEmail?: string;
+  status: string;
+}
+
+/**
+ * Public marketplace resale listing.
+ * GET /api/v1/resale-listings → backend `ResaleListingDetailDto`.
+ */
+export interface ResaleListingDetailDto {
+  listingId: string;
+  eventId: string;
+  organizerId?: string;
+  organizerName?: string;
+  eventName: string;
+  eventVenue: string;
+  eventStartAt: string;
+  tierId: string;
+  tierName: string;
+  seatZone?: string | null;
+  originalPrice: number;
+  resalePrice: number;
+  discountAmount: number;
+  discountPercentage: number;
+  isPrivate: boolean;
+  maskedTicketCode: string;
+  verificationStatus: VerificationStatus;
+  listingStatus: ListingStatus;
+  sellerId: string;
+  sellerFullName: string;
+  unlockAt?: string | null;
+  serverNow?: string;
+  createdAt: string;
+
+  // Bundle support (FE-5.2.6 / BE-CORE-5.2.2)
+  bundleId?: string | null;
+  isBundleAllOrNothing?: boolean;
+  bundleTotalTickets?: number;
+  privateAccessToken?: string;
+  bundleItems?: ResaleListingDetailDto[];
+}
+
+export interface HoldListingForPurchaseRequest {
+  recipientName?: string;
+  recipientEmail?: string;
+  recipientIdCard?: string;
+  privateAccessToken?: string;
+  buyAsBundle?: boolean;
+  selectedListingIds?: string[];
+}
+
+export interface HoldListingForPurchaseResponse {
+  escrowId: string;
+  listingId: string;
+  listingStatus: string;
+  paymentReference: string;
+  qrImageUrl: string;
+  quickLinkUrl: string;
+  bankBin: string;
+  accountNumber: string;
+  accountName: string;
+  resalePrice: number;
+  buyerFee: number;
+  sellerFee: number;
+  totalBuyerPaid: number;
+  netSellerPayout: number;
+  unlockAt: string;
+  holdDurationSeconds: number;
+  serverNow?: string;
+
+  // Bundle support (FE-5.2.6 / BE-CORE-5.2.3)
+  bundleId?: string | null;
+  bundleTotalTickets?: number;
+  bundleItems?: Array<{
+    listingId: string;
+    resalePrice: number;
+    buyerFee: number;
+    sellerFee: number;
+  }>;
+}
+
+/** GET /api/v1/resale-listings/{id}/payment-status → backend GetPaymentStatusDto */
+export interface PaymentStatusDto {
+  listingId: string;
+  escrowId: string;
+  listingStatus: string;
+  escrowStatus: string;
+  paymentReference: string;
+  unlockAt: string | null;
+  inSettlementBuffer: boolean;
+}
+
+/** GET /api/v1/mock-tickets/my-tickets (MockOrganizer :5001, Linh SCRUM-93) */
+export interface MockTicketDto {
+  id: string;
+  ticketCode: string;
+  eventName: string;
+  seatZone: string;
+  originalPrice: number;
+  ownerEmail: string;
+  ownerPhone?: string | null;
+  ownerName?: string | null;
+  status: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface MockTicketsListResponse {
+  success: boolean;
+  count: number;
+  data: MockTicketDto[];
+}
+
+export type GetPaymentStatusDto = PaymentStatusDto;
+
+export interface UserBankAccountDto {
+  id: string;
+  userId: string;
+  bankCode: string;
+  bankAccountNumber: string;
+  accountHolderName: string;
+  isDefault: boolean;
+  createdAt: string;
+}
+
+export interface CreateUserBankAccountRequest {
+  bankCode: string;
+  bankAccountNumber: string;
+  accountHolderName: string;
+  isDefault?: boolean;
 }
 
 /** POST /api/v1/resale-listings/{id}/cancel → backend `CancelResaleListingResponse`. */
 export interface CancelResaleListingResponse {
   listingId: string;
   originalTicketCode: string;
+  allCancelledTicketCodes?: string[];
   listingStatus: ListingStatus;
   cancelledAt: string;
+}
+
+export interface ResaleFeeConfigDto {
+  buyerFeePercentage: number;
+  sellerFeePercentage: number;
+  minimumBuyerFee: number;
+  minimumSellerFee: number;
+  settlementBufferDurationSeconds?: number;
 }
 
 export interface Order {
@@ -203,6 +472,10 @@ export interface Order {
   eventTitle: string;
   ticketQuantity: number;
   unitPrice: number;
+  /**
+   * Phí dịch vụ (nếu có). Lưu ý: Trong luồng mua vé sơ cấp (Organizer store), phí này bằng 0 (miễn phí).
+   * Trong luồng mua vé thứ cấp (Resale/Marketplace), phí được lưu chi tiết qua buyerFee/sellerFee trên EscrowTransaction.
+   */
   serviceFee: number;
   totalAmount: number;
   currency: string;
@@ -372,3 +645,87 @@ export interface AuditLog {
   ipAddress: string;
   timestamp: string;
 }
+
+/**
+ * Seat Adjacency Detection & Classification Types (FE-5.2.5b / BR-G06)
+ */
+export type SeatAdjacencyStatus =
+  | 'ADJACENT'              // Ghế liền kề (cùng hàng, số liên tiếp hoặc cùng chẵn/lẻ)
+  | 'DIFFERENT_LOCATIONS'   // Vị trí khác nhau (khác Zone, khác Hàng, hoặc cách ghế)
+  | 'GENERAL_ADMISSION'    // Vé tự do / đứng (GA)
+  | 'SINGLE_SEAT'           // Vé đơn lẻ (1 vé duy nhất)
+  | 'UNKNOWN';              // Không đủ thông tin vị trí
+
+export interface SeatInfoInput {
+  seatZone?: string | null;
+  seatRow?: string | null;
+  seatNumber?: string | number | null;
+  seatInfo?: string | null;
+  tierName?: string | null;
+  raw?: string | null;
+}
+
+export interface ParsedSeat {
+  zone: string;
+  row: string;
+  seatNumber: number | null;
+  seatNumberRaw: string;
+  isStanding: boolean;
+  raw: string;
+}
+
+export interface SeatAdjacencyResult {
+  isAdjacent: boolean;
+  status: SeatAdjacencyStatus;
+  badgeText: string;
+  badgeSubtext?: string;
+  badgeTone: 'success' | 'warning' | 'info' | 'neutral';
+  commonZone: string | null;
+  commonRow: string | null;
+  seatNumbers: number[];
+  parsedSeats: ParsedSeat[];
+  reason: string;
+  liquidityScore: 'HIGH' | 'MEDIUM' | 'LOW';
+  liquidityNote: string;
+}
+
+/**
+ * Copilot AI Assistant Types (US-13.4 / SCRUM-384 / SCRUM-388)
+ */
+export interface CopilotChatMessage {
+  role: 'user' | 'assistant' | 'system';
+  content: string;
+}
+
+export interface CopilotChatRequest {
+  message: string;
+  conversationHistory?: CopilotChatMessage[];
+  history?: CopilotChatMessage[];
+  stream?: boolean;
+}
+
+export interface CopilotTicketItemDto {
+  listingId: string;
+  eventId: string;
+  eventName: string;
+  tierName: string;
+  seatZone?: string | null;
+  resalePrice: number;
+  originalPrice: number;
+  discountPercentage: number;
+  eventStartAt: string;
+  venue?: string | null;
+}
+
+export interface CopilotChatResponse {
+  reply: string;
+  suggestedTickets?: CopilotTicketItemDto[];
+  hasViolation?: boolean;
+  violationReason?: string | null;
+  actionTaken?: string | null;
+  isFallback?: boolean;
+}
+
+
+
+

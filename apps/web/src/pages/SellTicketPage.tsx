@@ -1,72 +1,210 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useUIStore } from '../stores/uiStore';
-import { useAuthStore } from '../stores/authStore';
-import { resaleApi, VerificationResult, SellerListingDto } from '@ticketshield/api-client';
+import { resaleApi, bankAccountsApi, SellerListingDto, normalizeErrorMessage } from '@ticketshield/api-client';
+import { UserBankAccountDto, PurchasedTicketDto } from '@ticketshield/types';
+import { useMyTickets } from '../hooks/useMyTickets';
+import { useOrganizers } from '../hooks/useOrganizers';
+import { useResaleFeeConfig } from '../hooks/useResaleFeeConfig';
+import { SellerBankAccountModal } from '../components/profile/SellerBankAccountModal';
+import { buildPrivateShareLink, buildPublicShareLink, copyToClipboard } from '../utils/shareLink';
 import {
-  ShieldCheck,
-  CheckCircle2,
-  ArrowLeft,
-  ArrowRight,
-  Lock,
-  Calendar,
-  MapPin,
-  Ticket,
-  QrCode,
-  Edit3,
-  Check,
-  Info,
-  AlertCircle,
-  Loader2
-} from 'lucide-react';
+  SellWizardProgress,
+  Step1EnterTicketCode,
+  Step2VerifyOtp,
+  Step3ConfirmDetails,
+  Step4SetPrice,
+  Step5ReviewPublish,
+  Step6ListingSuccess,
+  TicketPriceItem,
+} from '../components/sell';
 
 export const SellTicketPage: React.FC = () => {
   const navigate = useNavigate();
   const { showToast } = useUIStore();
-  const { user } = useAuthStore();
+  const { data: purchasedTickets = [], isPending: isLoadingPurchased } = useMyTickets();
+  const { minSellerFee } = useResaleFeeConfig();
+
+  const purchasedPassCode = (ticket: PurchasedTicketDto) =>
+    (ticket.ticketPassCode || ticket.qrCodeData || '').trim();
+
+const DRAFT_STORAGE_KEY = 'ticketshield_sell_draft';
+  const OTP_TTL_MS = 300 * 1000;
+  /** Domain Law: một gói vé chỉ chứa từ 2 đến 3 vé (khớp ResaleListing.MaxBundleTickets ở BE). */
+  const MAX_BUNDLE_TICKETS = 3;
 
   const [currentStep, setCurrentStep] = useState<number>(1);
+  const [isCancellingSession, setIsCancellingSession] = useState<boolean>(false);
+  const [resumeDraftAvailable, setResumeDraftAvailable] = useState<boolean>(false);
 
   // Auto scroll to top when step changes
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, [currentStep]);
 
+  // =========================================================================================
   // Resale Workflow Verification state
-  const [ticketCode, setTicketCode] = useState('ATSH-VIP-888');
-  const [verificationId, setVerificationId] = useState<string>('');
-  const [verificationResult, setVerificationResult] = useState<VerificationResult | null>(null);
-  const [isRequestingOtp, setIsRequestingOtp] = useState<boolean>(false);
+  // =========================================================================================
+  // Mỗi vé trong gói có MỘT phiên OTP riêng: BTC chỉ cấp OTP/khóa được từng vé một,
+  // nên không thể dùng chung một verificationId cho cả gói.
+  interface TicketSession {
+    code: string;
+    verificationId: string;
+    originalPrice: number;
+    eventName?: string;
+    eventVenue?: string;
+    eventStartAt?: string;
+    tierName?: string;
+    seatZone?: string;
+    organizerName?: string;
+    priceCeiling: number;
+    markupPercent: number;
+    locked: boolean;
+    expiresAt: number | null;
+  }
 
-  // Danh sách vé gốc của chủ sở hữu từ đối tác BTC
-  const userTickets = [
-    {
-      category: 'VIP',
-      code: 'ATSH-VIP-888',
-      price: '2.500.000đ',
-      rawPrice: 2500000,
-      status: 'VALID',
-    },
-    {
-      category: 'GENERAL',
-      code: 'ATSH-GA-999',
-      price: '1.200.000đ',
-      rawPrice: 1200000,
-      status: 'VALID',
-    },
-    {
-      category: 'STANDARD',
-      code: 'ATSH-USED-001',
-      price: '800.000đ',
-      rawPrice: 800000,
-      status: 'USED', // Đã qua sử dụng tại cổng sự kiện -> Không đủ điều kiện bán
-    },
-  ];
+  const [ticketCode, setTicketCode] = useState('');
+  const [selectedOrganizerId, setSelectedOrganizerId] = useState<string>('');
+  const [sessions, setSessions] = useState<TicketSession[]>([]);
+  const [isRequestingOtp, setIsRequestingOtp] = useState<boolean>(false);
+  const { data: organizers = [], isLoading: isLoadingOrganizers } = useOrganizers();
+
+  const [activeFeeTooltip, setActiveFeeTooltip] = useState<'seller' | 'buyer' | null>(null);
+
+  // Step 4 Pricing state: lưu giá bán của từng vé (theo mã vé)
+  const [ticketPrices, setTicketPrices] = useState<Record<string, number>>({});
+  const [activeTicketIndex, setActiveTicketIndex] = useState<number>(0);
+  // Hình thức bán: 'combo' (mua full) vs 'individual' (bán lẻ từng vé)
+  const [saleType, setSaleType] = useState<'combo' | 'individual'>('combo');
+  // Màn con của Step 4: 'pricing' (đặt giá) vs 'confirm' (chốt giá & chế độ bán)
+  const [priceSubStep, setPriceSubStep] = useState<'pricing' | 'confirm'>('pricing');
+
+  const markupPercent = sessions[0]?.markupPercent ?? 0;
+  const faceValue = sessions.reduce((sum, s) => sum + s.originalPrice, 0);
+  const priceCeiling = sessions.length
+    ? sessions.reduce((min, s) => Math.min(min, s.priceCeiling || Number.MAX_SAFE_INTEGER), Number.MAX_SAFE_INTEGER)
+    : 0;
+
+  // Step 2 OTP state
+  const [isVerifyingOtp, setIsVerifyingOtp] = useState(false);
+  const [resendingCode, setResendingCode] = useState<string | null>(null);
+
+  const ticketCodes = useMemo(() => sessions.map((s) => s.code), [sessions]);
+  const otpTickets = useMemo(
+    () => sessions.map((s) => ({ code: s.code, expiresAt: s.expiresAt, locked: s.locked })),
+    [sessions]
+  );
+  const ticketCount = Math.max(sessions.length, 1);
+  const isBundle = sessions.length > 1;
+  const perTicketFaceValue = Math.trunc(faceValue / ticketCount);
+
+  // Auto restore unfinished draft session from localStorage on load with verification check
+  useEffect(() => {
+    const restoreDraft = async () => {
+      try {
+        const raw = localStorage.getItem(DRAFT_STORAGE_KEY);
+        if (!raw) return;
+        const d = JSON.parse(raw);
+        if (!d.sessions?.length || d.currentStep <= 1 || d.currentStep >= 6) {
+          localStorage.removeItem(DRAFT_STORAGE_KEY);
+          return;
+        }
+
+        // Kiểm tra xem các phiên xác thực trên backend có còn hiệu lực (Verified) hay không
+        const statusChecks = await Promise.allSettled(
+          d.sessions.map((s: any) => resaleApi.getVerificationStatus(s.verificationId))
+        );
+
+        const allValid = statusChecks.every(
+          (res) => res.status === 'fulfilled' && res.value?.status === 'Verified'
+        );
+
+        if (!allValid) {
+          localStorage.removeItem(DRAFT_STORAGE_KEY);
+          showToast('Previous ticket verification session has expired. Please verify your ticket again.', 'warning');
+          return;
+        }
+
+        setTicketCode((d.ticketCodes || []).join(', '));
+        if (d.selectedOrganizerId) setSelectedOrganizerId(d.selectedOrganizerId);
+        setSessions(d.sessions);
+        if (d.ticketPrices && typeof d.ticketPrices === 'object') {
+          setTicketPrices(d.ticketPrices);
+        } else if (d.resalePrice) {
+          const fallback: Record<string, number> = {};
+          (d.sessions as any[]).forEach((s) => {
+            fallback[s.code] = d.resalePrice;
+          });
+          setTicketPrices(fallback);
+        }
+        if (typeof d.activeTicketIndex === 'number') {
+          setActiveTicketIndex(d.activeTicketIndex);
+        }
+        if (d.saleType === 'combo' || d.saleType === 'individual') {
+          setSaleType(d.saleType);
+        }
+        if (d.priceSubStep === 'pricing' || d.priceSubStep === 'confirm') {
+          setPriceSubStep(d.priceSubStep);
+        }
+        setCurrentStep(d.currentStep);
+        setResumeDraftAvailable(true);
+      } catch (e) {
+        console.warn('Could not restore sell draft', e);
+        try {
+          localStorage.removeItem(DRAFT_STORAGE_KEY);
+        } catch {}
+      }
+    };
+
+    restoreDraft();
+  }, [showToast]);
+
+  // Auto save draft session to localStorage on step change
+  useEffect(() => {
+    if (sessions.length > 0 && currentStep > 1 && currentStep < 6) {
+      localStorage.setItem(
+        DRAFT_STORAGE_KEY,
+        JSON.stringify({
+          ticketCodes,
+          selectedOrganizerId,
+          sessions,
+          currentStep,
+          ticketPrices,
+          activeTicketIndex,
+          saleType,
+          priceSubStep,
+          savedAt: Date.now(),
+        })
+      );
+    }
+  }, [sessions, currentStep, ticketCodes, selectedOrganizerId, ticketPrices, activeTicketIndex, saleType, priceSubStep]);
 
   const [existingListings, setExistingListings] = useState<SellerListingDto[]>([]);
   const [isLoadingListings, setIsLoadingListings] = useState<boolean>(true);
 
-  // Tải danh sách vé đã đăng bán để loại trừ các vé đã niêm yết
+  // Seller Bank Account Enforcement state
+  const [bankAccounts, setBankAccounts] = useState<UserBankAccountDto[]>([]);
+  const [isLoadingBankAccounts, setIsLoadingBankAccounts] = useState<boolean>(true);
+  const [isAddBankModalOpen, setIsAddBankModalOpen] = useState<boolean>(false);
+
+  // Load seller bank accounts to verify payout readiness
+  const fetchBankAccounts = useCallback(async () => {
+    try {
+      setIsLoadingBankAccounts(true);
+      const res = await bankAccountsApi.getMyBankAccounts();
+      setBankAccounts(res || []);
+    } catch (err) {
+      console.warn('Could not load bank accounts', err);
+    } finally {
+      setIsLoadingBankAccounts(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchBankAccounts();
+  }, [fetchBankAccounts]);
+
+  // Load existing listings to exclude already listed tickets
   const fetchExistingListings = useCallback(async () => {
     try {
       setIsLoadingListings(true);
@@ -83,306 +221,712 @@ export const SellTicketPage: React.FC = () => {
     fetchExistingListings();
   }, [fetchExistingListings]);
 
-  // CHỈ LỌC CÁC VÉ ĐỦ ĐIỀU KIỆN ĐĂNG BÁN:
-  // 1. Phải có trạng thái hợp lệ ('VALID' từ BTC, loại trừ vé 'USED', 'EXPIRED', 'LOCKED')
-  // 2. Chưa từng đăng bán trên sàn (không nằm trong existingListings với trạng thái đang bán)
-  const eligibleTickets = userTickets.filter((t) => {
-    // Loại bỏ vé không hợp lệ (đã dùng / hết hạn / bị khóa)
-    if (t.status !== 'VALID') return false;
-
-    // Loại bỏ vé đã được niêm yết rao bán (chưa bị hủy)
-    const isAlreadyListed = existingListings.some(
-      (listing) =>
-        listing.originalTicketCode === t.code &&
-        String(listing.listingStatus).toLowerCase() !== 'cancelled'
-    );
-    if (isAlreadyListed) return false;
-
-    return true;
-  });
-
-  // Tự động chọn mã vé đủ điều kiện đầu tiên nếu mã hiện tại không khả dụng
-  useEffect(() => {
-    if (eligibleTickets.length > 0) {
-      const isCurrentEligible = eligibleTickets.some((t) => t.code === ticketCode);
-      if (!isCurrentEligible) {
-        setTicketCode(eligibleTickets[0].code);
-      }
-    } else if (!isLoadingListings && eligibleTickets.length === 0) {
-      if (ticketCode === 'ATSH-VIP-888' || ticketCode === 'ATSH-GA-999') {
-        setTicketCode('');
+  // Flatten purchased tickets so each ticket in a bundle/pair is an individual item for resale
+  const allPurchasedTickets = useMemo(() => {
+    const list: PurchasedTicketDto[] = [];
+    for (const t of purchasedTickets) {
+      if (t.bundleItems && t.bundleItems.length > 0) {
+        t.bundleItems.forEach((item, idx) => {
+          const code = (item.ticketCode || '').trim();
+          if (!code) return;
+          list.push({
+            ...t,
+            escrowId: `${t.escrowId}-${item.listingId || code}-${idx}`,
+            listingId: item.listingId || t.listingId,
+            ticketPassCode: code,
+            seatZone: item.seatZone || t.seatZone,
+            qrCodeData: item.qrCodeData || code,
+            qrCodeImageUrl: item.qrCodeImageUrl || t.qrCodeImageUrl,
+            bundleTotalTickets: t.bundleTotalTickets || t.bundleItems?.length,
+          });
+        });
+      } else {
+        list.push(t);
       }
     }
-  }, [eligibleTickets, isLoadingListings]);
+    return list;
+  }, [purchasedTickets]);
 
-  // Step 2 OTP Form state
-  const [otp, setOtp] = useState(['', '', '', '', '', '']);
-  const [isVerifyingOtp, setIsVerifyingOtp] = useState(false);
-  const [isResendingOtp, setIsResendingOtp] = useState(false);
-  const [otpTimeLeft, setOtpTimeLeft] = useState<number>(300);
+  // Purchased on TicketShield and released or held in escrow; not already listed.
+  const eligibleTickets = useMemo(() => {
+    return allPurchasedTickets.filter((t) => {
+      const status = (t.status || '').trim().toUpperCase();
+      if (status !== 'VALID' && status !== 'IN_ESCROW' && status !== 'LOCKED') return false;
+      const code = purchasedPassCode(t).toUpperCase();
+      if (!code) return false;
+      return !existingListings.some(
+        (listing) =>
+          (listing.originalTicketCode || '').toUpperCase() === code &&
+          String(listing.listingStatus).toLowerCase() !== 'cancelled'
+      );
+    });
+  }, [allPurchasedTickets, existingListings]);
 
-  // Countdown timer for OTP (5 minutes)
+  const verificationIdsRef = useRef<string[]>([]);
+  const currentStepRef = useRef(currentStep);
+
   useEffect(() => {
-    if (currentStep !== 2) return;
+    verificationIdsRef.current = sessions.map((s) => s.verificationId).filter(Boolean);
+    currentStepRef.current = currentStep;
+  }, [sessions, currentStep]);
 
-    setOtpTimeLeft(300);
-    const interval = setInterval(() => {
-      setOtpTimeLeft((prev) => {
-        if (prev <= 1) {
-          clearInterval(interval);
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
+  // Auto send gRPC unlock beacons for EVERY session when user exits or navigates away
+  useEffect(() => {
+    const releaseAll = () => {
+      const ids = verificationIdsRef.current;
+      if (ids.length > 0 && currentStepRef.current > 1 && currentStepRef.current < 6) {
+        ids.forEach((id) => resaleApi.closeVerificationBeacon(id));
+        try {
+          localStorage.removeItem(DRAFT_STORAGE_KEY);
+        } catch {}
+      }
+    };
 
-    return () => clearInterval(interval);
-  }, [currentStep]);
+    window.addEventListener('beforeunload', releaseAll);
+    window.addEventListener('pagehide', releaseAll);
 
-  const formatOtpTimer = (seconds: number) => {
-    const m = Math.floor(seconds / 60).toString().padStart(2, '0');
-    const s = (seconds % 60).toString().padStart(2, '0');
-    return `${m}:${s}`;
-  };
+    return () => {
+      window.removeEventListener('beforeunload', releaseAll);
+      window.removeEventListener('pagehide', releaseAll);
+    };
+  }, []);
 
-  // Step 4 Pricing state
-  const [faceValue, setFaceValue] = useState<number>(2500000);
-  const [resalePrice, setResalePrice] = useState<number>(2500000);
+
+  const handleUpdateTicketPrice = useCallback((code: string, newPrice: number) => {
+    // Lưu đúng giá trị người bán nhập (không ép clamp về ceiling) để hiển thị lỗi và kiểm tra hợp lệ
+    setTicketPrices((prev) => ({
+      ...prev,
+      [code]: Math.max(0, newPrice),
+    }));
+  }, []);
+
+  const ticketsPriceList = useMemo<TicketPriceItem[]>(() => {
+    return sessions.map((s) => {
+      const price =
+        ticketPrices[s.code] !== undefined && ticketPrices[s.code] > 0
+          ? ticketPrices[s.code]
+          : s.originalPrice > 0
+            ? s.originalPrice
+            : 0;
+      return {
+        code: s.code,
+        originalPrice: s.originalPrice,
+        markupPercent: s.markupPercent,
+        priceCeiling: s.priceCeiling,
+        resalePrice: price,
+        seatZone: allPurchasedTickets.find((t) => purchasedPassCode(t).toUpperCase() === s.code.toUpperCase())?.seatZone,
+      };
+    });
+  }, [sessions, ticketPrices, allPurchasedTickets]);
+
+  const hasPurchasedTicketInResale = useMemo(() => {
+    return sessions.some((s) =>
+      allPurchasedTickets.some((t) => purchasedPassCode(t).toUpperCase() === s.code.toUpperCase())
+    );
+  }, [sessions, allPurchasedTickets]);
 
   // Step 5 Confirmation state
   const [agreedTerms, setAgreedTerms] = useState(true);
+  const [agreedWaiver, setAgreedWaiver] = useState(false);
   const [isPrivateListing, setIsPrivateListing] = useState(false);
   const [isPublishing, setIsPublishing] = useState(false);
   const [publishedListingId, setPublishedListingId] = useState<string>('');
+  const [publishedPrivateToken, setPublishedPrivateToken] = useState<string>('');
+  const [copiedLink, setCopiedLink] = useState<boolean>(false);
+  const [copiedQr, setCopiedQr] = useState<boolean>(false);
 
-  // Step 1: Request OTP for Ticket Verification
-  const handleNextStep1 = async (e: React.FormEvent) => {
+  // Khóa các trường hợp không cho quay lại bước trước tránh bị lỗi
+  // Đặc biệt: khi đã publish vé (Bước 6), tuyệt đối không cho quay lại Bước 4 hay bất kỳ bước nào
+  const handleSetCurrentStep = useCallback(
+    (action: React.SetStateAction<number>) => {
+      setCurrentStep((prev) => {
+        const next = typeof action === 'function' ? action(prev) : action;
+        // Đã publish (Bước 6) -> Không cho quay lại bất kỳ bước nào (kể cả Bước 4)
+        if (prev === 6 && next < 6) {
+          return 6;
+        }
+        // Đang publish -> Không cho đổi bước
+        if (isPublishing) {
+          return prev;
+        }
+        // Đã xác thực OTP & khóa vé (Bước >= 3) -> Không cho quay lại Bước 1 hoặc 2
+        if (prev >= 3 && next <= 2) {
+          return prev;
+        }
+        // Đang ở Bước 3 -> Không cho quay lại Bước 2 (OTP)
+        if (prev === 3 && next < 3) {
+          return 3;
+        }
+        return next;
+      });
+    },
+    [isPublishing]
+  );
+
+  /** Đóng mọi phiên đã tạo (dùng khi luồng lỗi giữa chừng) — không để vé nào bị khoá treo. */
+  const closeAllSessions = useCallback(async () => {
+    const ids = sessions.map((s) => s.verificationId).filter(Boolean);
+    await Promise.all(ids.map(async (id) => {
+      const result = await resaleApi.closeVerification(id);
+      if (result.status !== 'Closed') throw new Error('Verification closure is pending.');
+    }));
+  }, [sessions]);
+
+  // Step 1: Request an OTP for EVERY ticket (BTC issues one OTP per ticket)
+  const handleNextStep1 = async (e: React.FormEvent, overrideCodes?: string[]): Promise<boolean> => {
     e.preventDefault();
-    const normalizedCode = ticketCode.trim().toUpperCase();
-    if (!normalizedCode) {
-      showToast('Vui lòng nhập mã định danh vé!', 'warning');
-      return;
+
+    if (isRequestingOtp) return false;
+
+    const rawCodes = overrideCodes && overrideCodes.length > 0
+      ? overrideCodes
+      : ticketCode
+          .split(',')
+          .map((c) => c.trim().toUpperCase())
+          .filter(Boolean);
+
+    const codes = rawCodes.map((c) => c.trim().toUpperCase()).filter(Boolean);
+
+    if (codes.length === 0) {
+      showToast('Please enter the ticket identifier code!', 'warning');
+      return false;
     }
 
-    // 1. Kiểm tra nếu vé này đang được đăng bán trên sàn
-    const isAlreadyListed = existingListings.some(
-      (l) => l.originalTicketCode === normalizedCode &&
-             String(l.listingStatus).toLowerCase() !== 'cancelled'
-    );
-    if (isAlreadyListed) {
-      showToast('Vé này hiện đang được đăng bán trên hệ thống! Vui lòng vào mục "My Listings" để quản lý.', 'warning');
-      return;
+    if (codes.length > MAX_BUNDLE_TICKETS) {
+      showToast(`A combo can include at most ${MAX_BUNDLE_TICKETS} tickets. Please remove some codes.`, 'warning');
+      return false;
     }
 
-    // 2. Kiểm tra nếu vé thuộc trường hợp không hợp lệ (vé đã sử dụng, hết hạn, bị khóa)
-    const knownIneligible = userTickets.find((t) => t.code === normalizedCode && t.status !== 'VALID');
-    if (knownIneligible) {
-      showToast('Mã vé này không đủ điều kiện đăng bán (vé đã qua sử dụng hoặc không hợp lệ).', 'error');
-      return;
+    const duplicate = codes.find((code, i) => codes.indexOf(code) !== i);
+    if (duplicate) {
+      showToast(`Ticket ${duplicate} appears more than once. Each code must be unique.`, 'warning');
+      return false;
     }
+
+    for (const code of codes) {
+      const isAlreadyListed = existingListings.some(
+        (l) => l.originalTicketCode === code &&
+          String(l.listingStatus).toLowerCase() !== 'cancelled'
+      );
+      if (isAlreadyListed) {
+        showToast(`Ticket ${code} is already listed on Marketplace! Please check "My Listings" to manage.`, 'warning');
+        return false;
+      }
+
+      const ownedPurchase = allPurchasedTickets.find(
+        (t) => purchasedPassCode(t).toUpperCase() === code
+      );
+      // BR-L06: a ticket still in escrow may be resold once the buyer waives the dispute right
+      // (the waiver is asked on the review step); used, disputed or refunded passes may not.
+      const resaleableStatuses = ['VALID', 'IN_ESCROW', 'LOCKED', 'RELEASING'];
+      if (ownedPurchase && !resaleableStatuses.includes((ownedPurchase.status || '').trim().toUpperCase())) {
+        showToast(`Ticket ${code} cannot be resold yet. Please wait until the protection period has concluded.`, 'error');
+        return false;
+      }
+    }
+
+    if (codes.length > 1) {
+      const matched = codes
+        .map((c) => allPurchasedTickets.find((t) => purchasedPassCode(t).toUpperCase() === c))
+        .filter(Boolean);
+      if (matched.length > 1) {
+        const firstEventId = matched[0]?.eventId;
+        if (firstEventId && matched.some((m) => m?.eventId && m.eventId !== firstEventId)) {
+          showToast('All tickets in a bundle listing must belong to the same event!', 'error');
+          return false;
+        }
+      }
+    }
+
+    let created: TicketSession[] = [];
 
     try {
       setIsRequestingOtp(true);
-      showToast('Đang tra cứu và gửi mã OTP xác thực từ Ban Tổ Chức...', 'info');
-      const result = await resaleApi.requestVerificationOtp(normalizedCode);
-      setVerificationId(result.verificationId);
-      setVerificationResult(result);
-      if (result.originalPrice && result.originalPrice > 0) {
-        setFaceValue(result.originalPrice);
-        setResalePrice(result.originalPrice);
-      }
-      showToast('Đã gửi mã xác thực OTP! Vui lòng kiểm tra email chủ vé.', 'success');
+      showToast(
+        codes.length > 1
+          ? `Requesting a separate OTP for each of the ${codes.length} tickets...`
+          : 'Verifying ticket & requesting OTP from Organizer...',
+        'info'
+      );
+
+      // Gọi song song cho tất cả các vé thay vì gọi tuần tự để tăng tốc độ tối đa
+      created = await Promise.all(
+        codes.map(async (code) => {
+          const result = await resaleApi.requestVerificationOtp(code, selectedOrganizerId || undefined);
+          const originalPrice = result.originalPrice ?? 0;
+          const markup = result.markupPercent ?? 0;
+
+          return {
+            code,
+            verificationId: result.verificationId,
+            originalPrice,
+            markupPercent: markup,
+            priceCeiling:
+              result.priceCeiling && result.priceCeiling > 0
+                ? result.priceCeiling
+                : Math.trunc(originalPrice * (1 + markup / 100)),
+            locked: false,
+            expiresAt: Date.now() + OTP_TTL_MS,
+          };
+        })
+      );
+
+      setSessions(created);
+      setTicketCode(codes.join(', '));
+
+      const initialPrices: Record<string, number> = {};
+      created.forEach((s) => {
+        const owned = allPurchasedTickets.find(
+          (t) => purchasedPassCode(t).toUpperCase() === s.code.toUpperCase()
+        );
+        const original =
+          s.originalPrice > 0
+            ? s.originalPrice
+            : owned?.totalAmountPaid && owned.totalAmountPaid > 0
+              ? owned.totalAmountPaid
+              : 0;
+        if (original > 0) {
+          initialPrices[s.code] = original;
+        }
+      });
+      setTicketPrices(initialPrices);
+      setActiveTicketIndex(0);
+
+      showToast(
+        codes.length > 1
+          ? `${created.length} OTP codes sent. Each ticket has its own code.`
+          : 'OTP code sent! Please check the ticket owner email/phone.',
+        'success'
+      );
       setCurrentStep(2);
+      return true;
     } catch (err: any) {
-      const msg = err?.message || '';
-      if (msg.includes('TICKET_NOT_ELIGIBLE') || msg.includes('TICKET_NOT_AVAILABLE') || msg.includes('LOCKED')) {
-        showToast('Mã vé này hiện đang trong phiên giao dịch khác hoặc chưa sẵn sàng để bán.', 'warning');
-      } else if (msg.includes('TICKET_NOT_FOUND')) {
-        showToast('Không tìm thấy thông tin vé với mã đã nhập. Vui lòng kiểm tra lại mã vé!', 'error');
-      } else {
-        showToast('Không thể xác thực mã vé vào lúc này.', 'error');
+      // Hoàn tác phần đã tạo: không vé nào được giữ ở trạng thái chờ OTP.
+      await Promise.allSettled(created.map((s) => resaleApi.closeVerification(s.verificationId)));
+      const rawCode = err?.response?.data?.message || err?.message || '';
+      let msg = 'Verification failed. Please check the ticket code and try again.';
+      if (rawCode.includes('TICKET_DISPUTED')) {
+        msg = 'This ticket is currently involved in an active dispute and cannot be listed for resale.';
+      } else if (rawCode) {
+        msg = normalizeErrorMessage(rawCode, msg);
       }
+      showToast(msg, 'error');
+      return false;
     } finally {
       setIsRequestingOtp(false);
     }
   };
 
-  // Resend OTP
-  const handleResendOtp = async () => {
-    if (!verificationId) {
-      showToast('Không tìm thấy phiên xác thực vé!', 'warning');
-      return;
-    }
+  // Resend OTP cho một vé cụ thể
+  const handleResendOtp = async (code: string) => {
+    const target = sessions.find((s) => s.code === code);
+    if (!target) return;
+
     try {
-      setIsResendingOtp(true);
-      await resaleApi.resendVerificationOtp(verificationId);
-      setOtpTimeLeft(300);
-      setOtp(['', '', '', '', '', '']);
-      showToast('Đã gửi lại mã OTP thành công!', 'success');
+      setResendingCode(code);
+      await resaleApi.resendVerificationOtp(target.verificationId);
+      setSessions((prev) =>
+        prev.map((s) => (s.code === code ? { ...s, expiresAt: Date.now() + OTP_TTL_MS } : s))
+      );
+      showToast(`New OTP sent for ticket ${code}.`, 'success');
     } catch (err: any) {
-      showToast('Không thể gửi lại mã OTP. Vui lòng thử lại sau ít phút!', 'error');
+      const msg = err?.response?.data?.message || err?.message || 'Could not resend OTP. Please try again shortly!';
+      showToast(msg, 'error');
     } finally {
-      setIsResendingOtp(false);
+      setResendingCode(null);
     }
   };
 
-  // Step 2: Confirm OTP & Lock Ticket
-  const handleVerifyOtp = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const otpCode = otp.join('').trim();
-    if (otpCode.length < 4) {
-      showToast('Vui lòng nhập đầy đủ mã xác thực OTP!', 'warning');
-      return;
+  // Step 2: Confirm OTP từng vé (all-or-nothing).
+  // Mỗi trang xác thực đúng 1 vé; nếu một vé bị khóa/quá số lần nhập thì giải phóng toàn bộ và về Bước 1.
+  // Nếu chỉ sai mã OTP thông thường (OTP_INVALID) thì giữ nguyên trang để người dùng nhập lại.
+  const handleVerifyOneTicket = async (entry: { code: string; otp: string }): Promise<boolean> => {
+    if (sessions.length === 0) {
+      showToast('Invalid verification session!', 'error');
+      return false;
     }
 
-    if (!verificationId) {
-      showToast('Phiên xác thực vé không hợp lệ!', 'error');
-      return;
+    const target = sessions.find((s) => s.code === entry.code);
+    if (!target) {
+      showToast(`Ticket ${entry.code} is not in the verification list.`, 'error');
+      return false;
     }
 
     try {
       setIsVerifyingOtp(true);
-      const result = await resaleApi.confirmVerificationOtp(verificationId, otpCode);
-      setVerificationResult(result);
+      const result = await resaleApi.confirmVerificationOtp(target.verificationId, entry.otp);
+
+      setSessions((prev) =>
+        prev.map((s) =>
+          s.code === entry.code
+            ? {
+                ...s,
+                locked: true,
+                eventName: result.eventName,
+                eventVenue: result.eventVenue,
+                eventStartAt: result.eventStartAt,
+                tierName: result.tierName,
+                seatZone: result.seatZone,
+                organizerName: result.organizerName,
+                originalPrice: result.originalPrice ?? s.originalPrice,
+                markupPercent: result.markupPercent ?? s.markupPercent,
+                priceCeiling:
+                  result.priceCeiling && result.priceCeiling > 0 ? result.priceCeiling : s.priceCeiling,
+              }
+            : s
+        )
+      );
+
       if (result.originalPrice && result.originalPrice > 0) {
-        setFaceValue(result.originalPrice);
-        setResalePrice(result.originalPrice);
+        setTicketPrices((prev) => ({
+          ...prev,
+          [entry.code]: result.originalPrice!,
+        }));
       }
-      showToast('Xác thực OTP & Khóa vé gốc thành công!', 'success');
-      setCurrentStep(3);
+
+      return true;
     } catch (err: any) {
-      showToast('Mã xác thực OTP không chính xác hoặc phiên đã hết hạn. Vui lòng thử lại!', 'error');
+      const rawMsg = err?.response?.data?.message || err?.message || '';
+      const errorCode = err?.response?.data?.errors?.[0] || rawMsg;
+      const status = err?.response?.status;
+
+      // Only abort all and return to Step 1 if attempts exhausted or ticket locked elsewhere
+      const isFatal =
+        errorCode === 'OTP_ATTEMPTS_EXHAUSTED' ||
+        status === 429 ||
+        errorCode === 'TICKET_CHANGED' ||
+        errorCode === 'TICKET_LOCKED';
+
+      if (isFatal) {
+        try {
+          await closeAllSessions();
+        } catch {
+          showToast('Could not close verification. Retry cancellation to unlock the tickets.', 'error');
+          return false;
+        }
+        resetToStep1(sessions.map((s) => s.code).join(', '));
+        const fatalMsg =
+          errorCode === 'OTP_ATTEMPTS_EXHAUSTED' || status === 429
+            ? 'Exceeded 3 incorrect OTP attempts. All tickets have been unlocked, please start over.'
+            : `Verification failed (${rawMsg || 'Ticket unavailable'}). All tickets have been unlocked.`;
+        showToast(fatalMsg, 'error');
+        return false;
+      }
+
+      // Retryable errors on Step 2
+      let userFriendlyMsg = 'Incorrect OTP code. Please try again.';
+      if (errorCode === 'OTP_INVALID' || rawMsg.includes('OTP_INVALID')) {
+        userFriendlyMsg = 'Incorrect OTP code. Please check the 6-digit code sent to the ticket owner.';
+      } else if (errorCode === 'OTP_EXPIRED' || rawMsg.includes('OTP_EXPIRED') || rawMsg.includes('expired')) {
+        userFriendlyMsg = 'OTP code has expired. Please click "Resend OTP" to request a new code.';
+      } else if (rawMsg) {
+        userFriendlyMsg = rawMsg;
+      }
+
+      showToast(userFriendlyMsg, 'error');
+      throw new Error(userFriendlyMsg);
     } finally {
       setIsVerifyingOtp(false);
     }
   };
 
-  const handleApplyDiscount = (percent: number) => {
-    if (percent === 0) {
-      setResalePrice(faceValue);
-    } else {
-      setResalePrice(Math.round(faceValue * (1 - percent / 100)));
+  // Tất cả vé đã khoá -> sang bước 3
+  const handleOtpVerified = useCallback(() => {
+    setCurrentStep((prev) => {
+      if (prev === 2) {
+        showToast(
+          sessions.length > 1
+            ? `All ${sessions.length} tickets verified & locked successfully!`
+            : 'OTP verified & ticket locked successfully!',
+          'success'
+        );
+        return 3;
+      }
+      return prev;
+    });
+  }, [sessions.length, showToast]);
+
+  // Helper reset form to Step 1 and remove draft (giữ lại mã vé nếu muốn thử lại)
+  const resetToStep1 = (keepCodes?: string) => {
+    try {
+      localStorage.removeItem(DRAFT_STORAGE_KEY);
+    } catch (e) {
+      console.warn('Could not clear sell draft', e);
+    }
+    setSessions([]);
+    setTicketCode(keepCodes ?? '');
+    setTicketPrices({});
+    setActiveTicketIndex(0);
+    setSaleType('combo');
+    setCurrentStep(1);
+    setResumeDraftAvailable(false);
+  };
+
+  // Gỡ bỏ 1 vé lẻ khi đang ở Bước 2 xác thực OTP và mở khóa vé đó tại BTC
+  const handleRemoveSingleTicket = async (code: string) => {
+    const target = sessions.find((s) => s.code === code);
+    if (!target) return;
+
+    try {
+      showToast(`Cancelling session and unlocking ticket ${code} with Organizer...`, 'info');
+      await resaleApi.closeVerification(target.verificationId);
+
+      const remainingSessions = sessions.filter((s) => s.code !== code);
+      const remainingPrices = { ...ticketPrices };
+      delete remainingPrices[code];
+
+      setSessions(remainingSessions);
+      setTicketPrices(remainingPrices);
+      setTicketCode(remainingSessions.map((s) => s.code).join(', '));
+      setActiveTicketIndex(0);
+
+      showToast(`Removed ticket ${code} successfully and unlocked with Organizer.`, 'success');
+
+      if (remainingSessions.length === 0) {
+        resetToStep1();
+      } else if (remainingSessions.length === 1) {
+        setSaleType('combo');
+      }
+    } catch (err: any) {
+      console.warn('Could not close single verification session', err);
+      showToast(`Could not remove ticket ${code}. Please try again.`, 'error');
     }
   };
 
-  // Step 5: Publish Resale Listing
+  // Close abandoned sessions and release ALL ticket locks at Organizer
+  const handleAbandonSession = async () => {
+    if (sessions.length === 0) {
+      resetToStep1();
+      return;
+    }
+    try {
+      setIsCancellingSession(true);
+      showToast(
+        sessions.length > 1
+          ? 'Cancelling all sessions and unlocking every ticket with Organizer...'
+          : 'Cancelling session and unlocking ticket with Organizer...',
+        'info'
+      );
+      await closeAllSessions();
+      showToast(
+        sessions.length > 1
+          ? 'All sessions cancelled and tickets unlocked successfully!'
+          : 'Session cancelled and ticket unlocked successfully!',
+        'success'
+      );
+      resetToStep1();
+      fetchExistingListings();
+    } catch (err: any) {
+      console.warn('Could not close verification session on backend', err);
+      showToast('Could not close the verification. Please retry to unlock your ticket.', 'warning');
+    } finally {
+      setIsCancellingSession(false);
+    }
+  };
+
+  // Step 5: Publish Resale Listing (1 vé = publish, 2–3 vé = bulk all-or-nothing)
   const handlePublishListing = async () => {
     if (!agreedTerms) {
-      showToast('Vui lòng đồng ý với quy định niêm yết vé chính chủ!', 'warning');
+      showToast('Please agree to the authentic ticket listing terms!', 'warning');
       return;
     }
 
-    if (!verificationId) {
-      showToast('Thiếu phiên xác thực vé!', 'error');
+    if (hasPurchasedTicketInResale && !agreedWaiver) {
+      showToast('Please confirm the waiver of dispute rights for previously purchased tickets.', 'warning');
       return;
     }
 
-    if (resalePrice > faceValue) {
-      showToast(`Giá rao bán không được vượt quá giá gốc (${faceValue.toLocaleString('vi-VN')} VNĐ)!`, 'warning');
+    if (sessions.length === 0) {
+      showToast('Missing verification session!', 'error');
       return;
+    }
+
+    if (bankAccounts.length === 0) {
+      showToast('Please link a payout bank account before listing tickets.', 'warning');
+      setIsAddBankModalOpen(true);
+      return;
+    }
+
+    if (!sessions.every((s) => s.locked)) {
+      showToast('Every ticket must pass its own OTP check before listing.', 'warning');
+      return;
+    }
+
+    for (const s of sessions) {
+      const p = ticketPrices[s.code] ?? s.originalPrice;
+      const ceiling = s.priceCeiling && s.priceCeiling > 0 ? s.priceCeiling : Number.MAX_SAFE_INTEGER;
+      if (p > ceiling) {
+        showToast(
+          `Listing price for ticket ${s.code} exceeds the price ceiling (${ceiling.toLocaleString('en-US')} ₫). Please reduce your price.`,
+          'warning'
+        );
+        return;
+      }
+      if (p < minSellerFee) {
+        showToast(
+          `Listing price for ticket ${s.code} must be at least ${minSellerFee.toLocaleString('en-US')} ₫ (minimum platform fee).`,
+          'warning'
+        );
+        return;
+      }
     }
 
     try {
       setIsPublishing(true);
-      const result = await resaleApi.publishListing(verificationId, resalePrice, isPrivateListing);
-      if (result.listingId) {
-        setPublishedListingId(result.listingId);
+
+      if (sessions.length === 1) {
+        const p = ticketPrices[sessions[0].code] ?? sessions[0].originalPrice;
+        const result = await resaleApi.publishListing(
+          sessions[0].verificationId,
+          p,
+          isPrivateListing
+        );
+        setPublishedListingId(result.listingId ?? '');
+        setPublishedPrivateToken(result.privateAccessToken ?? '');
+      } else {
+        // Gói vé luôn chung 1 bundleId trên sàn (hiển thị 1 card). 
+        // allOrNothing = true: Bắt buộc mua full cả gói.
+        // allOrNothing = false: Không buộc bán theo cặp, người mua được tick chọn lẻ từng vé.
+        const isAllOrNothing = saleType === 'combo';
+        const result = await resaleApi.bulkPublishListing(
+          sessions.map((s) => ({
+            verificationId: s.verificationId,
+            resalePrice: ticketPrices[s.code] ?? s.originalPrice,
+            isPrivate: isPrivateListing,
+          })),
+          isAllOrNothing
+        );
+        setPublishedListingId(result.listings?.[0]?.listingId ?? '');
+        if (isPrivateListing) {
+          const token = (result as any).privateAccessToken || (result.listings?.[0] as any)?.privateAccessToken || '';
+          setPublishedPrivateToken(token);
+        }
       }
-      showToast('Đã niêm yết vé thành công lên Marketplace TicketShield!', 'success');
+
+      try {
+        localStorage.removeItem(DRAFT_STORAGE_KEY);
+      } catch (e) {
+        console.warn('Could not remove draft', e);
+      }
+      setResumeDraftAvailable(false);
+      showToast(
+        isBundle
+          ? `Combo of ${sessions.length} tickets listed successfully on TicketShield Marketplace!`
+          : isPrivateListing
+            ? 'Private ticket listing created! Access via secret link or QR code.'
+            : 'Ticket listed successfully on TicketShield Marketplace!',
+        'success'
+      );
       fetchExistingListings();
       setCurrentStep(6);
     } catch (err: any) {
-      const msg = err?.message || '';
-      if (msg.includes('TICKET_ALREADY_LISTED')) {
-        showToast('Mã vé này đã được đăng bán trên hệ thống trước đó! Vui lòng vào mục "MY LISTINGS" để kiểm tra.', 'warning');
-      } else if (msg.includes('PRICE_EXCEEDS_CEILING')) {
-        showToast(`Giá bán lại không được vượt quá giá gốc (${faceValue.toLocaleString('vi-VN')} VNĐ)!`, 'warning');
+      const rawMsg = err?.response?.data?.message || err?.message || '';
+      const errorCode = err?.response?.data?.errors?.[0] || err?.response?.data?.code || rawMsg;
+
+      if (errorCode === 'PAYOUT_ACCOUNT_REQUIRED' || rawMsg.includes('PAYOUT_ACCOUNT_REQUIRED')) {
+        showToast('A payout bank account is required to receive funds. Please link your account.', 'warning');
+        setIsAddBankModalOpen(true);
+        return;
+      }
+
+      if (errorCode === 'TICKET_MAPPING_NOT_CONFIGURED' || rawMsg.includes('TICKET_MAPPING_NOT_CONFIGURED')) {
+        await handleAbandonSession();
+        showToast('This ticket tier is missing from the organizer catalog.', 'error');
+        return;
+      }
+
+      const isExpiredSession =
+        rawMsg.includes('INVALID_VERIFICATION_STATE') ||
+        rawMsg.includes('VERIFICATION_NOT_FOUND') ||
+        rawMsg.includes('LOCK_NOT_HELD');
+
+      if (isExpiredSession) {
+        await handleAbandonSession();
       } else {
-        showToast('Không thể tạo niêm yết vé vào lúc này. Vui lòng thử lại sau!', 'error');
+        const msg = rawMsg || 'Could not publish listing. Please try again.';
+        showToast(msg, 'error');
       }
     } finally {
       setIsPublishing(false);
     }
   };
 
-  const handleClearOtp = () => {
-    setOtp(['', '', '', '', '', '']);
-    document.getElementById('otp-input-0')?.focus();
+
+  const getShareUrl = () => {
+    if (isPrivateListing && publishedPrivateToken) {
+      return buildPrivateShareLink(publishedPrivateToken);
+    }
+    if (publishedListingId) {
+      return buildPublicShareLink(publishedListingId);
+    }
+    return `${window.location.origin}/marketplace`;
   };
 
-  const handleOtpChange = (index: number, val: string) => {
-    const cleaned = val.replace(/\D/g, '');
-    if (!cleaned) {
-      const newOtp = [...otp];
-      newOtp[index] = '';
-      setOtp(newOtp);
+  const handleCopyLink = async () => {
+    const url = getShareUrl();
+    try {
+      await copyToClipboard(url);
+      setCopiedLink(true);
+      showToast(
+        isPrivateListing
+          ? 'Secret private listing link copied to clipboard!'
+          : 'Marketplace ticket link copied to clipboard!',
+        'success'
+      );
+      setTimeout(() => setCopiedLink(false), 2500);
+    } catch {
+      showToast('Could not copy link. Please copy manually.', 'error');
+    }
+  };
+
+  const handleDownloadQr = () => {
+    const canvas = document.getElementById('listing-qr-canvas') as HTMLCanvasElement;
+    if (!canvas) {
+      showToast('QR Code canvas not found.', 'error');
       return;
     }
-
-    if (cleaned.length > 1) {
-      const digits = cleaned.slice(0, 6 - index).split('');
-      const newOtp = [...otp];
-      digits.forEach((d, i) => {
-        if (index + i < 6) newOtp[index + i] = d;
-      });
-      setOtp(newOtp);
-      const nextIdx = Math.min(index + digits.length, 5);
-      document.getElementById(`otp-input-${nextIdx}`)?.focus();
-      return;
-    }
-
-    const newOtp = [...otp];
-    newOtp[index] = cleaned[0];
-    setOtp(newOtp);
-
-    // Auto-focus next input
-    if (index < 5) {
-      const nextInput = document.getElementById(`otp-input-${index + 1}`);
-      nextInput?.focus();
-    }
+    const url = canvas.toDataURL('image/png');
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `ticketshield-${isPrivateListing ? 'private' : 'public'}-${publishedListingId || 'ticket'}.png`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    showToast('QR Code saved as PNG image!', 'success');
   };
 
-  const handleOtpKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Backspace') {
-      if (!otp[index] && index > 0) {
-        // If current input is empty, delete previous input and focus it
-        const newOtp = [...otp];
-        newOtp[index - 1] = '';
-        setOtp(newOtp);
-        const prevInput = document.getElementById(`otp-input-${index - 1}`);
-        prevInput?.focus();
-      } else if (otp[index]) {
-        // Clear current input
-        const newOtp = [...otp];
-        newOtp[index] = '';
-        setOtp(newOtp);
-      }
-    } else if (e.key === 'ArrowLeft' && index > 0) {
-      document.getElementById(`otp-input-${index - 1}`)?.focus();
-    } else if (e.key === 'ArrowRight' && index < 5) {
-      document.getElementById(`otp-input-${index + 1}`)?.focus();
+  const handleCopyQrImage = async () => {
+    try {
+      const canvas = document.getElementById('listing-qr-canvas') as HTMLCanvasElement;
+      if (!canvas) throw new Error('Canvas not found');
+
+      canvas.toBlob(async (blob) => {
+        if (!blob) {
+          handleDownloadQr();
+          return;
+        }
+        try {
+          if (typeof ClipboardItem !== 'undefined' && navigator.clipboard?.write) {
+            await navigator.clipboard.write([
+              new ClipboardItem({ 'image/png': blob })
+            ]);
+            setCopiedQr(true);
+            showToast('QR Code image copied to clipboard! You can paste directly into chat messages.', 'success');
+            setTimeout(() => setCopiedQr(false), 2500);
+          } else {
+            handleDownloadQr();
+          }
+        } catch {
+          handleDownloadQr();
+        }
+      }, 'image/png');
+    } catch {
+      handleDownloadQr();
     }
-  };
-
-  const handleOtpPaste = (e: React.ClipboardEvent) => {
-    e.preventDefault();
-    const pastedData = e.clipboardData.getData('text').trim().replace(/\D/g, '');
-    if (!pastedData) return;
-
-    const digits = pastedData.slice(0, 6).split('');
-    const newOtp = ['', '', '', '', '', ''];
-    digits.forEach((digit, idx) => {
-      if (idx < 6) newOtp[idx] = digit;
-    });
-    setOtp(newOtp);
-
-    const focusIdx = Math.min(digits.length, 5);
-    const targetInput = document.getElementById(`otp-input-${focusIdx}`);
-    targetInput?.focus();
   };
 
   return (
-    <div className="relative min-h-screen bg-[#05070A] text-[#F5F5F2] pt-28 pb-20 px-4 sm:px-6 md:px-12 font-sans antialiased selection:bg-[#FF5A36] selection:text-white overflow-hidden">
+    <div className="relative min-h-screen bg-[#05070A] text-[#F5F5F2] pt-20 pb-12 px-4 sm:px-6 md:px-12 font-sans antialiased selection:bg-[#FF5A36] selection:text-white overflow-hidden">
       {/* Inline Animation Styles */}
       <style>{`
         @keyframes fadeInUp {
@@ -404,14 +948,24 @@ export const SellTicketPage: React.FC = () => {
           70% { transform: scale(1.08); }
           100% { opacity: 1; transform: scale(1); }
         }
-        @keyframes kenburnsSlow {
-          0% { transform: scale(1.04) translate(0, 0); filter: brightness(1.15) contrast(1.25); }
-          100% { transform: scale(1.1) translate(-1%, -1%); filter: brightness(1.05) contrast(1.3); }
+        @keyframes kenburnsGentle {
+          0% {
+            transform: scale(1.03) translate(0, 0);
+          }
+          35% {
+            transform: scale(1.06) translate(1.2%, -0.8%);
+          }
+          70% {
+            transform: scale(1.075) translate(-0.8%, 0.9%);
+          }
+          100% {
+            transform: scale(1.04) translate(0.4%, -0.3%);
+          }
         }
-        @keyframes stageSpotlight {
-          0% { transform: rotate(-28deg) translateY(-15%) translateX(-20%); opacity: 0.25; }
-          50% { transform: rotate(18deg) translateY(12%) translateX(25%); opacity: 0.55; }
-          100% { transform: rotate(-28deg) translateY(-15%) translateX(-20%); opacity: 0.25; }
+        @keyframes stageSpotlightGentle {
+          0% { transform: rotate(-25deg) translateY(-10%) translateX(-15%); opacity: 0.22; }
+          50% { transform: rotate(15deg) translateY(8%) translateX(18%); opacity: 0.45; }
+          100% { transform: rotate(-25deg) translateY(-10%) translateX(-15%); opacity: 0.22; }
         }
         .animate-fade-in-up {
           animation: fadeInUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
@@ -425,11 +979,11 @@ export const SellTicketPage: React.FC = () => {
         .animate-glow {
           animation: subtleGlow 4s ease-in-out infinite;
         }
-        .animate-kenburns-slow {
-          animation: kenburnsSlow 20s ease-in-out infinite alternate;
+        .animate-kenburns-gentle {
+          animation: kenburnsGentle 14s ease-in-out infinite alternate;
         }
         .animate-stage-spotlight {
-          animation: stageSpotlight 5s ease-in-out infinite alternate;
+          animation: stageSpotlightGentle 8s ease-in-out infinite alternate;
         }
         @keyframes scanline {
           0% { top: 0%; opacity: 0; }
@@ -454,6 +1008,20 @@ export const SellTicketPage: React.FC = () => {
         .animate-pulse-dot {
           animation: pulseDot 2s ease-in-out infinite;
         }
+        @media (min-width: 640px) {
+          .ticket-perforated-mask {
+            -webkit-mask-image: radial-gradient(circle 14px at calc(100% - 14rem) 0px, transparent 13.5px, black 14px),
+                                radial-gradient(circle 14px at calc(100% - 14rem) 100%, transparent 13.5px, black 14px);
+            -webkit-mask-size: 100% 51%;
+            -webkit-mask-position: top, bottom;
+            -webkit-mask-repeat: no-repeat;
+            mask-image: radial-gradient(circle 14px at calc(100% - 14rem) 0px, transparent 13.5px, black 14px),
+                        radial-gradient(circle 14px at calc(100% - 14rem) 100%, transparent 13.5px, black 14px);
+            mask-size: 100% 51%;
+            mask-position: top, bottom;
+            mask-repeat: no-repeat;
+          }
+        }
       `}</style>
 
       {/* Background Lights */}
@@ -461,7 +1029,7 @@ export const SellTicketPage: React.FC = () => {
         <img
           src="/images/landing/hero-concert.jpg"
           alt="Live Concert Stage"
-          className="w-full h-full object-cover opacity-70 animate-kenburns-slow transform-gpu origin-center"
+          className="w-full h-full object-cover opacity-70 animate-kenburns-gentle transform-gpu origin-center"
         />
         <div className="absolute -top-1/2 -left-1/2 w-[200%] h-[200%] bg-gradient-to-r from-transparent via-[#FF5A36]/30 to-transparent blur-3xl animate-stage-spotlight pointer-events-none" />
         <div className="absolute inset-0 bg-gradient-to-b from-[#05070A]/75 via-[#05070A]/55 to-[#05070A]/90" />
@@ -470,632 +1038,179 @@ export const SellTicketPage: React.FC = () => {
       <div className="absolute top-1/4 -left-48 w-96 h-96 bg-[#FF5A36]/10 rounded-full blur-3xl pointer-events-none" />
       <div className="absolute bottom-1/4 -right-48 w-96 h-96 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none" />
 
-      <div className="relative z-10 max-w-4xl mx-auto space-y-8">
+      <div className={`relative z-10 mx-auto space-y-4 transition-all duration-300 ${currentStep === 6 ? 'max-w-6xl' : 'max-w-3xl'}`}>
 
-        {/* Step Progress Bar Header */}
-        <div className="space-y-4">
-          <div className="max-w-2xl mx-auto h-1.5 bg-white/10 rounded-full overflow-hidden p-0.5">
-            <div
-              className="h-full bg-gradient-to-r from-[#FF5A36] to-emerald-400 rounded-full transition-all duration-500 ease-out shadow-sm shadow-[#FF5A36]/50"
-              style={{ width: `${(currentStep / 6) * 100}%` }}
-            />
-          </div>
+        {/* Process Stepper Header & Draft Banner */}
+        <SellWizardProgress
+          currentStep={currentStep}
+          setCurrentStep={handleSetCurrentStep}
+          handleAbandonSession={handleAbandonSession}
+          resumeDraftAvailable={resumeDraftAvailable}
+          ticketCode={ticketCode}
+          isCancellingSession={isCancellingSession}
+          isPublishing={isPublishing}
+          priceSubStep={priceSubStep}
+          setPriceSubStep={setPriceSubStep}
+        />
 
-          <div className="flex items-center justify-center gap-2 sm:gap-4 max-w-2xl mx-auto px-4">
-            {[1, 2, 3, 4, 5, 6].map((stepNum) => {
-              const isCompleted = stepNum < currentStep;
-              const isCurrent = stepNum === currentStep;
-              return (
-                <React.Fragment key={stepNum}>
-                  <button
-                    onClick={() => {
-                      if (stepNum < currentStep) setCurrentStep(stepNum);
-                    }}
-                    className={`w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center font-bold text-xs sm:text-sm font-display transition-all duration-300 active:scale-95 ${
-                      isCompleted
-                        ? 'bg-emerald-500 text-black shadow-lg shadow-emerald-500/30 cursor-pointer hover:scale-110'
-                        : isCurrent
-                          ? 'bg-[#FF5A36] text-white shadow-xl shadow-[#FF5A36]/50 scale-110 border-2 border-white/30 ring-4 ring-[#FF5A36]/20'
-                          : 'bg-[#0A0D12] text-[#A3A8B3] border border-white/10 hover:border-white/30'
-                    }`}
-                  >
-                    {isCompleted ? <Check className="w-4 h-4 text-black stroke-[3]" /> : stepNum}
-                  </button>
-
-                  {stepNum < 6 && (
-                    <div
-                      className={`flex-1 h-[2px] rounded-full transition-all duration-500 ${
-                        stepNum < currentStep ? 'bg-emerald-500 shadow-sm shadow-emerald-500/50' : 'bg-white/10'
-                      }`}
-                    />
-                  )}
-                </React.Fragment>
-              );
-            })}
-          </div>
-
-          {/* Sub-header Navigation Row */}
-          <div className="flex items-center justify-between text-xs text-[#A3A8B3] font-mono max-w-2xl mx-auto px-2">
-            {currentStep > 1 && currentStep < 6 ? (
-              <button
-                onClick={() => setCurrentStep((prev) => prev - 1)}
-                className="flex items-center gap-1.5 hover:text-white transition-colors group"
-              >
-                <ArrowLeft className="w-3.5 h-3.5 group-hover:-translate-x-1 transition-transform duration-200" />
-                <span>Back</span>
-              </button>
-            ) : (
-              <div />
-            )}
-
-            <span className="font-bold uppercase text-[#FF5A36] tracking-wider transition-all duration-300">
-              {currentStep === 1 && 'BƯỚC 1 / 6: NHẬP MÃ VÉ GỐC'}
-              {currentStep === 2 && 'BƯỚC 2 / 6: XÁC THỰC MÃ OTP'}
-              {currentStep === 3 && 'BƯỚC 3 / 6: THÔNG TIN VÉ ĐÃ KHÓA'}
-              {currentStep === 4 && 'BƯỚC 4 / 6: ĐẶT GIÁ RAO BÁN'}
-              {currentStep === 5 && 'BƯỚC 5 / 6: XÁC NHẬN NIÊM YẾT'}
-              {currentStep === 6 && 'BƯỚC 6 / 6: HOÀN TẤT NIÊM YẾT'}
-            </span>
-          </div>
-        </div>
-
-        {/* STEP 1: NHẬP MÃ VÉ */}
+        {/* STEP 1: ENTER TICKET CODE */}
         {currentStep === 1 && (
-          <div key={1} className="animate-fade-in-up max-w-xl mx-auto space-y-8 text-center pt-4">
-            <div className="space-y-3">
-              <h1 className="text-3xl sm:text-4xl font-extrabold font-display text-white tracking-tight">
-                Nhập Mã Vé Gốc Cần Bán
-              </h1>
-              <p className="text-xs sm:text-sm text-[#A3A8B3] max-w-md mx-auto leading-relaxed">
-                Mã xác thực vé từ hệ thống Nhà Tổ Chức (BTC) để khởi tạo quy trình Escrow Lock.
-              </p>
-            </div>
-
-            <form onSubmit={handleNextStep1} className="space-y-6 text-left bg-[#0A0D12]/90 backdrop-blur-md border border-white/10 p-6 sm:p-8 rounded-3xl shadow-2xl hover:border-white/20 transition-all duration-300">
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <label className="text-xs font-semibold uppercase tracking-wider text-[#A3A8B3] font-display">
-                    Mã Vé Gốc (Ticket Identifier Code)
-                  </label>
-                  <span className="text-[10px] text-[#A3A8B3] font-mono">Tự động viết hoa</span>
-                </div>
-                <div className="relative group">
-                  <Ticket className="w-5 h-5 text-[#FF5A36] absolute left-4 top-3.5 group-focus-within:scale-110 group-focus-within:text-[#FF7252] transition-all duration-200" />
-                  <input
-                    type="text"
-                    value={ticketCode}
-                    onChange={(e) => setTicketCode(e.target.value.toUpperCase())}
-                    placeholder="Ví dụ: ATSH-VIP-888"
-                    className="w-full bg-[#05070A] border border-white/15 rounded-xl pl-12 pr-4 py-3.5 text-base font-mono tracking-wider text-white placeholder-[#A3A8B3]/40 focus:outline-none focus:border-[#FF5A36] focus:ring-2 focus:ring-[#FF5A36]/30 transition-all duration-200"
-                    required
-                  />
-                </div>
-
-                <div className="mt-4 space-y-2.5">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[11px] font-bold uppercase text-[#8F96A3] tracking-[0.08em] font-display">
-                      VÉ ĐỦ ĐIỀU KIỆN ĐĂNG BÁN
-                    </span>
-                    {!isLoadingListings && (
-                      <span className="text-[10px] text-[#A3A8B3] font-mono">
-                        {eligibleTickets.length} vé khả dụng
-                      </span>
-                    )}
-                  </div>
-
-                  {isLoadingListings ? (
-                    <div className="py-5 text-center space-y-2 bg-[#05070A] border border-white/10 rounded-xl">
-                      <Loader2 className="w-5 h-5 text-[#FF5A36] animate-spin mx-auto" />
-                      <p className="text-[11px] text-[#A3A8B3] font-mono">Đang kiểm tra tình trạng vé khả dụng...</p>
-                    </div>
-                  ) : eligibleTickets.length > 0 ? (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      {eligibleTickets.map((ticket) => {
-                        const isSelected = ticketCode === ticket.code;
-                        return (
-                          <button
-                            key={ticket.code}
-                            type="button"
-                            onClick={() => setTicketCode(ticket.code)}
-                            className={`group relative overflow-hidden rounded-xl p-3.5 text-left transition-all duration-200 cursor-pointer ${
-                              isSelected
-                                ? 'bg-[#0A0D12] border border-[#FF5A36] shadow-[0_0_20px_rgba(255,90,54,0.12)] -translate-y-0.5'
-                                : 'bg-[#0A0D12] border border-white/[0.08] hover:border-white/20 hover:bg-[#11161F] hover:-translate-y-0.5'
-                            }`}
-                          >
-                            {/* Left digital ticket indicator line */}
-                            <div
-                              className={`absolute left-0 top-0 bottom-0 w-1 transition-colors duration-200 ${
-                                isSelected ? 'bg-[#FF5A36]' : 'bg-white/10 group-hover:bg-[#FF5A36]/60'
-                              }`}
-                            />
-
-                            {/* Subtle perforation notch */}
-                            <div className="absolute -right-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 rounded-full bg-[#05070A] border-l border-white/[0.08] pointer-events-none" />
-
-                            <div className="pl-1.5 pr-2">
-                              <div className="flex items-center justify-between mb-1.5">
-                                <span
-                                  className={`text-[10px] font-bold tracking-wider uppercase px-1.5 py-0.5 rounded ${
-                                    isSelected
-                                      ? 'text-[#FF5A36] bg-[#FF5A36]/10'
-                                      : 'text-[#8F96A3] bg-white/5 group-hover:text-[#F5F5F2]'
-                                  }`}
-                                >
-                                  {ticket.category}
-                                </span>
-                                <span className="text-[11px] font-semibold text-[#8F96A3] font-mono group-hover:text-[#F5F5F2]">
-                                  {ticket.price}
-                                </span>
-                              </div>
-
-                              <div className="font-mono text-sm font-bold tracking-wider text-[#F5F5F2] flex items-center justify-between">
-                                <span>{ticket.code}</span>
-                                {isSelected && (
-                                  <span className="text-[10px] font-sans font-semibold text-[#FF5A36] tracking-normal">
-                                    Đã chọn
-                                  </span>
-                                )}
-                              </div>
-                            </div>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  ) : (
-                    <div className="p-4 bg-[#05070A] border border-white/10 rounded-xl text-center space-y-1.5">
-                      <p className="text-xs text-[#A3A8B3]">
-                        Hiện không có vé nào đủ điều kiện đăng bán (tất cả các vé đã được niêm yết trên thị trường hoặc không khả dụng).
-                      </p>
-                      <Link
-                        to="/my-listings"
-                        className="text-xs text-[#FF5A36] hover:underline font-mono inline-flex items-center gap-1 font-semibold"
-                      >
-                        <span>Quản lý danh sách vé đang bán tại My Listings</span>
-                      </Link>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              <button
-                type="submit"
-                disabled={isRequestingOtp}
-                className="w-full py-4 bg-[#FF5A36] hover:bg-[#FF7252] text-white font-bold font-display uppercase tracking-widest text-xs rounded-xl shadow-lg shadow-[#FF5A36]/30 hover:shadow-xl hover:shadow-[#FF5A36]/50 hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200 flex items-center justify-center gap-2"
-              >
-                {isRequestingOtp ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    <span>Đang khởi tạo phiên xác thực...</span>
-                  </>
-                ) : (
-                  <span>Tiếp tục: Yêu cầu OTP</span>
-                )}
-              </button>
-            </form>
-          </div>
+          <Step1EnterTicketCode
+            ticketCode={ticketCode}
+            setTicketCode={setTicketCode}
+            selectedOrganizerId={selectedOrganizerId}
+            setSelectedOrganizerId={setSelectedOrganizerId}
+            organizers={organizers}
+            isLoadingOrganizers={isLoadingOrganizers}
+            eligibleTickets={eligibleTickets}
+            purchasedPassCode={purchasedPassCode}
+            handleStartVerification={handleNextStep1}
+            isRequestingOtp={isRequestingOtp}
+            bankAccounts={bankAccounts}
+            isLoadingBankAccounts={isLoadingBankAccounts}
+            onAddBankAccount={() => setIsAddBankModalOpen(true)}
+          />
         )}
 
-        {/* STEP 2: XÁC THỰC OTP SỐ ĐIỆN THOẠI / EMAIL */}
+
+        {/* STEP 2: VERIFY OTP CODE */}
         {currentStep === 2 && (
-          <div key={2} className="animate-fade-in-up max-w-xl mx-auto space-y-6 pt-4">
-            <div className="bg-[#0A0D12]/90 backdrop-blur-md border border-white/10 p-6 sm:p-8 rounded-3xl space-y-6 shadow-2xl hover:border-white/20 transition-all duration-300">
-
-              <div className="space-y-2">
-                <h2 className="text-2xl sm:text-3xl font-extrabold font-display text-white">
-                  Xác Thực Mã OTP Chủ Vé
-                </h2>
-                <p className="text-xs text-[#A3A8B3] leading-relaxed">
-                  Nhập mã OTP vừa được Ban Tổ Chức (BTC) gửi về email/số điện thoại chủ vé để thực hiện Khóa vé (Lock).
-                </p>
-              </div>
-
-              <form onSubmit={handleVerifyOtp} className="space-y-6">
-                <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <label className="text-xs font-semibold uppercase tracking-wider text-[#A3A8B3] font-display">
-                      Mã OTP Xác Thực (6 chữ số)
-                    </label>
-                    <div className="flex items-center gap-3">
-                      {otp.some((d) => d !== '') && (
-                        <button
-                          type="button"
-                          onClick={handleClearOtp}
-                          className="text-xs text-[#A3A8B3] hover:text-white hover:underline transition-colors font-mono"
-                        >
-                          Xóa
-                        </button>
-                      )}
-                      <button
-                        type="button"
-                        onClick={handleResendOtp}
-                        disabled={isResendingOtp}
-                        className="text-xs text-[#FF5A36] hover:underline transition-all font-mono flex items-center gap-1"
-                      >
-                        {isResendingOtp ? 'Đang gửi lại...' : 'Gửi lại mã OTP'}
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-6 gap-2" onPaste={handleOtpPaste}>
-                    {otp.map((digit, idx) => (
-                      <input
-                        key={idx}
-                        id={`otp-input-${idx}`}
-                        type="text"
-                        inputMode="numeric"
-                        autoComplete="one-time-code"
-                        maxLength={1}
-                        value={digit}
-                        onChange={(e) => handleOtpChange(idx, e.target.value)}
-                        onKeyDown={(e) => handleOtpKeyDown(idx, e)}
-                        onPaste={handleOtpPaste}
-                        className="w-full h-12 bg-[#05070A] border border-white/15 rounded-xl text-center font-mono font-bold text-lg text-white focus:outline-none focus:border-[#FF5A36] focus:ring-2 focus:ring-[#FF5A36]/30 focus:scale-105 transition-all duration-200"
-                      />
-                    ))}
-                  </div>
-
-                  <div className="flex items-center gap-2 text-xs sm:text-sm font-mono mt-3">
-                    <span className="text-[#A3A8B3]">
-                      Mã xác thực có hiệu lực trong:
-                    </span>
-                    <span className={`text-sm sm:text-base font-bold font-mono tracking-wider ${otpTimeLeft <= 60 ? 'text-rose-400 animate-pulse' : 'text-[#FF5A36]'}`}>
-                      {formatOtpTimer(otpTimeLeft)}
-                    </span>
-                  </div>
-                </div>
-
-                <button
-                  type="submit"
-                  disabled={isVerifyingOtp || otpTimeLeft === 0}
-                  className="w-full py-4 bg-[#FF5A36] hover:bg-[#FF7252] disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold font-display uppercase tracking-widest text-xs rounded-xl shadow-lg shadow-[#FF5A36]/30 hover:shadow-xl hover:shadow-[#FF5A36]/50 hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200 flex items-center justify-center gap-2"
-                >
-                  {isVerifyingOtp ? (
-                    <>
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                      <span>Đang xác nhận OTP & Khóa vé...</span>
-                    </>
-                  ) : (
-                    <span>Xác Nhận OTP & Khóa Vé</span>
-                  )}
-                </button>
-
-                <div className="p-3 bg-white/5 border border-white/10 rounded-xl text-[11px] text-[#A3A8B3] flex items-center gap-2 hover:border-emerald-500/30 transition-all duration-300">
-                  <Lock className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                  <span>Xác thực hệ thống đảm bảo vé chưa đổi chủ / chưa sử dụng.</span>
-                </div>
-              </form>
-
-            </div>
-          </div>
+          <Step2VerifyOtp
+            tickets={otpTickets}
+            onVerifyTicket={handleVerifyOneTicket}
+            onComplete={handleOtpVerified}
+            onResend={handleResendOtp}
+            onAbandon={handleAbandonSession}
+            onRemoveTicket={handleRemoveSingleTicket}
+            isVerifying={isVerifyingOtp}
+            resendingCode={resendingCode}
+            isCancelling={isCancellingSession}
+          />
         )}
 
-        {/* STEP 3: THÔNG TIN VÉ ĐÃ XÁC THỰC */}
+        {/* STEP 3: TICKET VERIFIED & LOCKED */}
         {currentStep === 3 && (
-          <div key={3} className="animate-fade-in-up max-w-2xl mx-auto space-y-6 pt-2">
-            <div className="text-center space-y-2">
-              <h2 className="text-3xl font-extrabold font-display text-white">
-                Vé Đã Được Xác Thực & Khóa An Toàn
-              </h2>
-              <p className="text-xs text-[#A3A8B3] max-w-md mx-auto">
-                Vé của bạn đã được kiểm duyệt chính chủ và sẵn sàng thiết lập giá rao bán.
-              </p>
-            </div>
-
-            {/* Ticket Card Preview */}
-            <div className="group relative bg-[#0A0D12]/90 backdrop-blur-md border border-white/[0.08] hover:border-white/[0.16] rounded-3xl overflow-hidden shadow-2xl transition-all duration-300">
-              {/* Holographic Shimmer Light Sweep */}
-              <div className="absolute inset-0 pointer-events-none overflow-hidden rounded-3xl z-10">
-                <div className="w-1/2 h-full bg-gradient-to-r from-transparent via-white/[0.04] to-transparent animate-ticket-shimmer" />
-              </div>
-
-                {/* Concert image banner */}
-                <div className="relative h-44 overflow-hidden">
-                  <img
-                    src="/images/landing/featured-1.jpg"
-                    alt="Concert Ticket"
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-out"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-[#0A0D12] via-[#0A0D12]/50 to-transparent" />
-                </div>
-
-                {/* Ticket body */}
-                <div className="p-6 space-y-5">
-
-                  {/* Header row: label + verified status */}
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="space-y-1">
-                      <span className="text-[10px] text-[#8F96A3] font-mono font-bold uppercase tracking-[0.08em] block">
-                        OFFICIAL DIGITAL TICKET PASS
-                      </span>
-                      <h3 className="text-2xl font-extrabold font-display text-white group-hover:text-[#FF7252] transition-colors duration-300 leading-tight">
-                        Anh Trai Say Hi Concert 2026
-                      </h3>
-                    </div>
-
-                    {/* Verified status with pulsing radar ping effect */}
-                    <div className="flex items-center gap-2 shrink-0 pt-0.5">
-                      <span className="relative flex h-2 w-2">
-                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#FF5A36] opacity-75" />
-                        <span className="relative inline-flex rounded-full h-2 w-2 bg-[#FF5A36] shadow-[0_0_8px_#FF5A36]" />
-                      </span>
-                      <span className="text-[10px] font-mono font-bold uppercase tracking-[0.08em] text-[#FF5A36] whitespace-nowrap">
-                        VERIFIED · LOCKED
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Info row: ticket code + location */}
-                  <div className="grid grid-cols-2 divide-x divide-white/[0.07] bg-[#05070A] border border-white/[0.07] group-hover:border-white/[0.15] rounded-2xl overflow-hidden transition-colors duration-300">
-                    <div className="p-3.5 space-y-1 hover:bg-white/[0.02] transition-colors duration-200">
-                      <span className="text-[10px] text-[#8F96A3] font-mono font-bold uppercase tracking-[0.08em] block">
-                        MÃ VÉ GỐC
-                      </span>
-                      <p className="font-bold text-white font-mono text-sm tracking-wide group-hover:text-[#FF5A36] transition-colors duration-200">
-                        {ticketCode}
-                      </p>
-                    </div>
-                    <div className="p-3.5 pl-4 space-y-1 hover:bg-white/[0.02] transition-colors duration-200">
-                      <span className="text-[10px] text-[#8F96A3] font-mono font-bold uppercase tracking-[0.08em] block">
-                        ĐỊA ĐIỂM
-                      </span>
-                      <p className="font-bold text-white text-sm">Sân Vận Động Mỹ Đình</p>
-                    </div>
-                  </div>
-
-                  {/* Price cap row */}
-                  <div className="grid grid-cols-2 divide-x divide-white/[0.07] bg-[#05070A] border border-white/[0.07] group-hover:border-white/[0.15] rounded-2xl overflow-hidden transition-colors duration-300">
-                    <div className="p-4 space-y-1.5 hover:bg-white/[0.02] transition-colors duration-200">
-                      <span className="text-[10px] text-[#8F96A3] font-mono font-bold uppercase tracking-[0.08em] block">
-                        GIÁ VÉ GỐC
-                      </span>
-                      <p className="text-lg font-bold font-display text-white">
-                        {faceValue.toLocaleString('vi-VN')} VNĐ
-                      </p>
-                    </div>
-                    <div className="p-4 pl-5 space-y-1.5 hover:bg-white/[0.02] transition-colors duration-200">
-                      <span className="text-[10px] text-[#8F96A3] font-mono font-bold uppercase tracking-[0.08em] block">
-                        GIÁ BÁN LẠI TỐI ĐA
-                      </span>
-                      <p className="text-lg font-bold font-display text-white">
-                        {faceValue.toLocaleString('vi-VN')} VNĐ
-                      </p>
-                      <span className="text-[10px] text-[#8F96A3] font-mono block leading-tight">
-                        Theo quy định TicketShield
-                      </span>
-                    </div>
-                  </div>
-
-                </div>
-              </div>
-
-            {/* Glowing CTA Button with Shimmer Sheen */}
-            <button
-              onClick={() => setCurrentStep(4)}
-              className="group relative w-full py-4 bg-[#FF5A36] hover:bg-[#FF7252] text-white font-bold font-display uppercase tracking-widest text-xs rounded-xl shadow-lg shadow-[#FF5A36]/30 hover:shadow-2xl hover:shadow-[#FF5A36]/50 hover:-translate-y-0.5 active:translate-y-0 transition-all duration-300 overflow-hidden flex items-center justify-center gap-2 cursor-pointer"
-            >
-              <div className="absolute inset-0 -translate-x-full group-hover:translate-x-full bg-gradient-to-r from-transparent via-white/20 to-transparent transition-transform duration-700 pointer-events-none" />
-              <span>Tiếp Tục: Thiết Lập Giá Bán</span>
-            </button>
-          </div>
+          <Step3ConfirmDetails
+            tickets={sessions.map((s) => {
+              const matched = allPurchasedTickets.find(
+                (t) => purchasedPassCode(t).toUpperCase() === s.code.toUpperCase()
+              );
+              return {
+                code: s.code,
+                organizerName: s.organizerName,
+                originalPrice: s.originalPrice,
+                priceCeiling: s.priceCeiling,
+                seatZone: s.seatZone || matched?.seatZone,
+                tierName: s.tierName || matched?.tierName,
+                eventStartAt: s.eventStartAt || matched?.eventStartAt,
+                eventName: s.eventName || matched?.eventName,
+                eventVenue: s.eventVenue || matched?.eventVenue,
+              };
+            })}
+            markupPercent={markupPercent}
+            onContinue={() => {
+              setPriceSubStep('pricing');
+              setCurrentStep(4);
+            }}
+            onCancel={handleAbandonSession}
+            isCancelling={isCancellingSession}
+          />
         )}
 
-        {/* STEP 4: ĐẶT GIÁ BÁN LẠI */}
+        {/* STEP 4: SET RESALE PRICE */}
         {currentStep === 4 && (
-          <div key={4} className="animate-fade-in-up max-w-xl mx-auto space-y-6 pt-2">
-            <div className="space-y-2 text-center">
-              <h2 className="text-3xl font-extrabold font-display text-white">
-                Thiết Lập Giá Rao Bán
-              </h2>
-              <p className="text-xs text-[#A3A8B3]">
-                Giá bán lại không được vượt quá giá gốc ({faceValue.toLocaleString('vi-VN')} VNĐ) để chống đầu cơ.
-              </p>
-            </div>
-
-            {/* Price Selector Main Box */}
-            <div className="bg-[#0A0D12]/90 backdrop-blur-md border border-white/10 p-6 sm:p-8 rounded-3xl space-y-6 shadow-2xl text-center hover:border-white/20 transition-all duration-300">
-              <span className="text-xs text-[#A3A8B3] uppercase tracking-wider font-display font-semibold">
-                GIÁ RAO BÁN ĐỀ XUẤT
-              </span>
-
-              <div className="text-4xl sm:text-5xl font-extrabold font-display text-white tracking-tight flex items-center justify-center gap-2 transition-all duration-300">
-                <span className="transition-all duration-300">{resalePrice.toLocaleString('vi-VN')}</span>
-                <span className="text-base font-normal text-[#FF5A36]">VNĐ</span>
-              </div>
-
-              {/* Quick Discount Buttons */}
-              <div className="space-y-2">
-                <span className="text-[11px] text-[#A3A8B3]">Tùy chọn giá nhanh:</span>
-                <div className="grid grid-cols-4 gap-2 text-xs font-mono">
-                  <button
-                    onClick={() => handleApplyDiscount(5)}
-                    className={`py-2.5 rounded-xl border transition-all duration-200 hover:scale-105 active:scale-95 ${
-                      resalePrice === Math.round(faceValue * 0.95)
-                        ? 'bg-[#FF5A36]/20 border-[#FF5A36] text-[#FF5A36] font-bold shadow-lg shadow-[#FF5A36]/20'
-                        : 'bg-[#05070A] border-white/10 text-[#A3A8B3] hover:text-white hover:border-white/30'
-                    }`}
-                  >
-                    -5%
-                  </button>
-
-                  <button
-                    onClick={() => handleApplyDiscount(10)}
-                    className={`py-2.5 rounded-xl border transition-all duration-200 hover:scale-105 active:scale-95 ${
-                      resalePrice === Math.round(faceValue * 0.9)
-                        ? 'bg-[#FF5A36]/20 border-[#FF5A36] text-[#FF5A36] font-bold shadow-lg shadow-[#FF5A36]/20'
-                        : 'bg-[#05070A] border-white/10 text-[#A3A8B3] hover:text-white hover:border-white/30'
-                    }`}
-                  >
-                    -10%
-                  </button>
-
-                  <button
-                    onClick={() => handleApplyDiscount(15)}
-                    className={`py-2.5 rounded-xl border transition-all duration-200 hover:scale-105 active:scale-95 ${
-                      resalePrice === Math.round(faceValue * 0.85)
-                        ? 'bg-[#FF5A36]/20 border-[#FF5A36] text-[#FF5A36] font-bold shadow-lg shadow-[#FF5A36]/20'
-                        : 'bg-[#05070A] border-white/10 text-[#A3A8B3] hover:text-white hover:border-white/30'
-                    }`}
-                  >
-                    -15%
-                  </button>
-
-                  <button
-                    onClick={() => handleApplyDiscount(0)}
-                    className={`py-2.5 rounded-xl border transition-all duration-200 hover:scale-105 active:scale-95 ${
-                      resalePrice === faceValue
-                        ? 'bg-[#FF5A36]/20 border-[#FF5A36] text-[#FF5A36] font-bold shadow-lg shadow-[#FF5A36]/20'
-                        : 'bg-[#05070A] border-white/10 text-[#A3A8B3] hover:text-white hover:border-white/30'
-                    }`}
-                  >
-                    Bằng Giá Gốc
-                  </button>
-                </div>
-              </div>
-
-              {/* Net Payout Box */}
-              <div className="p-4 bg-[#05070A] border border-white/10 rounded-2xl flex items-center justify-between text-xs hover:border-emerald-500/30 transition-all duration-300">
-                <span className="text-[#A3A8B3]">Thực nhận của Reseller:</span>
-                <span className="text-xl font-bold font-display text-emerald-400 transition-all duration-300">
-                  {resalePrice.toLocaleString('vi-VN')} VNĐ
-                </span>
-              </div>
-
-              <button
-                onClick={() => setCurrentStep(5)}
-                className="w-full py-4 bg-[#FF5A36] hover:bg-[#FF7252] text-white font-bold font-display uppercase tracking-widest text-xs rounded-xl shadow-lg shadow-[#FF5A36]/30 hover:shadow-xl hover:shadow-[#FF5A36]/50 hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200 flex items-center justify-center gap-2"
-              >
-                <span>Tiếp Tục: Kiểm Tra Niêm Yết</span>
-              </button>
-            </div>
-          </div>
+          <Step4SetPrice
+            tickets={ticketsPriceList}
+            activeTicketIndex={activeTicketIndex}
+            setActiveTicketIndex={setActiveTicketIndex}
+            onUpdateTicketPrice={handleUpdateTicketPrice}
+            onContinue={() => {
+              const allValid = ticketsPriceList.every((t) => t.resalePrice > 0 && t.resalePrice <= t.priceCeiling);
+              if (!allValid) return;
+              setCurrentStep(5);
+            }}
+            onCancel={handleAbandonSession}
+            isCancelling={isCancellingSession}
+            saleType={saleType}
+            setSaleType={setSaleType}
+          />
         )}
 
-        {/* STEP 5: XÁC NHẬN NIÊM YẾT */}
+        {/* STEP 5: REVIEW & CONFIRM LISTING */}
         {currentStep === 5 && (
-          <div key={5} className="animate-fade-in-up max-w-xl mx-auto space-y-6 pt-2">
-            <div className="space-y-2 text-center">
-              <h2 className="text-3xl font-extrabold font-display text-white">
-                Xác Nhận Niêm Yết Vé
-              </h2>
-              <p className="text-xs text-[#A3A8B3]">
-                Kiểm tra lại thông tin trước khi vé được niêm yết công khai lên Marketplace.
-              </p>
-            </div>
-
-            {/* Final Preview Card */}
-            <div className="bg-[#0A0D12]/90 backdrop-blur-md border border-white/10 rounded-3xl overflow-hidden shadow-2xl space-y-6 p-6 sm:p-8 hover:border-white/20 transition-all duration-300">
-              <div className="space-y-2">
-                <span className="text-[10px] text-[#FF5A36] font-mono uppercase font-bold">VERIFIED DIGITAL TICKET PASS</span>
-                <h3 className="text-xl font-bold font-display text-white">Anh Trai Say Hi Concert 2026</h3>
-                <p className="text-xs text-[#A3A8B3] flex items-center gap-1.5 font-mono">
-                  <Ticket className="w-3.5 h-3.5 text-cyan-400" /> Mã vé: {ticketCode}
-                </p>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4 p-4 bg-[#05070A] border border-white/10 rounded-2xl text-xs">
-                <div>
-                  <span className="text-[10px] text-[#A3A8B3]">GIÁ GỐC</span>
-                  <p className="font-bold text-white font-display text-sm">{faceValue.toLocaleString('vi-VN')} VNĐ</p>
-                </div>
-                <div className="text-right">
-                  <span className="text-[10px] text-[#A3A8B3]">GIÁ RAO BÁN</span>
-                  <p className="font-bold text-[#FF5A36] font-display text-sm">{resalePrice.toLocaleString('vi-VN')} VNĐ</p>
-                </div>
-              </div>
-
-              {/* Private Listing Checkbox */}
-              <label className="flex items-center gap-3 text-xs text-[#F5F5F2] cursor-pointer p-3 bg-white/5 border border-white/10 rounded-xl hover:border-white/20 transition-all">
-                <input
-                  type="checkbox"
-                  checked={isPrivateListing}
-                  onChange={(e) => setIsPrivateListing(e.target.checked)}
-                  className="rounded border-white/20 bg-[#05070A] text-[#FF5A36] focus:ring-0 w-4 h-4"
-                />
-                <div>
-                  <span className="font-bold text-white block">Chế độ Vé Riêng Tư (Private Share Link)</span>
-                  <span className="text-[11px] text-[#A3A8B3]">Vé sẽ không xuất hiện ở chợ công khai, chỉ ai có link Token 32 ký tự mới xem được.</span>
-                </div>
-              </label>
-
-              {/* Terms Checkbox */}
-              <label className="flex items-center gap-3 text-xs text-[#F5F5F2] cursor-pointer pt-2 group">
-                <input
-                  type="checkbox"
-                  checked={agreedTerms}
-                  onChange={(e) => setAgreedTerms(e.target.checked)}
-                  className="rounded border-white/20 bg-[#05070A] text-[#FF5A36] focus:ring-0 w-4 h-4"
-                />
-                <span className="group-hover:text-white transition-colors duration-200">Tôi cam kết là chủ sở hữu vé chính chủ và đồng ý niêm yết lên sàn TicketShield</span>
-              </label>
-
-              <button
-                onClick={handlePublishListing}
-                disabled={isPublishing}
-                className="w-full py-4 bg-[#FF5A36] hover:bg-[#FF7252] text-white font-bold font-display uppercase tracking-widest text-xs rounded-xl shadow-lg shadow-[#FF5A36]/30 hover:shadow-xl hover:shadow-[#FF5A36]/50 hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200 flex items-center justify-center gap-2"
-              >
-                {isPublishing ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    <span>Đang niêm yết vé lên sàn...</span>
-                  </>
-                ) : (
-                  <span>Niêm Yết Vé Ngay</span>
-                )}
-              </button>
-            </div>
-          </div>
+          <Step5ReviewPublish
+            ticketCodes={ticketCodes}
+            tickets={ticketsPriceList}
+            faceValue={faceValue}
+            resalePrice={ticketPrices[sessions[0]?.code] ?? sessions[0]?.originalPrice ?? 0}
+            bankAccounts={bankAccounts}
+            seatZone={
+              allPurchasedTickets.find((t) => purchasedPassCode(t).toUpperCase() === sessions[0]?.code?.toUpperCase())?.seatZone ||
+              sessions[0]?.seatZone ||
+              undefined
+            }
+            eventName={
+              allPurchasedTickets.find((t) => purchasedPassCode(t).toUpperCase() === sessions[0]?.code?.toUpperCase())?.eventName ||
+              sessions[0]?.eventName || 'Event not provided'
+            }
+            eventVenue={
+              allPurchasedTickets.find((t) => purchasedPassCode(t).toUpperCase() === sessions[0]?.code?.toUpperCase())?.eventVenue ||
+              sessions[0]?.eventVenue || 'Venue not provided'
+            }
+            isPrivateListing={isPrivateListing}
+            setIsPrivateListing={setIsPrivateListing}
+            agreedTerms={agreedTerms}
+            setAgreedTerms={setAgreedTerms}
+            hasPurchasedTicketInResale={hasPurchasedTicketInResale}
+            agreedWaiver={agreedWaiver}
+            setAgreedWaiver={setAgreedWaiver}
+            handlePublishListing={handlePublishListing}
+            isPublishing={isPublishing}
+            activeFeeTooltip={activeFeeTooltip}
+            setActiveFeeTooltip={setActiveFeeTooltip}
+            onManageBankAccounts={() => navigate('/payout-accounts?returnUrl=/sell-ticket')}
+            onAddBankAccount={() => setIsAddBankModalOpen(true)}
+            saleType={saleType}
+            setSaleType={setSaleType}
+            onEditTicketPrice={(idx) => {
+              setActiveTicketIndex(idx);
+              setCurrentStep(4);
+            }}
+          />
         )}
 
-        {/* STEP 6: HOÀN TẤT NIÊM YẾT */}
+        {/* STEP 6: LISTING PUBLISHED */}
         {currentStep === 6 && (
-          <div key={6} className="animate-fade-in-up max-w-xl mx-auto text-center space-y-6 pt-8">
-            <div className="w-20 h-20 bg-emerald-500/20 border-2 border-emerald-500 text-emerald-400 rounded-full flex items-center justify-center mx-auto shadow-2xl shadow-emerald-500/40 animate-pop-in">
-              <CheckCircle2 className="w-10 h-10" />
-            </div>
-
-            <div className="space-y-2">
-              <h2 className="text-3xl font-extrabold font-display text-white">
-                Niêm Yết Vé Thành Công!
-              </h2>
-              <p className="text-xs sm:text-sm text-[#A3A8B3] max-w-md mx-auto leading-relaxed">
-                Vé của bạn đã được niêm yết chính thức lên TicketShield Marketplace với 100% Escrow Protection.
-              </p>
-            </div>
-
-            <div className="p-6 bg-[#0A0D12]/90 backdrop-blur-md border border-white/10 rounded-3xl space-y-3 text-left max-w-md mx-auto text-xs hover:border-emerald-500/30 transition-all duration-300">
-              <div className="flex items-center justify-between">
-                <span className="text-[#A3A8B3]">Trạng thái:</span>
-                <span className="text-emerald-400 font-bold font-mono">PUBLICLY LISTED</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-[#A3A8B3]">Mã Listing ID:</span>
-                <span className="text-white font-mono font-bold truncate max-w-[200px]">{publishedListingId || 'TS-RESALE-88201'}</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-[#A3A8B3]">Giá rao bán:</span>
-                <span className="text-white font-bold">{resalePrice.toLocaleString('vi-VN')} VNĐ</span>
-              </div>
-            </div>
-
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4">
-              <button
-                onClick={() => navigate('/my-listings')}
-                className="w-full sm:w-auto px-8 py-3.5 bg-[#FF5A36] hover:bg-[#FF7252] text-white font-bold font-display uppercase tracking-widest text-xs rounded-xl shadow-lg shadow-[#FF5A36]/30 hover:shadow-xl hover:shadow-[#FF5A36]/50 hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200"
-              >
-                Quản Lý Danh Sách Bán Vé
-              </button>
-
-              <button
-                onClick={() => navigate('/marketplace')}
-                className="w-full sm:w-auto px-8 py-3.5 bg-white/5 border border-white/10 text-white font-bold font-display uppercase tracking-widest text-xs rounded-xl hover:bg-white/10 hover:border-white/20 transition-all duration-200"
-              >
-                Xem Trên Sàn Marketplace
-              </button>
-            </div>
-          </div>
+          <Step6ListingSuccess
+            ticketCodes={ticketCodes}
+            publishedListingId={publishedListingId}
+            existingListings={existingListings}
+            faceValue={faceValue}
+            resalePrice={ticketPrices[sessions[0]?.code] ?? sessions[0]?.originalPrice ?? 0}
+            totalResalePrice={sessions.reduce((sum, s) => sum + (ticketPrices[s.code] ?? s.originalPrice ?? 0), 0)}
+            isPrivateListing={isPrivateListing}
+            getShareUrl={getShareUrl}
+            handleCopyLink={handleCopyLink}
+            copiedLink={copiedLink}
+            handleCopyQrImage={handleCopyQrImage}
+            copiedQr={copiedQr}
+            handleDownloadQr={handleDownloadQr}
+            onNavigateMyListings={() => navigate('/my-listings')}
+            onNavigateMarketplace={() => navigate('/marketplace')}
+            saleType={saleType}
+          />
         )}
 
+        {/* Seller Bank Account Setup Modal */}
+        <SellerBankAccountModal
+          isOpen={isAddBankModalOpen}
+          onClose={() => setIsAddBankModalOpen(false)}
+          onSuccess={(newAccount) => {
+            setBankAccounts((prev) => [newAccount, ...prev.filter((a) => a.id !== newAccount.id)]);
+            fetchBankAccounts();
+            showToast('Payout bank account saved! You can now proceed with listing your ticket.', 'success');
+          }}
+        />
       </div>
     </div>
   );

@@ -26,7 +26,7 @@ export const ForgotPasswordPage: React.FC = () => {
   const onSubmit = async (data: ForgotPasswordFormData) => {
     try {
       const msg = await authApi.forgotPassword(data.email);
-      showToast(msg || '6-digit OTP code sent to your email address!', 'success');
+      showToast(msg || 'A 6-digit OTP verification code has been sent to your email!', 'success');
       navigate(`/reset-password?email=${encodeURIComponent(data.email)}`);
     } catch (err: any) {
       showToast('Request failed: ' + err.message, 'error');
@@ -64,7 +64,8 @@ export const ForgotPasswordPage: React.FC = () => {
         </div>
 
         <div className="relative z-10 space-y-6 max-w-xl my-auto">
-          <span className="px-3.5 py-1 bg-[#FF5A36]/20 border border-[#FF5A36]/40 text-[#FF5A36] text-xs font-bold uppercase tracking-widest rounded-full font-display inline-block">
+          <span className="px-3.5 py-1 bg-black/80 backdrop-blur-md border border-white/20 text-white text-xs font-bold uppercase tracking-widest rounded-full font-display inline-flex items-center gap-2 shadow-md">
+            <span className="w-1.5 h-1.5 rounded-full bg-[#FF5A36]" />
             Account Recovery
           </span>
           <h1 className="font-display text-5xl xl:text-6xl font-extrabold uppercase leading-[0.95] tracking-tight">
@@ -72,12 +73,12 @@ export const ForgotPasswordPage: React.FC = () => {
             <span className="text-[#FF5A36]">Password.</span>
           </h1>
           <p className="text-[#A3A8B3] text-base leading-relaxed">
-            Enter your registered email address and we'll send you a 6-digit verification code to reset your account password.
+            Enter your registered email address and we'll send you a 6-digit verification code to reset your account password safely.
           </p>
         </div>
 
         <div className="relative z-10 pt-6 border-t border-white/10 text-xs text-[#A3A8B3] font-display">
-          <span>Secure Encrypted OTP Verification</span>
+          <span>100% Secure Account Verification</span>
         </div>
       </div>
 
@@ -99,7 +100,7 @@ export const ForgotPasswordPage: React.FC = () => {
               Forgot Password
             </h2>
             <p className="text-sm text-[#A3A8B3]">
-              Enter your email to receive a 6-digit OTP reset code
+              Enter your email to receive a 6-digit OTP verification code
             </p>
           </div>
 

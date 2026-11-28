@@ -1,18 +1,649 @@
-import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import React, { useCallback, useEffect, useState, useMemo } from 'react';
+import {
+  View,
+  FlatList,
+  TouchableOpacity,
+  Modal,
+  Image,
+  ActivityIndicator,
+  Share,
+  ScrollView,
+  TextInput,
+} from 'react-native';
+import { Text } from '../../src/components/AppText';
+import { useRouter, useFocusEffect } from 'expo-router';
+import {
+  Ticket,
+  QrCode,
+  ShieldCheck,
+  Calendar,
+  MapPin,
+  X,
+  Share2,
+  AlertTriangle,
+  Search,
+  ShieldAlert,
+  Clock,
+  Lock,
+  Check,
+  ChevronLeft,
+  ChevronRight,
+} from 'lucide-react-native';
+import { theme, fontFamilies } from '../../src/theme';
+import type { PurchasedTicketDto } from '@ticketshield/types';
+import { mockTicketsApi, resaleListingsApi } from '@ticketshield/api-client';
+import { expandPurchasedTickets, getIssuedQrImageUrl } from '../../src/utils/purchasedTickets';
+import { FintechButton } from '../../src/components/FintechButton';
+import { formatEventDate } from '../../src/utils/format';
+import { styles } from '../../src/styles/tickets.styles';
+import { DisputeTicketModal } from '../../src/components/DisputeTicketModal';
+
+const STATUS_LABELS: Record<string, string> = {
+  VALID: 'Valid for Entry',
+  IN_ESCROW: 'Pass Issued · Escrow Active',
+  USED: 'Checked In · Completed',
+  EXPIRED: 'Expired',
+  CANCELLED: 'Cancelled',
+  TRANSFERRED: 'Transferred',
+  PENDING_VERIFICATION: 'Pending Verification',
+};
+
+// A completed payment transfers the ticket and QR data to the buyer immediately.
+// `IN_ESCROW` only means the seller payout is still protected by escrow; it does
+// not mean the buyer's pass is unavailable.
+const canOpenPass = (ticket: PurchasedTicketDto) =>
+  (ticket.status === 'VALID' || ticket.status === 'IN_ESCROW') &&
+  Boolean(ticket.qrCodeData?.trim() || ticket.qrCodeImageUrl?.trim() || ticket.ticketPassCode?.trim());
+
+type TicketStatusFilter = 'ALL' | 'VALID' | 'USED' | 'EXPIRED';
+const TICKETS_PER_PAGE = 6;
+
+interface TicketFilterItem {
+  key: TicketStatusFilter;
+  label: string;
+  icon: typeof Ticket;
+}
+
+const TICKET_FILTERS: TicketFilterItem[] = [
+  { key: 'ALL', label: 'All Passes', icon: Ticket },
+  { key: 'VALID', label: 'Valid for Entry', icon: ShieldCheck },
+  { key: 'USED', label: 'Checked In', icon: QrCode },
+  { key: 'EXPIRED', label: 'Expired / Other', icon: AlertTriangle },
+];
 
 export default function MobileTicketsScreen() {
+  const router = useRouter();
+  const [tickets, setTickets] = useState<PurchasedTicketDto[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const [selectedTicket, setSelectedTicket] = useState<PurchasedTicketDto | null>(null);
+  const [qrLoadFailed, setQrLoadFailed] = useState(false);
+  const [selectedStatus, setSelectedStatus] = useState<TicketStatusFilter>('ALL');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [isDisputeModalOpen, setIsDisputeModalOpen] = useState(false);
+  const [disputeModalTicket, setDisputeModalTicket] = useState<PurchasedTicketDto | null>(null);
+
+  const counts = useMemo(() => {
+    const valid = tickets.filter(canOpenPass).length;
+    const used = tickets.filter((t) => t.status === 'USED').length;
+    const expired = tickets.filter((t) => t.status !== 'VALID' && t.status !== 'USED').length;
+    return {
+      ALL: tickets.length,
+      VALID: valid,
+      USED: used,
+      EXPIRED: expired,
+    };
+  }, [tickets]);
+
+  const filteredTickets = useMemo(() => {
+    return tickets.filter((ticket) => {
+      if (selectedStatus === 'VALID' && !canOpenPass(ticket)) return false;
+      if (selectedStatus === 'USED' && ticket.status !== 'USED') return false;
+      if (selectedStatus === 'EXPIRED' && (canOpenPass(ticket) || ticket.status === 'USED')) return false;
+
+      if (searchQuery.trim()) {
+        const q = searchQuery.toLowerCase().trim();
+        const matchName = (ticket.eventName || '').toLowerCase().includes(q);
+        const matchVenue = (ticket.eventVenue || '').toLowerCase().includes(q);
+        const matchTier = (ticket.tierName || '').toLowerCase().includes(q);
+        const matchZone = (ticket.seatZone || '').toLowerCase().includes(q);
+        const matchCode = (ticket.ticketPassCode || '').toLowerCase().includes(q);
+        const matchBundle = (ticket.bundleItems || []).some((item) => {
+          const itemCode = (item.ticketCode || item.qrCodeData || '').toLowerCase();
+          const itemZone = (item.seatZone || '').toLowerCase();
+          return itemCode.includes(q) || itemZone.includes(q);
+        });
+        return matchName || matchVenue || matchTier || matchZone || matchCode || matchBundle;
+      }
+      return true;
+    });
+  }, [tickets, selectedStatus, searchQuery]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredTickets.length / TICKETS_PER_PAGE));
+  const pagedTickets = useMemo(() => {
+    const start = (currentPage - 1) * TICKETS_PER_PAGE;
+    return filteredTickets.slice(start, start + TICKETS_PER_PAGE);
+  }, [currentPage, filteredTickets]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [selectedStatus, searchQuery]);
+
+  useEffect(() => {
+    setCurrentPage((page) => Math.min(page, totalPages));
+  }, [totalPages]);
+
+  const fetchTickets = useCallback(async (silent = false) => {
+    if (!silent) setLoading(true);
+    setError(null);
+    try {
+      const data = await resaleListingsApi.getMyPurchasedTickets();
+      const passes = expandPurchasedTickets(data);
+      const liveStatuses = await mockTicketsApi.getTicketStatuses(
+        passes.map((ticket) => ticket.ticketPassCode)
+      );
+      setTickets(
+        passes.map((ticket) => {
+          const organizerStatus = liveStatuses.get(ticket.ticketPassCode);
+          return organizerStatus ? { ...ticket, status: organizerStatus } : ticket;
+        })
+      );
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : 'Unable to sync tickets. Please try again.';
+      setError(message);
+    } finally {
+      if (!silent) setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchTickets();
+  }, [fetchTickets]);
+
+  useFocusEffect(
+    useCallback(() => {
+      fetchTickets(true);
+    }, [fetchTickets])
+  );
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await fetchTickets(true);
+    setRefreshing(false);
+  };
+
+  useEffect(() => {
+    if (selectedTicket) setQrLoadFailed(false);
+  }, [selectedTicket]);
+
+  const handleShareTicket = async () => {
+    if (!selectedTicket) return;
+    try {
+      await Share.share({
+        title: 'TicketShield Pass',
+        message: `I have a ticket for ${selectedTicket.eventName} — Tier ${selectedTicket.tierName} (${selectedTicket.seatZone}). Open TicketShield to view digital pass.`,
+      });
+    } catch {
+      // User cancelled share
+    }
+  };
+
+  const renderStatusBadge = (status: string) => {
+    if (status === 'DISPUTED') {
+      return (
+        <View style={[styles.statusBadge, { backgroundColor: theme.colors.dangerLight, borderColor: theme.colors.dangerBorder }]}>
+          <ShieldAlert size={13} color={theme.colors.danger} />
+          <Text style={[styles.statusText, { color: theme.colors.danger, fontFamily: fontFamilies.bold }]}>
+            DISPUTED
+          </Text>
+        </View>
+      );
+    }
+    if (status === 'IN_ESCROW' || status === 'LOCKED') {
+      return (
+        <View style={[styles.statusBadge, { backgroundColor: 'rgba(255, 152, 0, 0.15)', borderColor: 'rgba(255, 152, 0, 0.4)' }]}>
+          <Lock size={12} color="#FF9800" />
+          <Text style={[styles.statusText, { color: '#FF9800', fontFamily: fontFamilies.bold }]}>
+            Escrow Active
+          </Text>
+        </View>
+      );
+    }
+    if (status === 'CANCELLED') {
+      return (
+        <View style={[styles.statusBadge, { backgroundColor: 'rgba(239, 68, 68, 0.15)', borderColor: 'rgba(239, 68, 68, 0.4)' }]}>
+          <AlertTriangle size={12} color={theme.colors.danger} />
+          <Text style={[styles.statusText, { color: theme.colors.danger, fontFamily: fontFamilies.bold }]}>
+            Cancelled
+          </Text>
+        </View>
+      );
+    }
+    const isValid = status === 'VALID';
+    return (
+      <View style={[styles.statusBadge, isValid ? styles.statusBadgeValid : styles.statusBadgeMuted]}>
+        {isValid ? (
+          <ShieldCheck size={13} color={theme.colors.success} />
+        ) : (
+          <AlertTriangle size={13} color={theme.colors.textMuted} />
+        )}
+        <Text style={[styles.statusText, isValid && styles.statusTextValid]}>
+          {STATUS_LABELS[status] || status}
+        </Text>
+      </View>
+    );
+  };
+
+  const renderTicket = ({ item }: { item: PurchasedTicketDto }) => {
+    const isValid = canOpenPass(item);
+    // Escrow protects the seller payout after a successful transfer. It must
+    // not make an issued buyer pass look unavailable in the wallet.
+    const badgeStatus = item.status === 'IN_ESCROW' && isValid ? 'VALID' : item.status;
+    return (
+      <TouchableOpacity
+        style={[styles.ticketCard, !isValid && item.status !== 'USED' && { opacity: 0.75 }]}
+        onPress={() => setSelectedTicket(item)}
+        activeOpacity={0.9}
+      >
+        <View style={styles.walletInfoPanel}>
+          <View style={styles.walletTopRow}>
+            {renderStatusBadge(badgeStatus)}
+            <Text style={styles.walletTierChip} numberOfLines={1}>{item.tierName}</Text>
+          </View>
+          <Text style={styles.walletEventName} numberOfLines={2}>{item.eventName}</Text>
+          <View style={styles.walletMetaRow}>
+            <Calendar size={13} color={theme.colors.textMuted} />
+            <Text style={styles.walletMetaText} numberOfLines={1}>{formatEventDate(item.eventStartAt)}</Text>
+          </View>
+          <View style={styles.walletMetaRow}>
+            <MapPin size={13} color={theme.colors.textMuted} />
+            <Text style={styles.walletMetaText} numberOfLines={1}>{item.eventVenue}</Text>
+          </View>
+          <Text style={styles.walletSeatText} numberOfLines={1}>{item.seatZone || 'General Admission'}</Text>
+        </View>
+
+        <View style={styles.walletDivider}>
+          <View style={styles.walletNotchTop} />
+          <View style={styles.walletNotchBottom} />
+        </View>
+
+        <View style={styles.walletPassPanel}>
+          <Text style={styles.walletCodeLabel}>Pass code</Text>
+          <Text style={styles.walletCode} numberOfLines={1} ellipsizeMode="tail">{item.ticketPassCode}</Text>
+          <Text style={styles.walletStatusLabel}>Status</Text>
+          <Text style={[styles.walletStatusValue, isValid && styles.walletStatusValueValid]} numberOfLines={1}>
+            {item.status === 'USED' ? 'Checked in' : isValid ? 'Ready' : 'Unavailable'}
+          </Text>
+          <View style={[styles.walletPassCta, !isValid && styles.walletPassCtaDisabled]}>
+            {isValid ? <QrCode size={13} color={theme.colors.onPrimary} /> : <Lock size={12} color={theme.colors.textMuted} />}
+            <Text style={[styles.walletPassCtaText, !isValid && styles.walletPassCtaTextDisabled]}>
+              {isValid ? 'Open pass' : item.status === 'USED' ? 'Checked in' : 'Unavailable'}
+            </Text>
+          </View>
+        </View>
+      </TouchableOpacity>
+    );
+  };
+
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Tickets Framework</Text>
-      <Text style={styles.subtitle}>Giao diện ví vé di động trống</Text>
+      {loading ? (
+        <View style={styles.centerContainer}>
+          <ActivityIndicator size="large" color={theme.colors.primary} />
+          <Text style={styles.loadingText}>Syncing your tickets...</Text>
+        </View>
+      ) : error ? (
+        <View style={styles.centerContainer}>
+          <View style={styles.stateIcon}>
+            <AlertTriangle size={26} color={theme.colors.danger} />
+          </View>
+          <Text style={styles.emptyTitle}>Unable to load tickets</Text>
+          <Text style={styles.emptyDesc}>{error}</Text>
+          <FintechButton
+            title="Try Again"
+            onPress={() => fetchTickets()}
+            variant="secondary"
+            style={styles.exploreBtn}
+          />
+        </View>
+      ) : tickets.length === 0 ? (
+        <View style={styles.centerContainer}>
+          <View style={styles.stateIcon}>
+            <Ticket size={30} color={theme.colors.textMuted} />
+          </View>
+          <Text style={styles.emptyTitle}>Your Ticket Wallet is Empty</Text>
+          <FintechButton
+            title="Explore Marketplace"
+            onPress={() => router.push('/(tabs)/marketplace')}
+            style={styles.exploreBtn}
+          />
+        </View>
+      ) : (
+        <>
+          <View style={styles.filterSection}>
+            <View style={styles.searchBar}>
+              <Search size={18} color={theme.colors.textMuted} />
+              <TextInput
+                style={styles.searchInput}
+                placeholder="Search event, venue, or ticket code..."
+                placeholderTextColor={theme.colors.textPlaceholder}
+                value={searchQuery}
+                onChangeText={setSearchQuery}
+                returnKeyType="search"
+                autoCapitalize="none"
+                autoCorrect={false}
+              />
+              {searchQuery.length > 0 && (
+                <TouchableOpacity
+                  style={styles.clearBtn}
+                  onPress={() => setSearchQuery('')}
+                  accessibilityRole="button"
+                  accessibilityLabel="Clear search"
+                >
+                  <X size={16} color={theme.colors.textSecondary} />
+                </TouchableOpacity>
+              )}
+            </View>
+
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.filterScroll}
+              keyboardShouldPersistTaps="handled"
+            >
+              {TICKET_FILTERS.map((filter) => {
+                const isActive = selectedStatus === filter.key;
+                const Icon = filter.icon;
+                const count = counts[filter.key];
+                return (
+                  <TouchableOpacity
+                    key={filter.key}
+                    style={[styles.filterPill, isActive && styles.filterPillActive]}
+                    onPress={() => setSelectedStatus(filter.key)}
+                    activeOpacity={0.8}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Filter by ${filter.label}`}
+                    accessibilityState={{ selected: isActive }}
+                  >
+                    <Icon
+                      size={13}
+                      color={isActive ? theme.colors.onPrimary : theme.colors.textMuted}
+                    />
+                    <Text
+                      style={[styles.filterPillText, isActive && styles.filterPillTextActive]}
+                    >
+                      {filter.label}
+                    </Text>
+                    <View
+                      style={[styles.filterBadge, isActive && styles.filterBadgeActive]}
+                    >
+                      <Text
+                        style={[
+                          styles.filterBadgeText,
+                          isActive && styles.filterBadgeTextActive,
+                        ]}
+                      >
+                        {count}
+                      </Text>
+                    </View>
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+          </View>
+
+          <FlatList
+            data={pagedTickets}
+            keyExtractor={(item, index) => `${item.ticketPassCode || 'ticket'}-${index}`}
+            renderItem={renderTicket}
+            contentContainerStyle={[
+              styles.scrollList,
+              filteredTickets.length === 0 && { flexGrow: 1, justifyContent: 'center' },
+            ]}
+            showsVerticalScrollIndicator={false}
+            refreshing={refreshing}
+            onRefresh={handleRefresh}
+            ListEmptyComponent={
+              <View style={styles.filterEmptyBox}>
+                <View style={styles.stateIcon}>
+                  <Search size={26} color={theme.colors.textMuted} />
+                </View>
+                <Text style={styles.emptyTitle}>No Matching Tickets</Text>
+                <Text style={styles.emptyDesc}>
+                  We could not find any tickets matching your search or status filter.
+                </Text>
+                <FintechButton
+                  title="Clear Filters"
+                  onPress={() => {
+                    setSelectedStatus('ALL');
+                    setSearchQuery('');
+                  }}
+                  variant="secondary"
+                  style={styles.exploreBtn}
+                />
+              </View>
+            }
+            ListFooterComponent={
+              totalPages > 1 ? (
+                <View style={styles.pagination}>
+                  <TouchableOpacity
+                    style={[styles.pageButton, currentPage === 1 && styles.pageButtonDisabled]}
+                    onPress={() => setCurrentPage((page) => Math.max(1, page - 1))}
+                    disabled={currentPage === 1}
+                    accessibilityRole="button"
+                    accessibilityLabel="Previous ticket page"
+                  >
+                    <ChevronLeft size={16} color={currentPage === 1 ? theme.colors.textMuted : theme.colors.text} />
+                  </TouchableOpacity>
+                  <Text style={styles.pageText}>Page {currentPage} / {totalPages}</Text>
+                  <TouchableOpacity
+                    style={[styles.pageButton, currentPage === totalPages && styles.pageButtonDisabled]}
+                    onPress={() => setCurrentPage((page) => Math.min(totalPages, page + 1))}
+                    disabled={currentPage === totalPages}
+                    accessibilityRole="button"
+                    accessibilityLabel="Next ticket page"
+                  >
+                    <ChevronRight size={16} color={currentPage === totalPages ? theme.colors.textMuted : theme.colors.text} />
+                  </TouchableOpacity>
+                </View>
+              ) : null
+            }
+          />
+        </>
+      )}
+
+      <Modal
+        visible={!!selectedTicket}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setSelectedTicket(null)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.ticketModalCard}>
+            <View style={styles.modalTopBar}>
+              <View style={styles.verifiedTag}>
+                <ShieldCheck size={15} color={theme.colors.success} />
+                <Text style={styles.verifiedTagText}>Official TicketShield Pass</Text>
+              </View>
+              <TouchableOpacity
+                style={styles.closeBtn}
+                onPress={() => setSelectedTicket(null)}
+                accessibilityRole="button"
+                accessibilityLabel="Close"
+              >
+                <X size={20} color={theme.colors.textSecondary} />
+              </TouchableOpacity>
+            </View>
+
+            {selectedTicket && (
+              <ScrollView
+                contentContainerStyle={styles.modalScroll}
+                showsVerticalScrollIndicator={false}
+              >
+                <Text style={styles.modalEventName}>{selectedTicket.eventName}</Text>
+
+                <View style={styles.qrCodeWrapper}>
+                  {qrLoadFailed ? (
+                    <View style={styles.qrFallback}>
+                      <QrCode size={40} color="#0C0A09" />
+                      <Text style={styles.qrFallbackTitle}>Unable to display QR</Text>
+                      <Text style={styles.qrFallbackHint}>
+                        Present your ticket pass code to gate staff:
+                      </Text>
+                      <Text style={styles.qrFallbackCode}>{selectedTicket.ticketPassCode}</Text>
+                    </View>
+                  ) : (
+                    <Image
+                      source={{
+                        uri: getIssuedQrImageUrl(selectedTicket),
+                      }}
+                      style={styles.qrImage}
+                      resizeMode="contain"
+                      onError={() => setQrLoadFailed(true)}
+                    />
+                  )}
+
+                </View>
+
+                <View style={styles.infoGrid}>
+                  <View style={styles.infoCol}>
+                    <Text style={styles.infoColLabel}>Tier</Text>
+                    <Text style={styles.infoColValue}>{selectedTicket.tierName}</Text>
+                  </View>
+                  <View style={styles.infoCol}>
+                    <Text style={styles.infoColLabel}>Zone / Seat</Text>
+                    <Text style={styles.infoColValue}>{selectedTicket.seatZone}</Text>
+                  </View>
+                  <View style={styles.infoCol}>
+                    <Text style={styles.infoColLabel}>Ticket Holder</Text>
+                    <Text style={styles.infoColValue}>{selectedTicket.recipientName}</Text>
+                  </View>
+                  <View style={styles.infoCol}>
+                    <Text style={styles.infoColLabel}>Event Time</Text>
+                    <Text style={styles.infoColValue}>
+                      {formatEventDate(selectedTicket.eventStartAt, {
+                        day: '2-digit',
+                        month: 'short',
+                        year: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                      })}
+                    </Text>
+                  </View>
+                </View>
+
+                <View style={styles.modalActions}>
+                  <TouchableOpacity
+                    style={styles.shareBtn}
+                    onPress={handleShareTicket}
+                    activeOpacity={0.8}
+                  >
+                    <Share2 size={16} color={theme.colors.text} />
+                    <Text style={styles.shareBtnText}>Share Pass</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={styles.detailPageBtn}
+                    onPress={() => {
+                      const ticketId = selectedTicket.ticketPassCode;
+                      setSelectedTicket(null);
+                      router.push(`/ticket/${ticketId}`);
+                    }}
+                    activeOpacity={0.8}
+                  >
+                    <Text style={styles.detailPageBtnText}>Full Pass Details</Text>
+                  </TouchableOpacity>
+                </View>
+
+                {Boolean(selectedTicket.escrowId) && !selectedTicket.disputeWaived && (
+                  selectedTicket.status === 'USED' ? (
+                    <View
+                      style={[
+                        styles.disputeActionBtn,
+                        { backgroundColor: 'rgba(16, 185, 129, 0.15)', borderColor: 'rgba(16, 185, 129, 0.4)' },
+                      ]}
+                    >
+                      <Check size={16} color="#10B981" />
+                      <Text style={[styles.disputeActionText, { color: '#10B981' }]}>
+                        Checked In · Cycle Completed
+                      </Text>
+                    </View>
+                  ) : (selectedTicket.status === 'VALID' || selectedTicket.status === 'COMPLETED') && !selectedTicket.disputeId ? (
+                    <View
+                      style={[
+                        styles.disputeActionBtn,
+                        { backgroundColor: 'rgba(16, 185, 129, 0.15)', borderColor: 'rgba(16, 185, 129, 0.4)' },
+                      ]}
+                    >
+                      <Check size={16} color="#10B981" />
+                      <Text style={[styles.disputeActionText, { color: '#10B981' }]}>
+                        Escrow Completed · Payout Done
+                      </Text>
+                    </View>
+                  ) : (
+                    <TouchableOpacity
+                      style={[
+                        styles.disputeActionBtn,
+                        Boolean(selectedTicket.disputeId || selectedTicket.status === 'DISPUTED') &&
+                          styles.disputeActionBtnActive,
+                      ]}
+                      onPress={() => {
+                        if (selectedTicket.status === 'USED' || selectedTicket.status === 'VALID' || selectedTicket.status === 'COMPLETED') return;
+                        setDisputeModalTicket(selectedTicket);
+                        setIsDisputeModalOpen(true);
+                      }}
+                      activeOpacity={0.85}
+                    >
+                      {selectedTicket.disputeId || selectedTicket.status === 'DISPUTED' ? (
+                        <>
+                          <Clock size={16} color={theme.colors.warning} />
+                          <Text style={styles.disputeActionTextActive}>
+                            View Dispute Progress
+                          </Text>
+                        </>
+                      ) : (
+                        <>
+                          <ShieldAlert size={16} color={theme.colors.danger} />
+                          <Text style={styles.disputeActionText}>
+                            Report Ticket Issue (Escrow)
+                          </Text>
+                        </>
+                      )}
+                    </TouchableOpacity>
+                  )
+                )}
+              </ScrollView>
+            )}
+          </View>
+        </View>
+      </Modal>
+
+      <DisputeTicketModal
+        visible={isDisputeModalOpen}
+        ticket={disputeModalTicket}
+        onClose={() => {
+          setIsDisputeModalOpen(false);
+          setDisputeModalTicket(null);
+        }}
+        onDisputeSubmitted={(disputeId, ticketCode) => {
+          setTickets((prev) =>
+            prev.map((t) =>
+              t.ticketPassCode === ticketCode
+                ? { ...t, status: 'DISPUTED', disputeId }
+                : t
+            )
+          );
+          if (selectedTicket?.ticketPassCode === ticketCode) {
+            setSelectedTicket((prev) =>
+              prev ? { ...prev, status: 'DISPUTED', disputeId } : null
+            );
+          }
+        }}
+      />
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#0b0f19', justifyContent: 'center', alignItems: 'center', padding: 20 },
-  title: { color: '#ffffff', fontSize: 20, fontWeight: 'bold', marginBottom: 8 },
-  subtitle: { color: '#94a3b8', fontSize: 14, textAlign: 'center' },
-});
-

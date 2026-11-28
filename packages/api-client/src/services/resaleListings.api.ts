@@ -1,11 +1,85 @@
 import type {
   CancelResaleListingResponse,
+  HoldListingForPurchaseRequest,
+  HoldListingForPurchaseResponse,
   ListingStatus,
+  PaymentStatusDto,
+  PaginatedList,
+  PurchasedTicketDto,
+  ResaleFeeConfigDto,
+  ResaleListingDetailDto,
   SellerListingDto,
 } from '@ticketshield/types';
 import { httpClient } from './client';
 
+export type {
+  ResaleListingDetailDto,
+  PaginatedList,
+  HoldListingForPurchaseRequest,
+  HoldListingForPurchaseResponse,
+  PurchasedTicketDto,
+  PaymentStatusDto,
+};
+
 export const resaleListingsApi = {
+  /**
+   * Public marketplace resale listings.
+   * GET /resale-listings?page=1&size=20&keyword=...
+   */
+  getMarketplaceListings: async (params?: {
+    page?: number;
+    size?: number;
+    keyword?: string;
+    eventId?: string;
+    organizerId?: string;
+    /** CONCERT | FESTIVAL | SPORTS | THEATER */
+    category?: string;
+    /** HN | HCM | DN */
+    city?: string;
+    /** upcoming | this-month */
+    dateRange?: string;
+    /** newest | price-asc | date-asc */
+    sortBy?: string;
+  }): Promise<PaginatedList<ResaleListingDetailDto>> => {
+    const searchParams = new URLSearchParams();
+    if (params?.page) searchParams.set('page', params.page.toString());
+    if (params?.size) searchParams.set('size', params.size.toString());
+    if (params?.keyword) searchParams.set('keyword', params.keyword);
+    if (params?.eventId) searchParams.set('eventId', params.eventId);
+    if (params?.organizerId) searchParams.set('organizerId', params.organizerId);
+    if (params?.category) searchParams.set('category', params.category);
+    if (params?.city) searchParams.set('city', params.city);
+    if (params?.dateRange) searchParams.set('dateRange', params.dateRange);
+    if (params?.sortBy) searchParams.set('sortBy', params.sortBy);
+    const query = searchParams.toString() ? `?${searchParams.toString()}` : '';
+    return httpClient<PaginatedList<ResaleListingDetailDto>>(`/resale-listings${query}`, {
+      method: 'GET',
+    });
+  },
+
+  /**
+   * Private resale listing preview details by secret share token.
+   * GET /resale-listings/private/{shareToken} (anonymous public access via secret link)
+   */
+  getPrivateListing: async (shareToken: string): Promise<ResaleListingDetailDto> => {
+    return httpClient<ResaleListingDetailDto>(
+      `/resale-listings/private/${encodeURIComponent(shareToken.trim())}`,
+      { method: 'GET' }
+    );
+  },
+
+  /**
+   * Public or preview resale listing details by ID.
+   * GET /resale-listings/{listingId}[?token=...]
+   */
+  getListingById: async (listingId: string, token?: string): Promise<ResaleListingDetailDto> => {
+    const query = token ? `?token=${encodeURIComponent(token)}` : '';
+    return httpClient<ResaleListingDetailDto>(
+      `/resale-listings/${encodeURIComponent(listingId)}${query}`,
+      { method: 'GET' }
+    );
+  },
+
   /**
    * Listings published by the signed-in seller, newest first.
    * GET /resale-listings/my-listings[?status=Verified]  (JWT required)
@@ -18,17 +92,93 @@ export const resaleListingsApi = {
   },
 
   /**
+   * Purchased digital passes for the signed-in buyer.
+   * GET /resale-listings/my-purchased-tickets (JWT required)
+   */
+  getMyPurchasedTickets: async (): Promise<PurchasedTicketDto[]> => {
+    return httpClient<PurchasedTicketDto[]>(`/resale-listings/my-purchased-tickets`, {
+      method: 'GET',
+    });
+  },
+
+  /**
+   * Hold a listing for purchase (10-minute escrow lock & dynamic VietQR details).
+   * POST /resale-listings/{id}/hold  (JWT required)
+   */
+  holdListing: async (
+    listingId: string,
+    request?: HoldListingForPurchaseRequest
+  ): Promise<HoldListingForPurchaseResponse> => {
+    return httpClient<HoldListingForPurchaseResponse>(
+      `/resale-listings/${encodeURIComponent(listingId)}/hold`,
+      {
+        method: 'POST',
+        body: JSON.stringify(request || {}),
+      }
+    );
+  },
+
+  /**
+   * Poll escrow/listing status after hold (buyer of that escrow only).
+   * GET /resale-listings/{id}/payment-status  (JWT required)
+   */
+  getPaymentStatus: async (listingId: string): Promise<PaymentStatusDto> => {
+    return httpClient<PaymentStatusDto>(
+      `/resale-listings/${encodeURIComponent(listingId)}/payment-status`,
+      { method: 'GET' }
+    );
+  },
+
+  /**
+   * Release hold early by buyer (Cancel hold & revert listing status to VERIFIED immediately).
+   * POST /resale-listings/{id}/release-hold  (JWT required)
+   */
+  releaseHold: async (listingId: string): Promise<{ listingId: string; listingStatus: string; releasedAt: string }> => {
+    return httpClient<{ listingId: string; listingStatus: string; releasedAt: string }>(
+      `/resale-listings/${encodeURIComponent(listingId)}/release-hold`,
+      { method: 'POST' }
+    );
+  },
+
+  /**
    * Cancel a listing that is still `Verified` (no buyer yet).
    * POST /resale-listings/{id}/cancel  (JWT required, caller must be the seller)
-   *
-   * The backend unlocks the original ticket at the organizer first. If that
-   * unlock fails, nothing is cancelled and this call throws — the listing keeps
-   * its current status so the seller can retry.
    */
   cancelListing: async (listingId: string): Promise<CancelResaleListingResponse> => {
     return httpClient<CancelResaleListingResponse>(
       `/resale-listings/${encodeURIComponent(listingId)}/cancel`,
       { method: 'POST' }
     );
+  },
+
+  /**
+   * DEV ONLY: Simulate payment success for held listing
+   * POST /resale-listings/{id}/simulate-payment
+   */
+  simulatePaymentSuccess: async (listingId: string): Promise<any> => {
+    return httpClient<any>(
+      `/resale-listings/${encodeURIComponent(listingId)}/simulate-payment`,
+      { method: 'POST' }
+    );
+  },
+
+  /**
+   * Lấy biểu phí chuyển nhượng công khai (phí người mua, phí người bán / phí sàn, mức phí tối thiểu)
+   * GET /resale-listings/fee-policy hoặc /fee-settings/public
+   */
+  getFeePolicy: async (): Promise<ResaleFeeConfigDto> => {
+    return httpClient<ResaleFeeConfigDto>('/resale-listings/fee-policy', {
+      method: 'GET',
+    });
+  },
+
+  /**
+   * Alias cho getFeePolicy để đảm bảo tương thích ngược
+   * GET /resale-listings/fee-policy hoặc /resale-listings/fee-config
+   */
+  getFeeConfig: async (): Promise<ResaleFeeConfigDto> => {
+    return httpClient<ResaleFeeConfigDto>('/resale-listings/fee-policy', {
+      method: 'GET',
+    });
   },
 };

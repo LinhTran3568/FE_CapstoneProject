@@ -1,12 +1,17 @@
 import React, { useEffect, Component, ErrorInfo, ReactNode } from 'react';
 import { BrowserRouter, useLocation } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { GoogleOAuthProvider } from '@react-oauth/google';
 import { CheckCircle2, AlertCircle, AlertTriangle, Info, X } from 'lucide-react';
 import { Navbar } from './components/layout/Navbar';
 import { Footer } from './components/layout/Footer';
+import { QuickActionSpeedDial } from './components/layout/QuickActionSpeedDial';
+import { AiTicketCopilot } from './components/copilot/AiTicketCopilot';
 import { AppRoutes } from './routes/AppRoutes';
 import { useUIStore } from './stores/uiStore';
 import { useAuthStore } from './stores/authStore';
+
+const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || '';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -69,15 +74,14 @@ const ToastContainer: React.FC = () => {
       {toasts.map((toast) => (
         <div
           key={toast.id}
-          className={`pointer-events-auto px-5 py-4 rounded-2xl border backdrop-blur-xl text-sm font-semibold shadow-2xl flex items-center justify-between gap-3 font-display transition-all duration-300 animate-in slide-in-from-right-8 fade-in ${
-            toast.type === 'success'
+          className={`pointer-events-auto px-5 py-4 rounded-2xl border backdrop-blur-xl text-sm font-semibold shadow-2xl flex items-center justify-between gap-3 font-display transition-all duration-300 animate-in slide-in-from-right-8 fade-in ${toast.type === 'success'
               ? 'bg-emerald-950/95 border-emerald-500/60 text-emerald-200 shadow-emerald-500/25'
               : toast.type === 'error'
-              ? 'bg-rose-950/95 border-rose-500/60 text-rose-200 shadow-rose-500/25'
-              : toast.type === 'warning'
-              ? 'bg-amber-950/95 border-amber-500/60 text-amber-200 shadow-amber-500/25'
-              : 'bg-[#0A0D12]/95 border-[#FF5A36]/60 text-[#F5F5F2] shadow-[#FF5A36]/25'
-          }`}
+                ? 'bg-rose-950/95 border-rose-500/60 text-rose-200 shadow-rose-500/25'
+                : toast.type === 'warning'
+                  ? 'bg-amber-950/95 border-amber-500/60 text-amber-200 shadow-amber-500/25'
+                  : 'bg-[#0A0D12]/95 border-[#FF5A36]/60 text-[#F5F5F2] shadow-[#FF5A36]/25'
+            }`}
         >
           <div className="flex items-center gap-3 min-w-0 flex-1">
             {toast.type === 'success' && <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />}
@@ -113,18 +117,29 @@ const AppContent: React.FC = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, [location.pathname]);
 
-  // Auth pages handle their own full-bleed layout (no header/footer overlap)
+  // Auth pages, Admin console, and Organizer Storefront handle their own dedicated layout
   const isAuthPage = ['/login', '/register', '/forgot-password', '/reset-password'].includes(
     location.pathname
   );
+  const isAdminRoute = location.pathname.startsWith('/admin') || location.pathname.startsWith('/disputes');
+  const isStorefrontRoute = location.pathname.startsWith('/storefront') || location.pathname.startsWith('/origin') || location.pathname.startsWith('/events');
+  const showPublicChrome = !isAuthPage && !isAdminRoute && !isStorefrontRoute;
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#05070A] text-[#F5F5F2] selection:bg-[#FF5A36] selection:text-white font-sans antialiased">
-      {!isAuthPage && <Navbar />}
+    <div className={`min-h-screen flex flex-col font-sans antialiased ${
+      isAdminRoute
+        ? 'bg-[#F5F7FA] text-[#101722]'
+        : isStorefrontRoute
+        ? 'bg-[#0B0F17] text-[#CBD5E1] selection:bg-[#E11D48] selection:text-white'
+        : 'bg-[#05070A] text-[#F5F5F2] selection:bg-[#FF5A36] selection:text-white'
+    }`}>
+      {showPublicChrome && <Navbar />}
       <main className="flex-1 w-full">
         <AppRoutes />
       </main>
-      {!isAuthPage && <Footer />}
+      {showPublicChrome && <Footer />}
+      {showPublicChrome && <QuickActionSpeedDial />}
+      {showPublicChrome && <AiTicketCopilot />}
       <ToastContainer />
     </div>
   );
@@ -133,11 +148,13 @@ const AppContent: React.FC = () => {
 export const App: React.FC = () => {
   return (
     <GlobalErrorBoundary>
-      <QueryClientProvider client={queryClient}>
-        <BrowserRouter>
-          <AppContent />
-        </BrowserRouter>
-      </QueryClientProvider>
+      <GoogleOAuthProvider clientId={googleClientId}>
+        <QueryClientProvider client={queryClient}>
+          <BrowserRouter>
+            <AppContent />
+          </BrowserRouter>
+        </QueryClientProvider>
+      </GoogleOAuthProvider>
     </GlobalErrorBoundary>
   );
 };

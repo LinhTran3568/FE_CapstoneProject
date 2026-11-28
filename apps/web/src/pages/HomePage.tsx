@@ -1,8 +1,196 @@
-import React from 'react';
-import { LandingPage } from './LandingPage';
+import React, { useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Sparkles, ChevronRight, ArrowRight } from 'lucide-react';
+import { useTrendingEvents } from '../hooks/useTrendingEvents';
+import { useMarketplaceListings } from '../hooks/useMarketplaceListings';
+import { TrendingBannerSlider } from '../components/marketplace/TrendingBannerSlider';
+import { UpcomingTabbedSection } from '../components/marketplace/UpcomingTabbedSection';
+import { CategoryTabbedSection } from '../components/marketplace/CategoryTabbedSection';
+import { FeaturedArtistsOrganizers } from '../components/marketplace/FeaturedArtistsOrganizers';
+import { CityBrowseSection } from '../components/marketplace/CityBrowseSection';
+import { TrendingEventDto } from '@ticketshield/types';
 
 export const HomePage: React.FC = () => {
-  return <LandingPage />;
+  const navigate = useNavigate();
+
+  // Query marketplace listings to compute live ticket counts
+  const { data: paginatedData } = useMarketplaceListings({ page: 1, size: 50 });
+  const listings = paginatedData?.items || [];
+
+  // Query trending / overall events
+  const { data: trendingEventsData } = useTrendingEvents({ limit: 12 });
+
+  // Curated Fallback events
+  const FALLBACK_EVENTS: TrendingEventDto[] = useMemo(
+    () => [
+      {
+        eventId: 'fb-1',
+        name: 'Anh Trai Say Hi Live Concert 2026',
+        artist: 'HIEUTHUHAI, Anh Tú, Isaac, Rhyder',
+        category: 'CONCERT',
+        venue: 'My Dinh National Stadium',
+        city: 'Hanoi',
+        bannerUrl: '/images/landing/hero-concert.jpg',
+        eventStartAt: '2026-10-24T19:00:00Z',
+        minResalePrice: 1200000,
+        totalAvailableListings: 18,
+      },
+      {
+        eventId: 'fb-2',
+        name: 'My Tam Live Concert - Tri Am Tour',
+        artist: 'My Tam',
+        category: 'CONCERT',
+        venue: 'Military Zone 7 Stadium',
+        city: 'Ho Chi Minh City',
+        bannerUrl: '/images/landing/featured-1.jpg',
+        eventStartAt: '2026-11-15T19:30:00Z',
+        minResalePrice: 850000,
+        totalAvailableListings: 12,
+      },
+      {
+        eventId: 'fb-3',
+        name: 'Ravolution Music Festival 2026',
+        artist: 'Armin van Buuren, KSHMR, Suboi',
+        category: 'FESTIVAL',
+        venue: 'Sala Urban Area, Thu Duc City',
+        city: 'Ho Chi Minh City',
+        bannerUrl: '/images/landing/festival.jpg',
+        eventStartAt: '2026-12-05T15:00:00Z',
+        minResalePrice: 650000,
+        totalAvailableListings: 9,
+      },
+      {
+        eventId: 'fb-4',
+        name: 'Derby Match: Hanoi FC vs Viettel FC',
+        artist: 'V-League 2026',
+        category: 'SPORTS',
+        venue: 'Hang Day Stadium',
+        city: 'Hanoi',
+        bannerUrl: '/images/landing/sports.jpg',
+        eventStartAt: '2026-09-22T19:00:00Z',
+        minResalePrice: 200000,
+        totalAvailableListings: 15,
+      },
+      {
+        eventId: 'fb-5',
+        name: 'Once Upon a Time 35: The Great Adventure',
+        artist: 'Thanh Loc, Huu Chau',
+        category: 'THEATER',
+        venue: 'Ben Thanh Theater',
+        city: 'Ho Chi Minh City',
+        bannerUrl: '/images/landing/theater.jpg',
+        eventStartAt: '2026-09-20T19:00:00Z',
+        minResalePrice: 450000,
+        totalAvailableListings: 8,
+      },
+    ],
+    []
+  );
+
+  // Combine backend trending events with fallback and live listing counts
+  const overallEvents: TrendingEventDto[] = useMemo(() => {
+    const base =
+      trendingEventsData && trendingEventsData.length > 0
+        ? trendingEventsData
+        : FALLBACK_EVENTS;
+
+    return base.map((evt) => {
+      const matching = listings.filter(
+        (l) =>
+          l.eventName?.toLowerCase().includes(evt.name.toLowerCase()) ||
+          evt.name.toLowerCase().includes((l.eventName || '').toLowerCase())
+      );
+      if (matching.length > 0) {
+        const minPrice = Math.min(...matching.map((m) => m.resalePrice));
+        return {
+          ...evt,
+          totalAvailableListings: matching.length,
+          minResalePrice: minPrice,
+        };
+      }
+      return evt;
+    });
+  }, [trendingEventsData, listings, FALLBACK_EVENTS]);
+
+  const handleSelectEvent = (eventName: string) => {
+    navigate(`/marketplace?q=${encodeURIComponent(eventName)}`);
+  };
+
+  const handleSelectCategory = (catId: string) => {
+    navigate(`/marketplace?category=${encodeURIComponent(catId)}`);
+  };
+
+  const handleSelectArtist = (artistName: string) => {
+    navigate(`/marketplace?q=${encodeURIComponent(artistName)}`);
+  };
+
+  const handleSelectCity = (cityId: string) => {
+    navigate(`/marketplace?city=${encodeURIComponent(cityId)}`);
+  };
+
+  return (
+    <div className="relative min-h-screen bg-[#05070A] text-[#F5F5F5] font-sans antialiased selection:bg-[#FF5A36] selection:text-white pt-24 sm:pt-28 pb-16">
+      {/* Subtle ambient lighting */}
+      <div className="fixed inset-0 pointer-events-none overflow-hidden z-0 select-none">
+        <div className="absolute top-1/4 -right-24 w-[450px] h-[450px] bg-[#FF5A36]/10 rounded-full blur-[130px]" />
+        <div className="absolute top-1/3 -left-24 w-[450px] h-[450px] bg-cyan-500/10 rounded-full blur-[130px]" />
+      </div>
+
+      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 md:px-12">
+        {/* 1. HERO TRENDING BANNER SLIDER (SỰ KIỆN NỔI BẬT) */}
+        <TrendingBannerSlider onSelectEvent={handleSelectEvent} />
+
+        {/* 2. SẮP DIỄN RA (2 TABS: TRONG 7 NGÀY TỚI & TRONG THÁNG NÀY) */}
+        <UpcomingTabbedSection
+          events={overallEvents}
+          onSelectEvent={handleSelectEvent}
+        />
+
+        {/* 3. KHÁM PHÁ THEO THỂ LOẠI */}
+        <CategoryTabbedSection
+          events={overallEvents}
+          onSelectEvent={handleSelectEvent}
+        />
+
+        {/* 4. NGHỆ SĨ ĐƯỢC YÊU THÍCH */}
+        <FeaturedArtistsOrganizers onSelectArtist={handleSelectArtist} />
+
+        {/* 5. KHÁM PHÁ THEO THÀNH PHỐ */}
+        <CityBrowseSection onSelectCity={handleSelectCity} />
+
+        {/* 6. CALL TO ACTION TO MARKETPLACE */}
+        <div className="mt-12 mb-6 p-8 sm:p-12 rounded-3xl bg-gradient-to-r from-[#0C1017] via-[#10141E] to-[#0C1017] border border-white/10 text-center relative overflow-hidden shadow-2xl">
+          <div className="absolute -top-24 -right-24 w-60 h-60 bg-[#FF5A36]/10 rounded-full blur-3xl pointer-events-none" />
+          <div className="relative z-10 max-w-2xl mx-auto space-y-4">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-black/80 backdrop-blur-md border border-white/20 text-xs font-mono font-bold text-white uppercase tracking-wider shadow-md">
+              <Sparkles className="w-3.5 h-3.5 text-[#FF5A36]" />
+              Official Ticket Marketplace
+            </span>
+            <h2 className="text-2xl sm:text-3xl md:text-4xl font-black font-display text-white tracking-tight">
+              Find Your Favorite Event Tickets Today
+            </h2>
+            <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-4">
+              <button
+                type="button"
+                onClick={() => navigate('/marketplace')}
+                className="w-full sm:w-auto h-12 px-8 bg-gradient-to-r from-[#FF5A36] to-[#FF7252] hover:brightness-110 active:scale-95 text-white font-bold font-display text-sm uppercase tracking-wider rounded-2xl shadow-[0_4px_25px_rgba(255,90,54,0.4)] transition-all inline-flex items-center justify-center gap-2 cursor-pointer"
+              >
+                <span>Explore Marketplace</span>
+                <ArrowRight className="w-4 h-4" />
+              </button>
+              <button
+                type="button"
+                onClick={() => navigate('/sell-ticket')}
+                className="w-full sm:w-auto h-12 px-8 bg-white/5 hover:bg-white/10 border border-white/15 hover:border-white/30 text-white font-bold text-sm rounded-2xl transition-all inline-flex items-center justify-center gap-2 cursor-pointer"
+              >
+                <span>List Your Ticket</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 };
 
 export default HomePage;

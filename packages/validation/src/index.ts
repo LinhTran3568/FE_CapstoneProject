@@ -1,59 +1,59 @@
 import { z } from 'zod';
 
 export const loginSchema = z.object({
-  email: z.string().email('Địa chỉ email không hợp lệ'),
-  password: z.string().min(6, 'Mật khẩu phải có ít nhất 6 ký tự'),
+  email: z.string().email('Invalid email address'),
+  password: z.string().min(6, 'Password must be at least 6 characters'),
 });
 
 export type LoginFormData = z.infer<typeof loginSchema>;
 
 export const registerSchema = z.object({
-  fullName: z.string().min(2, 'Họ và tên phải có ít nhất 2 ký tự'),
-  email: z.string().email('Địa chỉ email không hợp lệ'),
-  phoneNumber: z.string().regex(/(84|0[3|5|7|8|9])+([0-9]{8})\b/, 'Số điện thoại Việt Nam không hợp lệ'),
-  password: z.string().min(8, 'Mật khẩu phải có ít nhất 8 ký tự'),
+  fullName: z.string().min(2, 'Full name must be at least 2 characters'),
+  email: z.string().email('Invalid email address'),
+  phoneNumber: z.string().regex(/(84|0[3|5|7|8|9])+([0-9]{8})\b/, 'Invalid phone number'),
+  password: z.string().min(8, 'Password must be at least 8 characters'),
   confirmPassword: z.string(),
   role: z.enum(['BUYER', 'RESELLER', 'ORGANIZER']),
-  acceptTerms: z.boolean().refine((val) => val === true, 'Bạn phải đồng ý với điều khoản sử dụng'),
+  acceptTerms: z.boolean().refine((val) => val === true, 'You must accept the terms of service'),
 }).refine((data) => data.password === data.confirmPassword, {
-  message: 'Mật khẩu xác nhận không khớp',
+  message: 'Passwords do not match',
   path: ['confirmPassword'],
 });
 
 export type RegisterFormData = z.infer<typeof registerSchema>;
 
 export const createListingSchema = z.object({
-  ticketId: z.string().min(1, 'Vui lòng chọn vé cần bán'),
-  resalePrice: z.number().min(10000, 'Giá bán phải lớn hơn 10.000 VNĐ'),
-  seatInfo: z.string().min(2, 'Vui lòng nhập thông tin chỗ ngồi'),
-  bankAccount: z.string().min(6, 'Vui lòng nhập số tài khoản ngân hàng nhận thanh toán'),
-  bankName: z.string().min(2, 'Vui lòng chọn tên ngân hàng'),
+  ticketId: z.string().min(1, 'Please select a ticket to sell'),
+  resalePrice: z.number().min(10000, 'Resale price must be at least 10,000 VNĐ'),
+  seatInfo: z.string().min(2, 'Please enter seat information'),
+  bankAccount: z.string().min(6, 'Please enter payout bank account number'),
+  bankName: z.string().min(2, 'Please select bank name'),
   notes: z.string().optional(),
 });
 
 export type CreateListingFormData = z.infer<typeof createListingSchema>;
 
 export const verifyTicketSchema = z.object({
-  ticketCode: z.string().min(6, 'Mã vé / Mã tra cứu không hợp lệ'),
-  eventId: z.string().min(1, 'Vui lòng chọn sự kiện tương ứng'),
-  idCardNumber: z.string().min(9, 'Số CMND/CCCD không hợp lệ'),
+  ticketCode: z.string().min(6, 'Invalid ticket code or lookup reference'),
+  eventId: z.string().min(1, 'Please select the corresponding event'),
+  idCardNumber: z.string().min(9, 'Invalid ID/citizen card number'),
 });
 
 export type VerifyTicketFormData = z.infer<typeof verifyTicketSchema>;
 
 export const checkoutSchema = z.object({
-  listingId: z.string().min(1, 'Mã niêm yết không hợp lệ'),
+  listingId: z.string().min(1, 'Invalid listing ID'),
   paymentMethod: z.enum(['MOMO', 'VNPAY', 'BANK_TRANSFER', 'CREDIT_CARD']),
-  fullName: z.string().min(2, 'Vui lòng nhập họ tên nhận vé'),
-  email: z.string().email('Email nhận vé không hợp lệ'),
-  phoneNumber: z.string().min(10, 'Số điện thoại không hợp lệ'),
-  agreeEscrowTerms: z.boolean().refine((val) => val === true, 'Bạn phải đồng ý với điều khoản bảo vệ Escrow'),
+  fullName: z.string().min(2, 'Please enter recipient full name'),
+  email: z.string().email('Invalid recipient email address'),
+  phoneNumber: z.string().min(10, 'Invalid phone number'),
+  agreeEscrowTerms: z.boolean().refine((val) => val === true, 'You must agree to the Escrow protection terms'),
 });
 
 export type CheckoutFormData = z.infer<typeof checkoutSchema>;
 
 export const createDisputeSchema = z.object({
-  orderId: z.string().min(1, 'Mã đơn hàng không hợp lệ'),
+  orderId: z.string().min(1, 'Invalid order ID'),
   reason: z.enum([
     'INVALID_TICKET_AT_VENUE',
     'ALREADY_SCANNED',
@@ -61,27 +61,27 @@ export const createDisputeSchema = z.object({
     'TRANSFER_FAILED',
     'OTHER',
   ]),
-  description: z.string().min(20, 'Vui lòng mô tả chi tiết sự cố (tối thiểu 20 ký tự)'),
+  description: z.string().min(20, 'Please describe the issue in detail (at least 20 characters)'),
   evidenceUrls: z.array(z.string()).optional(),
 });
 
 export type CreateDisputeFormData = z.infer<typeof createDisputeSchema>;
 
 export const forgotPasswordSchema = z.object({
-  email: z.string().email('Địa chỉ email không hợp lệ'),
+  email: z.string().email('Invalid email address'),
 });
 
 export type ForgotPasswordFormData = z.infer<typeof forgotPasswordSchema>;
 
 export const resetPasswordSchema = z
   .object({
-    email: z.string().email('Địa chỉ email không hợp lệ'),
-    otp: z.string().length(6, 'Mã OTP phải bao gồm chính xác 6 chữ số'),
-    newPassword: z.string().min(8, 'Mật khẩu mới phải có ít nhất 8 ký tự'),
+    email: z.string().email('Invalid email address'),
+    otp: z.string().length(6, 'OTP code must be exactly 6 digits'),
+    newPassword: z.string().min(8, 'New password must be at least 8 characters'),
     confirmPassword: z.string(),
   })
   .refine((data) => data.newPassword === data.confirmPassword, {
-    message: 'Mật khẩu xác nhận không khớp',
+    message: 'Passwords do not match',
     path: ['confirmPassword'],
   });
 

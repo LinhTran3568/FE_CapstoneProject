@@ -3,18 +3,25 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { loginSchema, LoginFormData } from '@ticketshield/validation';
 import { authApi } from '@ticketshield/api-client';
+import { GoogleLogin, CredentialResponse } from '@react-oauth/google';
 import { useAuthStore } from '../stores/authStore';
 import { useUIStore } from '../stores/uiStore';
-import { useNavigate, Link } from 'react-router-dom';
-import { Mail, Lock, Globe, ArrowLeft } from 'lucide-react';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
+import { Mail, Lock, ArrowLeft } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { TicketShieldLogo } from '../components/ui/TicketShieldLogo';
+import { isAdminRole, isStaffRole } from '../utils/staffRole';
 
 export const LoginPage: React.FC = () => {
   const { login } = useAuthStore();
   const { showToast } = useUIStore();
   const navigate = useNavigate();
+  const location = useLocation();
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+
+  const rawFrom = (location.state as any)?.from;
+  const targetPath = typeof rawFrom === 'string' ? rawFrom : rawFrom?.pathname;
+  const from = (!targetPath || targetPath === '/sell-ticket' || targetPath === '/sell') ? '/marketplace' : targetPath;
 
   const {
     register,
@@ -28,30 +35,55 @@ export const LoginPage: React.FC = () => {
     },
   });
 
+  const getRedirectPath = (role: any, explicitFrom?: string | null) => {
+    if (isAdminRole(role)) {
+      if (explicitFrom && (explicitFrom.startsWith('/admin') || explicitFrom.startsWith('/disputes'))) {
+        return explicitFrom;
+      }
+      return '/admin';
+    }
+    if (isStaffRole(role)) {
+      if (explicitFrom && (explicitFrom.startsWith('/disputes') || explicitFrom.startsWith('/admin/disputes'))) {
+        return explicitFrom;
+      }
+      return '/disputes/console';
+    }
+    return from;
+  };
+
   const onSubmit = async (data: LoginFormData) => {
     try {
       const res = await authApi.login(data);
       login(res.user, res.token);
       showToast('Login successful! Welcome back.', 'success');
-      navigate('/');
+      const destination = getRedirectPath(res.user.role, targetPath);
+      navigate(destination, { replace: true });
     } catch (err: any) {
       showToast('Login failed: ' + err.message, 'error');
     }
   };
 
-  const handleGoogleLogin = async () => {
+  const handleGoogleSuccess = async (credentialResponse: CredentialResponse) => {
+    if (!credentialResponse.credential) {
+      showToast('Google login failed: Missing ID token', 'error');
+      return;
+    }
     try {
       setIsGoogleLoading(true);
-      const dummyGoogleToken = 'google_id_token_demo_' + Date.now();
-      const res = await authApi.googleLogin(dummyGoogleToken);
+      const res = await authApi.googleLogin(credentialResponse.credential);
       login(res.user, res.token);
-      showToast('Google login successful!', 'success');
-      navigate('/');
+      showToast('Google login successful! Welcome back.', 'success');
+      const destination = getRedirectPath(res.user.role, targetPath);
+      navigate(destination, { replace: true });
     } catch (err: any) {
       showToast('Google login failed: ' + err.message, 'error');
     } finally {
       setIsGoogleLoading(false);
     }
+  };
+
+  const handleGoogleError = () => {
+    showToast('Google login was cancelled or failed to initialize.', 'error');
   };
 
   return (
@@ -125,14 +157,14 @@ export const LoginPage: React.FC = () => {
             <span className="text-[#FF5A36]">Starts Here.</span>
           </h1>
           <p className="text-[#A3A8B3] text-base leading-relaxed">
-            Access thousands of verified live concerts, music festivals, and theater tickets with 100% escrow protection.
+            Thousands of verified concert and music event tickets with 100% Real Fans and 24-Hour Funds Protection.
           </p>
         </div>
 
         {/* Bottom Ticker Info */}
         <div className="relative z-10 pt-6 border-t border-white/10 flex items-center justify-between text-xs text-[#A3A8B3] font-display">
-          <span>Cryptographic Pass Authentication</span>
-          <span className="text-[#F5F5F2] font-semibold">100% Escrow Protection</span>
+          <span>Direct Re-issuance from Organizers</span>
+          <span className="text-[#F5F5F2] font-semibold">24-Hour Funds Protection</span>
         </div>
       </div>
 
@@ -224,16 +256,24 @@ export const LoginPage: React.FC = () => {
           </div>
 
           {/* Google Login Button */}
-          <Button
-            type="button"
-            variant="secondary"
-            isLoading={isGoogleLoading}
-            onClick={handleGoogleLogin}
-            className="w-full bg-[#05070A] border border-white/15 hover:border-white/30 text-[#F5F5F2] py-3 rounded-xl flex items-center justify-center gap-2 font-display text-xs font-semibold uppercase tracking-wider hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200"
-          >
-            <Globe className="w-4 h-4 text-[#FF5A36]" />
-            <span>Continue with Google</span>
-          </Button>
+          <div className="w-full flex justify-center py-1">
+            {isGoogleLoading ? (
+              <div className="py-3 text-xs text-[#A3A8B3] animate-pulse font-display">
+                Verifying Google Credentials...
+              </div>
+            ) : (
+              <GoogleLogin
+                onSuccess={handleGoogleSuccess}
+                onError={handleGoogleError}
+                theme="filled_black"
+                shape="pill"
+                size="large"
+                width="360"
+                text="continue_with"
+                locale="en"
+              />
+            )}
+          </div>
 
           {/* Redirect Link */}
           <p className="text-center text-xs text-[#A3A8B3]">
