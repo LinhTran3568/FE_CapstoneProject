@@ -156,7 +156,7 @@ export const TicketCard: React.FC<TicketCardProps> = ({
     return '/images/landing/concert.jpg';
   };
 
-  const backdropUrl = getEventBackdrop(listing.eventName);
+  const backdropUrl = listing.eventBannerUrl || getEventBackdrop(listing.eventName);
 
   if (isBundle) {
     return (
@@ -175,6 +175,7 @@ export const TicketCard: React.FC<TicketCardProps> = ({
         count={bundleCount}
         totalPrice={totalBundleResalePrice}
         currency="VND"
+        backdropUrl={backdropUrl}
         ctaLabel={isTransacting ? 'RESERVED' : isSold ? 'SOLD' : isOwner ? 'YOUR LISTING' : 'VIEW & BUY'}
         onView={() => {
           if (!isTransacting && onViewDetails) {

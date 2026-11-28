@@ -462,7 +462,7 @@ const OfficialTicketPassCard: React.FC<OfficialTicketPassCardProps> = ({ ticket,
   const isRefunded = (ticket.status || '').trim().toUpperCase() === 'REFUNDED';
   const hasDispute = Boolean(ticket.disputeId);
   const code = ticket.ticketPassCode || (hasQr ? entryPayload(ticket) : '');
-  const backdropUrl = getEventBackdrop(ticket.eventName);
+  const backdropUrl = ticket.eventBannerUrl || getEventBackdrop(ticket.eventName);
   const formattedDate = ticket.eventStartAt ? formatEventDateTime(ticket.eventStartAt) : 'Date & Time Announced by Organizer';
 
   const isCombo = Boolean((ticket.bundleTotalTickets && ticket.bundleTotalTickets >= 2) || (ticket.bundleItems && ticket.bundleItems.length >= 2));

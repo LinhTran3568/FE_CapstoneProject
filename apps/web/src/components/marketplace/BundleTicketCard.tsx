@@ -30,6 +30,7 @@ export interface BundleTicketCardProps {
   ctaLabel?: string;
   onView?: () => void;
   className?: string;
+  backdropUrl?: string;
   /** screen noise: "always" (default), "hover" (only while hovered) or "off" (static grain) */
   noise?: "always" | "hover" | "off";
   /** render your real single-ticket component inside each stub (index 0 = front) */
@@ -147,6 +148,7 @@ function Screen({
   active = false,
   sweepKey = 0,
   beamType = "cyan",
+  backdropUrl,
   children,
 }: {
   wellClassName?: string;
@@ -155,6 +157,7 @@ function Screen({
   active?: boolean;
   sweepKey?: number;
   beamType?: "cyan" | "amber";
+  backdropUrl?: string;
   children: ReactNode;
 }) {
   return (
@@ -182,58 +185,88 @@ function Screen({
         style={{
           transform: `translate(${RX}px, ${-RY}px)`,
           padding: `${pad + RY}px ${pad + RX}px ${pad}px ${pad}px`,
-          background:
-            "radial-gradient(120% 90% at 35% 25%, #1a2430 0%, #0f151c 55%, #0a0e12 100%)",
-          boxShadow: "inset 0 0 0 1px rgba(255,255,255,.06), inset 0 2px 6px rgba(0,0,0,.6)",
+          boxShadow: "inset 0 0 0 1px rgba(255,255,255,.08), inset 0 2px 8px rgba(0,0,0,.7)",
           isolation: "isolate",
         }}
       >
-        {children}
+        {/* Layer 0: Backdrop Event Poster or Solid CRT screen base */}
+        {backdropUrl ? (
+          <div aria-hidden className="pointer-events-none absolute inset-0 z-0 overflow-hidden">
+            <img
+              src={backdropUrl}
+              alt=""
+              className="w-full h-full object-cover object-center opacity-80 contrast-125 saturate-110 pointer-events-none"
+              onError={(e) => {
+                (e.currentTarget as HTMLElement).style.display = 'none';
+              }}
+            />
+            {/* Illuminated backlighting and contrast gradations for crystal-clear readability */}
+            <div className="absolute inset-0 bg-gradient-to-r from-black/85 via-black/40 to-black/75" />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-black/40" />
+            <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_left,rgba(56,189,248,0.22),transparent_70%)]" />
+          </div>
+        ) : (
+          <div
+            aria-hidden
+            className="pointer-events-none absolute inset-0 z-0"
+            style={{
+              background:
+                "radial-gradient(120% 90% at 35% 25%, #1a2430 0%, #0f151c 55%, #0a0e12 100%)",
+            }}
+          />
+        )}
 
-        {/* CRT Frequency Sweep Beam (Resets to the top at each new hover via sweepKey) */}
+        {/* Layer 1: Crisp CRT Scanlines over image */}
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0 z-[2] opacity-30"
+          style={{
+            background:
+              "repeating-linear-gradient(to bottom, transparent 0 2px, rgba(0,0,0,.65) 2px 4px)",
+          }}
+        />
+
+        {/* Layer 2: CRT Micro-dots Phosphor Texture */}
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0 z-[2] opacity-10"
+          style={NOISE}
+        />
+
+        {/* Layer 3: CRT Frequency Sweep Beam (Sweeps brightly over the illuminated poster) */}
         {active && (
           <div
             key={sweepKey}
             aria-hidden
-            className={`pointer-events-none absolute inset-x-0 -z-10 ${
+            className={`pointer-events-none absolute inset-x-0 z-[3] ${
               beamType === "amber"
-                ? "h-9 animate-crt-sweep-right"
-                : "h-10 animate-crt-sweep-left"
+                ? "h-12 animate-crt-sweep-right"
+                : "h-12 animate-crt-sweep-left"
             }`}
             style={{
               transform: "translate3d(0, -100%, 0)",
               background:
                 beamType === "amber"
-                  ? "linear-gradient(to bottom, transparent 0%, rgba(245,158,11,0.2) 50%, transparent 100%)"
-                  : "linear-gradient(to bottom, transparent 0%, rgba(56,189,248,0.2) 50%, transparent 100%)",
+                  ? "linear-gradient(to bottom, transparent 0%, rgba(245,158,11,0.4) 50%, transparent 100%)"
+                  : "linear-gradient(to bottom, transparent 0%, rgba(56,189,248,0.4) 50%, transparent 100%)",
             }}
           />
         )}
 
-        {/* Crisp scanlines (single optimized layer) */}
+        {/* Layer 4: Screen Glare & Monitor Glass Sheen */}
         <div
           aria-hidden
-          className="pointer-events-none absolute inset-0 -z-10 opacity-20"
+          className="pointer-events-none absolute inset-0 z-[4]"
           style={{
             background:
-              "repeating-linear-gradient(to bottom, transparent 0 2px, rgba(0,0,0,.7) 2px 3px)",
+              "linear-gradient(to bottom, rgba(255,255,255,.14) 0%, rgba(255,255,255,0) 28%)",
           }}
         />
-        {/* static micro-dots texture */}
-        <div
-          aria-hidden
-          className="pointer-events-none absolute inset-0 -z-10 opacity-[.06]"
-          style={NOISE}
-        />
-        {/* glass sheen */}
-        <div
-          aria-hidden
-          className="pointer-events-none absolute inset-0 -z-10"
-          style={{
-            background:
-              "linear-gradient(to bottom, rgba(255,255,255,.07) 0%, rgba(255,255,255,0) 28%)",
-          }}
-        />
+
+        {/* Layer 5: Text and Interactive Children (Crisp on top of screen effects) */}
+        <div className="relative z-10 flex flex-col justify-between h-full">
+          {children}
+        </div>
       </div>
 
       {/* shadow the top and right rim cast onto the glass (lightweight 0-lag blur) */}
@@ -344,6 +377,7 @@ export function BundleTicketCard({
   ctaLabel = "VIEW & BUY",
   onView,
   className = "",
+  backdropUrl,
 }: BundleTicketCardProps) {
   const [hover, setHover] = useState(false);
   const [tapped, setTapped] = useState(false);
@@ -435,6 +469,7 @@ export function BundleTicketCard({
             active={peek}
             sweepKey={sweepKey}
             beamType="cyan"
+            backdropUrl={backdropUrl}
           >
             <div className="flex flex-wrap items-center gap-1.5">
               <span className="inline-flex items-center gap-1.5 rounded-full border border-sky-400/40 bg-sky-950/40 px-2.5 py-0.5">
@@ -453,16 +488,16 @@ export function BundleTicketCard({
             </div>
 
             <div>
-              <h3 className="text-[16px] sm:text-[18px] font-extrabold leading-tight tracking-tight text-white line-clamp-1">
+              <h3 className="text-[16px] sm:text-[18px] font-extrabold leading-tight tracking-tight text-white line-clamp-1 drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)]">
                 {title}
               </h3>
               <div className="mt-1 space-y-1 text-[11px] font-medium text-zinc-300">
                 <div className="flex items-center gap-2 truncate">
-                  <span className="text-amber-400 font-semibold truncate">
+                  <span className="text-amber-300 font-bold truncate drop-shadow-[0_1px_3px_rgba(0,0,0,0.9)]">
                     {zoneLabel}
                   </span>
                 </div>
-                <div className="flex items-center gap-2 text-zinc-400 text-[10.5px]">
+                <div className="flex items-center gap-2 text-zinc-300 text-[10.5px] drop-shadow-[0_1px_3px_rgba(0,0,0,0.9)]">
                   <span className="truncate">{dateLabel}</span>
                   <span>·</span>
                   <span className="truncate">{venue}</span>
@@ -470,12 +505,12 @@ export function BundleTicketCard({
               </div>
             </div>
 
-            <footer className="flex items-center justify-between gap-2 border-t border-zinc-800/80 pt-1.5 text-[10px] text-zinc-400">
+            <footer className="flex items-center justify-between gap-2 border-t border-zinc-700/80 pt-1.5 text-[10px] text-zinc-300 drop-shadow-[0_1px_3px_rgba(0,0,0,0.9)]">
               <span className="min-w-0 truncate">
-                Organizer: <span className="text-zinc-200">{organizer}</span>
+                Organizer: <span className="text-zinc-100 font-medium">{organizer}</span>
               </span>
               <span className="min-w-0 truncate">
-                Sold by: <span className="font-semibold text-zinc-200">{seller}</span>
+                Sold by: <span className="font-semibold text-zinc-100">{seller}</span>
               </span>
             </footer>
           </Screen>

@@ -98,7 +98,7 @@ const TicketCardItem: React.FC<TicketCardItemProps> = ({
   const resolvedVenue = ticket.eventVenue || eventVenue;
   const resolvedTier = ticket.tierName || 'Tier not provided';
   const zoneStyle = getZoneStyle(resolvedTier);
-  const backdropUrl = getEventBackdrop(resolvedEventName);
+  const backdropUrl = (ticket as any).eventBannerUrl || (ticket as any).bannerUrl || getEventBackdrop(resolvedEventName);
   const formattedDate = ticket.eventStartAt
     ? formatEventDateTime(ticket.eventStartAt)
     : eventStartAt

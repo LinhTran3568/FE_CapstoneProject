@@ -80,7 +80,7 @@ export const TicketDetailModal: React.FC<TicketDetailModalProps> = ({
     return '/images/landing/concert.jpg';
   };
 
-  const backdropUrl = getEventBackdrop(listing.eventName);
+  const backdropUrl = listing.eventBannerUrl || getEventBackdrop(listing.eventName);
 
   // Build the array of visual ticket cards to display
   const perTicketOriginalPrice = Math.round(totalOriginalPrice / (bundleCount || 1));

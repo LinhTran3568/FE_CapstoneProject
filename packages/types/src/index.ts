@@ -273,6 +273,7 @@ export interface PurchasedTicketDto {
   eventId: string;
   eventName: string;
   eventVenue: string;
+  eventBannerUrl?: string | null;
   eventStartAt: string;
   tierName: string;
   seatZone: string;
@@ -329,6 +330,7 @@ export interface ResaleListingDetailDto {
   organizerName?: string;
   eventName: string;
   eventVenue: string;
+  eventBannerUrl?: string | null;
   eventStartAt: string;
   tierId: string;
   tierName: string;
