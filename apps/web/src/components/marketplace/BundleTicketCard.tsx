@@ -233,25 +233,28 @@ function Screen({
           style={NOISE}
         />
 
-        {/* Layer 3: CRT Frequency Sweep Beam (Sweeps brightly over the illuminated poster) */}
-        {active && (
+        {/* Layer 3: CRT Frequency Sweep Beam with Smooth Fade-in / Fade-out */}
+        <div
+          aria-hidden
+          className={`pointer-events-none absolute inset-0 z-[3] overflow-hidden transition-opacity duration-500 ease-out ${
+            active ? "opacity-100" : "opacity-0"
+          }`}
+        >
           <div
             key={sweepKey}
-            aria-hidden
-            className={`pointer-events-none absolute inset-x-0 z-[3] ${
+            className={`absolute inset-x-0 ${
               beamType === "amber"
-                ? "h-12 animate-crt-sweep-right"
-                : "h-12 animate-crt-sweep-left"
+                ? "h-14 animate-crt-sweep-right"
+                : "h-14 animate-crt-sweep-left"
             }`}
             style={{
-              transform: "translate3d(0, -100%, 0)",
               background:
                 beamType === "amber"
-                  ? "linear-gradient(to bottom, transparent 0%, rgba(245,158,11,0.4) 50%, transparent 100%)"
-                  : "linear-gradient(to bottom, transparent 0%, rgba(56,189,248,0.4) 50%, transparent 100%)",
+                  ? "linear-gradient(to bottom, transparent 0%, rgba(245,158,11,0.08) 20%, rgba(245,158,11,0.45) 50%, rgba(245,158,11,0.08) 80%, transparent 100%)"
+                  : "linear-gradient(to bottom, transparent 0%, rgba(56,189,248,0.08) 20%, rgba(56,189,248,0.45) 50%, rgba(56,189,248,0.08) 80%, transparent 100%)",
             }}
           />
-        )}
+        </div>
 
         {/* Layer 4: Screen Glare & Monitor Glass Sheen */}
         <div
